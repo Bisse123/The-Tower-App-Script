@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Import Data</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        min-width: 100vw;
+        width: 100vw;
+        height: 100vh;
+        overflow-x: hidden;
+        font-family: 'Segoe UI', Arial, sans-serif;
+      }
+      .centered-content {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      #importButton, #updateMasterIdButton {
+        width: clamp(280px, 60vw, 700px);
+        height: clamp(80px, 16vw, 220px);
+        font-size: clamp(2.2rem, 7vw, 6rem);
+        font-weight: bold;
+        border-radius: 8vw;
+        background: #4caf50;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 24px #2222;
+        cursor: pointer;
+        margin-bottom: 2vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.1;
+        transition: background 0.2s;
+      }
+      #updateMasterIdButton:disabled {
+        background: #999 !important;
+        cursor: not-allowed;
+      }
+      #statusLabel {
+        font-size: clamp(2rem, 5vw, 5rem);
+        color: #333;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 2vw;
+      }
+      /* Modal Overlay Centering */
+      #yesNoModal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0; top: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.3);
+        justify-content: center;
+        align-items: center;
+      }
+      #yesNoModal.visible {
+        display: flex !important;
+      }
+      #yesNoModal .modal-content {
+        background: #fff;
+        border-radius: 16px;
+        padding: 2.5em 2em;
+        max-width: 95vw;
+        width: 420px;
+        box-shadow: 0 4px 18px #3336;
+        text-align: center;
+        font-size: clamp(1.1rem, 3vw, 2.2rem);
+      }
+      .modal-buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1em;
+        width: 100%;
+        margin-top: 2em;
+      }
+      #yesNoModal button {
+        flex: 1 1 0;
+        max-width: 200px;
+        min-width: 100px;
+        padding: 0.5em 2em;
+        font-size: clamp(1.2rem, 4vw, 2.5rem);
+        border-radius: 0.6em;
+        border: none;
+        background: #4caf50;
+        color: #fff;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        text-align: center;
+      }
+      #yesNoModal button:last-child {
+        background: #aaa;
+        color: #222;
+      }
+      @media (max-width: 500px) {
+        #importButton, #updateMasterIdButton {
+          font-size: 11vw;
+          min-height: 28vw;
+          border-radius: 15vw;
+        }
+        #statusLabel {
+          font-size: 9vw;
+        }
+        #yesNoModal .modal-content {
+          width: 98vw;
+          max-width: 98vw;
+          font-size: 7vw;
+          padding: 1.5em 0.8em;
+        }
+        #yesNoModal button {
+          font-size: 7vw;
+        }
+      }
+    </style>
+    <script>
+      // These are dynamically filled by your server script
+      const newSheetID = '<?= newSheetID ?>';
+      const idMasterID = '<?= idMasterID ?>';
+      const sheetType = '<?= sheetType ?>';
+      const oldVersion = '<?= oldVersion ?>';
+      const newVersion = '<?= newVersion ?>';
+      const compareResult = <?= compareResult ?>;
+      const idType = '<?= idType ?>';
+      const isImported = <?= isImported ?>;
+
+      function setStatus(text) {
+        document.getElementById('statusLabel').textContent = text;
+      }
+
+      // Modal logic
+      let yesNoCallback = null;
+      function showYesNo(msg, callback) {
+        document.getElementById('yesNoMsg').textContent = msg;
+        const modal = document.getElementById('yesNoModal');
+        modal.classList.add('visible');
+        yesNoCallback = callback;
+      }
+      function handleYesNo(answer) {
+        const modal = document.getElementById('yesNoModal');
+        modal.classList.remove('visible');
+        if (yesNoCallback) yesNoCallback(callback);
+      }
+
+      // Show modal before running updateAndDeleteSheet
+      function confirmUpdateMasterId(idType, newSheetID, idMasterID) {
+        runUpdateMasterId(idType, newSheetID, idMasterID);
+      }
+
+      // Actually calls updateAndDeleteSheet
+      function runUpdateMasterId(idType, newSheetID, idMasterID) {
+        setStatus("Updating ID Master...");
+        enableUpdateMasterIdBtn(false);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            setStatus(res);
+            enableUpdateMasterIdBtn(true);
+          })
+          .withFailureHandler(function (err) {
+            setStatus("Failed updating master ID!");
+            alert("Failed: " + err.message);
+            enableUpdateMasterIdBtn(true);
+          })
+          .updateAndDeleteSheet(idType, newSheetID, idMasterID);
+      }
+
+      function enableUpdateMasterIdBtn(enable) {
+        const btn = document.getElementById('updateMasterIdButton');
+        if (btn) btn.disabled = !enable;
+      }
+
+      function importData(newSheetID) {
+        setStatus("Importing data...");
+        // DO NOT disable the importButton!
+        google.script.run
+          .withSuccessHandler(function (result) {
+            setStatus("Import completed!");
+            enableUpdateMasterIdBtn(true); // Enable the update button after import
+          })
+          .withFailureHandler(function (error) {
+            setStatus("Failed!");
+            alert('Import failed: ' + error.message);
+            // importButton remains enabled
+          })
+          .startImportData(sheetType, newSheetID);
+      }
+
+      window.onload = function () {
+        // Use strict string comparison for the checkmark
+        enableUpdateMasterIdBtn(isImported === "✅");
+
+        if (compareResult === -1) {
+          alert("The version of the old sheet (" + oldVersion + ") is newer than the new sheet (" + newVersion + "). Import aborted.");
+          return;
+        }
+        if (compareResult > 0) {
+          const msg = "The old sheet uses a different (older) export version (" + oldVersion + "). Do you want to continue the import to version " + newVersion + "?";
+          showYesNo(msg, function(yes) {
+            if (!yes) {
+              setStatus("Import cancelled by user.");
+            }
+          });
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="centered-content">
+      <button
+        id="importButton"
+        onclick="importData(newSheetID)"
+      >
+        Import<br><?= sheetType ?>
+      </button>
+      <button
+        id="updateMasterIdButton"
+        onclick="confirmUpdateMasterId(idType, newSheetID, idMasterID)"
+        disabled
+        style="margin-bottom: 2vw;"
+      >
+        Update<br>Master ID
+      </button>
+      <div id="statusLabel">
+        Idle
+      </div>
+    </div>
+    <!-- Yes/No Modal -->
+    <div id="yesNoModal">
+      <div class="modal-content">
+        <div id="yesNoMsg"></div>
+        <div class="modal-buttons">
+          <button onclick="handleYesNo(true)">Yes</button>
+          <button onclick="handleYesNo(false)">No</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
