@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Google Apps Script credentials (KEEP THIS - sensitive!)
+.clasprc.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build/dist files (if you add build process later)
+dist/
+build/
+
+# Environment files (if you add any)
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.bak
+*.backup
+
+# Archive files (if you create backups)
+*.zip
+*.tar.gz
+*.rar
