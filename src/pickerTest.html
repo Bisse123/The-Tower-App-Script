@@ -38,41 +38,41 @@
     /* Mobile-specific styles */
     @media (max-width: 768px) {
       button {
-        padding: 18px 28px;
-        font-size: 18px;
-        margin: 8px;
-        min-height: 54px;
+        padding: 24px 32px;
+        font-size: 22px;
+        margin: 12px 0;
+        min-height: 70px;
         width: 100%;
-        max-width: 380px; /* Increased max width for very long text */
-        white-space: normal; /* Allow text wrapping on mobile */
+        max-width: 100%;
+        white-space: normal;
         line-height: 1.3;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-      
-      /* Standardized mobile button styling - override desktop rules for mobile */
-      #open_picker_button,
       #continue_button,
-      #add_another_button,
-      #unselect_all_button,
-      #reselect_all_button {
-        padding: 18px 28px !important;
-        min-height: 60px !important;
-        height: 60px !important;
-        max-height: 60px !important;
-        font-size: 17px !important;
-        margin: 8px 0 !important;
+      #add_another_button {
+        padding: 28px 32px !important;
+        min-height: 80px !important;
+        height: 80px !important;
+        max-height: 80px !important;
+        font-size: 24px !important;
+        margin: 12px 0 !important;
         width: 100% !important;
-        max-width: 380px !important;
-        display: block !important;
-        text-align: center !important; /* Ensure text is centered on mobile */
-        line-height: 1.3 !important; /* Consistent mobile line height */
+        max-width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        line-height: 1.3 !important;
       }
-      
       #continue_button {
-        font-size: 19px !important;
-        padding: 20px 32px !important;
-        min-height: 64px !important;
-        height: 64px !important;
-        max-height: 64px !important;
+        font-size: 26px !important;
+        padding: 32px 36px !important;
+        min-height: 90px !important;
+        height: 90px !important;
+        max-height: 90px !important;
       }
       
       body {
@@ -138,11 +138,8 @@
     }
     
     /* Specific styling for button groups - standardized dimensions */
-    #open_picker_button,
     #continue_button,
-    #add_another_button,
-    #unselect_all_button,
-    #reselect_all_button {
+    #add_another_button {
       height: 56px !important; /* Exact height for all buttons */
       min-height: 56px !important; /* Fallback for older browsers */
       max-height: 56px !important; /* Prevent growth */
@@ -157,34 +154,35 @@
       align-items: center; /* Center content vertically for flexbox if applied */
     }
     
-    /* Primary action button */
-    #open_picker_button {
-      width: 320px !important;
-      max-width: 320px !important;
-    }
-    
     /* Action buttons - exact same width */
     #continue_button,
     #add_another_button {
       width: 200px !important;
       max-width: 200px !important;
     }
-    
-    /* Selection management buttons - exact same width */
-    #unselect_all_button,
-    #reselect_all_button {
-      width: 280px !important; /* Wider to accommodate longer text */
-      max-width: 280px !important;
-    }
   </style>
 </head>
 <body>
 <h1>The Tower Import Data</h1>
+
+<div id="status" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+  <strong>Status:</strong> <span id="status_text">Loading...</span>
+</div>
+
+<!--Continue section - always visible-->
+<div id="continue-section" style="display: block; margin: 10px 0; padding: 15px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px;">
+  <h3 style="margin-top: 0; color: #2e7d32;">📁 File Access Required</h3>
+  <p id="selected-summary">Checking which files need access permissions...</p>
+  <div style="margin: 15px 0;">
+    <button id="add_another_button" onclick="addAnotherFile()" style="background-color: #34a853; display: none;">Grant Access to Files</button>
+    <button id="continue_button" onclick="continueToNextStep()" style="background-color: #4caf50; font-size: 18px; display: none;">Update IDS Master</button>
+  </div>
+</div>
 <div id="instructions" style="margin: 10px 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #1976d2; border-radius: 6px;">
-  <h3 style="margin-top: 0; color: #1976d2;">📋 Smart Sheet Selection</h3>
+  <h3 style="margin-top: 0; color: #1976d2;">� File Access Management</h3>
   <div style="margin-bottom: 15px; padding: 10px; background-color: #f0f8ff; border: 1px solid #4285f4; border-radius: 4px;">
-    <p><strong>🎯 Auto-Selection:</strong> Sheets you've previously authorized will be automatically selected when you click "Select Files"!</p>
-    <p><strong>➕ Add More:</strong> Use "Add Another File" to authorize and select additional sheets from the picker.</p>
+    <p><strong>🎯 Automatic Check:</strong> The app will automatically check which files need access permissions when you load the page.</p>
+    <p><strong>🔓 Grant Access:</strong> If files need permission, use the "Grant Access to Files" button to authorize them through Google Picker.</p>
   </div>
   <div id="desktop-instructions">
     <p><strong>Desktop Multi-Select:</strong></p>
@@ -198,31 +196,11 @@
     <p><strong>Mobile/Touch Multi-Select Options:</strong></p>
     <ul>
       <li><strong>Method 1:</strong> Try long-pressing on files to select multiple</li>
-      <li><strong>Method 2:</strong> If that doesn't work, select one file at a time using the "Add Another File" button</li>
+      <li><strong>Method 2:</strong> If that doesn't work, select one file at a time using the "Grant Access to Files" button repeatedly</li>
       <li><strong>Selection:</strong> Selected files will have a blue highlight or checkmark</li>
-      <li><strong>Fallback:</strong> The app will help you collect multiple files even if native multi-select doesn't work</li>
     </ul>
   </div>
-  <p><strong>Finish:</strong> Click "Select" when you've chosen all desired files, then click "Continue" to proceed</p>
-</div>
-
-<!--Continue section - always visible-->
-<div id="continue-section" style="display: block; margin: 10px 0; padding: 15px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px;">
-  <h3 style="margin-top: 0; color: #2e7d32;">✅ Files Selected</h3>
-  <p id="selected-summary">Ready to check and auto-select your authorized sheets.</p>
-  <div style="margin: 15px 0;">
-    <button id="open_picker_button" onclick="handleAuthAndOpenPicker()" style="background-color: #4285f4; font-size: 18px;">Check & Select Relevant Files</button>
-    <button id="continue_button" onclick="continueToNextStep()" style="background-color: #4caf50; font-size: 18px; display: none;">Update IDS Master</button>
-    <button id="reselect_all_button" onclick="reselectAllAccessibleFiles()" style="background-color: #9c27b0; display: none;">Select All Accessible Files</button>
-  </div>
-  <div style="margin: 15px 0;">
-    <button id="add_another_button" onclick="addAnotherFile()" style="background-color: #34a853; display: none;">Add Another File</button>
-    <button id="unselect_all_button" onclick="unselectAllFiles()" style="background-color: #f44336; display: none;">Unselect All Files from Selection</button>
-  </div>
-</div>
-
-<div id="status" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
-  <strong>Status:</strong> <span id="status_text">Loading...</span>
+  <p><strong>Process:</strong> Once all required files have been granted access, the "Continue" button will appear to proceed to the next step.</p>
 </div>
 
 <script type="text/javascript">
@@ -236,6 +214,7 @@
   let selectedFiles = []; // Store selected files for mobile multi-select fallback
   let finalSelectedFiles = []; // Store the final selection for continue step
   let accessibleFilesCache = []; // Store the last known accessible files for reselection
+  let inaccessibleFilesCache = []; // Store files that need access permissions
 
   // Detect mobile devices
   function detectMobile() {
@@ -260,68 +239,20 @@
     document.getElementById('desktop-instructions').style.display = 'block';
     document.getElementById('mobile-instructions').style.display = 'none';
   }
-
-  // Add another file function - works for both mobile and desktop
+  // Grant access to files function - opens picker with only inaccessible files
   function addAnotherFile() {
-    // Store current selection before opening picker to add more files
-    if (finalSelectedFiles.length > 0 && selectedFiles.length === 0) {
-      // If we have final selected files but selectedFiles is empty, use finalSelectedFiles
-      selectedFiles = finalSelectedFiles.slice();
-    }
-    
-    document.getElementById('status_text').innerText = 'Opening picker to add more files to your selection...';
-    openPicker();
+    ensureAuthThenOpenPicker();
   }
 
-  // Change selection - reset everything and open picker
-  function changeSelection() {
-    selectedFiles = [];
-    finalSelectedFiles = [];
-    document.getElementById('status_text').innerText = 'Opening picker to select new files...';
-    
-    // Show continue section with 0 files and proper button states
-    showContinueSection([]);
-    
-    // Open picker for new selection
-    if (accessToken && pickerInited) {
+  // Ensures auth, then opens picker if successful
+  async function ensureAuthThenOpenPicker() {
+    document.getElementById('status_text').innerText = 'Checking authorization...';
+    const authSuccess = await handleAuthAndCheckAccess();
+    if (authSuccess) {
       openPicker();
     } else {
-      // If not authorized yet, trigger auth and picker
-      handleAuthAndOpenPicker();
+      document.getElementById('status_text').innerText = 'Authorization failed. Cannot open picker.';
     }
-  }
-
-  // Remove all files from selection - new simplified function
-  function unselectAllFiles() {
-    selectedFiles = [];
-    finalSelectedFiles = [];
-    document.getElementById('status_text').innerText = 'All files removed from selection.';
-    
-    // Show continue section with 0 files and proper button states
-    showContinueSection([]);
-  }
-
-  // Reselect all accessible files that the app script has access to
-  function reselectAllAccessibleFiles() {
-    if (accessibleFilesCache.length === 0) {
-      document.getElementById('status_text').innerText = 'No accessible files found. Please check access first.';
-      return;
-    }
-
-    // Restore the cached accessible files
-    selectedFiles = accessibleFilesCache.slice();
-    finalSelectedFiles = accessibleFilesCache.slice();
-    
-    // Show the continue section with reselected files
-    showContinueSection(accessibleFilesCache);
-    
-    document.getElementById('status_text').innerText = 
-      `Reselected all ${accessibleFilesCache.length} accessible file(s).`;
-  }
-
-  function updateSelectedFilesDisplay() {
-    // This function is no longer needed as we moved the UI to the continue section
-    // Keeping it for compatibility but it does nothing
   }
 
   // Continue to next step function
@@ -346,12 +277,6 @@
       .processSelectedFiles(fileIds);
   }
 
-  // Reset selection and start over
-  function resetSelection() {
-    // This function is kept for compatibility but redirects to changeSelection
-    changeSelection();
-  }
-
   // Handle successful processing
   function onProcessSuccess(result) {
     document.getElementById('continue_button').disabled = false;
@@ -372,86 +297,43 @@
     document.getElementById('status_text').innerText = `Processing error: ${error.message || error}`;
   }
 
-  // Show continue section with file summary
-  function showContinueSection(files) {
-    finalSelectedFiles = files.slice(); // Copy the selected files
+  // Show continue section with inaccessible files that need permission
+  function showContinueSection(accessibleFiles = [], inaccessibleFiles = []) {
+    // Cache the files for later use
+    accessibleFilesCache = accessibleFiles.slice();
+    inaccessibleFilesCache = inaccessibleFiles.slice();
     
     const summary = document.getElementById('selected-summary');
-    if (files.length === 0) {
-      summary.innerHTML = `<strong>0</strong> file(s) selected:`;
-    } else {
-      summary.innerHTML = `<strong>${files.length}</strong> file(s) selected:<br>` + 
-                         files.map(file => `• ${file[google.picker.Document.NAME]}`).slice(0, 5).join('<br>') +
-                         (files.length > 5 ? `<br>• ... and ${files.length - 5} more` : '');
-    }
-    
-    // Show appropriate buttons based on auth state and file selection
-    const openPickerButton = document.getElementById('open_picker_button');
-    const continueButton = document.getElementById('continue_button');
     const addAnotherButton = document.getElementById('add_another_button');
-    const reselectButton = document.getElementById('unselect_all_button');
-    const reselectAllButton = document.getElementById('reselect_all_button');
+    const continueButton = document.getElementById('continue_button');
     
-    if (!accessToken) {
-      // Not authorized yet - show only open picker button
-      openPickerButton.style.display = 'inline-block';
-      continueButton.style.display = 'none';
+    if (inaccessibleFiles.length === 0) {
+      // All files are accessible - show continue button
+      summary.innerHTML = `<strong>✅ All Required Files Accessible</strong><br>` +
+                         `The app script has access to all ${accessibleFiles.length} required file(s). You can proceed to the next step.`;
       addAnotherButton.style.display = 'none';
-      reselectButton.style.display = 'none';
-      reselectAllButton.style.display = 'none';
-    } else {
-      // Authorized - hide open picker button, show other buttons
-      openPickerButton.style.display = 'none';
       continueButton.style.display = 'inline-block';
+      
+      // Set final selected files to all accessible files for processing
+      finalSelectedFiles = accessibleFiles.slice();
+      
+    } else {
+      // Some files need access - show grant access button
+      summary.innerHTML = `<strong>🔐 ${inaccessibleFiles.length} File(s) Need Access Permission</strong><br>` +
+                         `Please grant access to the following file(s):<br>` +
+                         inaccessibleFiles.slice(0, 5).map(file => `• ${file.name || file.id}`).join('<br>') +
+                         (inaccessibleFiles.length > 5 ? `<br>• ... and ${inaccessibleFiles.length - 5} more` : '');
+      // List names of accessible files
+      if (accessibleFiles.length > 0) {
+        summary.innerHTML += `<br><br>You have granted access to ${accessibleFiles.length} file(s):` +
+                            '<br>' + accessibleFiles.map(file => `&nbsp;&nbsp;• ${file.name || file[google.picker.Document.ID]}`).join('<br>');
+      }
+      
       addAnotherButton.style.display = 'inline-block';
-      
-      // Show remove button only if files are selected
-      if (files.length > 0) {
-        reselectButton.style.display = 'inline-block';
-      } else {
-        reselectButton.style.display = 'none';
-      }
-      
-      // Show reselect all button only if we have accessible files cached 
-      // and not all accessible files are currently selected
-      if (accessibleFilesCache.length > 0) {
-        // Check if all accessible files are currently selected
-        const allAccessibleSelected = accessibleFilesCache.every(accessibleFile => 
-          files.some(selectedFile => 
-            selectedFile[google.picker.Document.ID] === accessibleFile[google.picker.Document.ID]
-          )
-        );
-        
-        // Hide the button if all accessible files are already selected or if no files are selected
-        if (allAccessibleSelected && files.length === accessibleFilesCache.length) {
-          reselectAllButton.style.display = 'none';
-        } else {
-          reselectAllButton.style.display = 'inline-block';
-        }
-      } else {
-        reselectAllButton.style.display = 'none';
-      }
+      continueButton.style.display = 'none';
     }
     
     document.getElementById('continue-section').style.display = 'block';
-    
-    // Scroll to continue section only if files are selected
-    if (files.length > 0) {
-      document.getElementById('continue-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-
-  // Helper function to handle file selection display
-  function displayFiles(documents, isFallbackMode) {
-    // Show continue section for any successful file selection
-    showContinueSection(documents);
-    
-    // Update status with device-specific feedback
-    if (isMobile && documents.length === 1 && !isFallbackMode) {
-      document.getElementById('status_text').innerText = `Selected 1 file. Use "Add Another File" to add more files to your selection, or click "Continue" to proceed.`;
-    } else {
-      document.getElementById('status_text').innerText = `Selected ${documents.length} file(s) successfully. Click "Continue" to proceed to next step.`;
-    }
   }
 
   document.getElementById('status_text').innerText = 'Initializing APIs...';
@@ -487,11 +369,11 @@
       console.log('Picker API available:', typeof google.picker !== 'undefined');
       
       pickerInited = true;
-      document.getElementById('open_picker_button').style.visibility = 'visible';
-      document.getElementById('status_text').innerText = 'Ready - Click "Select Files" to begin';
+      document.getElementById('status_text').innerText = 'Checking file access permissions...';
       
-      // Show continue section on load with 0 files
-      showContinueSection([]);
+      // Automatically start the authorization and access checking process
+      handleAuthAndCheckAccess();
+      
     } catch (error) {
       console.error('Error initializing GAPI client:', error);
       document.getElementById('status_text').innerText = `Initialization error: ${error.message}`;
@@ -499,138 +381,54 @@
   }
 
   /**
-   * Combined function to authorize, check sheet access, and open picker
+   * Combined function to authorize and check file access
    */
-  function handleAuthAndOpenPicker() {
-    document.getElementById('status_text').innerText = 'Getting authorization from Apps Script...';
-    document.getElementById('open_picker_button').disabled = true;
-    
-    // Call Apps Script server-side function to get OAuth token
-    google.script.run
-      .withSuccessHandler(onAuthSuccessAndCheckAccess)
-      .withFailureHandler(onAuthFailure)
-      .getOAuthToken();
-  }
-
-  /**
-   * Get OAuth token from Apps Script server-side (legacy function - kept for compatibility)
-   */
-  function handleAuthClick() {
-    document.getElementById('status_text').innerText = 'Getting authorization from Apps Script...';
-    document.getElementById('open_picker_button').disabled = true;
-    
-    // Call Apps Script server-side function to get OAuth token
-    google.script.run
-      .withSuccessHandler(onAuthSuccess)
-      .withFailureHandler(onAuthFailure)
-      .getOAuthToken();
-  }
-
-  /**
-   * Handle successful authorization and check which sheets are already accessible
-   */
-  function onAuthSuccessAndCheckAccess(result) {
-    console.log('Auth success result:', result);
-    
-    if (result.success) {
-      accessToken = result.token;
-      console.log('OAuth token received from Apps Script:');
-      console.log('- Token present:', accessToken ? 'Yes' : 'No');
-      console.log('- Token length:', accessToken ? accessToken.length : 0);
-      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
-      
-      // Hide the open picker button and show other buttons after auth
-      document.getElementById('open_picker_button').style.display = 'none';
-      document.getElementById('continue_button').style.display = 'inline-block';
-      document.getElementById('unselect_all_button').style.display = 'inline-block';
-      document.getElementById('add_another_button').style.display = 'inline-block';
-      
-      document.getElementById('status_text').innerText = 'Authorized successfully! Checking sheet access...';
-      
-      // Check which sheets are already accessible
+  function handleAuthAndCheckAccess() {
+    // If we already have a valid accessToken, skip re-auth and just check access
+    if (accessToken) {
+      // Check which sheets are accessible vs inaccessible
       google.script.run
         .withSuccessHandler(onSheetAccessCheckSuccess)
         .withFailureHandler(onSheetAccessCheckFailure)
         .checkSheetAccess();
-        
-    } else {
-      console.error('Authorization failed:', result.message);
-      document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
+      return Promise.resolve(true);
     }
-  }
-
-  /**
-   * Handle successful authorization and automatically open picker (legacy function)
-   */
-  function onAuthSuccessAndOpenPicker(result) {
-    console.log('Auth success result:', result);
-    
-    if (result.success) {
-      accessToken = result.token;
-      console.log('OAuth token received from Apps Script:');
-      console.log('- Token present:', accessToken ? 'Yes' : 'No');
-      console.log('- Token length:', accessToken ? accessToken.length : 0);
-      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
-      
-      // Hide the open picker button and show other buttons after auth
-      document.getElementById('open_picker_button').style.display = 'none';
-      document.getElementById('continue_button').style.display = 'inline-block';
-      document.getElementById('unselect_all_button').style.display = 'inline-block';
-      document.getElementById('add_another_button').style.display = 'inline-block';
-      
-      document.getElementById('status_text').innerText = 'Authorized successfully! Opening picker...';
-      
-      // Show continue section immediately after successful auth with 0 files
-      showContinueSection([]);
-      
-      // Test Drive access first, then open picker
+    return new Promise((resolve) => {
+      document.getElementById('status_text').innerText = 'Getting authorization from Apps Script...';
+      // Call Apps Script server-side function to get OAuth token
       google.script.run
-        .withSuccessHandler(function(driveResult) {
-          if (driveResult.success) {
-            console.log('Drive API access confirmed, opening picker');
-            openPicker();
-          } else {
-            console.warn('Drive API test failed, but trying picker anyway');
-            openPicker();
-          }
+        .withSuccessHandler(function(result) {
+          const authSuccess = onAuthSuccessAndCheckAccess(result);
+          resolve(authSuccess);
         })
         .withFailureHandler(function(error) {
-          console.warn('Drive API test error, but trying picker anyway:', error);
-          openPicker();
+          onAuthFailure(error);
+          resolve(false);
         })
-        .testDriveAccess();
-        
-    } else {
-      console.error('Authorization failed:', result.message);
-      document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
-    }
+        .getOAuthToken();
+    });
   }
 
   /**
-   * Handle successful authorization (legacy function)
+   * Handle successful authorization and check which sheets are already accessible
+   * Returns true if auth was successful, false otherwise
    */
-  function onAuthSuccess(result) {
-    document.getElementById('open_picker_button').disabled = false;
-    
+  function onAuthSuccessAndCheckAccess(result) {
     console.log('Auth success result:', result);
-    
     if (result.success) {
       accessToken = result.token;
-      console.log('OAuth token received from Apps Script:');
-      console.log('- Token present:', accessToken ? 'Yes' : 'No');
-      console.log('- Token length:', accessToken ? accessToken.length : 0);
-      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
-      
-      document.getElementById('status_text').innerText = 'Authorized successfully! You can now open the picker.';
-      
-      // Test Drive access
+      console.log('OAuth token received from Apps Script');
+      document.getElementById('status_text').innerText = 'Authorized successfully! Checking file access...';
+      // Check which sheets are accessible vs inaccessible
       google.script.run
-        .withSuccessHandler(onDriveTestSuccess)
-        .withFailureHandler(onDriveTestFailure)
-        .testDriveAccess();
+        .withSuccessHandler(onSheetAccessCheckSuccess)
+        .withFailureHandler(onSheetAccessCheckFailure)
+        .checkSheetAccess();
+      return true;
     } else {
       console.error('Authorization failed:', result.message);
       document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
+      return false;
     }
   }
 
@@ -644,72 +442,39 @@
   }
 
   /**
-   * Handle Drive API test results
-   */
-  function onDriveTestSuccess(result) {
-    if (result.success) {
-      console.log('Drive API access confirmed');
-    } else {
-      console.warn('Drive API test failed:', result.message);
-    }
-  }
-
-  function onDriveTestFailure(error) {
-    console.warn('Drive API test error:', error);
-  }
-
-  /**
    * Handle successful sheet access check
    */
   function onSheetAccessCheckSuccess(result) {
     console.log('Sheet access check result:', result);
     
     if (result.success) {
-      if (result.accessibleFiles.length > 0) {
-        // Auto-select accessible sheets
-        console.log('Auto-selecting', result.accessibleFiles.length, 'accessible sheets');
-        
-        // Convert server result into picker document format for consistency
-        const autoSelectedDocuments = result.accessibleDetails.map(file => {
-          const doc = {};
-          doc[google.picker.Document.ID] = file.id;
-          doc[google.picker.Document.NAME] = file.name;
-          doc[google.picker.Document.MIME_TYPE] = file.mimeType;
-          doc[google.picker.Document.URL] = file.webViewLink;
-          return doc;
-        });
-        
-        // Cache the accessible files for reselection
-        accessibleFilesCache = autoSelectedDocuments.slice();
-        
-        // Set up the selection
-        selectedFiles = autoSelectedDocuments.slice();
-        finalSelectedFiles = autoSelectedDocuments.slice();
-        
-        // Show the continue section with auto-selected files
-        showContinueSection(autoSelectedDocuments);
-        
-        if (result.inaccessibleFiles.length > 0) {
-          document.getElementById('status_text').innerText = 
-            `Auto-selected ${result.accessibleFiles.length} accessible sheet(s). ` +
-            `Use "Add Another File" to grant access to ${result.inaccessibleFiles.length} additional sheet(s).`;
-        } else {
-          document.getElementById('status_text').innerText = 
-            `Auto-selected all ${result.accessibleFiles.length} sheet(s)! You can continue or add more files.`;
-        }
-        
-      } else {
-        // No accessible sheets found
+      // Convert accessible files to picker document format
+      const accessibleDocuments = result.accessibleDetails ? result.accessibleDetails.map(file => {
+        const doc = {};
+        doc[google.picker.Document.ID] = file.id;
+        doc[google.picker.Document.NAME] = file.name;
+        doc[google.picker.Document.MIME_TYPE] = file.mimeType;
+        doc[google.picker.Document.URL] = file.webViewLink;
+        return doc;
+      }) : [];
+      
+      // Show the continue section with accessible and inaccessible files
+      showContinueSection(accessibleDocuments, result.inaccessibleFiles || []);
+      
+      if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
         document.getElementById('status_text').innerText = 
-          `No pre-authorized sheets found. Use "Add Another File" to select and authorize sheets.`;
-        showContinueSection([]);
+          `Found ${result.inaccessibleFiles.length} file(s) that need access permission. ` +
+          `${result.accessibleFiles.length} file(s) are already accessible.`;
+      } else {
+        document.getElementById('status_text').innerText = 
+          `All ${result.accessibleFiles.length} required file(s) are accessible! You can proceed.`;
       }
       
     } else {
       console.error('Sheet access check failed:', result.message);
       document.getElementById('status_text').innerText = 
-        `Could not check sheet access: ${result.message}. You can still use "Add Another File" to select sheets.`;
-      showContinueSection([]);
+        `Could not check file access: ${result.message}`;
+      showContinueSection([], []);
     }
   }
 
@@ -722,10 +487,6 @@
       `Error checking sheet access: ${error.message || error}. You can still use "Add Another File" to select sheets.`;
     showContinueSection([]);
   }
-
-  /**
-   * Open the Google Picker with file ID filtering and multi-select enabled
-   */
   function openPicker() {
     console.log('openPicker called');
     console.log('accessToken:', accessToken ? 'Present' : 'Missing');
@@ -748,77 +509,39 @@
       return;
     }
 
-    // Get sheet IDs from server and then create picker
-    document.getElementById('status_text').innerText = 'Getting sheet IDs from server...';
-    
-    google.script.run
-      .withSuccessHandler(onSheetIdsSuccess)
-      .withFailureHandler(onSheetIdsFailure)
-      .getSheetIds();
-  }
-
-  /**
-   * Handle successful sheet IDs retrieval and create picker
-   */
-  function onSheetIdsSuccess(result) {
-    console.log('Sheet IDs result:', result);
-    
-    if (!result.success) {
-      console.error('Failed to get sheet IDs:', result.message);
-      document.getElementById('status_text').innerText = `Failed to get sheet IDs: ${result.message}`;
+    // Check if we have inaccessible files to show
+    if (inaccessibleFilesCache.length === 0) {
+      document.getElementById('status_text').innerText = 'No files need access permission';
       return;
     }
 
+    // Extract file IDs from inaccessible files, filter out any without a valid id
+    const inaccessibleFileIds = inaccessibleFilesCache
+      .map(file => file.id)
+      .filter(id => typeof id === 'string' && id.length > 0);
+    if (inaccessibleFileIds.length !== inaccessibleFilesCache.length) {
+      console.warn('Some inaccessible files are missing an id:', inaccessibleFilesCache);
+    }
+    console.log('Opening picker with inaccessible file IDs:', inaccessibleFileIds);
+    
     try {
-      document.getElementById('status_text').innerText = 'Creating filtered picker...';
-      console.log('Creating picker with:');
-      console.log('- API Key:', API_KEY);
-      console.log('- App ID:', APP_ID);
-      console.log('- Token length:', accessToken ? accessToken.length : 0);
-      console.log('- Sheet IDs:', result.fileIds);
+      document.getElementById('status_text').innerText = 'Opening picker with files that need access...';
       
       // Convert array to comma-separated string for setFileIds
-      const fileIdsString = result.fileIds.join(',');
-      console.log('- File IDs string:', fileIdsString);
-      
-      let view;
-      
-      if (fileIdsString && result.fileIds.length > 0) {
-        // Create filtered view with specific file IDs
-        console.log('Creating filtered docs view with', result.fileIds.length, 'file IDs');
-        view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-            .setFileIds(fileIdsString)
-            .setIncludeFolders(false)
-            .setSelectFolderEnabled(false)
-            .setMode(google.picker.DocsViewMode.GRID);
-            
-        // Try setting a label on the view (deprecated but sometimes still works)
-        try {
-          if (view.setLabel) {
-            view.setLabel('Filtered Sheets');
-          }
-        } catch (e) {
-          console.log('Could not set view label:', e);
-        }
-      } else {
-        // Create general view if no file IDs provided
-        console.log('Creating general docs view (no filtering)');
-        view = new google.picker.DocsView(google.picker.ViewId.DOCS)
-            .setIncludeFolders(true)
-            .setSelectFolderEnabled(false)
-            .setMode(google.picker.DocsViewMode.GRID);
-            
-        // Try setting a label on the view
-        try {
-          if (view.setLabel) {
-            view.setLabel('All Files');
-          }
-        } catch (e) {
-          console.log('Could not set view label:', e);
-        }
+      const fileIdsString = inaccessibleFileIds.join(',');
+      console.log('File IDs string:', fileIdsString);
+      if (!fileIdsString) {
+        document.getElementById('status_text').innerText = 'No valid file IDs to show in picker.';
+        return;
       }
+      // Create filtered view with only inaccessible file IDs
+      const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+          .setFileIds(fileIdsString)
+          .setIncludeFolders(false)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.GRID);
       
-      console.log('DocsView created');
+      console.log('DocsView created with', inaccessibleFileIds.length, 'inaccessible files');
       
       // Create picker with optimized settings for mobile/desktop
       const pickerBuilder = new google.picker.PickerBuilder()
@@ -829,12 +552,10 @@
       // Configure picker size based on device type
       let pickerWidth, pickerHeight;
       if (isMobile) {
-        // Mobile-optimized size - use almost the full screen with larger dimensions
         pickerWidth = Math.min(window.innerWidth - 10, 900);
         pickerHeight = Math.min(window.innerHeight - 50, 750);
         console.log('Mobile picker size:', pickerWidth + 'x' + pickerHeight);
       } else {
-        // Desktop size - increased from default
         pickerWidth = 1200;
         pickerHeight = 800;
         console.log('Desktop picker size:', pickerWidth + 'x' + pickerHeight);
@@ -844,76 +565,41 @@
       const picker = pickerBuilder
           .addView(view)
           .setCallback(pickerCallback)
-          .setOrigin('https://script.google.com')
+          // .setOrigin(google.script.host.origin)
+          // .setOrigin(window.location.origin)
+          .setOrigin('<?= origin ?>')
           .setSize(pickerWidth, pickerHeight)
           .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
       
       // Add features based on device type
       if (!isMobile) {
-        // Desktop-specific features
         picker.enableFeature(google.picker.Feature.MINE_ONLY)
               .enableFeature(google.picker.Feature.NAV_HIDDEN);
       } else {
-        // Mobile: Keep navigation for easier browsing and add mobile-friendly features
         picker.enableFeature(google.picker.Feature.MINE_ONLY);
-        // Enable simple upload for mobile if available
-        try {
-          picker.enableFeature(google.picker.Feature.SIMPLE_UPLOAD_ENABLED);
-        } catch (e) {
-          console.log('Simple upload not available:', e);
-        }
-        console.log('Mobile mode: Navigation kept visible, larger window size for better mobile experience');
       }
       
       const builtPicker = picker.build();
       
-      console.log('Picker built successfully with multi-select enabled');
-      console.log('Device type:', isMobile ? 'Mobile' : 'Desktop');
-      console.log('Picker size:', pickerWidth + 'x' + pickerHeight);
+      console.log('Picker built successfully with', inaccessibleFileIds.length, 'inaccessible files');
       
-      if (fileIdsString && result.fileIds.length > 0) {
-        const instructionText = isMobile ? 
-          `Opening filtered picker (${result.fileIds.length} sheets).` :
-          `Opening filtered picker (${result.fileIds.length} sheets).`;
-        document.getElementById('status_text').innerText = instructionText;
-      } else {
-        const instructionText = isMobile ?
-          'Opening picker with all accessible files.' :
-          'Opening picker with all accessible files.';
-        document.getElementById('status_text').innerText = instructionText;
-      }
+      document.getElementById('status_text').innerText = 
+        `Select the files you want to grant access to (${inaccessibleFileIds.length} files available).`;
       
       builtPicker.setVisible(true);
       console.log('Picker.setVisible(true) called');
       
     } catch (error) {
       console.error('Error creating/showing picker:', error);
-      console.error('Error stack:', error.stack);
       document.getElementById('status_text').innerText = `Picker error: ${error.message}`;
-      
-      // Fallback: Try to open Drive in a new window for file selection
-      console.log('Fallback: Opening Google Drive in new window');
-      const driveUrl = `https://drive.google.com/drive/my-drive`;
-      const popup = window.open(driveUrl, 'drive_picker', 'width=800,height=600');
-      document.getElementById('status_text').innerText = 'Opened Google Drive in popup - copy file URLs manually';
     }
   }
 
   /**
-   * Handle sheet IDs retrieval failure
-   */
-  function onSheetIdsFailure(error) {
-    console.error('Error getting sheet IDs:', error);
-    document.getElementById('status_text').innerText = `Error getting sheet IDs: ${error.message || error}`;
-  }
-
-  /**
-   * Displays the file details of the user's selection.
-   * Enhanced for mobile multi-select feedback and desktop "Add Another File"
+   * Handle picker callback - process newly granted access
    */
   async function pickerCallback(data) {
     console.log('Picker callback received:', data);
-    console.log('Device type during callback:', isMobile ? 'Mobile' : 'Desktop');
     
     try {
       if (data.action === google.picker.Action.PICKED) {
@@ -924,63 +610,18 @@
           return;
         }
         
-        // Handle both desktop multi-select and adding to existing selection
-        if (finalSelectedFiles.length > 0) {
-          // We already have files selected - this is "Add Another File" mode
-          // Merge new selection with existing selection
-          documents.forEach(newFile => {
-            const fileId = newFile[google.picker.Document.ID];
-            
-            // Check if this file is already selected
-            const existingIndex = finalSelectedFiles.findIndex(file => file[google.picker.Document.ID] === fileId);
-            
-            if (existingIndex === -1) {
-              // Add new file to existing selection
-              finalSelectedFiles.push(newFile);
-              selectedFiles.push(newFile); // Also update mobile fallback array
-            }
-          });
-          
-          document.getElementById('status_text').innerText = `Selection updated. Total: ${finalSelectedFiles.length} file(s)`;
-          
-          // Display the updated selection
-          displayFiles(finalSelectedFiles, true);
-          
-          return;
-        }
+        document.getElementById('status_text').innerText = 
+          `Access granted to ${documents.length} file(s). Rechecking access status...`;
         
-        // Handle mobile fallback multi-select (when starting fresh or native mobile multi-select fails)
-        if (isMobile && documents.length === 1 && finalSelectedFiles.length === 0) {
-          // Check if this file is already selected in mobile fallback array
-          const newFile = documents[0];
-          const fileId = newFile[google.picker.Document.ID];
-          const existingIndex = selectedFiles.findIndex(file => file[google.picker.Document.ID] === fileId);
-          
-          if (existingIndex === -1) {
-            // Add new file to selection
-            selectedFiles.push(newFile);
-            document.getElementById('status_text').innerText = `Added "${newFile[google.picker.Document.NAME]}" to selection. Total: ${selectedFiles.length} file(s)`;
-          } else {
-            // File already selected
-            document.getElementById('status_text').innerText = `"${newFile[google.picker.Document.NAME]}" is already selected. Total: ${selectedFiles.length} file(s)`;
-          }
-          
-          // Use selectedFiles for display instead of just the current selection
-          displayFiles(selectedFiles, true);
-          
-        } else {
-          // Normal multi-select worked or desktop mode (fresh selection)
-          if (isMobile && documents.length > 1) {
-            // Native mobile multi-select worked!
-            selectedFiles = documents.slice(); // Copy all selected files
-          }
-          
-          displayFiles(documents, false);
-        }
+        // Recheck access status after files were selected in picker
+        google.script.run
+          .withSuccessHandler(onSheetAccessCheckSuccess)
+          .withFailureHandler(onSheetAccessCheckFailure)
+          .checkSheetAccess();
         
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log('User cancelled the picker');
-        document.getElementById('status_text').innerText = 'Picker cancelled';
+        document.getElementById('status_text').innerText = 'File selection cancelled';
         
       } else {
         console.log('Unknown picker action:', data.action);

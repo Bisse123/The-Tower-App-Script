@@ -1,20 +1,26 @@
 function doGet() {
-  const fileIdsArray = getFileIdsArray();
-  
-  const template = HtmlService.createTemplateFromFile('pickerTest');
-  template.fileIdsArray = fileIdsArray;
-  
+  const template = HtmlService.createTemplateFromFile('main');
   return template.evaluate()
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+    // .setSandboxMode(HtmlService.SandboxMode.IFRAME);
 }
+
+function getPickerHtml() {
+  var template = HtmlService.createTemplateFromFile('pickerTest');
+  template.origin = "https://script.google.com";
+
+  return template.evaluate().getContent();
+}
+
 function getFileIdsArray() {
   const fileIds = [
     "1matne6T83-cQNHppR1xpdVP3rlkQb5kC7Qxz0sh0BZU",
     "1me78RwHtYprlCJflAuaIY_9gxoyb0zldss70bIQy40g",
-    "1JyJ8ta_Py3akmWPCJbNkX1C_N2STU-mywEjlt5YLnXc"
+    "1JyJ8ta_Py3akmWPCJbNkX1C_N2STU-mywEjlt5YLnXc",
+    "1VhvINtUXcqcdHe5bvStGDRb6bzDdlHe1bApJhNgQrBA"
   ];
   return fileIds;
 }
+
 function getOAuthToken() {
   try {
     const token = ScriptApp.getOAuthToken();
@@ -32,30 +38,7 @@ function getOAuthToken() {
     };
   }
 }
-function testDriveAccess() {
-  try {
-    const files = Drive.Files.list({
-      pageSize: 1,
-      fields: 'files(id,name)'
-    });
-    
-    return {
-      success: true,
-      message: 'Drive access working',
-      fileCount: files.files ? files.files.length : 0
-    };
-  } catch (error) {
-    console.error('Drive access error:', error);
-    return {
-      success: false,
-      message: error.toString()
-    };
-  }
-}
 
-/**
- * Get sheet IDs for the picker and check which ones are already accessible
- */
 function getSheetIds() {
   try {
     const fileIds = getFileIdsArray();
@@ -74,10 +57,6 @@ function getSheetIds() {
   }
 }
 
-/**
- * Check which predefined sheets the user already has access to
- * Returns accessible and inaccessible file IDs separately
- */
 function checkSheetAccess() {
   try {
     const fileIds = getFileIdsArray();
@@ -89,7 +68,6 @@ function checkSheetAccess() {
     
     fileIds.forEach(fileId => {
       try {
-        // Try to get basic file information - this will work if user has access
         const file = Drive.Files.get(fileId, {
           fields: 'id,name,mimeType,webViewLink'
         });
@@ -105,7 +83,13 @@ function checkSheetAccess() {
         
       } catch (error) {
         console.log('No access to file:', fileId, 'Error:', error.toString());
-        inaccessibleFiles.push(fileId);
+        let name = null;
+        try {
+          const ss = SpreadsheetApp.openById(fileId);
+          name = ss.getName();
+        } catch (e) {
+        }
+        inaccessibleFiles.push({ id: fileId, name: name });
       }
     });
     
@@ -135,11 +119,6 @@ function checkSheetAccess() {
 function processSelectedFiles(fileIds) {
   try {
     console.log('Processing file IDs:', fileIds);
-    
-    // Your processing logic here
-    // Since user selected these files, you have drive.file scope access
-    
-    // Example: Get file details using Drive API
     const fileDetails = fileIds.map(fileId => {
       const file = Drive.Files.get(fileId, {
         fields: 'id,name,mimeType,size,modifiedTime,webViewLink,parents'
@@ -168,4 +147,13 @@ function processSelectedFiles(fileIds) {
       message: error.toString()
     };
   }
+}
+
+function showImportDialog() {
+  var template = HtmlService.createTemplateFromFile('pickerTest');
+  template.origin = "https://docs.google.com";
+  var html = template.evaluate()
+    .setWidth(1500)
+    .setHeight(700);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Tower Import Data');
 }
