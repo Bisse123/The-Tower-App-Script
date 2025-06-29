@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Error</title>
+    <?!= HtmlService.createHtmlOutputFromFile('onError.styles').getContent(); ?>
+  </head>
+  <body>
+    <div class="error">
+      <h2>Error</h2>
+      <p><?= errorMessage ?></p>
+    </div>
+  </body>
+</html>

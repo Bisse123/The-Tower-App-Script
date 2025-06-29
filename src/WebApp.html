@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <?!= HtmlService.createHtmlOutputFromFile('WebApp.styles').getContent(); ?>
+    <title>Import Data</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <div class="centered-content">
+      <button
+        id="importButton"
+        onclick="importData(newSheetID)"
+      >
+        Import<br><?= sheetType ?>
+      </button>
+      <button
+        id="updateMasterIdButton"
+        onclick="confirmUpdateMasterId(idType, newSheetID, idMasterID)"
+        disabled
+        style="margin-bottom: 2vw;"
+      >
+        Update<br>Master ID
+      </button>
+      <div id="statusLabel">
+        Idle
+      </div>
+    </div>
+    <!-- Yes/No Modal -->
+    <div id="yesNoModal">
+      <div class="modal-content">
+        <div id="yesNoMsg"></div>
+        <div class="modal-buttons">
+          <button onclick="handleYesNo(true)">Yes</button>
+          <button onclick="handleYesNo(false)">No</button>
+        </div>
+      </div>
+    </div>
+    <?!= HtmlService.createHtmlOutputFromFile('WebApp.scripts').getContent(); ?>
+  </body>
+</html>
