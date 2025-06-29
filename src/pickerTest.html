@@ -1,158 +1,997 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Picker API Quickstart</title>
+  <title>The Tower Import Data</title>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      line-height: 1.4;
+    }
+    
+    button {
+      padding: 14px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4285f4;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+      min-height: 48px; /* Increased minimum touch target size */
+      white-space: nowrap; /* Prevent text wrapping */
+      text-align: center;
+      line-height: 1.2;
+    }
+    
+    button:hover {
+      background-color: #3367d6;
+    }
+    
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      button {
+        padding: 18px 28px;
+        font-size: 18px;
+        margin: 8px;
+        min-height: 54px;
+        width: 100%;
+        max-width: 380px; /* Increased max width for very long text */
+        white-space: normal; /* Allow text wrapping on mobile */
+        line-height: 1.3;
+      }
+      
+      /* Standardized mobile button styling - override desktop rules for mobile */
+      #open_picker_button,
+      #continue_button,
+      #add_another_button,
+      #unselect_all_button,
+      #reselect_all_button {
+        padding: 18px 28px !important;
+        min-height: 60px !important;
+        height: 60px !important;
+        max-height: 60px !important;
+        font-size: 17px !important;
+        margin: 8px 0 !important;
+        width: 100% !important;
+        max-width: 380px !important;
+        display: block !important;
+        text-align: center !important; /* Ensure text is centered on mobile */
+        line-height: 1.3 !important; /* Consistent mobile line height */
+      }
+      
+      #continue_button {
+        font-size: 19px !important;
+        padding: 20px 32px !important;
+        min-height: 64px !important;
+        height: 64px !important;
+        max-height: 64px !important;
+      }
+      
+      body {
+        font-size: 16px;
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      #instructions {
+        font-size: 16px;
+      }
+      
+      #status {
+        font-size: 16px;
+        padding: 12px;
+      }
+      
+      #continue-section {
+        padding: 20px;
+      }
+      
+      #selected-summary {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+    }
+    
+    kbd {
+      background-color: #f1f3f4;
+      border: 1px solid #dadce0;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #3c4043;
+    }
+    
+    #continue-section {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #continue_button {
+      transition: all 0.2s ease;
+    }
+    
+    #continue_button:hover {
+      background-color: #45a049 !important;
+      transform: translateY(-1px);
+    }
+    
+    /* Specific styling for button groups - standardized dimensions */
+    #open_picker_button,
+    #continue_button,
+    #add_another_button,
+    #unselect_all_button,
+    #reselect_all_button {
+      height: 56px !important; /* Exact height for all buttons */
+      min-height: 56px !important; /* Fallback for older browsers */
+      max-height: 56px !important; /* Prevent growth */
+      padding: 16px 32px !important; /* Standardized padding */
+      box-sizing: border-box !important; /* Include padding in height calculation */
+      margin: 5px !important; /* Reset margins */
+      display: inline-block;
+      vertical-align: top; /* Ensure proper alignment */
+      text-align: center !important; /* Center text horizontally */
+      line-height: 1.2 !important; /* Consistent line height */
+      justify-content: center; /* Center content for flexbox if applied */
+      align-items: center; /* Center content vertically for flexbox if applied */
+    }
+    
+    /* Primary action button */
+    #open_picker_button {
+      width: 320px !important;
+      max-width: 320px !important;
+    }
+    
+    /* Action buttons - exact same width */
+    #continue_button,
+    #add_another_button {
+      width: 200px !important;
+      max-width: 200px !important;
+    }
+    
+    /* Selection management buttons - exact same width */
+    #unselect_all_button,
+    #reselect_all_button {
+      width: 280px !important; /* Wider to accommodate longer text */
+      max-width: 280px !important;
+    }
+  </style>
 </head>
 <body>
-<p>Picker API Quickstart</p>
+<h1>The Tower Import Data</h1>
+<div id="instructions" style="margin: 10px 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #1976d2; border-radius: 6px;">
+  <h3 style="margin-top: 0; color: #1976d2;">📋 Smart Sheet Selection</h3>
+  <div style="margin-bottom: 15px; padding: 10px; background-color: #f0f8ff; border: 1px solid #4285f4; border-radius: 4px;">
+    <p><strong>🎯 Auto-Selection:</strong> Sheets you've previously authorized will be automatically selected when you click "Select Files"!</p>
+    <p><strong>➕ Add More:</strong> Use "Add Another File" to authorize and select additional sheets from the picker.</p>
+  </div>
+  <div id="desktop-instructions">
+    <p><strong>Desktop Multi-Select:</strong></p>
+    <ul>
+      <li><strong>Windows:</strong> Hold <kbd>Ctrl</kbd> and click multiple files</li>
+      <li><strong>Mac:</strong> Hold <kbd>Cmd</kbd> and click multiple files</li>
+      <li><strong>Selection:</strong> Selected files will have a blue highlight</li>
+    </ul>
+  </div>
+  <div id="mobile-instructions" style="display: none;">
+    <p><strong>Mobile/Touch Multi-Select Options:</strong></p>
+    <ul>
+      <li><strong>Method 1:</strong> Try long-pressing on files to select multiple</li>
+      <li><strong>Method 2:</strong> If that doesn't work, select one file at a time using the "Add Another File" button</li>
+      <li><strong>Selection:</strong> Selected files will have a blue highlight or checkmark</li>
+      <li><strong>Fallback:</strong> The app will help you collect multiple files even if native multi-select doesn't work</li>
+    </ul>
+  </div>
+  <p><strong>Finish:</strong> Click "Select" when you've chosen all desired files, then click "Continue" to proceed</p>
+</div>
 
-<!--Add buttons to initiate auth sequence and sign out-->
-<button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
-<button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
+<!--Continue section - always visible-->
+<div id="continue-section" style="display: block; margin: 10px 0; padding: 15px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px;">
+  <h3 style="margin-top: 0; color: #2e7d32;">✅ Files Selected</h3>
+  <p id="selected-summary">Ready to check and auto-select your authorized sheets.</p>
+  <div style="margin: 15px 0;">
+    <button id="open_picker_button" onclick="handleAuthAndOpenPicker()" style="background-color: #4285f4; font-size: 18px;">Check & Select Relevant Files</button>
+    <button id="continue_button" onclick="continueToNextStep()" style="background-color: #4caf50; font-size: 18px; display: none;">Update IDS Master</button>
+    <button id="reselect_all_button" onclick="reselectAllAccessibleFiles()" style="background-color: #9c27b0; display: none;">Select All Accessible Files</button>
+  </div>
+  <div style="margin: 15px 0;">
+    <button id="add_another_button" onclick="addAnotherFile()" style="background-color: #34a853; display: none;">Add Another File</button>
+    <button id="unselect_all_button" onclick="unselectAllFiles()" style="background-color: #f44336; display: none;">Unselect All Files from Selection</button>
+  </div>
+</div>
 
-<pre id="content" style="white-space: pre-wrap;"></pre>
+<div id="status" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+  <strong>Status:</strong> <span id="status_text">Loading...</span>
+</div>
 
 <script type="text/javascript">
-  /* exported gapiLoaded */
-  /* exported gisLoaded */
-  /* exported handleAuthClick */
-  /* exported handleSignoutClick */
-
-  // Authorization scopes required by the API; multiple scopes can be
-  // included, separated by spaces.
-  const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-  // TODO(developer): Set to client ID and API key from the Developer Console
-  const CLIENT_ID = '832137601831-t18ihai9kd0qmh2ko3mmn5t1p6iop0jn.apps.googleusercontent.com';
+  // API credentials - only need API key for picker when using server-side OAuth
   const API_KEY = 'AIzaSyBoleujCzXxUUhPoKmPzlbsOh0LEoer-gA';
-
-  // TODO(developer): Replace with your own project number from console.developers.google.com.
   const APP_ID = '832137601831';
 
-  let tokenClient;
   let accessToken = null;
   let pickerInited = false;
-  let gisInited = false;
+  let isMobile = false;
+  let selectedFiles = []; // Store selected files for mobile multi-select fallback
+  let finalSelectedFiles = []; // Store the final selection for continue step
+  let accessibleFilesCache = []; // Store the last known accessible files for reselection
 
-  document.getElementById('authorize_button').style.visibility = 'hidden';
-  document.getElementById('signout_button').style.visibility = 'hidden';
+  // Detect mobile devices
+  function detectMobile() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    
+    return isMobileUA || (isTouchDevice && isSmallScreen);
+  }
+
+  // Initialize mobile detection
+  isMobile = detectMobile();
+  console.log('Mobile device detected:', isMobile);
+
+  // Show appropriate instructions immediately based on device type
+  if (isMobile) {
+    document.getElementById('desktop-instructions').style.display = 'none';
+    document.getElementById('mobile-instructions').style.display = 'block';
+  } else {
+    document.getElementById('desktop-instructions').style.display = 'block';
+    document.getElementById('mobile-instructions').style.display = 'none';
+  }
+
+  // Add another file function - works for both mobile and desktop
+  function addAnotherFile() {
+    // Store current selection before opening picker to add more files
+    if (finalSelectedFiles.length > 0 && selectedFiles.length === 0) {
+      // If we have final selected files but selectedFiles is empty, use finalSelectedFiles
+      selectedFiles = finalSelectedFiles.slice();
+    }
+    
+    document.getElementById('status_text').innerText = 'Opening picker to add more files to your selection...';
+    openPicker();
+  }
+
+  // Change selection - reset everything and open picker
+  function changeSelection() {
+    selectedFiles = [];
+    finalSelectedFiles = [];
+    document.getElementById('status_text').innerText = 'Opening picker to select new files...';
+    
+    // Show continue section with 0 files and proper button states
+    showContinueSection([]);
+    
+    // Open picker for new selection
+    if (accessToken && pickerInited) {
+      openPicker();
+    } else {
+      // If not authorized yet, trigger auth and picker
+      handleAuthAndOpenPicker();
+    }
+  }
+
+  // Remove all files from selection - new simplified function
+  function unselectAllFiles() {
+    selectedFiles = [];
+    finalSelectedFiles = [];
+    document.getElementById('status_text').innerText = 'All files removed from selection.';
+    
+    // Show continue section with 0 files and proper button states
+    showContinueSection([]);
+  }
+
+  // Reselect all accessible files that the app script has access to
+  function reselectAllAccessibleFiles() {
+    if (accessibleFilesCache.length === 0) {
+      document.getElementById('status_text').innerText = 'No accessible files found. Please check access first.';
+      return;
+    }
+
+    // Restore the cached accessible files
+    selectedFiles = accessibleFilesCache.slice();
+    finalSelectedFiles = accessibleFilesCache.slice();
+    
+    // Show the continue section with reselected files
+    showContinueSection(accessibleFilesCache);
+    
+    document.getElementById('status_text').innerText = 
+      `Reselected all ${accessibleFilesCache.length} accessible file(s).`;
+  }
+
+  function updateSelectedFilesDisplay() {
+    // This function is no longer needed as we moved the UI to the continue section
+    // Keeping it for compatibility but it does nothing
+  }
+
+  // Continue to next step function
+  function continueToNextStep() {
+    if (finalSelectedFiles.length === 0) {
+      document.getElementById('status_text').innerText = 'No files selected. Please select files first.';
+      return;
+    }
+
+    document.getElementById('continue_button').disabled = true;
+    document.getElementById('status_text').innerText = `Processing ${finalSelectedFiles.length} selected file(s)...`;
+
+    // Extract file IDs for the server-side function
+    const fileIds = finalSelectedFiles.map(file => file[google.picker.Document.ID]);
+    
+    console.log('Calling processSelectedFiles with file IDs:', fileIds);
+
+    // Call the Apps Script function to process the selected files
+    google.script.run
+      .withSuccessHandler(onProcessSuccess)
+      .withFailureHandler(onProcessFailure)
+      .processSelectedFiles(fileIds);
+  }
+
+  // Reset selection and start over
+  function resetSelection() {
+    // This function is kept for compatibility but redirects to changeSelection
+    changeSelection();
+  }
+
+  // Handle successful processing
+  function onProcessSuccess(result) {
+    document.getElementById('continue_button').disabled = false;
+    
+    if (result.success) {
+      document.getElementById('status_text').innerText = `Successfully processed ${finalSelectedFiles.length} file(s)!`;
+      // You can add more success handling here
+      console.log('Processing result:', result);
+    } else {
+      document.getElementById('status_text').innerText = `Processing failed: ${result.message}`;
+    }
+  }
+
+  // Handle processing failure
+  function onProcessFailure(error) {
+    document.getElementById('continue_button').disabled = false;
+    console.error('Processing error:', error);
+    document.getElementById('status_text').innerText = `Processing error: ${error.message || error}`;
+  }
+
+  // Show continue section with file summary
+  function showContinueSection(files) {
+    finalSelectedFiles = files.slice(); // Copy the selected files
+    
+    const summary = document.getElementById('selected-summary');
+    if (files.length === 0) {
+      summary.innerHTML = `<strong>0</strong> file(s) selected:`;
+    } else {
+      summary.innerHTML = `<strong>${files.length}</strong> file(s) selected:<br>` + 
+                         files.map(file => `• ${file[google.picker.Document.NAME]}`).slice(0, 5).join('<br>') +
+                         (files.length > 5 ? `<br>• ... and ${files.length - 5} more` : '');
+    }
+    
+    // Show appropriate buttons based on auth state and file selection
+    const openPickerButton = document.getElementById('open_picker_button');
+    const continueButton = document.getElementById('continue_button');
+    const addAnotherButton = document.getElementById('add_another_button');
+    const reselectButton = document.getElementById('unselect_all_button');
+    const reselectAllButton = document.getElementById('reselect_all_button');
+    
+    if (!accessToken) {
+      // Not authorized yet - show only open picker button
+      openPickerButton.style.display = 'inline-block';
+      continueButton.style.display = 'none';
+      addAnotherButton.style.display = 'none';
+      reselectButton.style.display = 'none';
+      reselectAllButton.style.display = 'none';
+    } else {
+      // Authorized - hide open picker button, show other buttons
+      openPickerButton.style.display = 'none';
+      continueButton.style.display = 'inline-block';
+      addAnotherButton.style.display = 'inline-block';
+      
+      // Show remove button only if files are selected
+      if (files.length > 0) {
+        reselectButton.style.display = 'inline-block';
+      } else {
+        reselectButton.style.display = 'none';
+      }
+      
+      // Show reselect all button only if we have accessible files cached 
+      // and not all accessible files are currently selected
+      if (accessibleFilesCache.length > 0) {
+        // Check if all accessible files are currently selected
+        const allAccessibleSelected = accessibleFilesCache.every(accessibleFile => 
+          files.some(selectedFile => 
+            selectedFile[google.picker.Document.ID] === accessibleFile[google.picker.Document.ID]
+          )
+        );
+        
+        // Hide the button if all accessible files are already selected or if no files are selected
+        if (allAccessibleSelected && files.length === accessibleFilesCache.length) {
+          reselectAllButton.style.display = 'none';
+        } else {
+          reselectAllButton.style.display = 'inline-block';
+        }
+      } else {
+        reselectAllButton.style.display = 'none';
+      }
+    }
+    
+    document.getElementById('continue-section').style.display = 'block';
+    
+    // Scroll to continue section only if files are selected
+    if (files.length > 0) {
+      document.getElementById('continue-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // Helper function to handle file selection display
+  function displayFiles(documents, isFallbackMode) {
+    // Show continue section for any successful file selection
+    showContinueSection(documents);
+    
+    // Update status with device-specific feedback
+    if (isMobile && documents.length === 1 && !isFallbackMode) {
+      document.getElementById('status_text').innerText = `Selected 1 file. Use "Add Another File" to add more files to your selection, or click "Continue" to proceed.`;
+    } else {
+      document.getElementById('status_text').innerText = `Selected ${documents.length} file(s) successfully. Click "Continue" to proceed to next step.`;
+    }
+  }
+
+  document.getElementById('status_text').innerText = 'Initializing APIs...';
 
   /**
    * Callback after api.js is loaded.
    */
   function gapiLoaded() {
-    gapi.load('client:picker', initializePicker);
+    console.log('GAPI loaded, loading client and picker...');
+    gapi.load('client:picker', {
+      callback: initializePicker,
+      onerror: function() {
+        console.error('Failed to load GAPI client:picker');
+        document.getElementById('status_text').innerText = 'Failed to load Google APIs';
+      }
+    });
   }
 
   /**
-   * Callback after the API client is loaded. Loads the
-   * discovery doc to initialize the API.
+   * Callback after the API client is loaded.
    */
   async function initializePicker() {
-    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
-    pickerInited = true;
-    maybeEnableButtons();
-  }
-
-  /**
-   * Callback after Google Identity Services are loaded.
-   */
-  function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: '', // defined later
-    });
-    gisInited = true;
-    maybeEnableButtons();
-  }
-
-  /**
-   * Enables user interaction after all libraries are loaded.
-   */
-  function maybeEnableButtons() {
-    if (pickerInited && gisInited) {
-      document.getElementById('authorize_button').style.visibility = 'visible';
+    try {
+      console.log('Initializing GAPI client...');
+      
+      // Initialize the GAPI client
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+      });
+      
+      console.log('GAPI client initialized successfully');
+      console.log('Picker API available:', typeof google.picker !== 'undefined');
+      
+      pickerInited = true;
+      document.getElementById('open_picker_button').style.visibility = 'visible';
+      document.getElementById('status_text').innerText = 'Ready - Click "Select Files" to begin';
+      
+      // Show continue section on load with 0 files
+      showContinueSection([]);
+    } catch (error) {
+      console.error('Error initializing GAPI client:', error);
+      document.getElementById('status_text').innerText = `Initialization error: ${error.message}`;
     }
   }
 
   /**
-   *  Sign in the user upon button click.
+   * Combined function to authorize, check sheet access, and open picker
+   */
+  function handleAuthAndOpenPicker() {
+    document.getElementById('status_text').innerText = 'Getting authorization from Apps Script...';
+    document.getElementById('open_picker_button').disabled = true;
+    
+    // Call Apps Script server-side function to get OAuth token
+    google.script.run
+      .withSuccessHandler(onAuthSuccessAndCheckAccess)
+      .withFailureHandler(onAuthFailure)
+      .getOAuthToken();
+  }
+
+  /**
+   * Get OAuth token from Apps Script server-side (legacy function - kept for compatibility)
    */
   function handleAuthClick() {
-    tokenClient.callback = async (response) => {
-      if (response.error !== undefined) {
-        throw (response);
-      }
-      accessToken = response.access_token;
-      document.getElementById('signout_button').style.visibility = 'visible';
-      document.getElementById('authorize_button').innerText = 'Refresh';
-      await createPicker();
-    };
+    document.getElementById('status_text').innerText = 'Getting authorization from Apps Script...';
+    document.getElementById('open_picker_button').disabled = true;
+    
+    // Call Apps Script server-side function to get OAuth token
+    google.script.run
+      .withSuccessHandler(onAuthSuccess)
+      .withFailureHandler(onAuthFailure)
+      .getOAuthToken();
+  }
 
-    if (accessToken === null) {
-      // Prompt the user to select a Google Account and ask for consent to share their data
-      // when establishing a new session.
-      tokenClient.requestAccessToken({prompt: 'consent'});
+  /**
+   * Handle successful authorization and check which sheets are already accessible
+   */
+  function onAuthSuccessAndCheckAccess(result) {
+    console.log('Auth success result:', result);
+    
+    if (result.success) {
+      accessToken = result.token;
+      console.log('OAuth token received from Apps Script:');
+      console.log('- Token present:', accessToken ? 'Yes' : 'No');
+      console.log('- Token length:', accessToken ? accessToken.length : 0);
+      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
+      
+      // Hide the open picker button and show other buttons after auth
+      document.getElementById('open_picker_button').style.display = 'none';
+      document.getElementById('continue_button').style.display = 'inline-block';
+      document.getElementById('unselect_all_button').style.display = 'inline-block';
+      document.getElementById('add_another_button').style.display = 'inline-block';
+      
+      document.getElementById('status_text').innerText = 'Authorized successfully! Checking sheet access...';
+      
+      // Check which sheets are already accessible
+      google.script.run
+        .withSuccessHandler(onSheetAccessCheckSuccess)
+        .withFailureHandler(onSheetAccessCheckFailure)
+        .checkSheetAccess();
+        
     } else {
-      // Skip display of account chooser and consent dialog for an existing session.
-      tokenClient.requestAccessToken({prompt: ''});
+      console.error('Authorization failed:', result.message);
+      document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
     }
   }
 
   /**
-   *  Sign out the user upon button click.
+   * Handle successful authorization and automatically open picker (legacy function)
    */
-  function handleSignoutClick() {
-    if (accessToken) {
-      google.accounts.oauth2.revoke(accessToken);
-      accessToken = null;
-      document.getElementById('content').innerText = '';
-      document.getElementById('authorize_button').innerText = 'Authorize';
-      document.getElementById('signout_button').style.visibility = 'hidden';
+  function onAuthSuccessAndOpenPicker(result) {
+    console.log('Auth success result:', result);
+    
+    if (result.success) {
+      accessToken = result.token;
+      console.log('OAuth token received from Apps Script:');
+      console.log('- Token present:', accessToken ? 'Yes' : 'No');
+      console.log('- Token length:', accessToken ? accessToken.length : 0);
+      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
+      
+      // Hide the open picker button and show other buttons after auth
+      document.getElementById('open_picker_button').style.display = 'none';
+      document.getElementById('continue_button').style.display = 'inline-block';
+      document.getElementById('unselect_all_button').style.display = 'inline-block';
+      document.getElementById('add_another_button').style.display = 'inline-block';
+      
+      document.getElementById('status_text').innerText = 'Authorized successfully! Opening picker...';
+      
+      // Show continue section immediately after successful auth with 0 files
+      showContinueSection([]);
+      
+      // Test Drive access first, then open picker
+      google.script.run
+        .withSuccessHandler(function(driveResult) {
+          if (driveResult.success) {
+            console.log('Drive API access confirmed, opening picker');
+            openPicker();
+          } else {
+            console.warn('Drive API test failed, but trying picker anyway');
+            openPicker();
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.warn('Drive API test error, but trying picker anyway:', error);
+          openPicker();
+        })
+        .testDriveAccess();
+        
+    } else {
+      console.error('Authorization failed:', result.message);
+      document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
     }
   }
 
   /**
-   *  Create and render a Picker object for searching images.
+   * Handle successful authorization (legacy function)
    */
-  function createPicker() {
-    const view = new google.picker.View(google.picker.ViewId.DOCS);
-    view.setMimeTypes('image/png,image/jpeg,image/jpg');
-    const picker = new google.picker.PickerBuilder()
-        .enableFeature(google.picker.Feature.NAV_HIDDEN)
-        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-        .setDeveloperKey(API_KEY)
-        .setAppId(APP_ID)
-        .setOAuthToken(accessToken)
-        .addView(view)
-        .addView(new google.picker.DocsUploadView())
-        .setCallback(pickerCallback)
-        .build();
-    picker.setVisible(true);
+  function onAuthSuccess(result) {
+    document.getElementById('open_picker_button').disabled = false;
+    
+    console.log('Auth success result:', result);
+    
+    if (result.success) {
+      accessToken = result.token;
+      console.log('OAuth token received from Apps Script:');
+      console.log('- Token present:', accessToken ? 'Yes' : 'No');
+      console.log('- Token length:', accessToken ? accessToken.length : 0);
+      console.log('- Token starts with:', accessToken ? accessToken.substring(0, 20) + '...' : 'N/A');
+      
+      document.getElementById('status_text').innerText = 'Authorized successfully! You can now open the picker.';
+      
+      // Test Drive access
+      google.script.run
+        .withSuccessHandler(onDriveTestSuccess)
+        .withFailureHandler(onDriveTestFailure)
+        .testDriveAccess();
+    } else {
+      console.error('Authorization failed:', result.message);
+      document.getElementById('status_text').innerText = `Authorization failed: ${result.message}`;
+    }
+  }
+
+  /**
+   * Handle authorization failure
+   */
+  function onAuthFailure(error) {
+    document.getElementById('open_picker_button').disabled = false;
+    console.error('Auth error:', error);
+    document.getElementById('status_text').innerText = `Authorization error: ${error.message || error}`;
+  }
+
+  /**
+   * Handle Drive API test results
+   */
+  function onDriveTestSuccess(result) {
+    if (result.success) {
+      console.log('Drive API access confirmed');
+    } else {
+      console.warn('Drive API test failed:', result.message);
+    }
+  }
+
+  function onDriveTestFailure(error) {
+    console.warn('Drive API test error:', error);
+  }
+
+  /**
+   * Handle successful sheet access check
+   */
+  function onSheetAccessCheckSuccess(result) {
+    console.log('Sheet access check result:', result);
+    
+    if (result.success) {
+      if (result.accessibleFiles.length > 0) {
+        // Auto-select accessible sheets
+        console.log('Auto-selecting', result.accessibleFiles.length, 'accessible sheets');
+        
+        // Convert server result into picker document format for consistency
+        const autoSelectedDocuments = result.accessibleDetails.map(file => {
+          const doc = {};
+          doc[google.picker.Document.ID] = file.id;
+          doc[google.picker.Document.NAME] = file.name;
+          doc[google.picker.Document.MIME_TYPE] = file.mimeType;
+          doc[google.picker.Document.URL] = file.webViewLink;
+          return doc;
+        });
+        
+        // Cache the accessible files for reselection
+        accessibleFilesCache = autoSelectedDocuments.slice();
+        
+        // Set up the selection
+        selectedFiles = autoSelectedDocuments.slice();
+        finalSelectedFiles = autoSelectedDocuments.slice();
+        
+        // Show the continue section with auto-selected files
+        showContinueSection(autoSelectedDocuments);
+        
+        if (result.inaccessibleFiles.length > 0) {
+          document.getElementById('status_text').innerText = 
+            `Auto-selected ${result.accessibleFiles.length} accessible sheet(s). ` +
+            `Use "Add Another File" to grant access to ${result.inaccessibleFiles.length} additional sheet(s).`;
+        } else {
+          document.getElementById('status_text').innerText = 
+            `Auto-selected all ${result.accessibleFiles.length} sheet(s)! You can continue or add more files.`;
+        }
+        
+      } else {
+        // No accessible sheets found
+        document.getElementById('status_text').innerText = 
+          `No pre-authorized sheets found. Use "Add Another File" to select and authorize sheets.`;
+        showContinueSection([]);
+      }
+      
+    } else {
+      console.error('Sheet access check failed:', result.message);
+      document.getElementById('status_text').innerText = 
+        `Could not check sheet access: ${result.message}. You can still use "Add Another File" to select sheets.`;
+      showContinueSection([]);
+    }
+  }
+
+  /**
+   * Handle sheet access check failure
+   */
+  function onSheetAccessCheckFailure(error) {
+    console.error('Sheet access check error:', error);
+    document.getElementById('status_text').innerText = 
+      `Error checking sheet access: ${error.message || error}. You can still use "Add Another File" to select sheets.`;
+    showContinueSection([]);
+  }
+
+  /**
+   * Open the Google Picker with file ID filtering and multi-select enabled
+   */
+  function openPicker() {
+    console.log('openPicker called');
+    console.log('accessToken:', accessToken ? 'Present' : 'Missing');
+    console.log('pickerInited:', pickerInited);
+    console.log('google.picker available:', typeof google !== 'undefined' && typeof google.picker !== 'undefined');
+    
+    if (!accessToken) {
+      document.getElementById('status_text').innerText = 'Please authorize first';
+      return;
+    }
+
+    if (!pickerInited) {
+      document.getElementById('status_text').innerText = 'Picker not initialized yet';
+      return;
+    }
+
+    if (typeof google === 'undefined' || typeof google.picker === 'undefined') {
+      document.getElementById('status_text').innerText = 'Google Picker API not loaded';
+      console.error('Google Picker API not available');
+      return;
+    }
+
+    // Get sheet IDs from server and then create picker
+    document.getElementById('status_text').innerText = 'Getting sheet IDs from server...';
+    
+    google.script.run
+      .withSuccessHandler(onSheetIdsSuccess)
+      .withFailureHandler(onSheetIdsFailure)
+      .getSheetIds();
+  }
+
+  /**
+   * Handle successful sheet IDs retrieval and create picker
+   */
+  function onSheetIdsSuccess(result) {
+    console.log('Sheet IDs result:', result);
+    
+    if (!result.success) {
+      console.error('Failed to get sheet IDs:', result.message);
+      document.getElementById('status_text').innerText = `Failed to get sheet IDs: ${result.message}`;
+      return;
+    }
+
+    try {
+      document.getElementById('status_text').innerText = 'Creating filtered picker...';
+      console.log('Creating picker with:');
+      console.log('- API Key:', API_KEY);
+      console.log('- App ID:', APP_ID);
+      console.log('- Token length:', accessToken ? accessToken.length : 0);
+      console.log('- Sheet IDs:', result.fileIds);
+      
+      // Convert array to comma-separated string for setFileIds
+      const fileIdsString = result.fileIds.join(',');
+      console.log('- File IDs string:', fileIdsString);
+      
+      let view;
+      
+      if (fileIdsString && result.fileIds.length > 0) {
+        // Create filtered view with specific file IDs
+        console.log('Creating filtered docs view with', result.fileIds.length, 'file IDs');
+        view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+            .setFileIds(fileIdsString)
+            .setIncludeFolders(false)
+            .setSelectFolderEnabled(false)
+            .setMode(google.picker.DocsViewMode.GRID);
+            
+        // Try setting a label on the view (deprecated but sometimes still works)
+        try {
+          if (view.setLabel) {
+            view.setLabel('Filtered Sheets');
+          }
+        } catch (e) {
+          console.log('Could not set view label:', e);
+        }
+      } else {
+        // Create general view if no file IDs provided
+        console.log('Creating general docs view (no filtering)');
+        view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+            .setIncludeFolders(true)
+            .setSelectFolderEnabled(false)
+            .setMode(google.picker.DocsViewMode.GRID);
+            
+        // Try setting a label on the view
+        try {
+          if (view.setLabel) {
+            view.setLabel('All Files');
+          }
+        } catch (e) {
+          console.log('Could not set view label:', e);
+        }
+      }
+      
+      console.log('DocsView created');
+      
+      // Create picker with optimized settings for mobile/desktop
+      const pickerBuilder = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken);
+      
+      // Configure picker size based on device type
+      let pickerWidth, pickerHeight;
+      if (isMobile) {
+        // Mobile-optimized size - use almost the full screen with larger dimensions
+        pickerWidth = Math.min(window.innerWidth - 10, 900);
+        pickerHeight = Math.min(window.innerHeight - 50, 750);
+        console.log('Mobile picker size:', pickerWidth + 'x' + pickerHeight);
+      } else {
+        // Desktop size - increased from default
+        pickerWidth = 1200;
+        pickerHeight = 800;
+        console.log('Desktop picker size:', pickerWidth + 'x' + pickerHeight);
+      }
+      
+      // Add view and other settings
+      const picker = pickerBuilder
+          .addView(view)
+          .setCallback(pickerCallback)
+          .setOrigin('https://script.google.com')
+          .setSize(pickerWidth, pickerHeight)
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+      
+      // Add features based on device type
+      if (!isMobile) {
+        // Desktop-specific features
+        picker.enableFeature(google.picker.Feature.MINE_ONLY)
+              .enableFeature(google.picker.Feature.NAV_HIDDEN);
+      } else {
+        // Mobile: Keep navigation for easier browsing and add mobile-friendly features
+        picker.enableFeature(google.picker.Feature.MINE_ONLY);
+        // Enable simple upload for mobile if available
+        try {
+          picker.enableFeature(google.picker.Feature.SIMPLE_UPLOAD_ENABLED);
+        } catch (e) {
+          console.log('Simple upload not available:', e);
+        }
+        console.log('Mobile mode: Navigation kept visible, larger window size for better mobile experience');
+      }
+      
+      const builtPicker = picker.build();
+      
+      console.log('Picker built successfully with multi-select enabled');
+      console.log('Device type:', isMobile ? 'Mobile' : 'Desktop');
+      console.log('Picker size:', pickerWidth + 'x' + pickerHeight);
+      
+      if (fileIdsString && result.fileIds.length > 0) {
+        const instructionText = isMobile ? 
+          `Opening filtered picker (${result.fileIds.length} sheets).` :
+          `Opening filtered picker (${result.fileIds.length} sheets).`;
+        document.getElementById('status_text').innerText = instructionText;
+      } else {
+        const instructionText = isMobile ?
+          'Opening picker with all accessible files.' :
+          'Opening picker with all accessible files.';
+        document.getElementById('status_text').innerText = instructionText;
+      }
+      
+      builtPicker.setVisible(true);
+      console.log('Picker.setVisible(true) called');
+      
+    } catch (error) {
+      console.error('Error creating/showing picker:', error);
+      console.error('Error stack:', error.stack);
+      document.getElementById('status_text').innerText = `Picker error: ${error.message}`;
+      
+      // Fallback: Try to open Drive in a new window for file selection
+      console.log('Fallback: Opening Google Drive in new window');
+      const driveUrl = `https://drive.google.com/drive/my-drive`;
+      const popup = window.open(driveUrl, 'drive_picker', 'width=800,height=600');
+      document.getElementById('status_text').innerText = 'Opened Google Drive in popup - copy file URLs manually';
+    }
+  }
+
+  /**
+   * Handle sheet IDs retrieval failure
+   */
+  function onSheetIdsFailure(error) {
+    console.error('Error getting sheet IDs:', error);
+    document.getElementById('status_text').innerText = `Error getting sheet IDs: ${error.message || error}`;
   }
 
   /**
    * Displays the file details of the user's selection.
-   * @param {object} data - Containers the user selection from the picker
+   * Enhanced for mobile multi-select feedback and desktop "Add Another File"
    */
   async function pickerCallback(data) {
-    if (data.action === google.picker.Action.PICKED) {
-      let text = `Picker response: \n${JSON.stringify(data, null, 2)}\n`;
-      const document = data[google.picker.Response.DOCUMENTS][0];
-      const fileId = document[google.picker.Document.ID];
-      console.log(fileId);
-      const res = await gapi.client.drive.files.get({
-        'fileId': fileId,
-        'fields': '*',
-      });
-      text += `Drive API response for first document: \n${JSON.stringify(res.result, null, 2)}\n`;
-      window.document.getElementById('content').innerText = text;
+    console.log('Picker callback received:', data);
+    console.log('Device type during callback:', isMobile ? 'Mobile' : 'Desktop');
+    
+    try {
+      if (data.action === google.picker.Action.PICKED) {
+        const documents = data[google.picker.Response.DOCUMENTS];
+        
+        if (!documents || documents.length === 0) {
+          document.getElementById('status_text').innerText = 'No files selected';
+          return;
+        }
+        
+        // Handle both desktop multi-select and adding to existing selection
+        if (finalSelectedFiles.length > 0) {
+          // We already have files selected - this is "Add Another File" mode
+          // Merge new selection with existing selection
+          documents.forEach(newFile => {
+            const fileId = newFile[google.picker.Document.ID];
+            
+            // Check if this file is already selected
+            const existingIndex = finalSelectedFiles.findIndex(file => file[google.picker.Document.ID] === fileId);
+            
+            if (existingIndex === -1) {
+              // Add new file to existing selection
+              finalSelectedFiles.push(newFile);
+              selectedFiles.push(newFile); // Also update mobile fallback array
+            }
+          });
+          
+          document.getElementById('status_text').innerText = `Selection updated. Total: ${finalSelectedFiles.length} file(s)`;
+          
+          // Display the updated selection
+          displayFiles(finalSelectedFiles, true);
+          
+          return;
+        }
+        
+        // Handle mobile fallback multi-select (when starting fresh or native mobile multi-select fails)
+        if (isMobile && documents.length === 1 && finalSelectedFiles.length === 0) {
+          // Check if this file is already selected in mobile fallback array
+          const newFile = documents[0];
+          const fileId = newFile[google.picker.Document.ID];
+          const existingIndex = selectedFiles.findIndex(file => file[google.picker.Document.ID] === fileId);
+          
+          if (existingIndex === -1) {
+            // Add new file to selection
+            selectedFiles.push(newFile);
+            document.getElementById('status_text').innerText = `Added "${newFile[google.picker.Document.NAME]}" to selection. Total: ${selectedFiles.length} file(s)`;
+          } else {
+            // File already selected
+            document.getElementById('status_text').innerText = `"${newFile[google.picker.Document.NAME]}" is already selected. Total: ${selectedFiles.length} file(s)`;
+          }
+          
+          // Use selectedFiles for display instead of just the current selection
+          displayFiles(selectedFiles, true);
+          
+        } else {
+          // Normal multi-select worked or desktop mode (fresh selection)
+          if (isMobile && documents.length > 1) {
+            // Native mobile multi-select worked!
+            selectedFiles = documents.slice(); // Copy all selected files
+          }
+          
+          displayFiles(documents, false);
+        }
+        
+      } else if (data.action === google.picker.Action.CANCEL) {
+        console.log('User cancelled the picker');
+        document.getElementById('status_text').innerText = 'Picker cancelled';
+        
+      } else {
+        console.log('Unknown picker action:', data.action);
+        document.getElementById('status_text').innerText = `Unknown action: ${data.action}`;
+      }
+    } catch (error) {
+      console.error('Error in picker callback:', error);
+      document.getElementById('status_text').innerText = `Callback error: ${error.message}`;
     }
   }
 </script>
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
