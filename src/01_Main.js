@@ -265,12 +265,3 @@ function checkSheetAccess(newSheetID, oldsheetID, idMasterID) {
     };
   }
 }
-
-/**
- * Includes an HTML file as a template, allowing template variables to be replaced.
- * @param {string} filename The name of the file to include (without .html extension)
- * @return {string} The evaluated HTML content
- */
-function include(filename) {
-  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
-}

@@ -127,49 +127,68 @@ function askUpdateAndDeleteSheet() {
 }
 
 function updateSheet(idType, newSheetID, idMasterID) {
-  var newSpreadsheet = SpreadsheetApp.openById(newSheetID)
-  var newIdSheet = newSpreadsheet.getSheetByName("IDS")
-  var newSheetTypeID = shared.findSheetTypeID(newIdSheet)
-  var isImported = newSheetTypeID.isImported
-  if (isImported.getValue() !== "✅") {
-    return "Can not update until old sheet has been Imported."
-  }
-
-  var idMasterSpreadsheet = SpreadsheetApp.openById(idMasterID)
-  var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS")
-
-  var sheetTypeID = shared.findSheetTypeID(idMasterSheet, idType)
-  var idCell = sheetTypeID.cell
-  if (!idCell) {
-    return "Old sheet ID not found: " + idType
-  }
-  
-  var oldSpreadSheet = shared.openSpreadsheet(idMasterSheet, idType)
-  var oldSheetID = oldSpreadSheet.getId()
-
-  var oldFile = Drive.Files.get(oldSheetID, {fields: "id, name, parents"})
-  var newFile = Drive.Files.get(newSheetID, {fields: "id, name, parents"})
-  
-  var newNameParts = shared.splitNameAndVersion(newSpreadsheet.getName())
-  var oldNameParts = shared.splitNameAndVersion(oldSpreadSheet.getName())
-  var baseName = oldNameParts.base
-  var newVersion = newNameParts.version
-  var finalName = baseName + (newVersion ? " " + newVersion : "")
-  newSpreadsheet.rename(finalName)
-  Drive.Files.update(
-    {
-      name: finalName
-    },
-    newSheetID,
-    null,
-    {
-      addParents: oldFile.parents.join(","),
-      removeParents: newFile.parents.join(",")
+  try {
+    var newSpreadsheet = SpreadsheetApp.openById(newSheetID);
+    var newIdSheet = newSpreadsheet.getSheetByName("IDS");
+    var newSheetTypeID = shared.findSheetTypeID(newIdSheet);
+    var isImported = newSheetTypeID.isImported;
+    if (isImported.getValue() !== "✅") {
+      return {
+        success: false,
+        message: "Can not update until old sheet has been Imported.",
+        updated: false
+      };
     }
-  )
 
-  Drive.Files.update({trashed: true}, oldSheetID)
-  idCell.setValue(newSheetID)
+    var idMasterSpreadsheet = SpreadsheetApp.openById(idMasterID);
+    var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS");
 
-  return "New ID Set, new sheet moved and renamed, old sheet deleted."
+    var sheetTypeID = shared.findSheetTypeID(idMasterSheet, idType);
+    var idCell = sheetTypeID.cell;
+    if (!idCell) {
+      return {
+        success: false,
+        message: "Old sheet ID not found: " + idType,
+        updated: false
+      };
+    }
+    var oldSpreadSheet = shared.openSpreadsheet(idMasterSheet, idType);
+    var oldSheetID = oldSpreadSheet.getId();
+
+    var oldFile = Drive.Files.get(oldSheetID, {fields: "id, name, parents"});
+    var newFile = Drive.Files.get(newSheetID, {fields: "id, name, parents"});
+
+    var newNameParts = shared.splitNameAndVersion(newSpreadsheet.getName());
+    var oldNameParts = shared.splitNameAndVersion(oldSpreadSheet.getName());
+    var baseName = oldNameParts.base;
+    var newVersion = newNameParts.version;
+    var finalName = baseName + (newVersion ? " " + newVersion : "");
+    newSpreadsheet.rename(finalName);
+    Drive.Files.update(
+      {
+        name: finalName
+      },
+      newSheetID,
+      null,
+      {
+        addParents: oldFile.parents.join(","),
+        removeParents: newFile.parents.join(",")
+      }
+    );
+
+    Drive.Files.update({trashed: true}, oldSheetID);
+    idCell.setValue(newSheetID);
+
+    return {
+      success: true,
+      message: "New ID Set, new sheet moved and renamed, old sheet deleted.",
+      updated: true
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.toString(),
+      updated: false
+    };
+  }
 }
