@@ -4,20 +4,7 @@
   <title>Main App</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
-    button {
-      padding: 16px 32px;
-      font-size: 18px;
-      border: none;
-      border-radius: 6px;
-      background-color: #4285f4;
-      color: white;
-      cursor: pointer;
-      margin: 10px;
-    }
-    button:hover { background-color: #3367d6; }
-  </style>
+  <?!= HtmlService.createHtmlOutputFromFile('main.styles').getContent(); ?>
 </head>
 <body>
   <div id="main-content">
@@ -25,43 +12,6 @@
     <button onclick="switchToPicker()">Go to Picker UI</button>
   </div>
   <div id="picker-container"></div>
-  <script>
-    function switchToPicker() {
-      google.script.run.withSuccessHandler(function(html) {
-        document.getElementById('main-content').style.display = 'none';
-        var container = document.getElementById('picker-container');
-        container.innerHTML = html;
-
-        // Re-execute scripts in the injected HTML
-        var scripts = container.querySelectorAll('script');
-        scripts.forEach(function(oldScript) {
-          var newScript = document.createElement('script');
-          if (oldScript.src) {
-            newScript.src = oldScript.src;
-            newScript.async = oldScript.async;
-            newScript.defer = oldScript.defer;
-            // Add onload handler for Google API script
-            if (oldScript.src.includes('apis.google.com/js/api.js')) {
-              newScript.onload = function() {
-                if (typeof window.gapiLoaded === 'function') {
-                  window.gapiLoaded();
-                }
-              };
-            }
-          } else {
-            newScript.textContent = oldScript.textContent;
-          }
-          oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
-
-        // If gapi is already loaded, call gapiLoaded manually
-        if (typeof window.gapi !== 'undefined' && typeof window.gapi.load === 'function') {
-          if (typeof window.gapiLoaded === 'function') {
-            window.gapiLoaded();
-          }
-        }
-      }).getPickerHtml();
-    }
-  </script>
+  <?!= HtmlService.createHtmlOutputFromFile('main.script').getContent(); ?>
 </body>
 </html>

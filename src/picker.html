@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Tower Import Data</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <?!= HtmlService.createHtmlOutputFromFile('picker.styles').getContent(); ?>
+</head>
+<body>
+<h1>The Tower Import Data</h1>
+
+<div id="status" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+  <strong>Status:</strong> <span id="status_text">Loading...</span>
+</div>
+
+<!--Continue section - always visible-->
+<div id="continue-section" style="display: block; margin: 10px 0; padding: 15px; background-color: #e8f5e8; border: 1px solid #4caf50; border-radius: 6px;">
+  <h3 style="margin-top: 0; color: #2e7d32;">📁 File Access Required</h3>
+  <p id="selected-summary">Checking which files need access permissions...</p>
+  <div style="margin: 15px 0;">
+    <button id="add_another_button" onclick="addAnotherFile()" style="background-color: #34a853; display: none;">Grant Access to Files</button>
+    <button id="continue_button" onclick="continueToNextStep()" style="background-color: #4caf50; font-size: 18px; display: none;">Update IDS Master</button>
+  </div>
+</div>
+<div id="instructions" style="margin: 10px 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #1976d2; border-radius: 6px;">
+  <h3 style="margin-top: 0; color: #1976d2;">� File Access Management</h3>
+  <div style="margin-bottom: 15px; padding: 10px; background-color: #f0f8ff; border: 1px solid #4285f4; border-radius: 4px;">
+    <p><strong>🎯 Automatic Check:</strong> The app will automatically check which files need access permissions when you load the page.</p>
+    <p><strong>🔓 Grant Access:</strong> If files need permission, use the "Grant Access to Files" button to authorize them through Google Picker.</p>
+  </div>
+  <div id="desktop-instructions">
+    <p><strong>Desktop Multi-Select:</strong></p>
+    <ul>
+      <li><strong>Windows:</strong> Hold <kbd>Ctrl</kbd> and click multiple files</li>
+      <li><strong>Mac:</strong> Hold <kbd>Cmd</kbd> and click multiple files</li>
+      <li><strong>Selection:</strong> Selected files will have a blue highlight</li>
+    </ul>
+  </div>
+  <div id="mobile-instructions" style="display: none;">
+    <p><strong>Mobile/Touch Multi-Select Options:</strong></p>
+    <ul>
+      <li><strong>Method 1:</strong> Try long-pressing on files to select multiple</li>
+      <li><strong>Method 2:</strong> If that doesn't work, select one file at a time using the "Grant Access to Files" button repeatedly</li>
+      <li><strong>Selection:</strong> Selected files will have a blue highlight or checkmark</li>
+    </ul>
+  </div>
+  <p><strong>Process:</strong> Once all required files have been granted access, the "Continue" button will appear to proceed to the next step.</p>
+</div>
+  <?!= HtmlService.createHtmlOutputFromFile('picker.script').getContent(); ?>
+</body>
+</html>

@@ -5,7 +5,7 @@ function doGet() {
 }
 
 function getPickerHtml() {
-  var template = HtmlService.createTemplateFromFile('pickerTest');
+  var template = HtmlService.createTemplateFromFile('picker');
   template.origin = "https://script.google.com";
 
   return template.evaluate().getContent();
@@ -150,7 +150,7 @@ function processSelectedFiles(fileIds) {
 }
 
 function showImportDialog() {
-  var template = HtmlService.createTemplateFromFile('pickerTest');
+  var template = HtmlService.createTemplateFromFile('picker');
   template.origin = "https://docs.google.com";
   var html = template.evaluate()
     .setWidth(1500)

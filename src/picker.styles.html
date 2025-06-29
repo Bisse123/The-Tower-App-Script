@@ -1,0 +1,157 @@
+<style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      line-height: 1.4;
+    }
+    
+    button {
+      padding: 14px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4285f4;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+      min-height: 48px; /* Increased minimum touch target size */
+      white-space: nowrap; /* Prevent text wrapping */
+      text-align: center;
+      line-height: 1.2;
+    }
+    
+    button:hover {
+      background-color: #3367d6;
+    }
+    
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      button {
+        padding: 24px 32px;
+        font-size: 22px;
+        margin: 12px 0;
+        min-height: 70px;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        line-height: 1.3;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #continue_button,
+      #add_another_button {
+        padding: 28px 32px !important;
+        min-height: 80px !important;
+        height: 80px !important;
+        max-height: 80px !important;
+        font-size: 24px !important;
+        margin: 12px 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        line-height: 1.3 !important;
+      }
+      #continue_button {
+        font-size: 26px !important;
+        padding: 32px 36px !important;
+        min-height: 90px !important;
+        height: 90px !important;
+        max-height: 90px !important;
+      }
+      
+      body {
+        font-size: 16px;
+        padding: 10px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      #instructions {
+        font-size: 16px;
+      }
+      
+      #status {
+        font-size: 16px;
+        padding: 12px;
+      }
+      
+      #continue-section {
+        padding: 20px;
+      }
+      
+      #selected-summary {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+    }
+    
+    kbd {
+      background-color: #f1f3f4;
+      border: 1px solid #dadce0;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #3c4043;
+    }
+    
+    #continue-section {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #continue_button {
+      transition: all 0.2s ease;
+    }
+    
+    #continue_button:hover {
+      background-color: #45a049 !important;
+      transform: translateY(-1px);
+    }
+    
+    /* Specific styling for button groups - standardized dimensions */
+    #continue_button,
+    #add_another_button {
+      height: 56px !important; /* Exact height for all buttons */
+      min-height: 56px !important; /* Fallback for older browsers */
+      max-height: 56px !important; /* Prevent growth */
+      padding: 16px 32px !important; /* Standardized padding */
+      box-sizing: border-box !important; /* Include padding in height calculation */
+      margin: 5px !important; /* Reset margins */
+      display: inline-block;
+      vertical-align: top; /* Ensure proper alignment */
+      text-align: center !important; /* Center text horizontally */
+      line-height: 1.2 !important; /* Consistent line height */
+      justify-content: center; /* Center content for flexbox if applied */
+      align-items: center; /* Center content vertically for flexbox if applied */
+    }
+    
+    /* Action buttons - exact same width */
+    #continue_button,
+    #add_another_button {
+      width: 200px !important;
+      max-width: 200px !important;
+    }
+  </style>
