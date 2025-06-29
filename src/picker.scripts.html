@@ -3,6 +3,12 @@
   const API_KEY = 'AIzaSyBoleujCzXxUUhPoKmPzlbsOh0LEoer-gA';
   const APP_ID = '832137601831';
 
+  const newSheetID = '<?= newSheetID ?>';
+  const oldsheetID = '<?= oldsheetID ?>';
+  const idMasterID = '<?= idMasterID ?>';
+  const idType = '<?= idType ?>';
+  const origin = '<?= origin ?>'
+
   let accessToken = null;
   let pickerInited = false;
   let isMobile = false;
@@ -67,13 +73,13 @@
 
     // Call the Apps Script function to process the selected files
     google.script.run
-      .withSuccessHandler(onProcessSuccess)
-      .withFailureHandler(onProcessFailure)
-      .processSelectedFiles(fileIds);
+      .withSuccessHandler(onUpdateSheetSuccess)
+      .withFailureHandler(onUpdateSheetFailure)
+      .updateSheet(idType, newSheetID, idMasterID);
   }
-
+  
   // Handle successful processing
-  function onProcessSuccess(result) {
+  function onUpdateSheetSuccess(result) {
     document.getElementById('continue_button').disabled = false;
     
     if (result.success) {
@@ -86,7 +92,7 @@
   }
 
   // Handle processing failure
-  function onProcessFailure(error) {
+  function onUpdateSheetFailure(error) {
     document.getElementById('continue_button').disabled = false;
     console.error('Processing error:', error);
     document.getElementById('status_text').innerText = `Processing error: ${error.message || error}`;
@@ -185,7 +191,7 @@
       google.script.run
         .withSuccessHandler(onSheetAccessCheckSuccess)
         .withFailureHandler(onSheetAccessCheckFailure)
-        .checkSheetAccess();
+        .checkSheetAccess(newSheetID, oldsheetID, idMasterID);
       return Promise.resolve(true);
     }
     return new Promise((resolve) => {
@@ -218,7 +224,7 @@
       google.script.run
         .withSuccessHandler(onSheetAccessCheckSuccess)
         .withFailureHandler(onSheetAccessCheckFailure)
-        .checkSheetAccess();
+        .checkSheetAccess(newSheetID, oldsheetID, idMasterID);
       return true;
     } else {
       console.error('Authorization failed:', result.message);
@@ -362,7 +368,7 @@
           .setCallback(pickerCallback)
           // .setOrigin(google.script.host.origin)
           // .setOrigin(window.location.origin)
-          .setOrigin('<?= origin ?>')
+          .setOrigin(origin)
           .setSize(pickerWidth, pickerHeight)
           .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
       
@@ -390,9 +396,6 @@
     }
   }
 
-  /**
-   * Handle picker callback - process newly granted access
-   */
   async function pickerCallback(data) {
     console.log('Picker callback received:', data);
     
@@ -408,11 +411,10 @@
         document.getElementById('status_text').innerText = 
           `Access granted to ${documents.length} file(s). Rechecking access status...`;
         
-        // Recheck access status after files were selected in picker
         google.script.run
           .withSuccessHandler(onSheetAccessCheckSuccess)
           .withFailureHandler(onSheetAccessCheckFailure)
-          .checkSheetAccess();
+          .checkSheetAccess(newSheetID, oldsheetID, idMasterID);
         
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log('User cancelled the picker');
@@ -427,5 +429,6 @@
       document.getElementById('status_text').innerText = `Callback error: ${error.message}`;
     }
   }
+
 </script>
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>

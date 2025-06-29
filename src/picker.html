@@ -4,7 +4,7 @@
   <title>The Tower Import Data</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <?!= HtmlService.createHtmlOutputFromFile('picker.styles').getContent(); ?>
+  <?!= include('picker.styles') ?>
 </head>
 <body>
 <h1>The Tower Import Data</h1>
@@ -46,6 +46,6 @@
   </div>
   <p><strong>Process:</strong> Once all required files have been granted access, the "Continue" button will appear to proceed to the next step.</p>
 </div>
-  <?!= HtmlService.createHtmlOutputFromFile('picker.scripts').getContent(); ?>
+  <?!= include('picker.scripts') ?>
 </body>
 </html>

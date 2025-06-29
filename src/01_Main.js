@@ -15,7 +15,7 @@ const sheetVars = (sheetType) => {
 }
 
 function startImportData(sheetType, sheetID) {
-  
+  Logger.log("Starting import for sheet type: " + sheetType + " with ID: " + sheetID)
   var sheetTypeFunction = sheetVars(sheetType)
   var newSpreadsheet =  SpreadsheetApp.openById(sheetID)
   
@@ -164,10 +164,11 @@ function doGet(e) {
   // All checks passed, show main import page
   var template = HtmlService.createTemplateFromFile('WebApp')
   template.newSheetID = newSheetID
+  template.oldsheetID = oldsheetID
   template.idMasterID = idMasterID
   template.sheetType = sheetType
-  template.oldVersion = oldVersion
   template.newVersion = newVersion
+  template.oldVersion = oldVersion
   template.idType = idType
   template.isImported = isImported
   template.compareResult = compareResult
@@ -175,4 +176,101 @@ function doGet(e) {
   return template.evaluate()
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setTitle('Import Data');
+}
+
+function getPickerHtml(idType, newSheetID, oldsheetID, idMasterID) {
+  var template = HtmlService.createTemplateFromFile('picker');
+  template.idType = idType;
+  template.newSheetID = newSheetID;
+  template.oldsheetID = oldsheetID;
+  template.idMasterID = idMasterID;
+  template.origin = "https://script.google.com";
+
+  return template.evaluate().getContent();
+}
+
+function getOAuthToken() {
+  try {
+    const token = ScriptApp.getOAuthToken();
+    return {
+      success: true,
+      token: token,
+      message: 'Token retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting OAuth token:', error);
+    return {
+      success: false,
+      token: null,
+      message: error.toString()
+    };
+  }
+}
+
+function checkSheetAccess(newSheetID, oldsheetID, idMasterID) {
+  try {
+    const fileIds = [newSheetID, oldsheetID, idMasterID];
+    const accessibleFiles = [];
+    const inaccessibleFiles = [];
+    const accessibleDetails = [];
+    
+    console.log('Checking access to', fileIds.length, 'predefined sheets...');
+    
+    fileIds.forEach(fileId => {
+      try {
+        const file = Drive.Files.get(fileId, {
+          fields: 'id,name,mimeType,webViewLink'
+        });
+        
+        console.log('Access confirmed for:', file.name, '(' + fileId + ')');
+        accessibleFiles.push(fileId);
+        accessibleDetails.push({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          webViewLink: file.webViewLink
+        });
+        
+      } catch (error) {
+        console.log('No access to file:', fileId, 'Error:', error.toString());
+        let name = null;
+        try {
+          const ss = SpreadsheetApp.openById(fileId);
+          name = ss.getName();
+        } catch (e) {
+        }
+        inaccessibleFiles.push({ id: fileId, name: name });
+      }
+    });
+    
+    console.log('Access check complete. Accessible:', accessibleFiles.length, 'Inaccessible:', inaccessibleFiles.length);
+    
+    return {
+      success: true,
+      accessibleFiles: accessibleFiles,
+      inaccessibleFiles: inaccessibleFiles,
+      accessibleDetails: accessibleDetails,
+      totalFiles: fileIds.length,
+      message: `Access check complete. ${accessibleFiles.length} of ${fileIds.length} sheets are accessible.`
+    };
+    
+  } catch (error) {
+    console.error('Error checking sheet access:', error);
+    return {
+      success: false,
+      accessibleFiles: [],
+      inaccessibleFiles: [],
+      accessibleDetails: [],
+      message: error.toString()
+    };
+  }
+}
+
+/**
+ * Includes an HTML file as a template, allowing template variables to be replaced.
+ * @param {string} filename The name of the file to include (without .html extension)
+ * @return {string} The evaluated HTML content
+ */
+function include(filename) {
+  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }

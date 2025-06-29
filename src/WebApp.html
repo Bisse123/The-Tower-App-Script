@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <?!= HtmlService.createHtmlOutputFromFile('WebApp.styles').getContent(); ?>
+    <?!= include('WebApp.styles') ?>
     <title>Import Data</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
@@ -9,13 +9,13 @@
     <div class="centered-content">
       <button
         id="importButton"
-        onclick="importData(newSheetID)"
+        onclick="importData()"
       >
         Import<br><?= sheetType ?>
       </button>
       <button
         id="updateMasterIdButton"
-        onclick="confirmUpdateMasterId(idType, newSheetID, idMasterID)"
+        onclick="switchToPicker()"
         disabled
         style="margin-bottom: 2vw;"
       >
@@ -35,6 +35,6 @@
         </div>
       </div>
     </div>
-    <?!= HtmlService.createHtmlOutputFromFile('WebApp.scripts').getContent(); ?>
+    <?!= include('WebApp.scripts') ?>
   </body>
 </html>

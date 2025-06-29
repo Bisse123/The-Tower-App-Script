@@ -122,11 +122,11 @@ function askUpdateAndDeleteSheet() {
   
   var idType = sheetType + " ID"
   var idMasterID = idMasterSpreadsheet.getId()
-  var res = updateAndDeleteSheet(idType, newSheetID, idMasterID)
+  var res = updateSheet(idType, newSheetID, idMasterID)
   shared.uiAlert(res)
 }
 
-function updateAndDeleteSheet(idType, newSheetID, idMasterID) {
+function updateSheet(idType, newSheetID, idMasterID) {
   var newSpreadsheet = SpreadsheetApp.openById(newSheetID)
   var newIdSheet = newSpreadsheet.getSheetByName("IDS")
   var newSheetTypeID = shared.findSheetTypeID(newIdSheet)

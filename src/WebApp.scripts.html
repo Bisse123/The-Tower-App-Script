@@ -2,10 +2,11 @@
 <script>
 // These are dynamically filled by your server script
 const newSheetID = '<?= newSheetID ?>';
+const oldsheetID = '<?= oldsheetID ?>';
 const idMasterID = '<?= idMasterID ?>';
 const sheetType = '<?= sheetType ?>';
-const oldVersion = '<?= oldVersion ?>';
 const newVersion = '<?= newVersion ?>';
+const oldVersion = '<?= oldVersion ?>';
 const compareResult = '<?= compareResult ?>';
 const idType = '<?= idType ?>';
 const isImported = '<?= isImported ?>';
@@ -28,34 +29,49 @@ function handleYesNo(answer) {
   if (yesNoCallback) yesNoCallback(callback);
 }
 
-// Show modal before running updateAndDeleteSheet
-function confirmUpdateMasterId(idType, newSheetID, idMasterID) {
-  runUpdateMasterId(idType, newSheetID, idMasterID);
-}
+  function switchToPicker() {
+    google.script.run.withSuccessHandler(function(html) {
+      document.getElementById('main-content').style.display = 'none';
+      var container = document.getElementById('picker-container');
+      container.innerHTML = html;
 
-// Actually calls updateAndDeleteSheet
-function runUpdateMasterId(idType, newSheetID, idMasterID) {
-  setStatus("Updating ID Master...");
-  enableUpdateMasterIdBtn(false);
-  google.script.run
-    .withSuccessHandler(function (res) {
-      setStatus(res);
-      enableUpdateMasterIdBtn(true);
-    })
-    .withFailureHandler(function (err) {
-      setStatus("Failed updating master ID!");
-      alert("Failed: " + err.message);
-      enableUpdateMasterIdBtn(true);
-    })
-    .updateAndDeleteSheet(idType, newSheetID, idMasterID);
-}
+      // Re-execute scripts in the injected HTML
+      var scripts = container.querySelectorAll('script');
+      scripts.forEach(function(oldScript) {
+        var newScript = document.createElement('script');
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+          newScript.async = oldScript.async;
+          newScript.defer = oldScript.defer;
+          // Add onload handler for Google API script
+          if (oldScript.src.includes('apis.google.com/js/api.js')) {
+            newScript.onload = function() {
+              if (typeof window.gapiLoaded === 'function') {
+                window.gapiLoaded();
+              }
+            };
+          }
+        } else {
+          newScript.textContent = oldScript.textContent;
+        }
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+
+      // If gapi is already loaded, call gapiLoaded manually
+      if (typeof window.gapi !== 'undefined' && typeof window.gapi.load === 'function') {
+        if (typeof window.gapiLoaded === 'function') {
+          window.gapiLoaded();
+        }
+      }
+    }).getPickerHtml(idType, newSheetID, oldsheetID, idMasterID);
+  }
 
 function enableUpdateMasterIdBtn(enable) {
   const btn = document.getElementById('updateMasterIdButton');
   if (btn) btn.disabled = !enable;
 }
 
-function importData(newSheetID) {
+function importData() {
   setStatus("Importing data...");
   // DO NOT disable the importButton!
   google.script.run
