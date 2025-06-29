@@ -162,7 +162,7 @@ function doGet(e) {
   // }
 
   // All checks passed, show main import page
-  var template = HtmlService.createTemplateFromFile('importDataWebApp')
+  var template = HtmlService.createTemplateFromFile('WebApp')
   template.newSheetID = newSheetID
   template.idMasterID = idMasterID
   template.sheetType = sheetType

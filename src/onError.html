@@ -2,10 +2,7 @@
 <html>
   <head>
     <title>Error</title>
-    <style>
-      body { font-family: Arial; background: #fffbe9; color: #a00; margin: 2em; }
-      .error { border: 1px solid #a00; background: #fff0f0; padding: 1em 2em; border-radius: 8px; }
-    </style>
+    <?!= HtmlService.createHtmlOutputFromFile('onError.styles').getContent(); ?>
   </head>
   <body>
     <div class="error">
