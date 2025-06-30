@@ -1,31 +1,12 @@
 <!-- WebApp.html -->
 <html>
   <head>
-    
-    <!-- WebApp.styles.html -->
-<style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+    <!-- picker.styles.html (applied to WebApp) -->
+    <style>
       body {
-        min-height: 100vh;
-        min-width: 100vw;
-        width: 100vw;
-        height: 100vh;
-        overflow-x: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         margin: 20px;
         line-height: 1.4;
-      }
-      .centered-content {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
       }
       button {
         padding: 14px 24px;
@@ -48,89 +29,7 @@
         background-color: #ccc;
         cursor: not-allowed;
       }
-      #importButton, #updateMasterIdButton {
-        width: clamp(280px, 60vw, 700px);
-        height: clamp(80px, 16vw, 220px);
-        font-size: clamp(2.2rem, 7vw, 6rem);
-        font-weight: bold;
-        border-radius: 8vw;
-        background: #4caf50;
-        color: #fff;
-        border: none;
-        box-shadow: 0 4px 24px #2222;
-        cursor: pointer;
-        margin-bottom: 2vw;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        line-height: 1.1;
-        transition: background 0.2s;
-      }
-      #updateMasterIdButton:disabled {
-        background: #999 !important;
-        cursor: not-allowed;
-      }
-      #statusLabel {
-        font-size: clamp(2rem, 5vw, 5rem);
-        color: #333;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 2vw;
-      }
-      /* Modal Overlay Centering */
-      #yesNoModal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0; top: 0; width: 100vw; height: 100vh;
-        background: rgba(0,0,0,0.3);
-        justify-content: center;
-        align-items: center;
-      }
-      #yesNoModal.visible {
-        display: flex !important;
-      }
-      #yesNoModal .modal-content {
-        background: #fff;
-        border-radius: 16px;
-        padding: 2.5em 2em;
-        max-width: 95vw;
-        width: 420px;
-        box-shadow: 0 4px 18px #3336;
-        text-align: center;
-        font-size: clamp(1.1rem, 3vw, 2.2rem);
-      }
-      .modal-buttons {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1em;
-        width: 100%;
-        margin-top: 2em;
-      }
-      #yesNoModal button {
-        flex: 1 1 0;
-        max-width: 200px;
-        min-width: 100px;
-        padding: 0.5em 2em;
-        font-size: clamp(1.2rem, 4vw, 2.5rem);
-        border-radius: 0.6em;
-        border: none;
-        background: #4caf50;
-        color: #fff;
-        cursor: pointer;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        text-align: center;
-      }
-      #yesNoModal button:last-child {
-        background: #aaa;
-        color: #222;
-      }
+      /* Mobile-specific styles */
       @media (max-width: 768px) {
         button {
           padding: 24px 32px;
@@ -140,37 +39,91 @@
           width: 100%;
           max-width: 100%;
           white-space: normal;
+          line-height: 1.3;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-      }
-      @media (max-width: 500px) {
+        #importButton, #updateMasterIdButton {
+          padding: 28px 32px !important;
+          min-height: 80px !important;
+          height: 80px !important;
+          max-height: 80px !important;
+          font-size: 24px !important;
+          margin: 12px 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          line-height: 1.3 !important;
+        }
+        #importButton {
+          font-size: 26px !important;
+          padding: 32px 36px !important;
+          min-height: 90px !important;
+          height: 90px !important;
+          max-height: 90px !important;
+        }
+        body {
+          font-size: 16px;
+          padding: 10px;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        #status_web {
+          font-size: 16px;
+          padding: 12px;
+        }
         .centered-content {
           padding: 0 2vw;
         }
-        #importButton, #updateMasterIdButton {
-          font-size: 11vw;
-          min-height: 28vw;
-          border-radius: 15vw;
-        }
-        #statusLabel {
-          font-size: 9vw;
-        }
-        #yesNoModal .modal-content {
-          width: 98vw;
-          max-width: 98vw;
-          font-size: 7vw;
-          padding: 1.5em 0.8em;
-        }
-        #yesNoModal button {
-          font-size: 7vw;
-        }
+      }
+      kbd {
+        background-color: #f1f3f4;
+        border: 1px solid #dadce0;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #3c4043;
+      }
+      #importButton, #updateMasterIdButton {
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+        padding: 16px 32px !important;
+        box-sizing: border-box !important;
+        margin: 5px !important;
+        display: inline-block;
+        vertical-align: top;
+        text-align: center !important;
+        line-height: 1.2 !important;
+        justify-content: center;
+        align-items: center;
+        width: 200px !important;
+        max-width: 200px !important;
+      }
+      .centered-content {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
     </style>
-    <!-- End of WebApp.styles.html -->
+    <!-- End of picker.styles.html -->
     <title>Import Data</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
     <div class="centered-content">
+      <div id="status_web" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+        <strong>Status:</strong> <span id="status_text_web">Idle</span>
+      </div>
       <button
         id="importButton"
         onclick="importData()"
@@ -185,9 +138,6 @@
       >
         Update<br>Master ID
       </button>
-      <div id="statusLabel">
-        Idle
-      </div>
     </div>
     <div id="picker-container"></div>
     <!-- Yes/No Modal -->
@@ -215,7 +165,7 @@ const idType = '<?= idType ?>';
 const isImported = '<?= isImported ?>';
 
 function setStatus(text) {
-  document.getElementById('statusLabel').textContent = text;
+  document.getElementById('status_text_web').innerText = text;
 }
 
 // Modal logic
