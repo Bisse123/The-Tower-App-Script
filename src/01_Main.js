@@ -132,7 +132,6 @@ function doGet(e) {
   
   var isImported = shared.findSheetTypeID(newIdSheet).isImported.getValue()
 
-  Logger.log(isImported)
   var idMasterSpreadsheet = shared.openSpreadsheet(newIdSheet)
   if (!idMasterSpreadsheet) return returnError("IDS Master Spreadsheet failed to open, please ensure it's linked correctly in the IDS Sheet")
 
