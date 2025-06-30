@@ -104,9 +104,12 @@ const modules = {
           var rowIdx = newModuleTypeIndex[moduleType]
           if (typeof rowIdx === "undefined") return
           var row = newModuleInventoryValues[rowIdx]
+          var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || 0
+          var highestLevelCol = newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level")
           for (var col = 1; col < row.length; col++) {
             var cellValue = String(row[col])
             if (cellValue.trim() !== "" && oldModulesInventory[moduleType].hasOwnProperty(cellValue)) {
+              maxLevel = Math.max(maxLevel, oldModulesInventory[moduleType][cellValue].level)
               newModulesInventorySheet.getRange(rowIdx + 3, col + 1).setValue(oldModulesInventory[moduleType][cellValue].rarity)
               if (!newModulesInventorySheet.getRange(rowIdx + 3, col + 2).getFormula()) {
                 newModulesInventorySheet.getRange(rowIdx + 3, col + 2).setValue(oldModulesInventory[moduleType][cellValue].level)
@@ -118,6 +121,10 @@ const modules = {
                 newModulesInventorySheet.getRange(rowIdx + 5, col + 1, numRows, numCols).setValues(substats)
               }
             }
+          }
+          
+          if (highestLevelCol !== -1) {
+            newModulesInventorySheet.getRange(rowIdx + 3, highestLevelCol + 1).setValue(maxLevel)
           }
         }
       })
@@ -131,10 +138,12 @@ const modules = {
         if (typeof rowIdx === "undefined") return
         oldModules[moduleType] = {}
         var row = oldModulesInventoryValues[rowIdx]
+        var highestLevelCol = oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level")
+        if (highestLevelCol !== -1) {
+          oldModules[moduleType]["Highest Level"] = oldModulesInventoryValues[rowIdx + 2][highestLevelCol]
+        }
         for (var col = 1; col < row.length; col++) {
           var cellValue = String(row[col])
-          if (moduleType === "core") {
-          }
           if (cellValue.trim() !== "") {
             var moduleName = cellValue
             if (moduleName) {

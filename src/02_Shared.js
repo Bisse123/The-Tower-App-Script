@@ -49,7 +49,7 @@ const shared = {
     var regex = new RegExp(idType, "i")
     for (var i = 0; i < idValues.length; i++) {
       for (var j = 0; j < idValues[i].length; j++) {
-        if (regex.test(idValues[i][j])) {
+        if (regex.test(idValues[i][j]) && idValues[i][j].indexOf("script") === -1) {
           return {"id": idValues[i][j + 2], "cell": sheet.getRange(i + 1, j + 2), "isImported": sheet.getRange(i + 2, j + 4)}
         }
       }
