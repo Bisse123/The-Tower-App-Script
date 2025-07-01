@@ -1,267 +1,273 @@
+const SheetsAPI = {
+  // Get spreadsheet metadata and sheets
+  getSpreadsheet: function (spreadsheetId) {
+    try {
+      return Sheets.Spreadsheets.get(spreadsheetId);
+    } catch (error) {
+      console.error("Error getting spreadsheet:", error);
+      return null;
+    }
+  },
+
+  // Get sheet by name from spreadsheet
+  getSheetByName: function (spreadsheetId, sheetName) {
+    try {
+      const spreadsheet = this.getSpreadsheet(spreadsheetId);
+      const sheet = spreadsheet.sheets.find(
+        (s) => s.properties.title === sheetName
+      );
+      return sheet ? sheet.properties : null;
+    } catch (error) {
+      console.error("Error getting sheet by name:", error);
+      return null;
+    }
+  },
+
+  // Check if a sheet exists in a spreadsheet
+  hasSheet: function (spreadsheetId, sheetName) {
+    try {
+      return this.getSheetByName(spreadsheetId, sheetName) !== null;
+    } catch (error) {
+      console.error("Error checking sheet existence:", error);
+      return false;
+    }
+  },
+
+  // Get values from a range
+  getValues: function (spreadsheetId, range) {
+    try {
+      const response = Sheets.Spreadsheets.Values.get(spreadsheetId, range);
+      return response.values;
+    } catch (error) {
+      console.error("Error getting values:", error);
+      return null;
+    }
+  },
+
+  // Get a single value from a cell
+  getValue: function (spreadsheetId, range) {
+    try {
+      const values = this.getValues(spreadsheetId, range);
+      return values && values.length > 0 && values[0].length > 0 ? values[0][0] : null;
+    } catch (error) {
+      console.error("Error getting single value:", error);
+      return null;
+    }
+  },
+
+  // Set multiple values in a range
+  setValues: function (spreadsheetId, range, values) {
+    try {
+      const requestBody = {
+        values: values,
+      };
+      return Sheets.Spreadsheets.Values.update(
+        requestBody,
+        spreadsheetId,
+        range,
+        {
+          valueInputOption: "USER_ENTERED",
+        }
+      );
+    } catch (error) {
+      console.error("Error setting values:", error);
+      return null;
+    }
+  },
+
+  // Set a single value in a cell
+  setValue: function (spreadsheetId, range, value) {
+    try {
+      const requestBody = {
+        values: [[value]],
+      };
+      return Sheets.Spreadsheets.Values.update(
+        requestBody,
+        spreadsheetId,
+        range,
+        {
+          valueInputOption: "USER_ENTERED",
+        }
+      );
+    } catch (error) {
+      console.error("Error setting value:", error);
+      return null;
+    }
+  },
+
+  // Get all data from a sheet
+  getDataRange: function (spreadsheetId, sheetName) {
+    try {
+      return this.getValues(spreadsheetId, sheetName);
+    } catch (error) {
+      console.error("Error getting data range:", error);
+      return null;
+    }
+  },
+  batchUpdateValues: function (spreadsheetId, updates) {
+    try {
+      const data = updates.map(update => ({
+        range: update.range,
+        values: update.values
+      }));
+      const requestBody = {
+        data: data,
+        valueInputOption: "USER_ENTERED"
+      };
+      return Sheets.Spreadsheets.Values.batchUpdate(requestBody, spreadsheetId);
+    } catch (error) {
+      console.error("Error in batchUpdateValues:", error);
+      return null;
+    }
+  },
+};
+
 const sheetVars = (sheetType) => {
-    var sheetTypeFuntions = {
-    "Laboratory": lab,
-    "Workshop": workshop,
+  var sheetTypeFuntions = {
+    Laboratory: lab,
+    Workshop: workshop,
     "Ultimate Weapon": ultimate,
     "Themes & Songs": themes,
-    "Bots": bots,
-    "Relics": relics,
-    "Vault": vault,
-    "Cards": cards,
-    "Modules": modules,
-    "Guardians": guardians,
-  }
-  return sheetTypeFuntions[sheetType]
-}
+    Bots: bots,
+    Relics: relics,
+    Vault: vault,
+    Cards: cards,
+    Modules: modules,
+    Guardians: guardians,
+  };
+  return sheetTypeFuntions[sheetType];
+};
 
 function startImportData(sheetType, sheetID) {
-  Logger.log("Starting import for sheet type: " + sheetType + " with ID: " + sheetID)
-  var sheetTypeFunction = sheetVars(sheetType)
-  var newSpreadsheet =  SpreadsheetApp.openById(sheetID)
-  
-  if (newSpreadsheet && sheetType && sheetTypeFunction) {
-    sheetTypeFunction.importData(sheetType, newSpreadsheet)
-    var newIdSheet = newSpreadsheet.getSheetByName("IDS")
-    var isImportedRange = shared.findSheetTypeID(newIdSheet).isImported
-    isImportedRange.setValue("✅")
+  console.log(
+    `Starting import for sheet type: ${sheetType} with ID: ${sheetID}`
+  );
+  try {
+    var sheetTypeFunction = sheetVars(sheetType);
+
+    var spreadsheet = SheetsAPI.getSpreadsheet(sheetID);
+    if (!spreadsheet) {
+      return {
+        success: false,
+        message: `Spreadsheet not found with ID: ${sheetID}`,
+      };
+    }
+    if (!sheetTypeFunction) {
+      console.log(`Sheet type function not found for: ${sheetType}`);
+      return {
+        success: false,
+        message: `Sheet type function not found for: ${sheetType}`,
+      };
+    }
+    if (!sheetType) {
+      console.log("Sheet type is not defined.");
+      return {
+        success: false,
+        message: "Sheet type is not defined.",
+      };
+    }
+
+    console.log(
+      `Importing data for sheet type: ${sheetType} with ID: ${sheetID}`
+    );
+    var result = sheetTypeFunction.importData(sheetType, sheetID);
+    if (!result || !result.success) {
+      return {
+        success: false,
+        message: `Error importing data for ${sheetType}: ${result.message}`,
+      };
+    }
+    
+    var isImportedInfo = shared.findSheetTypeID(sheetID, "IDS");
+    if (!isImportedInfo || !isImportedInfo.isImported) {
+      return {
+        success: false,
+        message: "Is Imported range not found in the new IDS sheet.",
+      };
+    }
+    
+    try {
+      SheetsAPI.setValue(sheetID, isImportedInfo.isImported.range, "✅");
+    } catch (error) {
+      console.log(`Error updating imported status:  ${error.toString()}`);
+      return {
+        success: false,
+        message: `Error updating imported status:  ${error.toString()}`,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Import of ${sheetType} data completed successfully.`,
+      updated: true,
+    };
+  } catch (error) {
+    console.log("Error during import: " + error.message);
+    return {
+      success: false,
+      message: "Error during import: " + error.message,
+    };
   }
 }
 
-function importData() {
-  var newSpreadsheet = SpreadsheetApp.getActiveSpreadsheet()
+function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
+  // Check if new spreadsheet exists
+  var newSpreadsheet = SheetsAPI.getSpreadsheet(newSheetID);
   if (!newSpreadsheet) {
-    shared.uiAlert("Spreadsheet not found")
-    return
+    return {
+      success: false,
+      message: "New spreadsheet not found with ID: " + newSheetID,
+    };
   }
 
-  var newSheetID = newSpreadsheet.getId()
-  if (!newSheetID) {
-    shared.uiAlert("No Sheet ID")
-    return
-  }
-
-  var newHPSheet = newSpreadsheet.getSheetByName("Home Page")
-  if (!newHPSheet) {
-    shared.uiAlert("Home Page Sheet not found")
-    return
-  }
-
-  var sheetType = newHPSheet.getRange("B2").getValue()
-  var sheetTypeFunction = sheetVars(sheetType)
-  if (!sheetTypeFunction) {
-    shared.uiAlert("Incorrect sheetType: " + sheetType)
-    return
-  }
-
-  var newExportSheet = newSpreadsheet.getSheetByName("EXPORT") || newSpreadsheet.getSheetByName("STATS")
-  if (!newExportSheet) {
-    shared.uiAlert("Can not find sheet version")
-    return
-  }
-  var newVersion = newExportSheet.getRange("A1").getValue()
-  
-  var newIdSheet = newSpreadsheet.getSheetByName("IDS")
+  // Check if IDS sheet exists
+  var newIdSheet = SheetsAPI.getSheetByName(newSheetID, "IDS");
   if (!newIdSheet) {
-    shared.uiAlert("IDS sheet not found")
-    return
+    return {
+      success: false,
+      message: "IDS sheet not found in the new spreadsheet.",
+    };
   }
 
-  var idMasterSpreadsheet = shared.openSpreadsheet(newIdSheet)
+  // Check if ID Master spreadsheet exists
+  var idMasterSpreadsheet = SheetsAPI.getSpreadsheet(idMasterID);
   if (!idMasterSpreadsheet) {
-    shared.uiAlert("IDS Master Spreadsheet failed to open, please ensure it's linked correctly in the IDS Sheet")
-    return
-  }
-  
-  var idType = sheetType + " ID"
-  var idMasterID = idMasterSpreadsheet.getId()
-  var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS")
-  var oldSpreadsheet = shared.openSpreadsheet(idMasterSheet, idType)
-  var oldsheetID = oldSpreadsheet.getId()
-  var oldExportSheet = oldSpreadsheet.getSheetByName("EXPORT") || oldSpreadsheet.getSheetByName("STATS")
-  var oldVersion = oldExportSheet.getRange("A1").getValue()
-  
-  if (oldsheetID === newSheetID) {
-    shared.uiAlert("This is the linked " + sheetType + " spreadsheet")
-    return
+    return {
+      success: false,
+      message: "IDS Master Spreadsheet not found with ID: " + idMasterID,
+    };
   }
 
-  var compareResult = shared.compareVersions(oldVersion, newVersion)
+  var idMasterSheet = SheetsAPI.getSheetByName(idMasterID, "IDS");
+  if (!idMasterSheet) {
+    return {
+      success: false,
+      message: "IDS Master Sheet not found in the IDS Master Spreadsheet.",
+    };
+  }
 
-  if (compareResult === -1) {
-    shared.uiAlert("The version of the old sheet (" + oldVersion + ") is newer than the new sheet (" + newVersion + "). Import aborted.")
-    return
+  // Check if old spreadsheet exists
+  var oldSpreadsheet = SheetsAPI.getSpreadsheet(oldSheetID);
+  if (!oldSpreadsheet) {
+    return {
+      success: false,
+      message: "Linked old spreadsheet not found with ID: " + oldSheetID,
+    };
   }
-  else if (compareResult > 0) {
-    if (!sheetTypeFunction.isCompatibleVersion(compareResult)) {
-      shared.uiAlert("The old sheet uses a different (older) export version (" + oldVersion + ") which does not support importing to the new sheet " + newVersion + ". Import aborted.")
-      return
-    }
-  }
-  startImportData(sheetType, newSheetID)
-  shared.uiAlert("Import completed!")
+
+  return startImportData(sheetType, newSheetID);
 }
 
 function doGet(e) {
-  function returnError(msg) {
-    var template = HtmlService.createTemplateFromFile('onError')
-    template.errorMessage = msg
-    return template.evaluate().setWidth(400).setHeight(200)
-  }
+  console.log("doGet called with parameters: " + JSON.stringify(e.parameter));
+  var template = HtmlService.createTemplateFromFile("WebApp");
+  template.newSheetID = e.parameter.newSheetID;
+  template.oldSheetID = e.parameter.oldSheetID;
+  template.idMasterID = e.parameter.idMasterID;
+  template.sheetType = e.parameter.sheetType;
 
-  var newSheetID = e.parameter.spreadsheetID
-  if (!newSheetID || newSheetID === "<Script loading...>" ) {
-    return returnError("No Sheet ID provided.") 
-  }
-
-  var newSpreadsheet = SpreadsheetApp.openById(newSheetID)
-  if (!newSpreadsheet) return returnError("Spreadsheet not found.")
-
-  var newHPSheet = newSpreadsheet.getSheetByName("Home Page")
-  if (!newHPSheet) return returnError("Home Page Sheet not found.")
-
-  var sheetType = newHPSheet.getRange("B2").getValue()
-  var sheetTypeFunction = sheetVars(sheetType)
-  if (!sheetTypeFunction) return returnError("Incorrect sheetType: " + sheetType)
-
-  var newExportSheet = newSpreadsheet.getSheetByName("EXPORT") || newSpreadsheet.getSheetByName("STATS")
-  if (!newExportSheet) return returnError("Cannot find sheet version (EXPORT or STATS).")
-  var newVersion = newExportSheet.getRange("A1").getValue()
-
-  var newIdSheet = newSpreadsheet.getSheetByName("IDS")
-  if (!newIdSheet) return returnError("IDS sheet not found.")
-  
-  var isImported = shared.findSheetTypeID(newIdSheet).isImported.getValue()
-
-  Logger.log(isImported)
-  var idMasterSpreadsheet = shared.openSpreadsheet(newIdSheet)
-  if (!idMasterSpreadsheet) return returnError("IDS Master Spreadsheet failed to open, please ensure it's linked correctly in the IDS Sheet")
-
-  var idType = sheetType + " ID"
-  var idMasterID = idMasterSpreadsheet.getId()
-  var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS")
-  var oldSpreadsheet = shared.openSpreadsheet(idMasterSheet, idType)
-  if (!oldSpreadsheet) return returnError("Linked old spreadsheet not found.")
-  var oldsheetID = oldSpreadsheet.getId()
-  var oldExportSheet = oldSpreadsheet.getSheetByName("EXPORT") || oldSpreadsheet.getSheetByName("STATS")
-  if (!oldExportSheet) return returnError("Old EXPORT sheet not found.")
-  var oldVersion = oldExportSheet.getRange("A1").getValue()
-
-  if (oldsheetID === newSheetID) {
-    return returnError("This is the linked " + sheetType + " spreadsheet.")
-  }
-
-  var compareResult = shared.compareVersions(oldVersion, newVersion)
-
-  if (compareResult === -1) {
-    return returnError("The version of the old sheet (" + oldVersion + ") is newer than the new sheet (" + newVersion + "). Import aborted.")
-  }
-  // else if (compareResult > 0) {
-  //   if (!sheetTypeFunction.isCompatibleVersion(compareResult)) {
-  //     return returnError("The old sheet uses a different (older) export version (" + oldVersion + ") which does not support importing to the new sheet " + newVersion + ". Import aborted.")
-  //   }
-  // }
-
-  // All checks passed, show main import page
-  var template = HtmlService.createTemplateFromFile('WebApp')
-  template.newSheetID = newSheetID
-  template.oldsheetID = oldsheetID
-  template.idMasterID = idMasterID
-  template.sheetType = sheetType
-  template.newVersion = newVersion
-  template.oldVersion = oldVersion
-  template.idType = idType
-  template.isImported = isImported
-  template.compareResult = compareResult
-
-  return template.evaluate()
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setTitle('Import Data');
-}
-
-function getPickerHtml(idType, newSheetID, oldsheetID, idMasterID) {
-  var template = HtmlService.createTemplateFromFile('picker');
-  template.idType = idType;
-  template.newSheetID = newSheetID;
-  template.oldsheetID = oldsheetID;
-  template.idMasterID = idMasterID;
-  template.origin = "https://script.google.com";
-
-  return template.evaluate().getContent();
-}
-
-function getOAuthToken() {
-  try {
-    const token = ScriptApp.getOAuthToken();
-    return {
-      success: true,
-      token: token,
-      message: 'Token retrieved successfully'
-    };
-  } catch (error) {
-    console.error('Error getting OAuth token:', error);
-    return {
-      success: false,
-      token: null,
-      message: error.toString()
-    };
-  }
-}
-
-function checkSheetAccess(newSheetID, oldsheetID, idMasterID) {
-  try {
-    const fileIds = [newSheetID, oldsheetID, idMasterID];
-    const accessibleFiles = [];
-    const inaccessibleFiles = [];
-    const accessibleDetails = [];
-    
-    console.log('Checking access to', fileIds.length, 'predefined sheets...');
-    
-    fileIds.forEach(fileId => {
-      try {
-        const file = Drive.Files.get(fileId, {
-          fields: 'id,name,mimeType,webViewLink'
-        });
-        
-        console.log('Access confirmed for:', file.name, '(' + fileId + ')');
-        accessibleFiles.push(fileId);
-        accessibleDetails.push({
-          id: file.id,
-          name: file.name,
-          mimeType: file.mimeType,
-          webViewLink: file.webViewLink
-        });
-        
-      } catch (error) {
-        console.log('No access to file:', fileId, 'Error:', error.toString());
-        let name = null;
-        try {
-          const ss = SpreadsheetApp.openById(fileId);
-          name = ss.getName();
-        } catch (e) {
-        }
-        inaccessibleFiles.push({ id: fileId, name: name });
-      }
-    });
-    
-    console.log('Access check complete. Accessible:', accessibleFiles.length, 'Inaccessible:', inaccessibleFiles.length);
-    
-    return {
-      success: true,
-      accessibleFiles: accessibleFiles,
-      inaccessibleFiles: inaccessibleFiles,
-      accessibleDetails: accessibleDetails,
-      totalFiles: fileIds.length,
-      message: `Access check complete. ${accessibleFiles.length} of ${fileIds.length} sheets are accessible.`
-    };
-    
-  } catch (error) {
-    console.error('Error checking sheet access:', error);
-    return {
-      success: false,
-      accessibleFiles: [],
-      inaccessibleFiles: [],
-      accessibleDetails: [],
-      message: error.toString()
-    };
-  }
+  return template
+    .evaluate()
+    .addMetaTag("viewport", "width=device-width, initial-scale=1")
+    .setTitle("Import Data");
 }
