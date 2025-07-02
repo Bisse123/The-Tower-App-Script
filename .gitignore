@@ -5,7 +5,7 @@ package-lock.json
 
 # Google Apps Script credentials (KEEP THIS - sensitive!)
 .clasprc.json
-.clasp.json
+
 # IDE files
 .vscode/
 .idea/
