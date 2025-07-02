@@ -21,6 +21,8 @@ function doGet(e) {
   template.oldSheetID = e.parameter.oldSheetID;
   template.idMasterID = e.parameter.idMasterID;
   template.sheetType = e.parameter.sheetType;
+  template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
+  template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
 
   return template
     .evaluate()
@@ -58,6 +60,9 @@ function showImportDialog() {
     template.oldSheetID = oldSheetID;
     template.idMasterID = idMasterID;
     template.sheetType = sheetType;
+    template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
+    template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
+  
 
     var html = template
       .evaluate()
