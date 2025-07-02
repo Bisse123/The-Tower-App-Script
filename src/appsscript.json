@@ -1,6 +1,5 @@
 {
   "timeZone": "Europe/Berlin",
-  "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "dependencies": {
     "enabledAdvancedServices": [

@@ -1,92 +1,27 @@
 const lab = {
   convertVersionFunctions: {},
 
-  importData: function importData(sheetType, newLabSpreadsheetId) {
-    function importLabData(sheetType, newLabSpreadsheetId) {
+  importData: function importData(newSheetID, oldSheetID) {
+    function importLabData(newSheetID, oldSheetID) {
       try {
-        var idType = sheetType + " ID";
-
-        // Check if required sheets exist
-        if (!SheetsAPI.hasSheet(newLabSpreadsheetId, "IDS")) {
-          console.log("IDS sheet not found in new lab spreadsheet");
-          return {
-            success: false,
-            message: "IDS sheet not found in new lab spreadsheet",
-          }
-        }
-        if (!SheetsAPI.hasSheet(newLabSpreadsheetId, "EXPORT")) {
-          console.log("EXPORT sheet not found in new lab spreadsheet");
-          return {
-            success: false,
-            message: "EXPORT sheet not found in new lab spreadsheet",
-          }
-        }
-
         // Get version from EXPORT sheet
         var newLabVersion = SheetsAPI.getValue(
-          newLabSpreadsheetId,
+          newSheetID,
           "EXPORT!A1"
         );
-
-        // Get ID Master spreadsheet info
-        var idMasterSpreadsheetInfo = shared.findSheetTypeID(
-          newLabSpreadsheetId,
-          "IDS"
-        );
-        if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.id) {
-          console.log("Could not find ID Master spreadsheet info");
-          return {
-            success: false,
-            message: "Could not find ID Master spreadsheet info",
-          };
-        }
-        
-        var idMasterSpreadsheetId = shared.extractSheetId(
-          idMasterSpreadsheetInfo.id
-        );
-        if (!idMasterSpreadsheetId) {
-          console.log("Could not find ID Master spreadsheet");
-          return {
-            success: false,
-            message: "Could not find ID Master spreadsheet",
-          };
-        }
-
-        var oldLabSpreadsheetInfo = shared.findSheetTypeID(
-          idMasterSpreadsheetId,
-          "IDS",
-          idType
-        );
-        if (!oldLabSpreadsheetInfo || !oldLabSpreadsheetInfo.id) {
-          console.log("Could not find old lab spreadsheet info");
-          return {
-            success: false,
-            message: "Could not find old lab spreadsheet info",
-          };
-        }
-
-        var oldLabSpreadsheetId = shared.extractSheetId(
-          oldLabSpreadsheetInfo.id
-        );
-        if (!oldLabSpreadsheetId) {
-          console.log("Could not find old lab spreadsheet");
-          return {
-            success: false,
-            message: "Could not find old lab spreadsheet",
-          };
-        }
 
         var oldLabVersion = SheetsAPI.getValue(
-          oldLabSpreadsheetId,
+          oldSheetID,
           "EXPORT!A1"
         );
+
         var versionCheck = shared.compareVersions(oldLabVersion, newLabVersion);
 
         if (versionCheck === 0) {
           console.log("Same Version - proceeding with lab data import");
 
           // Check if _IDS sheet exists
-          if (!SheetsAPI.hasSheet(newLabSpreadsheetId, "_IDS")) {
+          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
             console.log("_IDS sheet not found in new lab spreadsheet");
             return {
               success: false,
@@ -96,9 +31,10 @@ const lab = {
 
           // Get header row to find Labs column
           var headerValues = SheetsAPI.getValues(
-            newLabSpreadsheetId,
+            newSheetID,
             "_IDS!1:1"
           );
+
           if (!headerValues || headerValues.length === 0) {
             console.log("Could not read header row from _IDS sheet");
             return {
@@ -126,7 +62,7 @@ const lab = {
             shared.columnToLetter(importLabColStart + 2);
 
           var oldLabLevelsValues = SheetsAPI.getValues(
-            newLabSpreadsheetId,
+            newSheetID,
             labLevelsRange
           );
           if (!oldLabLevelsValues) {
@@ -148,7 +84,7 @@ const lab = {
           );
 
           // Check if Master Sheet exists
-          if (!SheetsAPI.hasSheet(newLabSpreadsheetId, "Master Sheet")) {
+          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
             console.log("Master Sheet not found in new lab spreadsheet");
             return {
               success: false,
@@ -156,7 +92,7 @@ const lab = {
             };
           }
 
-          return updateLabLevels(newLabSpreadsheetId, oldLabLevels);
+          return updateLabLevels(newSheetID, oldLabLevels);
         } else {
           console.log("Version mismatch - skipping lab data import");
           return {
@@ -173,12 +109,12 @@ const lab = {
       }
     }
 
-    function updateLabLevels(spreadsheetId, labUpdates) {
+    function updateLabLevels(newSheetID, labUpdates) {
       try {
         var headerValues = ["Labs"];
 
         // Get all data from Master Sheet to determine range
-        var allData = SheetsAPI.getValues(spreadsheetId, "Master Sheet");
+        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
         if (!allData || allData.length < 2) {
           console.log("Not enough data in Master Sheet");
           return {
@@ -212,9 +148,6 @@ const lab = {
           updateMap[update[0]] = [update[1], update[2]];
         });
 
-        // Prepare batch updates
-        var batchUpdates = [];
-
         // Iterate each "Labs" column
         columnsToCheck.forEach(function (col) {
           var updates = [];
@@ -239,6 +172,8 @@ const lab = {
             }
           }
 
+          var batchUpdate = [];
+
           // Add batch update for this column's Level and Target columns
           if (updates.length > 0) {
             var startCol = shared.columnToLetter(col + 1); // Level column
@@ -246,7 +181,7 @@ const lab = {
             var range =
               "Master Sheet!" + startCol + "2:" + endCol + (updates.length + 1);
 
-            batchUpdates.push({
+            batchUpdate.push({
               range: range,
               values: updates,
             });
@@ -254,10 +189,8 @@ const lab = {
         });
 
         // Execute batch updates
-        if (batchUpdates.length > 0) {
-          batchUpdates.forEach(function (update) {
-            SheetsAPI.setValues(spreadsheetId, update.range, update.values);
-          });
+        if (batchUpdate.length > 0) {
+          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
           console.log("Lab levels updated successfully");
           return {
             success: true,
@@ -277,7 +210,7 @@ const lab = {
       }
     }
     
-    return importLabData(sheetType, newLabSpreadsheetId);
+    return importLabData(newSheetID, oldSheetID);
   },
 
   isCompatibleVersion: function (oldVersion) {

@@ -1,131 +1,105 @@
 const bots = {
   convertVersionFunctions: {},
 
-  importData: function (sheetType, newBotSpreadsheetId) {
-    function importBotsData(sheetType, newBotSpreadsheetId) {
-      var idType = sheetType + " ID";
-      var targetBots = [
-        "Flame Bot",
-        "Thunder Bot",
-        "Golden Bot",
-        "Amplify Bot",
-      ];
+  importData: function (newSheetID, oldSheetID) {
+    function importBotsData(newSheetID, oldSheetID) {
+      try {
+        var targetBots = [
+          "Flame Bot",
+          "Thunder Bot",
+          "Golden Bot",
+          "Amplify Bot",
+        ];
 
-      // Get new bot version using SheetsAPI
-      var newBotVersion = SheetsAPI.getValue(newBotSpreadsheetId, "EXPORT!A1");
-      if (!newBotVersion) {
-      console.log("Error getting new bot version");
-      return {
-        success: false,
-        message: "Error getting new bot version"
-      };
-      }
-
-      // Get ID Master spreadsheet info
-      var idMasterSpreadsheetInfo = shared.findSheetTypeID(
-        newBotSpreadsheetId,
-        "IDS"
-      );
-      var idMasterSpreadsheetId = shared.extractSheetId(
-        idMasterSpreadsheetInfo.id
-      );
-      if (!idMasterSpreadsheetId) {
-      console.log("Could not find ID Master spreadsheet");
-      return {
-        success: false,
-        message: "Could not find ID Master spreadsheet"
-      };
-      }
-
-      var oldBotSpreadsheetInfo = shared.findSheetTypeID(
-        idMasterSpreadsheetId,
-        "IDS",
-        idType
-      );
-      var oldBotSpreadsheetId = shared.extractSheetId(oldBotSpreadsheetInfo.id);
-      if (!oldBotSpreadsheetId) {
-      console.log("Could not find old bot spreadsheet");
-      return {
-        success: false,
-        message: "Could not find old bot spreadsheet"
-      };
-      }
-
-      // Get old bot version using SheetsAPI
-      var oldBotVersion = SheetsAPI.getValue(oldBotSpreadsheetId, "EXPORT!A1");
-      if (!oldBotVersion) {
-      console.log("Error getting old bot version");
-      return {
-        success: false,
-        message: "Error getting old bot version"
-      };
-      }
-
-      var versionCheck = shared.compareVersions(oldBotVersion, newBotVersion);
-      if (versionCheck === 0) {
-        console.log("Same Version");
-
-        // Get header row from _IDS sheet using Sheets API
-        var headerRowData;
-        try {
-        var headerRowData = SheetsAPI.getValues(newBotSpreadsheetId, "_IDS!1:1")[0] || [];
-        } catch (error) {
-          console.log("Error getting header row: " + error.toString());
+        // Get new bot version using SheetsAPI
+        var newBotVersion = SheetsAPI.getValue(newSheetID, "EXPORT!A1");
+        if (!newBotVersion) {
+          console.log("Error getting new bot version");
           return {
             success: false,
-            message: "Error getting header row: " + error.message
+            message: "Error getting new bot version"
           };
         }
 
-        var importbotColStart = headerRowData.indexOf("Bots");
-        if (importbotColStart === -1) {
-        console.log("Bots column not found in header");
+        // Get old bot version using SheetsAPI
+        var oldBotVersion = SheetsAPI.getValue(oldSheetID, "EXPORT!A1");
+        if (!oldBotVersion) {
+        console.log("Error getting old bot version");
         return {
           success: false,
-          message: "Bots column not found in header"
+          message: "Error getting old bot version"
         };
         }
 
-        // Get old bot levels data using Sheets API
-        var oldBotLevelsData;
-        try {
-        var colStart = shared.columnToLetter(importbotColStart + 1);
-        var colEnd = shared.columnToLetter(importbotColStart + 5);
-        var oldBotLevelsData = SheetsAPI.getValues(
-          newBotSpreadsheetId,
-          "_IDS!" + colStart + "2:" + colEnd
-        );
-        } catch (error) {
-          console.log("Error getting old bot levels: " + error.toString());
+        var versionCheck = shared.compareVersions(oldBotVersion, newBotVersion);
+        if (versionCheck === 0) {
+          console.log("Same Version");
+
+          // Get header row from _IDS sheet using Sheets API
+          var headerRowData;
+          try {
+          var headerRowData = SheetsAPI.getValues(newSheetID, "_IDS!1:1")[0] || [];
+          } catch (error) {
+            console.log("Error getting header row: " + error.toString());
+            return {
+              success: false,
+              message: "Error getting header row: " + error.message
+            };
+          }
+
+          var importbotColStart = headerRowData.indexOf("Bots");
+          if (importbotColStart === -1) {
+          console.log("Bots column not found in header");
           return {
             success: false,
-            message: "Error getting old bot levels: " + error.message
+            message: "Bots column not found in header"
           };
+          }
+
+          // Get old bot levels data using Sheets API
+          var oldBotLevelsData;
+          try {
+          var colStart = shared.columnToLetter(importbotColStart + 1);
+          var colEnd = shared.columnToLetter(importbotColStart + 5);
+          var oldBotLevelsData = SheetsAPI.getValues(
+            newSheetID,
+            "_IDS!" + colStart + "2:" + colEnd
+          );
+          } catch (error) {
+            console.log("Error getting old bot levels: " + error.toString());
+            return {
+              success: false,
+              message: "Error getting old bot levels: " + error.message
+            };
+          }
+
+          // Filter out empty rows
+          var oldBotLevels = oldBotLevelsData.filter((row) =>
+            row.some(
+              (cell) =>
+                cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+            )
+          );
+
+          var oldBots = getOldBots(targetBots, oldBotLevels);
+          return updateBotLevels(
+            targetBots,
+            newSheetID,
+            "Master Sheet",
+            oldBots
+          );
         }
-
-        // Filter out empty rows
-        var oldBotLevels = oldBotLevelsData.filter((row) =>
-          row.some(
-            (cell) =>
-              cell !== null && cell !== undefined && String(cell || '').trim() !== ""
-          )
-        );
-
-        var oldBots = getOldBots(targetBots, oldBotLevels);
-        return updateBotLevels(
-          targetBots,
-          newBotSpreadsheetId,
-          "Master Sheet",
-          oldBots
-        );
+        // else {// Else do something to convert old version to new one (Future me problem)
+        // }
+      } catch (error) {
+        console.log("Error importing bots data: " + error.toString());
+        return { success: false, message: "Error importing bots data" };
       }
-      // else {// Else do something to convert old version to new one (Future me problem)
-      // }
     }
 
-    function updateBotLevels(targetBots, spreadsheetId, sheetName, oldBots) {
+    function updateBotLevels(targetBots, newSheetID, sheetName, oldBots) {
       // Get all data from Master Sheet using Sheets API
-      var sheetData = SheetsAPI.getDataRange(spreadsheetId, sheetName);
+      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
       if (!sheetData) {
       console.log("Error getting bot master sheet data");
       return {
@@ -207,6 +181,7 @@ const bots = {
         }
       }
 
+      var batchUpdate = [];
       // Update the data using Sheets API
       if (newBotUnlocked.length > 0) {
         var unlockedCol = shared.columnToLetter(botCol + 2);
@@ -217,15 +192,10 @@ const bots = {
           "2:" +
           unlockedCol +
           (1 + newBotUnlocked.length);
-        try {
-          SheetsAPI.setValues(spreadsheetId, unlockedRange, newBotUnlocked);
-        } catch (error) {
-          console.log("Error updating bot unlocked data: " + error.toString());
-          return {
-            success: false,
-            message: "Error updating bot unlocked data: " + error.message
-          };
-        }
+        batchUpdate.push({
+          range: unlockedRange,
+          values: newBotUnlocked,
+        });
       }
 
       if (newBotLevel.length > 0) {
@@ -237,20 +207,23 @@ const bots = {
           "2:" +
           levelCol +
           (1 + newBotLevel.length);
-        try {
-          SheetsAPI.setValues(spreadsheetId, levelRange, newBotLevel);
-        } catch (error) {
-          console.log("Error updating bot level data: " + error.toString());
-          return {
-            success: false,
-            message: "Error updating bot level data: " + error.message
-          };
-        }
+        batchUpdate.push({
+          range: levelRange,
+          values: newBotLevel,
+        });
       }
-      console.log("Bot levels updated successfully");
+
+      if (batchUpdate.length !== 0) {
+        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+        console.log("Bot levels updated successfully");
+        return {
+          success: true,
+          message: "Bot levels updated successfully",
+        };
+      }
       return {
         success: true,
-        message: "Bot levels updated successfully",
+        message: "No updates needed for bot levels",
       };
     }
 
@@ -283,7 +256,7 @@ const bots = {
       }
       return bots;
     }
-    return importBotsData(sheetType, newBotSpreadsheetId);
+    return importBotsData(newSheetID, oldSheetID);
   },
 
   isCompatibleVersion: function (oldVersion) {

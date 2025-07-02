@@ -1,10 +1,9 @@
 const ultimate = {
   convertVersionFunctions: {},
 
-  importData: function (sheetType, newUltimateSpreadsheetId) {
-    function importUltimateData(sheetType, newUltimateSpreadsheetId) {
+  importData: function (newSheetID, oldSheetID) {
+    function importUltimateData(newSheetID, oldSheetID) {
       try {
-        var idType = sheetType + " ID";
         var targetWeapons = [
           "Chain Lightning",
           "Smart Missiles",
@@ -17,66 +16,17 @@ const ultimate = {
           "Spotlight",
         ];
 
-        // Check if required sheets exist
-        if (!SheetsAPI.hasSheet(newUltimateSpreadsheetId, "IDS")) {
-          console.log("IDS sheet not found in new ultimate weapons spreadsheet");
-          return {
-            success: false,
-            message: "IDS sheet not found in new ultimate weapons spreadsheet"
-          };
-        }
-        if (!SheetsAPI.hasSheet(newUltimateSpreadsheetId, "EXPORT")) {
-          console.log(
-            "EXPORT sheet not found in new ultimate weapons spreadsheet"
-          );
-          return {
-            success: false,
-            message: "EXPORT sheet not found in new ultimate weapons spreadsheet"
-          };
-        }
-
         // Get version from EXPORT sheet
         var newUltimateVersion = SheetsAPI.getValue(
-          newUltimateSpreadsheetId,
+          newSheetID,
           "EXPORT!A1"
         );
-
-        var idMasterSpreadsheetInfo = shared.findSheetTypeID(
-          newUltimateSpreadsheetId,
-          "IDS"
-        );
-        var idMasterSpreadsheetId = shared.extractSheetId(
-          idMasterSpreadsheetInfo.id
-        );
-        if (!idMasterSpreadsheetId) {
-          console.log("Could not find ID Master spreadsheet");
-          return {
-            success: false,
-            message: "Could not find ID Master spreadsheet"
-          };
-        }
-
-        // Get ID Master spreadsheet info
-        var oldUltimateSpreadsheetInfo = shared.findSheetTypeID(
-          idMasterSpreadsheetId,
-          "IDS",
-          idType
-        );
-        var oldUltimateSpreadsheetId = shared.extractSheetId(
-          oldUltimateSpreadsheetInfo.id
-        );
-        if (!oldUltimateSpreadsheetId) {
-          console.log("Could not find old ultimate spreadsheet");
-          return {
-            success: false,
-            message: "Could not find old ultimate spreadsheet"
-          };
-        }
 
         var oldUltimateVersion = SheetsAPI.getValue(
-          oldUltimateSpreadsheetId,
+          oldSheetID,
           "EXPORT!A1"
         );
+
         var versionCheck = shared.compareVersions(
           oldUltimateVersion,
           newUltimateVersion
@@ -88,7 +38,7 @@ const ultimate = {
           );
 
           // Check if _IDS sheet exists
-          if (!SheetsAPI.hasSheet(newUltimateSpreadsheetId, "_IDS")) {
+          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
           console.log(
             "_IDS sheet not found in new ultimate weapons spreadsheet"
           );
@@ -100,7 +50,7 @@ const ultimate = {
 
           // Get header row to find UWs column
           var headerValues = SheetsAPI.getValues(
-            newUltimateSpreadsheetId,
+            newSheetID,
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
@@ -130,7 +80,7 @@ const ultimate = {
             shared.columnToLetter(importUltimateColStart + 4);
 
           var oldUltimateLevelsValues = SheetsAPI.getValues(
-            newUltimateSpreadsheetId,
+            newSheetID,
             ultimateLevelsRange
           );
           if (!oldUltimateLevelsValues) {
@@ -157,7 +107,7 @@ const ultimate = {
           );
 
           // Check if Master Sheet exists
-          if (!SheetsAPI.hasSheet(newUltimateSpreadsheetId, "Master Sheet")) {
+          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
           console.log(
             "Master Sheet not found in new ultimate weapons spreadsheet"
           );
@@ -169,7 +119,7 @@ const ultimate = {
 
           return updateUltimateLevels(
             targetWeapons,
-            newUltimateSpreadsheetId,
+            newSheetID,
             oldUltimate
           );
         } else {
@@ -186,10 +136,10 @@ const ultimate = {
       }
     }
 
-    function updateUltimateLevels(targetWeapons, spreadsheetId, oldUltimate) {
+    function updateUltimateLevels(targetWeapons, newSheetID, oldUltimate) {
       try {
         // Get all data from Master Sheet to determine range and find columns
-        var allData = SheetsAPI.getValues(spreadsheetId, "Master Sheet");
+        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
         if (!allData || allData.length < 2) {
           console.log("Not enough data in Master Sheet");
           return {
@@ -217,7 +167,7 @@ const ultimate = {
           shared.columnToLetter(ultimateCol + 5);
 
         var newUltimateDataValues = SheetsAPI.getValues(
-          spreadsheetId,
+          newSheetID,
           ultimateDataRange
         );
         if (!newUltimateDataValues) {
@@ -272,6 +222,7 @@ const ultimate = {
           }
         }
 
+        var batchUpdate = [];
         // Update the unlocked column (column after Ultimate Weapon)
         if (newUltimateUnlocked.length > 0) {
           var unlockedCol = shared.columnToLetter(ultimateCol + 1);
@@ -281,11 +232,10 @@ const ultimate = {
             "2:" +
             unlockedCol +
             (newUltimateUnlocked.length + 1);
-          SheetsAPI.setValues(
-            spreadsheetId,
-            unlockedRange,
-            newUltimateUnlocked
-          );
+          batchUpdate.push({
+            range: unlockedRange,
+            values: newUltimateUnlocked,
+          });
         }
 
         // Update the level column (5 columns after Ultimate Weapon)
@@ -297,17 +247,24 @@ const ultimate = {
             "2:" +
             levelCol +
             (newUltimateLevel.length + 1);
-          SheetsAPI.setValues(
-            spreadsheetId,
-            levelRange,
-            newUltimateLevel
-          );
+          batchUpdate.push({
+            range: levelRange,
+            values: newUltimateLevel,
+          });
         }
 
-        console.log("Ultimate weapons levels updated successfully");
+        if (batchUpdate.length !== 0) {
+          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+          console.log("Ultimate weapons levels updated successfully");
+          return {
+            success: true,
+            message: "Ultimate weapons levels updated successfully",
+          };
+        }
+        console.log("No updates needed for ultimate weapons levels");
         return {
           success: true,
-          message: "Ultimate weapons levels updated successfully",
+          message: "No updates needed for ultimate weapons levels",
         };
       } catch (error) {
         console.log("Error in updateUltimateLevels: " + error.toString());
@@ -347,7 +304,7 @@ const ultimate = {
       }
       return weapons;
     }
-    return importUltimateData(sheetType, newUltimateSpreadsheetId);
+    return importUltimateData(newSheetID, oldSheetID);
   },
 
   isCompatibleVersion: function (oldVersion) {

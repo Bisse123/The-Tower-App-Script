@@ -1,3 +1,127 @@
+const SheetsAPI = {
+  // Get spreadsheet metadata and sheets
+  getSpreadsheet: function (spreadsheetId) {
+    try {
+      return Sheets.Spreadsheets.get(spreadsheetId);
+    } catch (error) {
+      console.error("Error getting spreadsheet:", error);
+      return null;
+    }
+  },
+
+  // Get sheet by name from spreadsheet
+  getSheetByName: function (spreadsheetId, sheetName) {
+    try {
+      const spreadsheet = this.getSpreadsheet(spreadsheetId);
+      const sheet = spreadsheet.sheets.find(
+        (s) => s.properties.title === sheetName
+      );
+      return sheet ? sheet.properties : null;
+    } catch (error) {
+      console.error("Error getting sheet by name:", error);
+      return null;
+    }
+  },
+
+  // Check if a sheet exists in a spreadsheet
+  hasSheet: function (spreadsheetId, sheetName) {
+    try {
+      return this.getSheetByName(spreadsheetId, sheetName) !== null;
+    } catch (error) {
+      console.error("Error checking sheet existence:", error);
+      return false;
+    }
+  },
+
+  // Get values from a range
+  getValues: function (spreadsheetId, range) {
+    try {
+      const response = Sheets.Spreadsheets.Values.get(spreadsheetId, range);
+      return response.values;
+    } catch (error) {
+      console.error("Error getting values:", error);
+      return null;
+    }
+  },
+
+  // Get a single value from a cell
+  getValue: function (spreadsheetId, range) {
+    try {
+      const values = this.getValues(spreadsheetId, range);
+      return values && values.length > 0 && values[0].length > 0 ? values[0][0] : null;
+    } catch (error) {
+      console.error("Error getting single value:", error);
+      return null;
+    }
+  },
+
+  // Set multiple values in a range
+  setValues: function (spreadsheetId, range, values) {
+    try {
+      const requestBody = {
+        values: values,
+      };
+      return Sheets.Spreadsheets.Values.update(
+        requestBody,
+        spreadsheetId,
+        range,
+        {
+          valueInputOption: "USER_ENTERED",
+        }
+      );
+    } catch (error) {
+      console.error("Error setting values:", error);
+      return null;
+    }
+  },
+
+  // Set a single value in a cell
+  setValue: function (spreadsheetId, range, value) {
+    try {
+      const requestBody = {
+        values: [[value]],
+      };
+      return Sheets.Spreadsheets.Values.update(
+        requestBody,
+        spreadsheetId,
+        range,
+        {
+          valueInputOption: "USER_ENTERED",
+        }
+      );
+    } catch (error) {
+      console.error("Error setting value:", error);
+      return null;
+    }
+  },
+
+  // Get all data from a sheet
+  getDataRange: function (spreadsheetId, sheetName) {
+    try {
+      return this.getValues(spreadsheetId, sheetName);
+    } catch (error) {
+      console.error("Error getting data range:", error);
+      return null;
+    }
+  },
+  batchUpdateValues: function (spreadsheetId, updates) {
+    try {
+      const data = updates.map(update => ({
+        range: update.range,
+        values: update.values
+      }));
+      const requestBody = {
+        data: data,
+        valueInputOption: "USER_ENTERED"
+      };
+      return Sheets.Spreadsheets.Values.batchUpdate(requestBody, spreadsheetId);
+    } catch (error) {
+      console.error("Error in batchUpdateValues:", error);
+      return null;
+    }
+  },
+};
+
 const shared = {
   compareVersions: function (oldVersion, newVersion) {
     var oldVersionNumber = parseInt(oldVersion.replace(/\D/g, ""), 10);

@@ -16,15 +16,11 @@
         border: none;
         box-sizing: border-box;
         border-radius: 6px;
-        background-color: #4caf50;
         color: white;
         cursor: pointer;
         margin: 5px;
-        height: 56px;
-        min-height: 56px;
-        max-height: 56px;
         width: auto;
-        white-space: nowrap;
+        white-space: normal;
         vertical-align: top;
         text-align: center;
         line-height: 1.2;
@@ -32,16 +28,46 @@
         align-items: center;
         transition: all 0.2s ease;
       }
-
       button:hover {
-        background-color: #45a049;
         transform: translateY(-1px);
       }
 
-      button:disabled {
+      #add_another_button,
+      #import_button,
+      #update_master_button {
+        background-color: #4caf50;
+      }
+      #add_another_button:hover {
+        background-color: #45a049;
+      }
+
+      #sheetid-submit-btn {
+        background-color: #ffb300;
+      }
+      #sheetid-submit-btn:hover {
+        background-color: #f9a825;
+      }
+
+      #add_another_button:disabled,
+      #import_button:disabled,
+      #update_master_button:disabled,
+      #sheetid-submit-btn:disabled {
         background-color: #e0e0e0;
         color: #888;
         cursor: not-allowed;
+      }
+      
+      input[type="text"] {
+        width: 320px;
+        max-width: 90%;
+        padding: 0 8px;
+        font-size: 1.1em;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        height: 56px;
+        line-height: normal;
+        margin-bottom: 0;
       }
 
       kbd {
@@ -53,62 +79,61 @@
         font-size: 0.9em;
         color: #3c4043;
       }
-      
-      .sheetid-input-section {
-        margin: 20px 0;
-        padding: 18px;
-        background: #fff8e1;
-        border: 1px solid #ffb300;
+      .section {
+        margin: 10px 0;
+        padding: 15px;
         border-radius: 6px;
+        border-width: 1px;
+        border-style: solid;
+        box-sizing: border-box;
+      }
+      .status-section {
+        background-color: #f0f0f0;
+        border-color: #e0e0e0;
+      }
+      .file-access-section {
+        background-color: #e8f5e8;
+        border-color: #4caf50;
+        animation: slideIn 0.3s ease-out;
+      }
+      .instructions-section {
+        background-color: #e8f4fd;
+        border-color: #1976d2;
+      }
+      .instructions-content {
+        background-color: #f0f8ff;
+        border-color: #4285f4;
+      }
+      .sheetid-input-section {
+        background-color: #fff3e0;
+        border-color: #ffb300;
+      }
+      .title {
+        margin-top: 0;
       }
       .sheetid-input-title {
-        margin-top: 0;
         color: #f9a825;
+      }
+      .file-access-title {
+        color: #2e7d32;
+      }
+      .instructions-title {
+        color: #1976d2;
       }
       .sheetid-input-hint {
         font-size: 0.95em;
         color: #666;
       }
-.sheetid-input-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 10px;
-}
-.sheetid-input-box {
-  width: 320px;
-  max-width: 90%;
-  padding: 0 8px;
-  font-size: 1.1em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-  height: 56px;
-  line-height: normal;
-  margin-bottom: 0;
-}
-.sheetid-submit-btn {
-  background: #ffb300;
-  color: #fff;
-  height: 56px;
-  min-height: 56px;
-  max-height: 56px;
-  font-size: 1.1em;
-  vertical-align: middle;
-  padding: 0 24px;
-}
-.sheetid-submit-btn:hover {
-  background: #f9a825;
-  color: #fff;
-}
+      .sheetid-input-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 10px;
+      }
       .sheetid-status {
         margin-top: 10px;
         color: #b26a00;
         font-size: 1em;
-      }
-      
-      #continue-section {
-        animation: slideIn 0.3s ease-out;
       }
 
       /* Modal overlay */
@@ -178,21 +203,18 @@
 
       @media (max-width: 768px) {
         button {
-          padding: 32px 36px;
-          font-size: 26px;
+          padding: 16px 12px;
+          font-size: 20px;
           margin: 12px 0;
-          height: 90px;
-          min-height: 90px;
-          max-height: 90px;
           width: 100%;
           min-width: 100%;
           max-width: 100%;
           white-space: normal;
           line-height: 1.3;
-          text-align: center;
           display: flex;
           align-items: center;
           justify-content: center;
+          text-align: center;
         }
 
         body {
@@ -204,20 +226,7 @@
           font-size: 24px;
         }
 
-        #instructions {
-          font-size: 16px;
-        }
-
-        #status {
-          font-size: 16px;
-          padding: 12px;
-        }
-
-        #continue-section {
-          padding: 20px;
-        }
-
-        #selected-summary {
+        #selected-file-summary {
           font-size: 16px;
           line-height: 1.5;
         }
@@ -235,16 +244,14 @@
     <h1>The Tower Import Data</h1>
     <div
       id="status"
-      style="
-        margin: 10px 0;
-        padding: 10px;
-        background-color: #f0f0f0;
-        border-radius: 4px;
-      "
+      class="section status-section"
     >
       <strong>Status:</strong> <span id="status_text">Loading...</span>
     </div>
-    <div id="sheetid-input-section" class="sheetid-input-section" style="display: none;">
+    <div 
+      id="sheetid-input-section"
+      class="section sheetid-input-section"
+      style="display: none;">
       <h3 class="sheetid-input-title">🔑 Enter Sheet ID</h3>
       <p>
         One or more required parameters are missing.<br>
@@ -252,25 +259,26 @@
         <span class="sheetid-input-hint">(You can find the Sheet ID on the <strong>Home Page sheet</strong> or in the URL: <code>https://docs.google.com/spreadsheets/d/<b>[SHEET_ID]</b>/edit</code>)</span>
       </p>
       <div class="sheetid-input-row">
-        <input id="sheetid-input" type="text" placeholder="Paste new Sheet ID here" class="sheetid-input-box" />
-        <button onclick="onSubmitNewSheetId()" class="sheetid-submit-btn">Submit</button>
+        <input
+          id="sheetid-input"
+          type="text"
+          placeholder="Paste new Sheet ID here"
+        />
+        <button 
+          id="sheetid-submit-btn"
+          onclick="onSubmitNewSheetId()"
+        >
+        Submit</button>
       </div>
       <div id="sheetid-status" class="sheetid-status"></div>
     </div>
 
     <div
-      id="continue-section"
-      style="
-        display: block;
-        margin: 10px 0;
-        padding: 15px;
-        background-color: #e8f5e8;
-        border: 1px solid #4caf50;
-        border-radius: 6px;
-      "
+      id="file-access-section"
+      class="section file-access-section"
     >
-      <h3 style="margin-top: 0; color: #2e7d32">📁 File Access Required</h3>
-      <p id="selected-summary">
+      <h3 class="file-access-title">📁 File Access Required</h3>
+      <p id="selected-file-summary">
         Checking which files need access permissions...
       </p>
       <div style="margin: 15px 0">
@@ -287,9 +295,7 @@
           style="display: none"
           disabled
         >
-          Import
-          <?= sheetType ?>
-          data
+          Import data
         </button>
         <button
           id="update_master_button"
@@ -297,29 +303,17 @@
           style="display: none"
           disabled
         >
-          Update IDS Master
+            Update IDS Master
         </button>
       </div>
     </div>
     <div
       id="instructions"
-      style="
-        margin: 10px 0;
-        padding: 15px;
-        background-color: #e8f4fd;
-        border: 1px solid #1976d2;
-        border-radius: 6px;
-      "
+      class="section instructions-section"
     >
-      <h3 style="margin-top: 0; color: #1976d2">� File Access Management</h3>
+      <h3 class="instructions-title">� File Access Management</h3>
       <div
-        style="
-          margin-bottom: 15px;
-          padding: 10px;
-          background-color: #f0f8ff;
-          border: 1px solid #4285f4;
-          border-radius: 4px;
-        "
+        class="section instructions-content"
       >
         <p>
           <strong>🎯 Automatic Check:</strong> The app will automatically check
@@ -382,10 +376,10 @@
       const API_KEY = "AIzaSyBoleujCzXxUUhPoKmPzlbsOh0LEoer-gA";
       const APP_ID = "832137601831";
 
-      let newSheetID = "<?= newSheetID || '' ?>";
-      let oldSheetID = "<?= oldSheetID || '' ?>";
-      let idMasterID = "<?= idMasterID || '' ?>";
-      let sheetType = "<?= sheetType || '' ?>";
+      let newSheetID = "<?= newSheetID ? newSheetID : '' ?>";
+      let oldSheetID = "<?= oldSheetID ? oldSheetID : '' ?>";
+      let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
+      let sheetType = "<?= sheetType ? sheetType : '' ?>";
 
       console.log("Parameters:", {
         newSheetID,
@@ -440,7 +434,7 @@
 
       // --- Custom: Handle missing URL parameters for sheet selection ---
       function promptForSheetIdIfMissing() {
-        document.getElementById("continue-section").style.display = "none";
+        document.getElementById("file-access-section").style.display = "none";
         document.getElementById("instructions").style.display = "none";
         document.getElementById("sheetid-input-section").style.display = "block";
         document.getElementById("status_text").innerText =
@@ -490,17 +484,23 @@
         google.script.run
           .withSuccessHandler(function (result) {
             if (result.success) {
-              document.getElementById("sheetid-status").innerText = "Access to new sheet granted. Searching for IDS Master...";
-              findAndGrantIdMaster(input);
-            }
-            else {
-              document.getElementById("sheetid-status").innerText = `Grant access to the new sheet.`;
-              openSingleFilePicker(input, function(granted) {
-              if (granted) {
+              if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
+                document.getElementById("sheetid-status").innerText = `Grant access to the new sheet.`;
+                openSingleFilePicker(input, function(granted) {
+                  if (granted) {
+                    document.getElementById("sheetid-status").innerText = "Access to new sheet granted. Searching for IDS Master...";
+                    findAndGrantIdMaster(input);
+                  }
+                  else {
+                    document.getElementById("sheetid-status").innerText = "Access to new sheet denied. Please try again.";
+                  }
+                });
+              } else {
                 document.getElementById("sheetid-status").innerText = "Access to new sheet granted. Searching for IDS Master...";
                 findAndGrantIdMaster(input);
               }
-            });
+            }
+            else {
             }
           })
           .withFailureHandler(function (error) {
@@ -514,26 +514,28 @@
             .withSuccessHandler(function(idMasterResult) {
               if (idMasterResult && idMasterResult.sheetID) {
                 google.script.run
-                  .withSuccessHandler(function(granted) {
-                    if (granted) {
-                      document.getElementById("sheetid-status").innerText = "IDS Master access granted. Searching for old sheet...";
-                      findAndGrantOldSheet(input, idMasterResult);
-                    } else {
-                      document.getElementById("sheetid-status").innerText = `Grant access to the IDS Master sheet.`;
-                      openSingleFilePicker(idMasterResult.sheetID, function(granted2) {
-                      if (granted2) {
+                  .withSuccessHandler(function(result) {
+                    if (result.success) {
+                      if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
+                        document.getElementById("sheetid-status").innerText = `Grant access to the IDS Master sheet.`;
+                        openSingleFilePicker(idMasterResult.sheetID, function(granted) {
+                          if (granted) {
+                            document.getElementById("sheetid-status").innerText = "IDS Master access granted. Searching for old sheet...";
+                            findAndGrantOldSheet(input, idMasterResult);
+                          }
+                        });
+                      } else {
                         document.getElementById("sheetid-status").innerText = "IDS Master access granted. Searching for old sheet...";
                         findAndGrantOldSheet(input, idMasterResult);
                       }
-                    });
+                    } else {
+                      document.getElementById("sheetid-status").innerText = "Could not grant access to IDS Master. Please try again.";
                     }
                   })
                   .withFailureHandler(function(e) {
-                    document.getElementById("sheetid-status").innerText = "Error granting access to IDS Master: " + (e.message || e);
+                    document.getElementById("sheetid-status").innerText = "Error checking access to IDS Master: " + (e.message || e);
                   })
                   .checkSheetAccess([idMasterResult.sheetID]);
-
-                
               } else {
                 document.getElementById("sheetid-status").innerText = "Could not find IDS Master in sheet.";
               }
@@ -550,32 +552,38 @@
             .withSuccessHandler(function(oldSheetResult) {
               if (oldSheetResult && oldSheetResult.sheetID) {
                 google.script.run
-                .withSuccessHandler(function(granted) {
-                  if (granted) {
-                    document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
-                    newSheetID = input;
-                    idMasterID = idMasterResult.sheetID;
-                    oldSheetID = oldSheetResult.sheetID;
-                    sheetType = idMasterResult.sheetType;
-                    document.getElementById("sheetid-input-section").style.display = "none";
-                    document.getElementById("continue-section").style.display = "block";
-                    document.getElementById("import_button").innerText = `Import ${sheetType} data`;
-                    handleAuthAndCheckAccess();
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
+                      document.getElementById("sheetid-status").innerText = `Grant access to the old sheet.`;
+                      openSingleFilePicker(oldSheetResult.sheetID, function(granted2) {
+                        if (granted2) {
+                          document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
+                          newSheetID = input;
+                          idMasterID = idMasterResult.sheetID;
+                          oldSheetID = oldSheetResult.sheetID;
+                          sheetType = idMasterResult.sheetType;
+                          document.getElementById("sheetid-input-section").style.display = "none";
+                          document.getElementById("file-access-section").style.display = "block";
+                          document.getElementById("import_button").innerText = `Import ${sheetType} data`;
+                          handleAuthAndCheckAccess();
+                        }
+                      });
+                    }
+                    else {
+                      document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
+                      newSheetID = input;
+                      idMasterID = idMasterResult.sheetID;
+                      oldSheetID = oldSheetResult.sheetID;
+                      sheetType = idMasterResult.sheetType;
+                      document.getElementById("sheetid-input-section").style.display = "none";
+                      document.getElementById("file-access-section").style.display = "block";
+                      document.getElementById("import_button").innerText = `Import ${sheetType} data`;
+                      handleAuthAndCheckAccess();
+                    }
                   }
                   else {
-                    openSingleFilePicker(oldSheetResult.sheetID, function(granted3) {
-                      if (granted3) {
-                        document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
-                        newSheetID = input;
-                        idMasterID = idMasterResult.sheetID;
-                        oldSheetID = oldSheetResult.sheetID;
-                        sheetType = idMasterResult.sheetType;
-                        document.getElementById("sheetid-input-section").style.display = "none";
-                        document.getElementById("continue-section").style.display = "block";
-                        document.getElementById("import_button").innerText = `Import ${sheetType} data`;
-                        handleAuthAndCheckAccess();
-                      }
-                    });
+                    document.getElementById("sheetid-status").innerText = "Could not grant access to old sheet. Please try again.";
                   }
                 })
                 .withFailureHandler(function(e) {
@@ -792,7 +800,7 @@
         accessibleFilesCache = accessibleFiles.slice();
         inaccessibleFilesCache = inaccessibleFiles.slice();
 
-        const summary = document.getElementById("selected-summary");
+        const summary = document.getElementById("selected-file-summary");
         const addAnotherButton = document.getElementById("add_another_button");
         const importButton = document.getElementById("import_button");
         const updateButton = document.getElementById("update_master_button");
@@ -802,7 +810,10 @@
           // All files are accessible - show continue button
           summary.innerHTML =
             `<strong>✅ All Required Files Accessible</strong><br>` +
-            `The app script has access to all ${accessibleFiles.length} required file(s). You can proceed to the next step.`;
+            `The app script has access to all ${accessibleFiles.length} required file(s).` +
+            `<br>&nbsp;&nbsp;• Click "Import ${sheetType} data" to proceed with importing ${sheetType} data from you old sheet.` +
+            `<br>&nbsp;&nbsp;• Click "Update IDS Master" to update the IDS master sheet with the new file ID, rename and move the new file and delete the old file. ` + 
+            `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master.</strong>`;
           // List names of accessible files
           if (accessibleFiles.length > 0) {
             summary.innerHTML +=
@@ -860,7 +871,7 @@
           updateButton.style.display = "none";
         }
 
-        document.getElementById("continue-section").style.display = "block";
+        document.getElementById("file-access-section").style.display = "block";
       }
 
       document.getElementById("status_text").innerText = "Initializing APIs...";
@@ -935,6 +946,8 @@
             promptForSheetIdIfMissing();
             return;
           }
+          
+          document.getElementById("import_button").innerText = `Import ${sheetType} data`;
           handleAuthAndCheckAccess();
         } catch (error) {
           console.error("Error initializing GAPI client:", error);
@@ -949,7 +962,7 @@
        */
       function handleAuthAndCheckAccess() {
         if (!newSheetID || !oldSheetID || !idMasterID || !sheetType) {
-          document.getElementById("continue-section").style.display = "none";
+          document.getElementById("file-access-section").style.display = "none";
           document.getElementById("instructions").style.display = "none";
           console.error(
             `Missing required parameters -> newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
@@ -961,7 +974,7 @@
         if ( [newSheetID, oldSheetID, idMasterID].includes("<Script loading...>") ||
           new Set([newSheetID, oldSheetID, idMasterID]).size !== 3
         ) {
-          document.getElementById("continue-section").style.display = "none"; // Hide continue section if parameters are invalid
+          document.getElementById("file-access-section").style.display = "none"; // Hide continue section if parameters are invalid
           document.getElementById("instructions").style.display = "none"; // Hide instructions if parameters are invalid
           console.error(
             `Invalid parameters -> newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`

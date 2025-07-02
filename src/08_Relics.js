@@ -1,67 +1,17 @@
 const relics = {
   convertVersionFunctions: {},
 
-  importData: function (sheetType, newRelicSpreadsheetId) {
-    function importRelicsData(sheetType, newRelicSpreadsheetId) {
+  importData: function (newSheetID, oldSheetID) {
+    function importRelicsData(newSheetID, oldSheetID) {
       try {
-        var idType = sheetType + " ID";
-
-        // Check if required sheets exist
-        if (!SheetsAPI.hasSheet(newRelicSpreadsheetId, "IDS")) {
-          console.log("IDS sheet not found in new relic spreadsheet");
-          return {
-            success: false,
-            message: "IDS sheet not found in new relic spreadsheet"
-          };
-        }
-        if (!SheetsAPI.hasSheet(newRelicSpreadsheetId, "STATS")) {
-          console.log("STATS sheet not found in new relic spreadsheet");
-          return {
-            success: false,
-            message: "STATS sheet not found in new relic spreadsheet"
-          };
-        }
-
         // Get version from STATS sheet
         var newRelicVersion = SheetsAPI.getValue(
-          newRelicSpreadsheetId,
+          newSheetID,
           "STATS!A1"
         );
 
-        // Get ID Master spreadsheet info
-        var idMasterSpreadsheetInfo = shared.findSheetTypeID(
-          newRelicSpreadsheetId,
-          "IDS"
-        );
-        var idMasterSpreadsheetId = shared.extractSheetId(
-          idMasterSpreadsheetInfo.id
-        );
-        if (!idMasterSpreadsheetId) {
-          console.log("Could not find ID Master spreadsheet");
-          return {
-            success: false,
-            message: "Could not find ID Master spreadsheet"
-          };
-        }
-
-        var oldRelicSpreadsheetInfo = shared.findSheetTypeID(
-          idMasterSpreadsheetId,
-          "IDS",
-          idType
-        );
-        var oldRelicSpreadsheetId = shared.extractSheetId(
-          oldRelicSpreadsheetInfo.id
-        );
-        if (!oldRelicSpreadsheetId) {
-          console.log("Could not find old relic spreadsheet");
-          return {
-            success: false,
-            message: "Could not find old relic spreadsheet"
-          };
-        }
-
         var oldRelicVersion = SheetsAPI.getValue(
-          oldRelicSpreadsheetId,
+          oldSheetID,
           "STATS!A1"
         );
         var versionCheck = shared.compareVersions(
@@ -73,7 +23,7 @@ const relics = {
           console.log("Same Version");
 
           // Check if Relics sheet exists in old spreadsheet
-          if (!SheetsAPI.hasSheet(oldRelicSpreadsheetId, "Relics")) {
+          if (!SheetsAPI.hasSheet(oldSheetID, "Relics")) {
             console.log("Relics sheet not found in old relic spreadsheet");
             return {
               success: false,
@@ -83,7 +33,7 @@ const relics = {
 
           // Get all data from old Relics sheet
           var oldRelicsData = SheetsAPI.getDataRange(
-            oldRelicSpreadsheetId,
+            oldSheetID,
             "Relics"
           );
           if (!oldRelicsData || oldRelicsData.length === 0) {
@@ -119,7 +69,7 @@ const relics = {
               shared.columnToLetter(oldRelicUnlockedCol);
 
             var oldRelicsValues = SheetsAPI.getValues(
-              oldRelicSpreadsheetId,
+              oldSheetID,
               oldRelicsRange
             );
             if (!oldRelicsValues) {
@@ -140,7 +90,7 @@ const relics = {
               )
             );
             // Check if Relics sheet exists in new spreadsheet
-            if (!SheetsAPI.hasSheet(newRelicSpreadsheetId, "Relics")) {
+            if (!SheetsAPI.hasSheet(newSheetID, "Relics")) {
               console.log("Relics sheet not found in new relic spreadsheet");
               return {
                 success: false,
@@ -148,7 +98,7 @@ const relics = {
               };
             }
 
-            return updateRelics(newRelicSpreadsheetId, oldRelics);
+            return updateRelics(newSheetID, oldRelics);
           } 
           // else {
           // }
@@ -168,10 +118,10 @@ const relics = {
       }
     }
 
-    function updateRelics(spreadsheetId, oldRelics) {
+    function updateRelics(newSheetID, oldRelics) {
       try {
         // Get all data from new Relics sheet
-        var newRelicsData = SheetsAPI.getValues(spreadsheetId, "Relics");
+        var newRelicsData = SheetsAPI.getValues(newSheetID, "Relics");
         if (!newRelicsData || newRelicsData.length < 3) {
           console.log("Not enough data in new Relics sheet");
           return {
@@ -224,7 +174,7 @@ const relics = {
           endRow;
 
         var newRelicNamesValues = SheetsAPI.getValues(
-          spreadsheetId,
+          newSheetID,
           newRelicNamesRange
         );
         if (!newRelicNamesValues) {
@@ -265,7 +215,7 @@ const relics = {
             shared.columnToLetter(newRelicUnlockedCol) +
             endRow;
 
-          SheetsAPI.setValues(spreadsheetId, unlockedRange, newRelicsUnlocked);
+          SheetsAPI.setValues(newSheetID, unlockedRange, newRelicsUnlocked);
           console.log(
             "Relics updated successfully: " +
               newRelicsUnlocked.length +
@@ -276,10 +226,10 @@ const relics = {
             message: "Relics updated successfully: " + newRelicsUnlocked.length + " relics processed"
           };
         }
-        console.log("No relics to update");
+        console.log("No updates needed for relics");
         return {
-          success: false,
-          message: "No relics to update"
+          success: true,
+          message: "No updates needed for relics"
         };
       } catch (error) {
         console.log("Error in updateRelics: " + error.toString());
@@ -289,7 +239,7 @@ const relics = {
         };
       }
     }
-    return importRelicsData(sheetType, newRelicSpreadsheetId);
+    return importRelicsData(newSheetID, oldSheetID);
   },
 
   isCompatibleVersion: function (oldVersion) {
