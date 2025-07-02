@@ -285,7 +285,6 @@
       style="display: none;">
       <h3 class="sheetid-input-title">🔑 Enter Sheet ID</h3>
       <p>
-        One or more required parameters are missing.<br>
         Please enter the <strong>ID of the new Google Sheet</strong> you want to import data from.<br>
         <span class="sheetid-input-hint">(You can find the Sheet ID on the <strong>Home Page sheet</strong> or in the URL: <code>https://docs.google.com/spreadsheets/d/<b>[SHEET_ID]</b>/edit</code>)</span>
       </p>
@@ -308,7 +307,7 @@
       id="file-access-section"
       class="section file-access-section"
     >
-      <h3 class="file-access-title">📁 File Access Required</h3>
+      <h3 id="file-access-title" class="file-access-title">📁 File Access Required</h3>
       <p id="selected-file-summary">
         Checking which files need access permissions...
       </p>
@@ -523,7 +522,7 @@
                     findAndGrantIdMaster(input);
                   }
                   else {
-                    document.getElementById("sheetid-status").innerText = "Access to new sheet denied. Please try again.";
+                    document.getElementById("sheetid-status").innerText = "Access to new sheet denied. Please grant access.";
                   }
                 });
               } else {
@@ -560,7 +559,7 @@
                         findAndGrantOldSheet(input, idMasterResult);
                       }
                     } else {
-                      document.getElementById("sheetid-status").innerText = "Could not grant access to IDS Master. Please try again.";
+                      document.getElementById("sheetid-status").innerText = "Access to IDS Master sheet denied. Please grant access.";
                     }
                   })
                   .withFailureHandler(function(e) {
@@ -614,7 +613,7 @@
                     }
                   }
                   else {
-                    document.getElementById("sheetid-status").innerText = "Could not grant access to old sheet. Please try again.";
+                    document.getElementById("sheetid-status").innerText = "Access to old sheet denied. Please grant access.";
                   }
                 })
                 .withFailureHandler(function(e) {
@@ -831,6 +830,7 @@
         accessibleFilesCache = accessibleFiles.slice();
         inaccessibleFilesCache = inaccessibleFiles.slice();
 
+        const fileAcessTitle = document.getElementById("file-access-title");
         const summary = document.getElementById("selected-file-summary");
         const addAnotherButton = document.getElementById("add_another_button");
         const importButton = document.getElementById("import_button");
@@ -838,17 +838,12 @@
         const instructions = document.getElementById("instructions");
 
         if (inaccessibleFiles.length === 0) {
-          // All files are accessible - show continue button
-          summary.innerHTML =
-            `<strong>✅ All Required Files Accessible</strong><br>` +
-            `The app script has access to all ${accessibleFiles.length} required file(s).` +
-            `<br>&nbsp;&nbsp;• Click "Import ${sheetType} data" to proceed with importing ${sheetType} data from you old sheet.` +
-            `<br>&nbsp;&nbsp;• Click "Update IDS Master" to update the IDS master sheet with the new file ID, rename and move the new file and delete the old file. ` + 
-            `<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master.</strong>`;
-          // List names of accessible files
+          fileAcessTitle.innerText =
+            `✅ All Required Files Access Granted`;
+          summary.innerHTML = "";
           if (accessibleFiles.length > 0) {
             summary.innerHTML +=
-              `<br><br>You have granted access to ${accessibleFiles.length} file(s):` +
+              `The app will access the following file(s):` +
               "<br>" +
               accessibleFiles
                 .map(
@@ -872,30 +867,7 @@
           finalSelectedFiles = accessibleFiles.slice();
         } else {
           // Some files need access - show grant access button
-          summary.innerHTML =
-            `<strong>🔐 ${inaccessibleFiles.length} File(s) Need Access Permission</strong><br>` +
-            `Please grant access to the following file(s):<br>` +
-            inaccessibleFiles
-              .slice(0, 5)
-              .map((file) => `• ${file.name || file.id}`)
-              .join("<br>") +
-            (inaccessibleFiles.length > 5
-              ? `<br>• ... and ${inaccessibleFiles.length - 5} more`
-              : "");
-          // List names of accessible files
-          if (accessibleFiles.length > 0) {
-            summary.innerHTML +=
-              `<br><br>You have granted access to ${accessibleFiles.length} file(s):` +
-              "<br>" +
-              accessibleFiles
-                .map(
-                  (file) =>
-                    `&nbsp;&nbsp;• ${
-                      file.name || file[google.picker.Document.ID]
-                    }`
-                )
-                .join("<br>");
-          }
+          summary.innerHTML = `<strong>🔐 ${inaccessibleFiles.length} File(s) Need Access Permission</strong><br>`
 
           addAnotherButton.style.display = "inline-block";
           importButton.style.display = "none";
@@ -916,6 +888,22 @@
           ).innerText = `${result.message}`;
           if (result.imported) {
             document.getElementById("update_master_button").disabled = false;
+            document.getElementById("selected-file-summary").innerHTML =
+              `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
+            // List names of accessible files
+            if (accessibleFilesCache.length > 0) {
+              document.getElementById("selected-file-summary").innerHTML +=
+                `<br><br>The app will access the following file(s):` +
+                "<br>" +
+                accessibleFilesCache
+                  .map(
+                    (file) =>
+                      `&nbsp;&nbsp;• ${
+                        file.name || file[google.picker.Document.ID]
+                      }`
+                  )
+                  .join("<br>");
+            }
           } else {
             document.getElementById("update_master_button").disabled = true;
           }

@@ -63,6 +63,9 @@ function showImportDialog() {
     template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
     template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
   
+    template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
+    template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
+  
 
     var html = template
       .evaluate()
