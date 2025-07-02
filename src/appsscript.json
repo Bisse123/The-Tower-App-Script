@@ -1,6 +1,5 @@
 {
   "timeZone": "Europe/Berlin",
-  "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "dependencies": {
     "enabledAdvancedServices": [
@@ -17,8 +16,9 @@
     ]
   },
   "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.file"
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui"
   ],
   "webapp": {
     "executeAs": "USER_ACCESSING",

@@ -1,82 +1,300 @@
 const workshop = {
-  convertVersionFunctions: {
-    },
+  convertVersionFunctions: {},
 
-  importData: function(sheetType, newWorkshopSpreadsheet) {
-    importWorkshopData(sheetType, newWorkshopSpreadsheet)
-    function importWorkshopData(sheetType, newWorkshopSpreadsheet) {
-      var idType = sheetType + " ID"
-      // Newly copied workshop sheet
-      var newWorkshopIdSheet = newWorkshopSpreadsheet.getSheetByName("IDS")
-      var newWorkshopExport = newWorkshopSpreadsheet.getSheetByName("EXPORT")
-      var newWorkshopVersion = newWorkshopExport.getRange("A1").getValue()
-      
-      // ID Master sheet
-      var idMasterSpreadsheet = shared.openSpreadsheet(newWorkshopIdSheet)
-      var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS")
+  importData: function (newSheetID, oldSheetID) {
+    function importWorkshopData(newSheetID, oldSheetID) {
+      try {
+        // Get version from EXPORT sheet
+        var newWorkshopVersion = SheetsAPI.getValue(
+          newSheetID,
+          "EXPORT!A1"
+        );
+        if (!newWorkshopVersion) {
+          console.log("Error getting new workshop version");
+          return {
+            success: false,
+            message: "Error getting new workshop version",
+          };
+        }
 
-      var oldWorkshopSpreadsheet = shared.openSpreadsheet(idMasterSheet, idType)
-      var oldWorkshopExport = oldWorkshopSpreadsheet.getSheetByName("EXPORT")
-      var oldWorkshopVersion = oldWorkshopExport.getRange("A1").getValue()
-      var versionCheck = shared.compareVersions(oldWorkshopVersion, newWorkshopVersion)
-      if (versionCheck === 0) {
-        Logger.log("Same Version")
-        // Grabs Level and Target from _IDS sheet in the new sheet
-        var newWorkshopImportSheet = newWorkshopSpreadsheet.getSheetByName("_IDS")
-        var headerRow = newWorkshopImportSheet.getRange(1, 1, 1, newWorkshopImportSheet.getLastColumn()).getValues()[0]
-        var importWorkshopColStart = headerRow.indexOf("WS") + 1
-        var oldWorkshopLevels = newWorkshopImportSheet.getRange(2, importWorkshopColStart, newWorkshopImportSheet.getLastRow(), 4).getValues()
-        oldWorkshopLevels = oldWorkshopLevels.filter(row => row.some(cell => String(cell).trim() !== ""))
-        
-        var importWorkshopPlusColStart = headerRow.indexOf("WS+") + 1
-        var oldWorkshopPlusLevels = newWorkshopImportSheet.getRange(2, importWorkshopPlusColStart, newWorkshopImportSheet.getLastRow(), 3).getValues()
-        oldWorkshopPlusLevels = oldWorkshopPlusLevels.filter(row => row.some(cell => String(cell).trim() !== ""))
-        var newWorkshopMasterSheet = newWorkshopSpreadsheet.getSheetByName("Master Sheet")
-        updateWorkshopLevels(newWorkshopMasterSheet, oldWorkshopLevels, oldWorkshopPlusLevels)
+        var oldWorkshopVersion = SheetsAPI.getValue(
+          oldSheetID,
+          "EXPORT!A1"
+        );
+        if (!oldWorkshopVersion) {
+          console.log("Error getting old workshop version");
+          return {
+            success: false,
+            message: "Error getting old workshop version",
+          };
+        }
+
+        var versionCheck = shared.compareVersions(
+          oldWorkshopVersion,
+          newWorkshopVersion
+        );
+
+        if (versionCheck === 0) {
+          console.log("Same Version - proceeding with workshop data import");
+
+          // Check if _IDS sheet exists
+          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
+            console.log("_IDS sheet not found in new workshop spreadsheet");
+            return {
+              success: false,
+              message: "_IDS sheet not found in new workshop spreadsheet"
+            };
+          }
+
+          // Get header row to find WS and WS+ columns
+          var headerValues = SheetsAPI.getValues(
+            newSheetID,
+            "_IDS!1:1"
+          );
+          if (!headerValues || headerValues.length === 0) {
+            console.log("Could not read header row from _IDS sheet");
+            return {
+              success: false,
+              message: "Could not read header row from _IDS sheet"
+            };
+          }
+
+          var headerRow = headerValues[0];
+          var importWorkshopColStart = headerRow.indexOf("WS") + 1;
+          var importWorkshopPlusColStart = headerRow.indexOf("WS+") + 1;
+
+          if (importWorkshopColStart === 0) {
+            console.log("WS column not found in _IDS sheet");
+            return {
+              success: false,
+              message: "WS column not found in _IDS sheet"
+            };
+          }
+          if (importWorkshopPlusColStart === 0) {
+            console.log("WS+ column not found in _IDS sheet");
+            return {
+              success: false,
+              message: "WS+ column not found in _IDS sheet"
+            };
+          }
+
+          // Get workshop levels data (4 columns starting from WS column)
+          var workshopLevelsRange =
+            "_IDS!" +
+            shared.columnToLetter(importWorkshopColStart) +
+            "2:" +
+            shared.columnToLetter(importWorkshopColStart + 3);
+
+          var oldWorkshopLevelsValues = SheetsAPI.getValues(
+            newSheetID,
+            workshopLevelsRange
+          );
+          if (!oldWorkshopLevelsValues) {
+            console.log("Could not read workshop levels data");
+            return {
+              success: false,
+              message: "Could not read workshop levels data"
+            };
+          }
+
+          // Filter out empty rows
+          var oldWorkshopLevels = oldWorkshopLevelsValues.filter((row) =>
+            row.some(
+              (cell) =>
+                cell !== null &&
+                cell !== undefined &&
+                String(cell || '').trim() !== ""
+            )
+          );
+
+          // Get workshop plus levels data (3 columns starting from WS+ column)
+          var workshopPlusLevelsRange =
+            "_IDS!" +
+            shared.columnToLetter(importWorkshopPlusColStart) +
+            "2:" +
+            shared.columnToLetter(importWorkshopPlusColStart + 2);
+
+          var oldWorkshopPlusLevelsValues = SheetsAPI.getValues(
+            newSheetID,
+            workshopPlusLevelsRange
+          );
+          if (!oldWorkshopPlusLevelsValues) {
+            console.log("Could not read workshop plus levels data");
+            return {
+              success: false,
+              message: "Could not read workshop plus levels data"
+            };
+          }
+
+          // Filter out empty rows
+          var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
+            (row) =>
+            row.some(
+              (cell) =>
+                cell !== null &&
+                cell !== undefined &&
+                String(cell || '').trim() !== ""
+            )
+          );
+
+          // Check if Master Sheet exists
+          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
+            console.log("Master Sheet not found in new workshop spreadsheet");
+            return {
+              success: false,
+              message: "Master Sheet not found in new workshop spreadsheet"
+            };
+          }
+
+          return updateWorkshopLevels(
+            newSheetID,
+            oldWorkshopLevels,
+            oldWorkshopPlusLevels
+          );
+        } else {
+          console.log("Version mismatch - skipping workshop data import");
+          return {
+            success: false,
+            message: "Workshop version mismatch",
+          };
+        }
+      } catch (error) {
+        console.log("Error in importWorkshopData: " + error.toString());
+        return {
+          success: false,
+          message: "Error importing workshop data: " + error.message,
+        };
       }
-      // else {// Else do something to convert old version to new one (Future me problem)
-      // }
     }
 
-    function updateWorkshopLevels(workshopMasterSheet, workshopLevels, workshopPlusLevels) {
-      var lastRow = workshopMasterSheet.getLastRow()
-      if (lastRow < 2) return
+    function updateWorkshopLevels(
+      newSheetID,
+      workshopLevels,
+      workshopPlusLevels
+    ) {
+      try {
+        // Get all data from Master Sheet to determine range and find columns
+        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
+        if (!allData || allData.length < 2) {
+          console.log("Not enough data in Master Sheet");
+          return {
+            success: false,
+            message: "Not enough data in Master Sheet"
+          };
+        }
 
-      // Find header row and relevant columns
-      var headerRow = workshopMasterSheet.getRange(1, 1, 1, workshopMasterSheet.getLastColumn()).getValues()[0]
-      var upgradeCol = headerRow.indexOf("Workshop Upgrade") + 1
-      var enhancementCol = headerRow.indexOf("Workshop Enhancement") + 1
+        var headerRow = allData[0];
+        var lastRow = allData.length;
 
-      // Split workshopLevels into workshopUnlocked and workshopLevelsSplit
-      // workshopUnlocked: first element of each sublist
-      // workshopLevelsSplit: 3rd and 4th elements (indices 2 and 3) of each sublist
-      var workshopUnlocked = workshopLevels.map(function(sublist) {
-        return [sublist[0]]
-      })
-      var workshopLevelsSplit = workshopLevels.map(function(sublist) {
-        return [sublist[2], sublist[3]]
-      })
-      var workshopPlusLevelsSplit = workshopPlusLevels.map(function(sublist) {
-        return[sublist[2]]
-      })
-      // Write workshopUnlocked: column before "Workshop Upgrade"
-      if (upgradeCol > 1 && workshopUnlocked.length) {
-        workshopMasterSheet.getRange(2, upgradeCol - 1, workshopUnlocked.length, 1).setValues(workshopUnlocked)
-      }
+        // Find header row and relevant columns
+        var upgradeCol = headerRow.indexOf("Workshop Upgrade") + 1;
+        var enhancementCol = headerRow.indexOf("Workshop Enhancement") + 1;
 
-      // Write workshopLevelsSplit: 1 columns after "Workshop Upgrade"
-      if (upgradeCol > 0 && workshopLevelsSplit.length) {
-        workshopMasterSheet.getRange(2, upgradeCol + 1, workshopLevelsSplit.length, workshopLevelsSplit[0].length).setValues(workshopLevelsSplit)
-      }
+        if (upgradeCol === 0) {
+          console.log("Workshop Upgrade column not found");
+          return {
+            success: false,
+            message: "Workshop Upgrade column not found"
+          };
+        }
+        if (enhancementCol === 0) {
+          console.log("Workshop Enhancement column not found");
+          return {
+            success: false,
+            message: "Workshop Enhancement column not found"
+          };
+        }
 
-      // Write workshopPlusLevelsSplit: 2 columns after "Workshop Enhancement"
-      if (enhancementCol > 0 && workshopPlusLevelsSplit.length) {
-        workshopMasterSheet.getRange(2, enhancementCol + 2, workshopPlusLevelsSplit.length, workshopPlusLevelsSplit[0].length).setValues(workshopPlusLevelsSplit)
+        // Split workshopLevels into workshopUnlocked and workshopLevelsSplit
+        // workshopUnlocked: first element of each sublist
+        // workshopLevelsSplit: 3rd and 4th elements (indices 2 and 3) of each sublist
+        var workshopUnlocked = workshopLevels.map(function (sublist) {
+          return [sublist[0]];
+        });
+        var workshopLevelsSplit = workshopLevels.map(function (sublist) {
+          return [sublist[2], sublist[3]];
+        });
+        var workshopPlusLevelsSplit = workshopPlusLevels.map(function (
+          sublist
+        ) {
+          return [sublist[2]];
+        });
+
+        // Prepare batch updates
+        var batchUpdate = [];
+
+        // Write workshopUnlocked: column before "Workshop Upgrade"
+        if (upgradeCol > 1 && workshopUnlocked.length) {
+          var unlockedCol = shared.columnToLetter(upgradeCol - 1);
+          var unlockedRange =
+            "Master Sheet!" +
+            unlockedCol +
+            "2:" +
+            unlockedCol +
+            (workshopUnlocked.length + 1);
+          batchUpdate.push({
+            range: unlockedRange,
+            values: workshopUnlocked,
+          });
+        }
+
+        // Write workshopLevelsSplit: 1 column after "Workshop Upgrade"
+        if (upgradeCol > 0 && workshopLevelsSplit.length) {
+          var levelsStartCol = shared.columnToLetter(upgradeCol + 1);
+          var levelsEndCol = shared.columnToLetter(upgradeCol + 2);
+          var levelsRange =
+            "Master Sheet!" +
+            levelsStartCol +
+            "2:" +
+            levelsEndCol +
+            (workshopLevelsSplit.length + 1);
+          batchUpdate.push({
+            range: levelsRange,
+            values: workshopLevelsSplit,
+          });
+        }
+
+        // Write workshopPlusLevelsSplit: 2 columns after "Workshop Enhancement"
+        if (enhancementCol > 0 && workshopPlusLevelsSplit.length) {
+          var plusCol = shared.columnToLetter(enhancementCol + 2);
+          var plusRange =
+            "Master Sheet!" +
+            plusCol +
+            "2:" +
+            plusCol +
+            (workshopPlusLevelsSplit.length + 1);
+          batchUpdate.push({
+            range: plusRange,
+            values: workshopPlusLevelsSplit,
+          });
+        }
+
+        // Execute batch updates
+        if (batchUpdate.length > 0) {
+          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+          console.log("Workshop levels updated successfully");
+          return {
+            success: true,
+            message: "Workshop levels updated successfully",
+          };
+        }
+        return {
+          success: true,
+          message: "No updates needed for workshop levels",
+        };
+      } catch (error) {
+        console.log("Error in updateWorkshopLevels: " + error.toString());
+        return {
+          success: false,
+          message: "Error updating workshop levels: " + error.message,
+        };
       }
     }
+
+    return importWorkshopData(newSheetID, oldSheetID);
   },
 
-  isCompatibleVersion: function(oldVersion) {
-    return this.convertVersionFunctions[oldVersion]
+  isCompatibleVersion: function (oldVersion) {
+    return this.convertVersionFunctions[oldVersion];
   },
-}
+};

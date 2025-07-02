@@ -1,121 +1,234 @@
 const vault = {
-  convertVersionFunctions: {
-    },
+  convertVersionFunctions: {},
 
-  importData: function(sheetType, newVaultSpreadsheet) {
-    importVaultData(sheetType, newVaultSpreadsheet)
-    function importVaultData(sheetType, newVaultSpreadsheet) {
-      var idType = sheetType + " ID"
-      // Newly copied Vault sheet
-      var newVaultIdSheet = newVaultSpreadsheet.getSheetByName("IDS")
-      var newVaultStats = newVaultSpreadsheet.getSheetByName("STATS")
-      var newVaultVersion = newVaultStats.getRange("A1").getValue()
-      
-      // ID Master sheet
-      var idMasterSpreadsheet = shared.openSpreadsheet(newVaultIdSheet)
-      var idMasterSheet = idMasterSpreadsheet.getSheetByName("IDS")
-      
-      var oldVaultSpreadsheet = shared.openSpreadsheet(idMasterSheet, idType)
-      var oldVaultStats = oldVaultSpreadsheet.getSheetByName("STATS")
-      var oldVaultVersion = oldVaultStats.getRange("A1").getValue()
-      var versionCheck = shared.compareVersions(oldVaultVersion, newVaultVersion)
-      if (versionCheck === 0) {
-        Logger.log("Same Version")
-        // Grabs Level and Target from _IDS sheet in the new sheet
-        var oldVaultHarmonySheet = oldVaultSpreadsheet.getSheetByName("Harmony")
-        var newVaultHarmonySheet = newVaultSpreadsheet.getSheetByName("Harmony")
-        var vaultHarmonyHeaderPattern = ["U", "Value","Bonus Type"]
-        var oldVaultHarmony = getOldVault(oldVaultHarmonySheet, vaultHarmonyHeaderPattern, 1)
+  importData: function (newSheetID, oldSheetID) {
+    function importVaultData(newSheetID, oldSheetID) {
+      try {
+      // Get new vault version using SheetsAPI
+        var newVaultVersion = SheetsAPI.getValue(newSheetID, "STATS!A1");
+        if (!newVaultVersion) {
+        console.log("Error getting new vault version");
+        return {
+          success: false,
+          message: "Error getting new vault version"
+        };
+        }
 
-        var oldVaultPowerSheet = oldVaultSpreadsheet.getSheetByName("Power")
-        var newVaultPowerSheet = newVaultSpreadsheet.getSheetByName("Power")
-        var vaultPowerHeaderPattern = ["U", "", "Value","Bonus Type"]
-        var oldVaultPower = getOldVault(oldVaultPowerSheet, vaultPowerHeaderPattern, 1)
+        // Get old vault version using SheetsAPI
+        var oldVaultVersion = SheetsAPI.getValue(oldSheetID, "STATS!A1");
+        if (!oldVaultVersion) {
+        console.log("Error getting old vault version");
+        return {
+          success: false,
+          message: "Error getting old vault version"
+        };
+        }
 
-        updateVault(newVaultHarmonySheet, oldVaultHarmony, vaultHarmonyHeaderPattern, 1)
-        updateVault(newVaultPowerSheet, oldVaultPower, vaultPowerHeaderPattern, 1)
+        var versionCheck = shared.compareVersions(
+          oldVaultVersion,
+          newVaultVersion
+        );
+        if (versionCheck === 0) {
+          console.log("Same Version");
+
+          // Get old vault data using Sheets API
+          var vaultHarmonyHeaderPattern = ["U", "Value", "Bonus Type"];
+          var oldVaultHarmony = getOldVault(
+            oldSheetID,
+            "Harmony",
+            vaultHarmonyHeaderPattern,
+            1
+          );
+
+          var vaultPowerHeaderPattern = ["U", "", "Value", "Bonus Type"];
+          var oldVaultPower = getOldVault(
+            oldSheetID,
+            "Power",
+            vaultPowerHeaderPattern,
+            1
+          );
+
+          var result = updateVault(
+            newSheetID,
+            "Harmony",
+            oldVaultHarmony,
+            vaultHarmonyHeaderPattern,
+            1
+          );
+          if (!result || !result.success) {
+            console.log("Error updating Harmony vault: " + result.message);
+            return result;
+          }
+
+          var result = updateVault(
+            newSheetID,
+            "Power",
+            oldVaultPower,
+            vaultPowerHeaderPattern,
+            1
+          );
+          if (!result || !result.success) {
+            console.log("Error updating Power vault: " + result.message);
+            return result;
+          }
+          console.log("Vault data imported successfully");
+          return {
+            success: true,
+            message: "Vault data imported successfully"
+          };
+        }
+        // else {// Else do something to convert old version to new one (Future me problem)
+        // }
+      } catch (error) {
+        console.log("Error importing vault data: " + error.toString());
+        return {
+          success: false,
+          message: "Error importing vault data"
+        };
       }
-      // else {// Else do something to convert old version to new one (Future me problem)
-      // }
     }
 
-    function updateVault(newVaultSheet, oldVault, vaultPattern, skipRows) {
-      var tierUnlock = ["Tier x2 Unlock", "Tier x3 Unlock"]
-      var lastRow = newVaultSheet.getLastRow()
-      if (lastRow < 2) return
-      
-      var newVaultValues = newVaultSheet.getDataRange().getValues()
-      var newVaultHeaders = newVaultValues[skipRows]
-      var newVaultData = newVaultValues.slice(skipRows + 1)
+    function updateVault(
+      newSheetID,
+      sheetName,
+      oldVault,
+      vaultPattern,
+      skipRows
+    ) {
+      var tierUnlock = ["Tier x2 Unlock", "Tier x3 Unlock"];
 
-      var newHeaderIndices = findHeaderIndices(newVaultHeaders, vaultPattern)
+      // Get sheet data using SheetsAPI
+      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
+      if (!sheetData) {
+        console.log("Error getting sheet data");
+        return {
+          success: false,
+          message: "Error getting sheet data"
+        };
+      }
+
+      if (sheetData.length < skipRows + 2) return; // Not enough data
+      if (sheetData.length < skipRows + 2) {
+        return {
+          success: false,
+          message: "Not enough data in sheet"
+        };
+      }
+
+      var newVaultHeaders = sheetData[skipRows];
+      var newVaultData = sheetData.slice(skipRows + 1);
+
+      var newHeaderIndices = findHeaderIndices(newVaultHeaders, vaultPattern);
 
       // Iterate through data (excluding headers)
-      var newVault = {}
+      var newVault = {};
+      var batchUpdate = []; // Store updates to batch them
+
       for (var r = 0; r < newVaultData.length; r++) {
-        var row = newVaultData[r]
+        var row = newVaultData[r];
         for (var t = 0; t < newHeaderIndices.length; t++) {
-          var uIdx = newHeaderIndices[t][vaultPattern.indexOf("U")]
-          var valueIdx = newHeaderIndices[t][vaultPattern.indexOf("Value")]
-          var bonusTypeIdx = newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")]
-          var u = row[uIdx]
-          var value = row[valueIdx]
-          var bonusType = row[bonusTypeIdx]
-          var key = bonusType || value
+          var uIdx = newHeaderIndices[t][vaultPattern.indexOf("U")];
+          var valueIdx = newHeaderIndices[t][vaultPattern.indexOf("Value")];
+          var bonusTypeIdx =
+            newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")];
+          var u = row[uIdx];
+          var value = row[valueIdx];
+          var bonusType = row[bonusTypeIdx];
+          var key = bonusType || value;
           if (oldVault.hasOwnProperty(key)) {
-            u = oldVault[key].shift()
+            u = oldVault[key].shift();
             if (oldVault[key].length === 0) {
-              delete oldVault[key]
+              delete oldVault[key];
             }
           }
           if (tierUnlock.includes(key)) {
-            newVaultSheet.getRange(r + skipRows + 2, uIdx + 1).setValue(u)
+            // Store update for later batch processing
+            var cellAddress =
+              shared.columnToLetter(uIdx + 1) + (r + skipRows + 2);
+            batchUpdate.push({
+              range: sheetName + "!" + cellAddress,
+              value: u,
+            });
           }
           if (!newVault.hasOwnProperty(uIdx)) {
-            newVault[uIdx] = []
+            newVault[uIdx] = [];
           }
-          newVault[uIdx].push([u])
+          newVault[uIdx].push([u]);
         }
       }
 
-      // Recalculate Formulas for datavalidation
-      SpreadsheetApp.flush()
+      SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
 
-      Object.keys(newVault).forEach(function(colKey) {
-        var colIdx = parseInt(colKey, 10) + 1
-        var values = newVault[colKey]
-        newVaultSheet.getRange(3, colIdx, values.length, 1).setValues(values)
-      })
+      batchUpdate = []
+      // Apply bulk updates for columns
+      Object.keys(newVault).forEach(function (colKey) {
+        var colIdx = parseInt(colKey, 10);
+        var colLetter = shared.columnToLetter(colIdx + 1);
+        var values = newVault[colKey];
+        var range =
+          sheetName + "!" + colLetter + "3:" + colLetter + (2 + values.length);
+        batchUpdate.push({
+          range: range,
+          values: values,
+        });
+      });
+
+      if (batchUpdate.length !== 0) {
+        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+        console.log("Vault updated successfully");
+        return {
+          success: true,
+          message: "Vault updated successfully"
+        };
+      }
+      console.log("No updates needed for vault");
+      return {
+        success: true,
+        message: "No updates needed for vault"
+      };
     }
 
-    function getOldVault(oldVaultSheet, oldVaultPattern, skipRows) {
-      var oldVaultValues = oldVaultSheet.getDataRange().getValues()
-      var oldVaultHeaders = oldVaultValues[skipRows]
-      var oldVaultData = oldVaultValues.slice(skipRows + 1)
-      var oldVault = {}
+    function getOldVault(oldSheetID, sheetName, oldVaultPattern, skipRows) {
+      // Get sheet data using SheetsAPI
+      var sheetData = SheetsAPI.getDataRange(oldSheetID, sheetName);
+      if (!sheetData) {
+        console.log("Error getting old vault data");
+        return {};
+      }
+
+      if (sheetData.length < skipRows + 1) return {}; // Not enough data
+
+      var oldVaultHeaders = sheetData[skipRows];
+      var oldVaultData = sheetData.slice(skipRows + 1);
+      var oldVault = {};
+
       // Find the indices of all "U", "Value", and "Bonus Type" columns by header
-      var oldHeaderIndices = findHeaderIndices(oldVaultHeaders, oldVaultPattern)
+      var oldHeaderIndices = findHeaderIndices(
+        oldVaultHeaders,
+        oldVaultPattern
+      );
 
       // Iterate through data (excluding headers)
       for (var r = 0; r < oldVaultData.length; r++) {
-        var row = oldVaultData[r]
+        var row = oldVaultData[r];
         for (var t = 0; t < oldHeaderIndices.length; t++) {
-          var uIdx = oldHeaderIndices[t][oldVaultPattern.indexOf("U")]
-          var valueIdx = oldHeaderIndices[t][oldVaultPattern.indexOf("Value")]
-          var bonusTypeIdx = oldHeaderIndices[t][oldVaultPattern.indexOf("Bonus Type")]
-          var u = row[uIdx]
-          var value = row[valueIdx]
-          var bonusType = row[bonusTypeIdx]
-          var key = bonusType || value
+          var uIdx = oldHeaderIndices[t][oldVaultPattern.indexOf("U")];
+          var valueIdx = oldHeaderIndices[t][oldVaultPattern.indexOf("Value")];
+          var bonusTypeIdx =
+            oldHeaderIndices[t][oldVaultPattern.indexOf("Bonus Type")];
+          var u = row[uIdx];
+          var value = row[valueIdx];
+          var bonusType = row[bonusTypeIdx];
+          var key = bonusType || value;
           if (key && isNaN(key)) {
             if (!oldVault.hasOwnProperty(key)) {
-              oldVault[key] = []
+              oldVault[key] = [];
             }
-            oldVault[key].push(u)
+            oldVault[key].push(u);
           }
         }
       }
-      return oldVault
+      return oldVault;
     }
 
     function findHeaderIndices(headers, pattern) {
@@ -129,14 +242,15 @@ const vault = {
           }
         }
         if (match) {
-          indices.push(Array.from({length: pattern.length}, (_, k) => i + k));
+          indices.push(Array.from({ length: pattern.length }, (_, k) => i + k));
         }
       }
       return indices;
     }
+    return importVaultData(newSheetID, oldSheetID);
   },
 
-  isCompatibleVersion: function(oldVersion) {
-    return this.convertVersionFunctions[oldVersion]
+  isCompatibleVersion: function (oldVersion) {
+    return this.convertVersionFunctions[oldVersion];
   },
-}
+};
