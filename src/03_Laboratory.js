@@ -148,6 +148,7 @@ const lab = {
           updateMap[update[0]] = [update[1], update[2]];
         });
 
+        var batchUpdate = [];
         // Iterate each "Labs" column
         columnsToCheck.forEach(function (col) {
           var updates = [];
@@ -171,9 +172,6 @@ const lab = {
               updates.push([currentLevel, currentTarget]);
             }
           }
-
-          var batchUpdate = [];
-
           // Add batch update for this column's Level and Target columns
           if (updates.length > 0) {
             var startCol = shared.columnToLetter(col + 1); // Level column

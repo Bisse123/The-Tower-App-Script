@@ -554,7 +554,8 @@ function findSheetIdAndType(sheetID, sheetType) {
   if (!sheetID) {
     return { error: "Missing sheetId or sheetType parameter." };
   }
-  var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", sheetType);
+  var idType = sheetType ? sheetType + " ID" : "IDS Master's ID";
+  var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", idType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
     return { error: "Could not find sheet type ID for " + sheetID };
   }

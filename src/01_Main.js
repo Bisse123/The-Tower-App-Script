@@ -1,15 +1,15 @@
 const sheetVars = (sheetType) => {
   var sheetTypeFunctions = {
-    Laboratory: lab,
-    Workshop: workshop,
+    "Laboratory": lab,
+    "Workshop": workshop,
     "Ultimate Weapon": ultimate,
     "Themes & Songs": themes,
-    Bots: bots,
-    Relics: relics,
-    Vault: vault,
-    Cards: cards,
-    Modules: modules,
-    Guardians: guardians,
+    "Bots": bots,
+    "Relics": relics,
+    "Vault": vault,
+    "Cards": cards,
+    "Modules": modules,
+    "Guardians": guardians,
   };
   return sheetTypeFunctions[sheetType];
 };
@@ -26,6 +26,50 @@ function doGet(e) {
     .evaluate()
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setTitle("Import Data");
+}
+
+function onOpen(e) {
+  console.log("onOpen called with event: " + JSON.stringify(e));
+  try {
+    var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
+    if (sheetVars(sheetType)) {
+      console.log("Sheet type found in Home Page B2: " + sheetType);
+      var ui = SpreadsheetApp.getUi();
+      ui.createMenu("Import Data")
+        .addItem("Import Data", "showImportDialog")
+        .addToUi();
+    }
+  } catch (error) {
+  }
+}
+
+function showImportDialog() {
+  console.log("showImportDialog called");
+  try {
+    var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
+    var newSheetID = SpreadsheetApp.getActiveSpreadsheet().getId();
+    var idMasterInfo = shared.findSheetTypeID(newSheetID, "IDS");
+    var idMasterID = idMasterInfo ? shared.extractSheetId(idMasterInfo.id) : "";
+    var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
+    var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
+
+    var template = HtmlService.createTemplateFromFile("WebApp");
+    template.newSheetID = newSheetID;
+    template.oldSheetID = oldSheetID;
+    template.idMasterID = idMasterID;
+    template.sheetType = sheetType;
+
+    var html = template
+      .evaluate()
+      // .setWidth(600)
+      // .setHeight(300)
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setTitle("Import Data");
+    SpreadsheetApp.getUi().showSidebar(html);
+  } catch (error) {
+    console.log("Error in showImportDialog: " + error.message);
+    SpreadsheetApp.getUi().alert("Error: " + error.message);
+  }
 }
 
 function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
