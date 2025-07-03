@@ -62,15 +62,33 @@ function doGet(e) {
 function onOpen(e) {
   console.log("onOpen called with event: " + JSON.stringify(e));
   try {
+    var ui = SpreadsheetApp.getUi();
     var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
     if (sheetVars(sheetType)) {
       console.log("Sheet type found in Home Page B2: " + sheetType);
-      var ui = SpreadsheetApp.getUi();
       ui.createMenu("Import Data")
+        .addItem("Help", "showHelpDialog")
         .addItem("Import Data", "showImportDialog")
+        .addToUi();
+    } else {
+      ui.createMenu("Import Data")
+        .addItem("Help", "showHelpDialog")
         .addToUi();
     }
   } catch (error) {
+  }
+}
+
+function showHelpDialog() {
+  console.log("showHelpDialog called");
+  try {
+    var html = HtmlService.createHtmlOutputFromFile('HelpDialog')
+      .setWidth(300)
+      .setHeight(150);
+    SpreadsheetApp.getUi().showModalDialog(html, 'Help and Support');
+  } catch (error) {
+    console.log("Error in showHelpDialog: " + error.message);
+    SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
 
