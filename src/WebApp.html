@@ -751,6 +751,22 @@
             "status_text"
           ).innerText = `${result.message}`;
           document.getElementById("update_master_button").disabled = false;
+          document.getElementById("selected-file-summary").innerHTML =
+            `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
+          // List names of accessible files
+          if (accessibleFilesCache.length > 0) {
+            document.getElementById("selected-file-summary").innerHTML +=
+              `<br><br>The app will access the following file(s):` +
+              "<br>" +
+              accessibleFilesCache
+                .map(
+                  (file) =>
+                    `&nbsp;&nbsp;• ${
+                      file.name || file[google.picker.Document.ID]
+                    }`
+                )
+                .join("<br>");
+          }
         } else {
           document.getElementById(
             "status_text"
