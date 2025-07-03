@@ -1,65 +1,75 @@
 const guardians = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importGuardiansData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importGuardiansData(versionDifference) {
       try {
-        var sheetType = "Guardians";
-        var idType = sheetType + " ID";
-        var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
+        var targetGuardians = [
+          "Attack",
+          "Ally",
+          "Steal",
+          "Fetch"
+        ];
 
-        // Get new guardian version using SheetsAPI
-        var newGuardianVersion = SheetsAPI.getValue(newSheetID, "EXPORT!A1");
-        if (!newGuardianVersion) {
-        console.log("Error getting new guardian version");
-        return {
-          success: false,
-          message: "Error getting new guardian version"
-        };
-        }
+        if (versionDifference === 0) {
+          console.log(
+            "Same Version - proceeding with guardians data import"
+          );
 
-        // Get ID Master spreadsheet info
-        var idMasterInfo = shared.findSheetTypeID(
-          newSheetID,
-          "IDS"
-        );
-        if (!idMasterInfo || !idMasterInfo.id) {
-          console.log("Could not find ID Master spreadsheet info");
+          var newSpreadsheet = spreadsheets("newSpreadsheet");
+          if (!newSpreadsheet) {
+            console.log("New spreadsheet not found");
+            return {
+              success: false,
+              message: "New spreadsheet not found",
+            };
+          }
+          // Check if Master Sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+            console.log(
+              "Master Sheet not found in new guardians spreadsheet"
+            );
+            return {
+              success: false,
+              message: "Master Sheet not found in new guardians spreadsheet"
+            };
+          }
+          var newSheetID = newSpreadsheet.spreadsheetId;
+
+          var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
+          if (!idMasterSpreadsheet) {
+            console.log("IDS Master Spreadsheet not found");
+            return {
+              success: false,
+              message: "IDS Master Spreadsheet not found",
+            };
+          }
+          // Check if _IDS sheet exists
+          if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "_IDS")) {
+            console.log(
+              "_IDS sheet not found in new guardians spreadsheet"
+            );
+            return {
+              success: false,
+              message: "_IDS sheet not found in new guardians spreadsheet"
+            };
+          }
+          var idMasterID = idMasterSpreadsheet.spreadsheetId;
+          // Get header row to find UWs column
+          var headerValues = SheetsAPI.getValues(
+            newSheetID,
+            "_IDS!1:1"
+          );
+          if (!headerValues || headerValues.length === 0) {
+          console.log("Could not read header row from _IDS sheet");
           return {
             success: false,
-            message: "Could not find ID Master spreadsheet info"
+            message: "Could not read header row from _IDS sheet"
           };
-        }
-        var idMasterID = shared.extractSheetId(
-          idMasterInfo.id
-        );
-        if (!idMasterID) {
-          console.log("Could not find ID Master spreadsheet");
-          return {
-            success: false,
-            message: "Could not find ID Master spreadsheet"
-          };
-        }
-        // Get old guardian version using SheetsAPI
-        var oldGuardianVersion = SheetsAPI.getValue(oldSheetID, "EXPORT!A1");
-        if (!oldGuardianVersion) {
-        console.log("Error getting old guardian version");
-        return {
-          success: false,
-          message: "Error getting old guardian version"
-        };
-        }
+          }
 
-        var versionCheck = shared.compareVersions(
-          oldGuardianVersion,
-          newGuardianVersion
-        );
-        if (versionCheck === 0) {
-          console.log("Same Version");
-
-          // Get header row from _IDS sheet using SheetsAPI
-          var headerRowData = SheetsAPI.getValues(idMasterID, "_IDS!1:1")[0] || [];
-          var importGuardianColStart = headerRowData.indexOf("Guardians");
+          var headerRow = headerValues[0];
+          var importGuardianColStart = headerRow.indexOf("Guardians");
           if (importGuardianColStart === -1) {
           console.log("Guardians column not found in header");
           return {
@@ -262,7 +272,7 @@ const guardians = {
       }
       return guardians;
     }
-    return importGuardiansData(newSheetID, oldSheetID);
+    return importGuardiansData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

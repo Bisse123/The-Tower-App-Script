@@ -1,34 +1,30 @@
 const vault = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importVaultData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importVaultData(versionDifference) {
       try {
-      // Get new vault version using SheetsAPI
-        var newVaultVersion = SheetsAPI.getValue(newSheetID, "STATS!A1");
-        if (!newVaultVersion) {
-        console.log("Error getting new vault version");
-        return {
-          success: false,
-          message: "Error getting new vault version"
-        };
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
         }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get old vault version using SheetsAPI
-        var oldVaultVersion = SheetsAPI.getValue(oldSheetID, "STATS!A1");
-        if (!oldVaultVersion) {
-        console.log("Error getting old vault version");
-        return {
-          success: false,
-          message: "Error getting old vault version"
-        };
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log("Old spreadsheet not found");
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
         }
-
-        var versionCheck = shared.compareVersions(
-          oldVaultVersion,
-          newVaultVersion
-        );
-        if (versionCheck === 0) {
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        if (versionDifference === 0) {
           console.log("Same Version");
 
           // Get old vault data using Sheets API
@@ -156,8 +152,9 @@ const vault = {
           newVault[uIdx].push([u]);
         }
       }
-
-      SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (batchUpdate.length !== 0) {
+        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      }
 
       batchUpdate = []
       // Apply bulk updates for columns
@@ -247,7 +244,7 @@ const vault = {
       }
       return indices;
     }
-    return importVaultData(newSheetID, oldSheetID);
+    return importVaultData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

@@ -14,6 +14,35 @@ const sheetVars = (sheetType) => {
   return sheetTypeFunctions[sheetType];
 };
 
+const spreadsheets = (() => {
+  const storedSpreadsheets = {
+    newSpreadsheet: "",
+    oldSpreadsheet: "",
+    idMasterSpreadsheet: "",
+  };
+  return function (spreadsheet, sheetID) {
+    if (!spreadsheet) {
+      console.log("No spreadsheet name provided.");
+      return null;
+    }
+    if (storedSpreadsheets[spreadsheet]) {
+      return storedSpreadsheets[spreadsheet];
+    }
+    if (!sheetID) {
+      console.log("Spreadsheet not defined and no sheet ID provided.");
+      return null;
+    }
+    var spreadsheetInfo = SheetsAPI.getSpreadsheet(sheetID);
+    if (!spreadsheetInfo) {
+      console.log(`Spreadsheet not found with ID: ${sheetID}`);
+      return null;
+    }
+    storedSpreadsheets[spreadsheet] = spreadsheetInfo;
+    return spreadsheetInfo;
+  }
+})();
+
+
 function doGet(e) {
   console.log("doGet called with parameters: " + JSON.stringify(e.parameter));
   var template = HtmlService.createTemplateFromFile("WebApp");
@@ -80,7 +109,7 @@ function showImportDialog() {
   }
 }
 
-function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
+function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDifference) {
   console.log(
     `Starting import for sheet type: ${sheetType} with ID: ${newSheetID}`
   );
@@ -100,7 +129,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
       };
     }
     // Check if new spreadsheet exists
-    var newSpreadsheet = SheetsAPI.getSpreadsheet(newSheetID);
+    var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
       return {
         success: false,
@@ -108,15 +137,14 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
       };
     }
 
-    // Check if IDS sheet exists
-    if (!SheetsAPI.getSheetByName(newSheetID, "IDS")) {
+    if (!SheetsAPI.getSheetByName(newSpreadsheet, "IDS")) {
       return {
         success: false,
         message:`IDS sheet not found in the new ${sheetType} spreadsheet.`,
       };
     }
 
-    if (!SheetsAPI.hasSheet(newSheetID, "EXPORT") && !SheetsAPI.hasSheet(newSheetID, "STATS")) {
+    if (!SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT") && !SheetsAPI.getSheetByName(newSpreadsheet, "STATS")) {
       console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
@@ -124,26 +152,26 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
       };
     }
 
-    // Check if ID Master spreadsheet exists
-    if (!SheetsAPI.getSpreadsheet(idMasterID)) {
+    var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
+    if (!idMasterSpreadsheet) {
       return {
         success: false,
         message: `IDS Master Spreadsheet not found with ID: ${idMasterID}`,
       };
     }
 
-    if (!SheetsAPI.getSheetByName(idMasterID, "IDS")) {
+    if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "IDS")) {
       return {
         success: false,
         message: `IDS sheet not found in the IDS Master Spreadsheet.`,
       };
     }
 
-    // Check if old spreadsheet exists
-    if (!SheetsAPI.getSpreadsheet(oldSheetID)) {
+    var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
+    if (!oldSpreadsheet) {
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${oldSheetID}`,
+        message: `Old spreadsheet not found with ID: ${oldSheetID}`,
       };
     }
 
@@ -161,7 +189,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType) {
       `Importing data for sheet type: ${sheetType} with ID: ${newSheetID}`
     );
 
-    var result = sheetTypeFunction.importData(newSheetID, oldSheetID);
+    var result = sheetTypeFunction.importData(versionDifference);
     if (!result || !result.success) {
       return {
         success: false,

@@ -1,8 +1,8 @@
 const themes = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importThemesData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importThemesData(versionDifference) {
       try {
         var targetThemes = [
           "Tower Skin",
@@ -12,26 +12,28 @@ const themes = {
           "Menu",
           "Profile Banner",
         ];
-        // Get new theme version using SheetsAPI
-        var newThemeVersion = SheetsAPI.getValue(newSheetID, "STATS!A1");
-        if (!newThemeVersion) {
-          console.log("Error getting new theme version");
-          return { success: false, message: "Error getting new theme version" };
+
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
         }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get old theme version using SheetsAPI
-        var oldThemeVersion = SheetsAPI.getValue(oldSheetID, "STATS!A1");
-        if (!oldThemeVersion) {
-          console.log("Error getting old theme version");
-          return { success: false, message: "Error getting old theme version" };
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log("Old spreadsheet not found");
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
         }
-
-        var versionCheck = shared.compareVersions(
-          oldThemeVersion,
-          newThemeVersion
-        );
-
-        if (versionCheck === 0) {
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        if (versionDifference === 0) {
           console.log("Same Version");
           // Get old themes data using SheetsAPI
           var oldThemesData = SheetsAPI.getDataRange(
@@ -172,7 +174,7 @@ const themes = {
 
       return oldThemesNames;
     }
-    return importThemesData(newSheetID, oldSheetID);
+    return importThemesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

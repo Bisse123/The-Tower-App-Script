@@ -1,8 +1,8 @@
 const bots = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importBotsData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importBotsData(versionDifference) {
       try {
         var targetBots = [
           "Flame Bot",
@@ -11,43 +11,65 @@ const bots = {
           "Amplify Bot",
         ];
 
-        // Get new bot version using SheetsAPI
-        var newBotVersion = SheetsAPI.getValue(newSheetID, "EXPORT!A1");
-        if (!newBotVersion) {
-          console.log("Error getting new bot version");
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
           return {
             success: false,
-            message: "Error getting new bot version"
+            message: "New spreadsheet not found",
           };
         }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get old bot version using SheetsAPI
-        var oldBotVersion = SheetsAPI.getValue(oldSheetID, "EXPORT!A1");
-        if (!oldBotVersion) {
-        console.log("Error getting old bot version");
-        return {
-          success: false,
-          message: "Error getting old bot version"
-        };
-        }
-
-        var versionCheck = shared.compareVersions(oldBotVersion, newBotVersion);
-        if (versionCheck === 0) {
-          console.log("Same Version");
-
-          // Get header row from _IDS sheet using Sheets API
-          var headerRowData;
-          try {
-          var headerRowData = SheetsAPI.getValues(newSheetID, "_IDS!1:1")[0] || [];
-          } catch (error) {
-            console.log("Error getting header row: " + error.toString());
+        if (versionDifference === 0) {
+          console.log(
+            "Same Version - proceeding with bots data import"
+          );
+          
+          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
+          if (!newSpreadsheet) {
+            console.log("New spreadsheet not found with ID: " + newSheetID);
             return {
               success: false,
-              message: "Error getting header row: " + error.message
+              message: "New spreadsheet not found with ID: " + newSheetID,
+            };
+          }
+          // Check if _IDS sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
+            console.log(
+              "_IDS sheet not found in new bots spreadsheet"
+            );
+            return {
+              success: false,
+              message: "_IDS sheet not found in new bots spreadsheet"
             };
           }
 
-          var importbotColStart = headerRowData.indexOf("Bots");
+          // Check if Master Sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+            console.log(
+              "Master Sheet not found in new bots spreadsheet"
+            );
+            return {
+              success: false,
+              message: "Master Sheet not found in new bots spreadsheet"
+            };
+          }
+          // Get header row to find UWs column
+          var headerValues = SheetsAPI.getValues(
+            newSheetID,
+            "_IDS!1:1"
+          );
+          if (!headerValues || headerValues.length === 0) {
+          console.log("Could not read header row from _IDS sheet");
+          return {
+            success: false,
+            message: "Could not read header row from _IDS sheet"
+          };
+          }
+
+          var headerRow = headerValues[0];
+          var importbotColStart = headerRow.indexOf("Bots");
           if (importbotColStart === -1) {
           console.log("Bots column not found in header");
           return {
@@ -256,7 +278,7 @@ const bots = {
       }
       return bots;
     }
-    return importBotsData(newSheetID, oldSheetID);
+    return importBotsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
