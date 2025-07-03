@@ -7,6 +7,7 @@ package-lock.json
 .clasprc.json
 .clasp.json
 .credentials.json
+
 # IDE files
 .vscode/
 .idea/
