@@ -3,33 +3,30 @@ const modules = {
     3: this.convertVersion3,
   },
 
-  importData: function (newSheetID, oldSheetID) {
-    function importModulesData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importModulesData(versionDifference) {
       try {
-        var targetModuleTypes = [
-          "cannon",
-          "armor",
-          "generator",
-          "core"
-        ];
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get new modules version using Sheets API
-        var newModulesVersion = SheetsAPI.getValue(
-          newSheetID,
-          "EXPORT!A1"
-        );
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log("Old spreadsheet not found");
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
+        }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-        // Get old modules version using Sheets API
-        var oldModulesVersion = SheetsAPI.getValue(
-          oldSheetID,
-          "EXPORT!A1"
-        );
-
-        var versionCheck = shared.compareVersions(
-          oldModulesVersion,
-          newModulesVersion
-        );
-        if (versionCheck === 0) {
+        if (versionDifference === 0) {
           console.log("Same Version");
 
           // Get old modules inventory data using Sheets API
@@ -88,7 +85,7 @@ const modules = {
         // Else do something to convert old version to new one (Future me problem)
         else {
           var { oldModulesInventory, oldModulesPresets } =
-            this.convertVersionFunctions[versionCheck](oldSheetID);
+            this.convertVersionFunctions[versionDifference](oldSheetID);
           var result = updateModulesInventory(
             targetModuleTypes,
             newSheetID,
@@ -494,14 +491,22 @@ const modules = {
 
       return moduleTypeIndex;
     }
-    return importModulesData(newSheetID, oldSheetID);
+    return importModulesData(versionDifference);
   },
 
   convertVersion3: function (oldSheetID) {
     var targetModuleTypes = ["cannon", "armor", "generator", "core"];
 
+    var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
+    if (!oldSpreadsheet) {
+      console.log("New spreadsheet not found with ID: " + oldSheetID);
+      return {
+        success: false,
+        message: "New spreadsheet not found with ID: " + oldSheetID,
+      };
+    }
     // Check if Modules Presets sheet exists
-    if (!SheetsAPI.hasSheet(oldSheetID, "Modules Presets")) {
+    if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Modules Presets")) {
       console.log("Modules Presets sheet not found");
       return {
         success: false,

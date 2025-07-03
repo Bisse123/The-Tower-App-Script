@@ -705,17 +705,17 @@
           document.getElementById(
             "status_text"
           ).innerText = `${result.message}`;
-          if (result.different) {
+          if (result.versionDifference > 0) {
             showYesNoDialog(`${result.message}`, function (doImport) {
               if (doImport) {
-                importData();
+                importData(result.versionDifference);
               } else {
                 document.getElementById("status_text").innerText =
                   "Import cancelled by user due to version mismatch.";
               }
             });
           } else {
-            importData();
+            importData(result.versionDifference);
           }
         } else {
           document.getElementById(
@@ -732,7 +732,7 @@
         ).innerText = `Version check error: ${error.message || error}`;
       }
 
-      function importData() {
+      function importData(versionDifference) {
         document.getElementById(
           "status_text"
         ).innerText = `Importing ${sheetType} data...`;
@@ -740,7 +740,7 @@
         google.script.run
           .withSuccessHandler(onImportSuccess)
           .withFailureHandler(onImportFailure)
-          .importData(newSheetID, oldSheetID, idMasterID, sheetType);
+          .importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDifference);
       }
 
       function onImportSuccess(result) {
@@ -753,20 +753,7 @@
           document.getElementById("update_master_button").disabled = false;
           document.getElementById("selected-file-summary").innerHTML =
             `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
-          // List names of accessible files
-          if (accessibleFilesCache.length > 0) {
-            document.getElementById("selected-file-summary").innerHTML +=
-              `<br><br>The app will access the following file(s):` +
-              "<br>" +
-              accessibleFilesCache
-                .map(
-                  (file) =>
-                    `&nbsp;&nbsp;• ${
-                      file.name || file[google.picker.Document.ID]
-                    }`
-                )
-                .join("<br>");
-          }
+          showAccessibleFilesSummary()
         } else {
           document.getElementById(
             "status_text"
@@ -837,6 +824,23 @@
         ).innerText = `Update IDS Master error: ${error.message || error}`;
       }
 
+      function showAccessibleFilesSummary() {
+        const summary = document.getElementById("selected-file-summary");
+        if (accessibleFilesCache.length > 0) {
+          summary.innerHTML +=
+            `<br>The app will access the following file(s):` +
+            "<br>" +
+            accessibleFilesCache
+              .map(
+                (file) =>
+                  `&nbsp;&nbsp;• ${
+                    file.name || file.id
+                  }`
+              )
+              .join("<br>");
+        }
+      }
+
       // Show continue section with inaccessible files that need permission
       function showContinueSection(
         accessibleFiles = [],
@@ -854,22 +858,10 @@
         const instructions = document.getElementById("instructions");
 
         if (inaccessibleFiles.length === 0) {
-          fileAcessTitle.innerText =
-            `✅ All Required Files Access Granted`;
+          document.getElementById("status_text").innerText = `Checking import status.`;
+          fileAcessTitle.innerText = `✅ All Required Files Access Granted`;
           summary.innerHTML = "";
-          if (accessibleFiles.length > 0) {
-            summary.innerHTML +=
-              `The app will access the following file(s):` +
-              "<br>" +
-              accessibleFiles
-                .map(
-                  (file) =>
-                    `&nbsp;&nbsp;• ${
-                      file.name || file[google.picker.Document.ID]
-                    }`
-                )
-                .join("<br>");
-          }
+          showAccessibleFilesSummary();
           addAnotherButton.style.display = "none";
           importButton.style.display = "inline-block";
           updateButton.style.display = "inline-block";
@@ -899,35 +891,18 @@
         document.getElementById("import_button").disabled = false;
         console.log("Import status check result:", result);
         if (result.success) {
-          document.getElementById(
-            "status_text"
-          ).innerText = `${result.message}`;
+          document.getElementById("status_text").innerText = `${result.message}`;
           if (result.imported) {
             document.getElementById("update_master_button").disabled = false;
             document.getElementById("selected-file-summary").innerHTML =
               `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
-            // List names of accessible files
-            if (accessibleFilesCache.length > 0) {
-              document.getElementById("selected-file-summary").innerHTML +=
-                `<br><br>The app will access the following file(s):` +
-                "<br>" +
-                accessibleFilesCache
-                  .map(
-                    (file) =>
-                      `&nbsp;&nbsp;• ${
-                        file.name || file[google.picker.Document.ID]
-                      }`
-                  )
-                  .join("<br>");
-            }
+            showAccessibleFilesSummary()
           } else {
             document.getElementById("update_master_button").disabled = true;
           }
         } else {
           document.getElementById("update_master_button").disabled = true;
-          document.getElementById(
-            "status_text"
-          ).innerText = `Import status check failed: ${result.message}`;
+          document.getElementById("status_text").innerText = `Import status check failed: ${result.message}`;
         }
       }
 
@@ -1089,38 +1064,18 @@
         console.log("Sheet access check result:", result);
 
         if (result.success) {
-          // Convert accessible files to picker document format
-          const accessibleDocuments = result.accessibleDetails
-            ? result.accessibleDetails.map((file) => {
-                const doc = {};
-                doc[google.picker.Document.ID] = file.id;
-                doc[google.picker.Document.NAME] = file.name;
-                doc[google.picker.Document.MIME_TYPE] = file.mimeType;
-                doc[google.picker.Document.URL] = file.webViewLink;
-                return doc;
-              })
-            : [];
-
           // Show the continue section with accessible and inaccessible files
           showContinueSection(
-            accessibleDocuments,
+            result.accessibleFiles || [],
             result.inaccessibleFiles || []
           );
 
           if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
-            document.getElementById("status_text").innerText =
-              `Found ${result.inaccessibleFiles.length} file(s) that need access permission. ` +
-              `${result.accessibleFiles.length} file(s) are already accessible.`;
-          } else {
-            document.getElementById(
-              "status_text"
-            ).innerText = `All ${result.accessibleFiles.length} required file(s) are accessible! Checking import status.`;
+            document.getElementById("status_text").innerText = result.message;
           }
         } else {
           console.error("Sheet access check failed:", result.message);
-          document.getElementById(
-            "status_text"
-          ).innerText = `Could not check file access: ${result.message}`;
+          document.getElementById("status_text").innerText = `Could not check file access: ${result.message}`;
           showContinueSection([], []);
         }
       }

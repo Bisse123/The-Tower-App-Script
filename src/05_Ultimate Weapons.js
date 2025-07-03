@@ -1,8 +1,8 @@
 const ultimate = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importUltimateData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importUltimateData(versionDifference) {
       try {
         var targetWeapons = [
           "Chain Lightning",
@@ -15,37 +15,50 @@ const ultimate = {
           "Black Hole",
           "Spotlight",
         ];
+        
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get version from EXPORT sheet
-        var newUltimateVersion = SheetsAPI.getValue(
-          newSheetID,
-          "EXPORT!A1"
-        );
-
-        var oldUltimateVersion = SheetsAPI.getValue(
-          oldSheetID,
-          "EXPORT!A1"
-        );
-
-        var versionCheck = shared.compareVersions(
-          oldUltimateVersion,
-          newUltimateVersion
-        );
-
-        if (versionCheck === 0) {
+        if (versionDifference === 0) {
           console.log(
             "Same Version - proceeding with ultimate weapons data import"
           );
 
+          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
+          if (!newSpreadsheet) {
+            console.log("New spreadsheet not found with ID: " + newSheetID);
+            return {
+              success: false,
+              message: "New spreadsheet not found with ID: " + newSheetID,
+            };
+          }
           // Check if _IDS sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
-          console.log(
-            "_IDS sheet not found in new ultimate weapons spreadsheet"
-          );
-          return {
-            success: false,
-            message: "_IDS sheet not found in new ultimate weapons spreadsheet"
-          };
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
+            console.log(
+              "_IDS sheet not found in new ultimate weapons spreadsheet"
+            );
+            return {
+              success: false,
+              message: "_IDS sheet not found in new ultimate weapons spreadsheet"
+            };
+          }
+
+          // Check if Master Sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+            console.log(
+              "Master Sheet not found in new ultimate weapons spreadsheet"
+            );
+            return {
+              success: false,
+              message: "Master Sheet not found in new ultimate weapons spreadsheet"
+            };
           }
 
           // Get header row to find UWs column
@@ -105,17 +118,6 @@ const ultimate = {
             targetWeapons,
             oldUltimateLevels
           );
-
-          // Check if Master Sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
-          console.log(
-            "Master Sheet not found in new ultimate weapons spreadsheet"
-          );
-          return {
-            success: false,
-            message: "Master Sheet not found in new ultimate weapons spreadsheet"
-          };
-          }
 
           return updateUltimateLevels(
             targetWeapons,
@@ -304,7 +306,7 @@ const ultimate = {
       }
       return weapons;
     }
-    return importUltimateData(newSheetID, oldSheetID);
+    return importUltimateData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

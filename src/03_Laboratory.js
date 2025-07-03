@@ -1,31 +1,44 @@
 const lab = {
   convertVersionFunctions: {},
 
-  importData: function importData(newSheetID, oldSheetID) {
-    function importLabData(newSheetID, oldSheetID) {
+  importData: function importData(versionDifference) {
+    function importLabData(versionDifference) {
       try {
-        // Get version from EXPORT sheet
-        var newLabVersion = SheetsAPI.getValue(
-          newSheetID,
-          "EXPORT!A1"
-        );
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        var oldLabVersion = SheetsAPI.getValue(
-          oldSheetID,
-          "EXPORT!A1"
-        );
-
-        var versionCheck = shared.compareVersions(oldLabVersion, newLabVersion);
-
-        if (versionCheck === 0) {
+        if (versionDifference === 0) {
           console.log("Same Version - proceeding with lab data import");
-
+          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
+          if (!newSpreadsheet) {
+            console.log("New spreadsheet not found with ID: " + newSheetID);
+            return {
+              success: false,
+              message: "New spreadsheet not found with ID: " + newSheetID,
+            };
+          }
           // Check if _IDS sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
             console.log("_IDS sheet not found in new lab spreadsheet");
             return {
               success: false,
               message: "_IDS sheet not found in new lab spreadsheet",
+            };
+          }
+          
+          // Check if Master Sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+            console.log("Master Sheet not found in new lab spreadsheet");
+            return {
+              success: false,
+              message: "Master Sheet not found in new lab spreadsheet",
             };
           }
 
@@ -82,15 +95,6 @@ const lab = {
                 String(cell || '').trim() !== ""
             )
           );
-
-          // Check if Master Sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
-            console.log("Master Sheet not found in new lab spreadsheet");
-            return {
-              success: false,
-              message: "Master Sheet not found in new lab spreadsheet",
-            };
-          }
 
           return updateLabLevels(newSheetID, oldLabLevels);
         } else {
@@ -208,7 +212,7 @@ const lab = {
       }
     }
     
-    return importLabData(newSheetID, oldSheetID);
+    return importLabData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

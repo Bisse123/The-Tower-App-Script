@@ -1,48 +1,45 @@
 const workshop = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importWorkshopData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importWorkshopData(versionDifference) {
       try {
-        // Get version from EXPORT sheet
-        var newWorkshopVersion = SheetsAPI.getValue(
-          newSheetID,
-          "EXPORT!A1"
-        );
-        if (!newWorkshopVersion) {
-          console.log("Error getting new workshop version");
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
           return {
             success: false,
-            message: "Error getting new workshop version",
+            message: "New spreadsheet not found",
           };
         }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        var oldWorkshopVersion = SheetsAPI.getValue(
-          oldSheetID,
-          "EXPORT!A1"
-        );
-        if (!oldWorkshopVersion) {
-          console.log("Error getting old workshop version");
-          return {
-            success: false,
-            message: "Error getting old workshop version",
-          };
-        }
-
-        var versionCheck = shared.compareVersions(
-          oldWorkshopVersion,
-          newWorkshopVersion
-        );
-
-        if (versionCheck === 0) {
+        if (versionDifference === 0) {
           console.log("Same Version - proceeding with workshop data import");
 
+          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
+          if (!newSpreadsheet) {
+            console.log("New spreadsheet not found with ID: " + newSheetID);
+            return {
+              success: false,
+              message: "New spreadsheet not found with ID: " + newSheetID,
+            };
+          }
           // Check if _IDS sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "_IDS")) {
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
             console.log("_IDS sheet not found in new workshop spreadsheet");
             return {
               success: false,
               message: "_IDS sheet not found in new workshop spreadsheet"
+            };
+          }
+
+          // Check if Master Sheet exists
+          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+            console.log("Master Sheet not found in new workshop spreadsheet");
+            return {
+              success: false,
+              message: "Master Sheet not found in new workshop spreadsheet"
             };
           }
 
@@ -136,15 +133,6 @@ const workshop = {
                 String(cell || '').trim() !== ""
             )
           );
-
-          // Check if Master Sheet exists
-          if (!SheetsAPI.hasSheet(newSheetID, "Master Sheet")) {
-            console.log("Master Sheet not found in new workshop spreadsheet");
-            return {
-              success: false,
-              message: "Master Sheet not found in new workshop spreadsheet"
-            };
-          }
 
           return updateWorkshopLevels(
             newSheetID,
@@ -291,7 +279,7 @@ const workshop = {
       }
     }
 
-    return importWorkshopData(newSheetID, oldSheetID);
+    return importWorkshopData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

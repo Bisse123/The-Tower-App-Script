@@ -1,29 +1,34 @@
 const relics = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importRelicsData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importRelicsData(versionDifference) {
       try {
-        // Get version from STATS sheet
-        var newRelicVersion = SheetsAPI.getValue(
-          newSheetID,
-          "STATS!A1"
-        );
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        var oldRelicVersion = SheetsAPI.getValue(
-          oldSheetID,
-          "STATS!A1"
-        );
-        var versionCheck = shared.compareVersions(
-          oldRelicVersion,
-          newRelicVersion
-        );
-
-        if (versionCheck === 0) {
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log("Old spreadsheet not found");
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
+        }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        if (versionDifference === 0) {
           console.log("Same Version");
 
           // Check if Relics sheet exists in old spreadsheet
-          if (!SheetsAPI.hasSheet(oldSheetID, "Relics")) {
+          if (!SheetsAPI.getSheetByName(oldSheetID, "Relics")) {
             console.log("Relics sheet not found in old relic spreadsheet");
             return {
               success: false,
@@ -90,7 +95,7 @@ const relics = {
               )
             );
             // Check if Relics sheet exists in new spreadsheet
-            if (!SheetsAPI.hasSheet(newSheetID, "Relics")) {
+            if (!SheetsAPI.getSheetByName(newSheetID, "Relics")) {
               console.log("Relics sheet not found in new relic spreadsheet");
               return {
                 success: false,
@@ -239,7 +244,7 @@ const relics = {
         };
       }
     }
-    return importRelicsData(newSheetID, oldSheetID);
+    return importRelicsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {

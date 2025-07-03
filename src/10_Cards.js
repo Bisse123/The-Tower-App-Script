@@ -1,49 +1,47 @@
 const cards = {
   convertVersionFunctions: {},
 
-  importData: function (newSheetID, oldSheetID) {
-    function importCardsData(newSheetID, oldSheetID) {
+  importData: function (versionDifference) {
+    function importCardsData(versionDifference) {
       try {
-        // Get new cards version using SheetsAPI
-        var newCardsVersion = SheetsAPI.getValue(newSheetID, "EXPORT!A1");
-        if (!newCardsVersion) {
-          console.log("Error getting new cards version");
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log("New spreadsheet not found");
           return {
             success: false,
-            message: "Error getting new cards version"
+            message: "New spreadsheet not found",
           };
         }
+        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        // Get old cards version using SheetsAPI
-        var oldCardsVersion = SheetsAPI.getValue(oldSheetID, "EXPORT!A1");
-        if (!oldCardsVersion) {
-        console.log("Error getting old cards version");
-        return {
-          success: false,
-          message: "Error getting old cards version"
-        };
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log("Old spreadsheet not found");
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
         }
-
-        var versionCheck = shared.compareVersions(
-          oldCardsVersion,
-          newCardsVersion
-        );
-        if (versionCheck === 0) {
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        if (versionDifference === 0) {
           console.log("Same Version");
 
-          // Get header row from _IDS sheet using Sheets API
-          var headerRowData;
-          try {
-          var headerRowData = SheetsAPI.getValues(newSheetID, "_IDS!1:1")[0] || [];
-          } catch (error) {
-            console.log("Error getting header row: " + error.toString());
-            return {
-              success: false,
-              message: "Error getting header row: " + error.message
-            };
+          // Get header row to find UWs column
+          var headerValues = SheetsAPI.getValues(
+            newSheetID,
+            "_IDS!1:1"
+          );
+          if (!headerValues || headerValues.length === 0) {
+          console.log("Could not read header row from _IDS sheet");
+          return {
+            success: false,
+            message: "Could not read header row from _IDS sheet"
+          };
           }
 
-          var importCardsColStart = headerRowData.indexOf("Cards");
+          var headerRow = headerValues[0];
+          var importCardsColStart = headerRow.indexOf("Cards");
           if (importCardsColStart === -1) {
           console.log("Cards column not found in header");
           return {
@@ -82,7 +80,7 @@ const cards = {
             };
           }
 
-          var importCardsPresetsColStart = headerRowData.indexOf("Cards Presets");
+          var importCardsPresetsColStart = headerRow.indexOf("Cards Presets");
           if (importCardsPresetsColStart !== -1) {
             try {
               var colStart = shared.columnToLetter(importCardsPresetsColStart + 1);
@@ -325,7 +323,7 @@ const cards = {
         message: "No updates needed for cards presets"
       };
     }
-    return importCardsData(newSheetID, oldSheetID);
+    return importCardsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
