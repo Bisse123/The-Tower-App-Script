@@ -51,7 +51,7 @@ const guardians = {
           var idMasterID = idMasterSpreadsheet.spreadsheetId;
           // Get header row to find UWs column
           var headerValues = SheetsAPI.getValues(
-            newSheetID,
+            idMasterID,
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
