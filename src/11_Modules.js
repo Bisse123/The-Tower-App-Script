@@ -6,6 +6,12 @@ const modules = {
   importData: function (versionDifference) {
     function importModulesData(versionDifference) {
       try {
+        var targetModuleTypes = [
+          "cannon",
+          "armor",
+          "generator",
+          "core",
+        ];
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log("New spreadsheet not found");
