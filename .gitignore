@@ -46,3 +46,11 @@ build/
 *.zip
 *.tar.gz
 *.rar
+
+# PowerShell scripts (if you have any)
+*.ps1
+# Batch scripts (if you have any)
+*.bat
+
+# Markdown files (if you have any)
+*.md
