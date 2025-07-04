@@ -826,7 +826,9 @@
           document.getElementById("selectedFileSummary").innerHTML =
             `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>` +
             `<br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet.</a>`;
-        } else {
+          document.getElementById("importButton").style.display = "none";
+          document.getElementById("updateMasterButton").style.display = "none";
+          } else {
           document.getElementById(
             "statusText"
           ).innerText = `Update IDS Master failed: ${result.message}`;
@@ -846,7 +848,7 @@
         const summary = document.getElementById("selectedFileSummary");
         if (accessibleFilesCache.length > 0) {
           summary.innerHTML +=
-            `<br>The app will access the following files:` +
+            `The app will access the following files:` +
             "<br>" +
             accessibleFilesCache
               .map(
