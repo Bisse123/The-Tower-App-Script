@@ -288,7 +288,7 @@ const cards = {
           var headerCell = shared.columnToLetter(colIdx + 1) + "2";
           batchUpdate.push({
             range: sheetName + "!" + headerCell,
-            value: header,
+            values: header,
           });
 
           // Update preset cards
@@ -300,7 +300,7 @@ const cards = {
             var startCell = shared.columnToLetter(colIdx + 2) + "3";
             var endCell =
               shared.columnToLetter(colIdx + 2) +
-              (2 + newCardsPresetsCards.length);
+              (newCardsPresetsCards.length + 2);
             batchUpdate.push({
               range: sheetName + "!" + startCell + ":" + endCell,
               values: newCardsPresetsCards,
