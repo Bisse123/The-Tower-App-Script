@@ -108,6 +108,9 @@ const cards = {
                 console.log(`Error updating cards levels: ${result.message}`);
                 return result;
               }
+
+              var batchUpdate = result.batchUpdate || [];
+
               var result = updateCardsPresets(
                 newSheetID,
                 "Card Preset",
@@ -117,10 +120,28 @@ const cards = {
                 console.log(`Error updating cards presets: ${result.message}`);
                 return result;
               }
-              // console.log(`Cards data imported successfully`);
+
+              batchUpdate = batchUpdate.concat(result.batchUpdate || []);
+
+              if (batchUpdate.length > 0) {
+                var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+                if (!updateResult) {
+                  console.log(`Error applying batch updates to new spreadsheet`);
+                  return {
+                    success: false,
+                    message: "Error applying batch updates to new spreadsheet"
+                  };
+                }
+                // console.log(`Cards data imported successfully`);
+                return {
+                  success: true,
+                  message: `Cards data imported successfully`
+                };
+              }
+              // console.log(`No updates needed for cards presets`);
               return {
                 success: true,
-                message: `Cards data imported successfully`
+                message: `No updates needed for cards presets`
               };
             } catch (error) {
               console.log(`Error processing cards presets: ${error.toString()}`);
@@ -236,10 +257,10 @@ const cards = {
         });
       }
       if (batchUpdate.length !== 0) {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         return {
           success: true,
-          message: `Cards levels updated successfully`
+          message: `Cards levels updated successfully`,
+          batchUpdate: batchUpdate
         };
       }
       // console.log(`No updates needed for cards levels`);
@@ -288,7 +309,7 @@ const cards = {
           var headerCell = shared.columnToLetter(colIdx + 1) + "2";
           batchUpdate.push({
             range: sheetName + "!" + headerCell,
-            values: header,
+            values: [[header]],
           });
 
           // Update preset cards
@@ -310,11 +331,11 @@ const cards = {
       });
 
       if (batchUpdate.length !== 0) {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         // console.log(`Cards presets updated successfully`);
         return {
           success: true,
-          message: `Cards presets updated successfully`
+          message: `Cards presets updated successfully`,
+          batchUpdate: batchUpdate
         };
       }
       // console.log(`No updates needed for cards presets`);

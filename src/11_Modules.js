@@ -59,6 +59,8 @@ const modules = {
             };
           }
 
+          var batchUpdate = result.batchUpdate || [];
+
           // Get old modules presets data using Sheets API
           var oldModulesPresetsValues =
             SheetsAPI.getDataRange(
@@ -70,23 +72,38 @@ const modules = {
             targetModuleTypes,
             oldModulesPresetsValues
           );
+
           var result = updateModulesPresets(
             targetModuleTypes,
             newSheetID,
             "Modules Presets",
             oldModulesPresets
           );
+
           if (!result || !result.success) {
+            return {
+              success: false,
+              message: result.message,
+            };
+          }
+
+          batchUpdate = batchUpdate.concat(result.batchUpdate || []);
+
+          if (batchUpdate.length > 0) {
+            SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+            // Update the sheet with the new data
+            // console.log(`Modules data imported successfully`);
+            return {
+              success: true,
+              message: `Modules data imported successfully`,
+            };
+          }
+          // No updates needed
+          // console.log(`No updates needed for modules data`);
           return {
-            success: false,
-            message: result.message,
+            success: true,
+            message: `No updates needed for modules data`,
           };
-        }
-        // console.log(`Modules data imported successfully`);
-        return {
-          success: true,
-          message: `Modules data imported successfully`,
-        };
         }
         // Else do something to convert old version to new one (Future me problem)
         else {
@@ -105,6 +122,8 @@ const modules = {
             };
           }
 
+          var batchUpdate = result.batchUpdate || [];
+
           var result = updateModulesPresets(
             targetModuleTypes,
             newSheetID,
@@ -112,16 +131,27 @@ const modules = {
             oldModulesPresets
           );
           if (!result || !result.success) {
+            return {
+              success: false,
+              message: result.message,
+            };
+          }
+          
+          batchUpdate = batchUpdate.concat(result.batchUpdate || []);
+
+          if (batchUpdate.length > 0) {
+            SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+            // console.log(`Modules data imported successfully`);
+            return {
+              success: true,
+              message: `Modules data imported successfully`,
+            };
+          }
+          // console.log(`No updates needed for modules data`);
           return {
-            success: false,
-            message: result.message,
+            success: true,
+            message: `No updates needed for modules data`,
           };
-        }
-        // console.log(`Modules data imported successfully`);
-        return {
-          success: true,
-          message: `Modules data imported successfully`,
-        };
         }
         // Check version to figure out which convert function to use
         // Potentially do something where if new version is v4 and old is v2
@@ -162,7 +192,7 @@ const modules = {
         newModulePresetsValues
       );
 
-      var updates = [];
+      var batchUpdate = [];
 
       targetModuleTypes.forEach(function (moduleType) {
         if (oldModulesPresets.hasOwnProperty(moduleType)) {
@@ -179,9 +209,9 @@ const modules = {
                 oldModulesPresets[moduleType].hasOwnProperty(presetName)
               ) {
                 var cellAddress = shared.columnToLetter(col + 1) + (rowIdx + 2);
-                updates.push({
+                batchUpdate.push({
                   range: sheetName + "!" + cellAddress,
-                  value: oldModulesPresets[moduleType][presetName],
+                  values: [[oldModulesPresets[moduleType][presetName]]],
                 });
               }
             }
@@ -189,29 +219,12 @@ const modules = {
         }
       });
 
-      var batchUpdate = [];
-      updates.forEach(function (update) {
-        try {
-          batchUpdate.push({
-            range: update.range,
-            values: [[update.value]],
-          });
-        } catch (error) {
-          console.log(
-            "Error updating preset " + update.range + ": " + error.toString()
-          );
-          return {
-            success: false,
-            message: "Error updating preset: " + error.message,
-          };
-        }
-      });
-      if (batchUpdate.length !== 0) {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (batchUpdate.length > 0) {
         // console.log(`Modules presets updated successfully`);
         return {
           success: true,
           message: `Modules presets updated successfully`,
+          batchUpdate: batchUpdate,
         };
       }
       // console.log(`No updates needed for modules presets`);
@@ -307,13 +320,11 @@ const modules = {
                 value: oldModulesInventory[moduleType][cellValue].rarity,
               });
 
-              // Update level (check if there's no formula first)
-              var levelCell = shared.columnToLetter(col + 2) + (rowIdx + 3);
-              // Note: We can't easily check for formulas with Sheets API, so we'll just update
-              singleCellUpdates.push({
-                range: sheetName + "!" + levelCell,
-                value: oldModulesInventory[moduleType][cellValue].level,
-              });
+              // var levelCell = shared.columnToLetter(col + 2) + (rowIdx + 3);
+              // singleCellUpdates.push({
+              //   range: sheetName + "!" + levelCell,
+              //   value: oldModulesInventory[moduleType][cellValue].level,
+              // });
 
               // Update substats if available
               var substats =
@@ -380,19 +391,12 @@ const modules = {
           };
         }
       });
-      try {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-      } catch (error) {
-        console.log(`Error updating modules inventory: ${error.toString()}`);
-        return {
-          success: false,
-          message: `Error updating modules inventory: ${error.message}`,
-        };
-      }
+
       // console.log(`Modules inventory updated successfully`);
       return {
         success: true,
         message: `Modules inventory updated successfully`,
+        batchUpdate: batchUpdate,
       };
     }
 

@@ -56,6 +56,8 @@ const vault = {
             return result;
           }
 
+          var batchUpdate = result.batchUpdate || [];
+
           var result = updateVault(
             newSheetID,
             "Power",
@@ -67,10 +69,28 @@ const vault = {
             console.log(`Error updating Power vault: ${result.message}`);
             return result;
           }
-          // console.log(`Vault data imported successfully`);
+
+          batchUpdate = batchUpdate.concat(result.batchUpdate || []);
+          if (batchUpdate.length > 0) {
+            // Apply batch updates to the new spreadsheet
+            var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+            if (!updateResult) {
+              console.log(`Error applying batch updates to new spreadsheet`);
+              return {
+                success: false,
+                message: "Error applying batch updates to new spreadsheet"
+              };
+            }
+            // console.log(`Vault data imported successfully`);
+            return {
+              success: true,
+              message: `Vault data imported successfully`
+            };
+          }
+          // console.log(`No updates needed for vault`);
           return {
             success: true,
-            message: `Vault data imported successfully`
+            message: `No updates needed for vault`
           };
         }
         // else {// Else do something to convert old version to new one (Future me problem)
@@ -165,11 +185,11 @@ const vault = {
       });
 
       if (batchUpdate.length !== 0) {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         // console.log(`Vault updated successfully`);
         return {
           success: true,
-          message: `Vault updated successfully`
+          message: `Vault updated successfully`,
+          batchUpdate: batchUpdate
         };
       }
       // console.log(`No updates needed for vault`);
