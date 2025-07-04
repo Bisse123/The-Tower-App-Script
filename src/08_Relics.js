@@ -6,7 +6,7 @@ const relics = {
       try {
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -16,7 +16,7 @@ const relics = {
 
         var oldSpreadsheet = spreadsheets("oldSpreadsheet");
         if (!oldSpreadsheet) {
-          console.log("Old spreadsheet not found");
+          console.log(`Old spreadsheet not found`);
           return {
             success: false,
             message: "Old spreadsheet not found",
@@ -25,14 +25,14 @@ const relics = {
         var oldSheetID = oldSpreadsheet.spreadsheetId;
         
         if (versionDifference === 0) {
-          console.log("Same Version");
+          // console.log(`Same Version`);
 
           // Check if Relics sheet exists in old spreadsheet
           if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Relics")) {
             console.log("Relics sheet not found in old relic spreadsheet");
             return {
               success: false,
-              message: "Relics sheet not found in old relic spreadsheet"
+              message: `Relics sheet not found in old relic spreadsheet`
             };
           }
 
@@ -42,10 +42,10 @@ const relics = {
             "Relics"
           );
           if (!oldRelicsData || oldRelicsData.length === 0) {
-            console.log("Could not read data from old Relics sheet");
+            console.log(`Could not read data from old Relics sheet`);
             return {
               success: false,
-              message: "Could not read data from old Relics sheet"
+              message: `Could not read data from old Relics sheet`
             };
           }
 
@@ -78,10 +78,10 @@ const relics = {
               oldRelicsRange
             );
             if (!oldRelicsValues) {
-              console.log("Could not read relic data from old spreadsheet");
+              console.log(`Could not read relic data from old spreadsheet`);
               return {
                 success: false,
-                message: "Could not read relic data from old spreadsheet"
+                message: `Could not read relic data from old spreadsheet`
               };
             }
 
@@ -99,7 +99,7 @@ const relics = {
               console.log("Relics sheet not found in new relic spreadsheet");
               return {
                 success: false,
-                message: "Relics sheet not found in new relic spreadsheet"
+                message: `Relics sheet not found in new relic spreadsheet`
               };
             }
 
@@ -108,17 +108,17 @@ const relics = {
           // else {
           // }
         } else {
-          console.log("Version mismatch - skipping relic data import");
+          console.log(`Version mismatch - skipping relic data import`);
           return {
             success: false,
-            message: "Version mismatch - skipping relic data import"
+            message: `Version mismatch - skipping relic data import`
           };
         }
       } catch (error) {
-        console.log("Error in importRelicsData: " + error.toString());
+        console.log(`Error in importRelicsData: ${error.toString()}`);
         return {
           success: false,
-          message: "Error importing relics data: " + error.message,
+          message: `Error importing relics data: ${error.message}`,
         };
       }
     }
@@ -128,10 +128,10 @@ const relics = {
         // Get all data from new Relics sheet
         var newRelicsData = SheetsAPI.getValues(newSheetID, "Relics");
         if (!newRelicsData || newRelicsData.length < 3) {
-          console.log("Not enough data in new Relics sheet");
+          console.log(`Not enough data in new Relics sheet`);
           return {
             success: false,
-            message: "Not enough data in new Relics sheet"
+            message: `Not enough data in new Relics sheet`
           };
         }
 
@@ -153,10 +153,10 @@ const relics = {
         }
 
         if (!newRelicHeaderRow) {
-          console.log("Could not find header row in new Relics sheet");
+          console.log(`Could not find header row in new Relics sheet`);
           return {
             success: false,
-            message: "Could not find header row in new Relics sheet"
+            message: `Could not find header row in new Relics sheet`
           };
         }
 
@@ -183,10 +183,10 @@ const relics = {
           newRelicNamesRange
         );
         if (!newRelicNamesValues) {
-          console.log("Could not read new relic names");
+          console.log(`Could not read new relic names`);
           return {
             success: false,
-            message: "Could not read new relic names"
+            message: `Could not read new relic names`
           };
         }
 
@@ -221,20 +221,16 @@ const relics = {
             endRow;
 
           SheetsAPI.setValues(newSheetID, unlockedRange, newRelicsUnlocked);
-          console.log(
-            "Relics updated successfully: " +
-              newRelicsUnlocked.length +
-              " relics processed"
-          );
+          // console.log(`Relics updated successfully: ${newRelicsUnlocked.length} relics processed`);
           return {
             success: true,
-            message: "Relics updated successfully: " + newRelicsUnlocked.length + " relics processed"
+            message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`
           };
         }
-        console.log("No updates needed for relics");
+        // console.log(`No updates needed for relics`);
         return {
           success: true,
-          message: "No updates needed for relics"
+          message: `No updates needed for relics`
         };
       } catch (error) {
         console.log("Error in updateRelics: " + error.toString());

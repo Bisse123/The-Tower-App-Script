@@ -12,13 +12,11 @@ const guardians = {
         ];
 
         if (versionDifference === 0) {
-          console.log(
-            "Same Version - proceeding with guardians data import"
-          );
+          // console.log(`Same Version - proceeding with guardians data import`);
 
           var newSpreadsheet = spreadsheets("newSpreadsheet");
           if (!newSpreadsheet) {
-            console.log("New spreadsheet not found");
+            console.log(`New spreadsheet not found`);
             return {
               success: false,
               message: "New spreadsheet not found",
@@ -26,9 +24,7 @@ const guardians = {
           }
           // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(
-              "Master Sheet not found in new guardians spreadsheet"
-            );
+            console.log(`Master Sheet not found in new guardians spreadsheet`);
             return {
               success: false,
               message: "Master Sheet not found in new guardians spreadsheet"
@@ -38,7 +34,7 @@ const guardians = {
 
           var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
           if (!idMasterSpreadsheet) {
-            console.log("IDS Master Spreadsheet not found");
+            console.log(`IDS Master Spreadsheet not found`);
             return {
               success: false,
               message: "IDS Master Spreadsheet not found",
@@ -46,9 +42,7 @@ const guardians = {
           }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "_IDS")) {
-            console.log(
-              "_IDS sheet not found in new guardians spreadsheet"
-            );
+            console.log(`_IDS sheet not found in new guardians spreadsheet`);
             return {
               success: false,
               message: "_IDS sheet not found in new guardians spreadsheet"
@@ -61,21 +55,21 @@ const guardians = {
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
-          console.log("Could not read header row from _IDS sheet");
-          return {
-            success: false,
-            message: "Could not read header row from _IDS sheet"
-          };
+            console.log(`Could not read header row from _IDS sheet`);
+            return {
+              success: false,
+              message: "Could not read header row from _IDS sheet"
+            };
           }
 
           var headerRow = headerValues[0];
           var importGuardianColStart = headerRow.indexOf("Guardians");
           if (importGuardianColStart === -1) {
-          console.log("Guardians column not found in header");
-          return {
-            success: false,
-            message: "Guardians column not found in header"
-          };
+            console.log(`Guardians column not found in header`);
+            return {
+              success: false,
+              message: "Guardians column not found in header"
+            };
           }
 
           // Get old guardian levels data using SheetsAPI
@@ -104,10 +98,10 @@ const guardians = {
         // else {// Else do something to convert old version to new one (Future me problem)
         // }
       } catch (error) {
-        console.log("Error in importGuardiansData: " + error.toString());
+        console.log(`Error in importGuardiansData: ${error.toString()}`);
         return {
           success: false,
-          message: "Error in importGuardiansData: " + error.message,
+          message: `Error in importGuardiansData: ${error.message}`,
         };
       }
     }
@@ -131,11 +125,11 @@ const guardians = {
       var headerRow = sheetData[0];
       var guardianCol = headerRow.indexOf("Guardians");
       if (guardianCol === -1) {
-      console.log("Guardians column not found in Master Sheet");
-      return {
-        success: false,
-        message: "Guardians column not found in Master Sheet"
-      };
+        console.log(`Guardians column not found in Master Sheet`);
+        return {
+          success: false,
+          message: "Guardians column not found in Master Sheet"
+        };
       }
 
       // Get guardian data starting from row 2
@@ -230,16 +224,16 @@ const guardians = {
       }
       if (batchUpdate.length !== 0) {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        console.log("Guardians updated successfully");
+        // console.log(`Guardians updated successfully`);
         return {
           success: true,
-          message: "Guardians updated successfully",
+          message: `Guardians updated successfully`,
         };
       }
-      console.log("No updates needed for guardians");
+      // console.log(`No updates needed for guardians`);
       return {
         success: true,
-        message: "No updates needed for guardians",
+        message: `No updates needed for guardians`,
       };
     }
 
