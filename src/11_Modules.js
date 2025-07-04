@@ -14,7 +14,7 @@ const modules = {
         ];
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -24,7 +24,7 @@ const modules = {
 
         var oldSpreadsheet = spreadsheets("oldSpreadsheet");
         if (!oldSpreadsheet) {
-          console.log("Old spreadsheet not found");
+          console.log(`Old spreadsheet not found`);
           return {
             success: false,
             message: "Old spreadsheet not found",
@@ -33,7 +33,7 @@ const modules = {
         var oldSheetID = oldSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
-          console.log("Same Version");
+          // console.log("Same Version");
 
           // Get old modules inventory data using Sheets API
           var oldModulesInventoryValues =
@@ -77,16 +77,16 @@ const modules = {
             oldModulesPresets
           );
           if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
-          console.log("Modules data imported successfully");
           return {
-            success: true,
-            message: "Modules data imported successfully",
+            success: false,
+            message: result.message,
           };
+        }
+        // console.log(`Modules data imported successfully`);
+        return {
+          success: true,
+          message: `Modules data imported successfully`,
+        };
         }
         // Else do something to convert old version to new one (Future me problem)
         else {
@@ -112,26 +112,26 @@ const modules = {
             oldModulesPresets
           );
           if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
-          console.log("Modules data imported successfully");
           return {
-            success: true,
-            message: "Modules data imported successfully",
+            success: false,
+            message: result.message,
           };
+        }
+        // console.log(`Modules data imported successfully`);
+        return {
+          success: true,
+          message: `Modules data imported successfully`,
+        };
         }
         // Check version to figure out which convert function to use
         // Potentially do something where if new version is v4 and old is v2
         // you can do convert v2 -> v3 and then convert v3 -> v4
         // Means more calculations but less rewriting of convert functions when new version are released
       } catch (error) {
-        console.log("Error importing modules data: " + error.toString());
+        console.log(`Error importing modules data: ${error.toString()}`);
         return {
           success: false,
-          message: "Error importing modules data",
+          message: `Error importing modules data: ${error.message}`,
         };
       }
     }
@@ -208,16 +208,16 @@ const modules = {
       });
       if (batchUpdate.length !== 0) {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        console.log("Modules presets updated successfully");
+        // console.log(`Modules presets updated successfully`);
         return {
           success: true,
-          message: "Modules presets updated successfully",
+          message: `Modules presets updated successfully`,
         };
       }
-      console.log("No updates needed for modules presets");
+      // console.log(`No updates needed for modules presets`);
       return {
         success: true,
-        message: "No updates needed for modules presets",
+        message: `No updates needed for modules presets`,
       };
     }
 
@@ -383,16 +383,16 @@ const modules = {
       try {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       } catch (error) {
-        console.log("Error updating modules inventory: " + error.toString());
+        console.log(`Error updating modules inventory: ${error.toString()}`);
         return {
           success: false,
-          message: "Error updating modules inventory: " + error.message,
+          message: `Error updating modules inventory: ${error.message}`,
         };
       }
-      console.log("Modules inventory updated successfully");
+      // console.log(`Modules inventory updated successfully`);
       return {
         success: true,
-        message: "Modules inventory updated successfully",
+        message: `Modules inventory updated successfully`,
       };
     }
 
@@ -505,18 +505,18 @@ const modules = {
 
     var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
     if (!oldSpreadsheet) {
-      console.log("New spreadsheet not found with ID: " + oldSheetID);
+      console.log(`New spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
-        message: "New spreadsheet not found with ID: " + oldSheetID,
+        message: `New spreadsheet not found with ID: ${oldSheetID}`,
       };
     }
     // Check if Modules Presets sheet exists
     if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Modules Presets")) {
-      console.log("Modules Presets sheet not found");
+      console.log(`Modules Presets sheet not found`);
       return {
         success: false,
-        message: "Modules Presets sheet not found",
+        message: `Modules Presets sheet not found`,
       };
     }
 

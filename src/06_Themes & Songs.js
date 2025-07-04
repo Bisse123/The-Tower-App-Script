@@ -15,7 +15,7 @@ const themes = {
 
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -25,7 +25,7 @@ const themes = {
 
         var oldSpreadsheet = spreadsheets("oldSpreadsheet");
         if (!oldSpreadsheet) {
-          console.log("Old spreadsheet not found");
+          console.log(`Old spreadsheet not found`);
           return {
             success: false,
             message: "Old spreadsheet not found",
@@ -34,14 +34,13 @@ const themes = {
         var oldSheetID = oldSpreadsheet.spreadsheetId;
         
         if (versionDifference === 0) {
-          console.log("Same Version");
-          // Get old themes data using SheetsAPI
+          // console.log(`Same Version`);
           var oldThemesData = SheetsAPI.getDataRange(
             oldSheetID,
             "Themes & Songs"
           );
           if (!oldThemesData) {
-            console.log("Error getting old themes data");
+            console.log(`Error getting old themes data`);
             return { success: false, message: "Error getting old themes data" };
           }
           var oldThemesNames = getOldUnlockedThemesNames(
@@ -63,8 +62,8 @@ const themes = {
           message: "Theme version mismatch or conversion not implemented.",
         };
       } catch (error) {
-        console.log("Error importing themes data: " + error.toString());
-        return { success: false, message: "Error importing themes data" };
+        console.log(`Error importing themes data: ${error.toString()}`);
+        return { success: false, message: `Error importing themes data: ${error.message}` };
       }
     }
 
@@ -77,7 +76,7 @@ const themes = {
       // Get sheet data using SheetsAPI
       var newThemesData = SheetsAPI.getDataRange(newSheetID, sheetName);
       if (!newThemesData) {
-        console.log("Error getting new themes data");
+        console.log(`Error getting new themes data`);
         return { success: false, message: "Error getting new themes data" };
       }
 

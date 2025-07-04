@@ -1,7 +1,5 @@
-<!-- picker.html -->
 <html>
   <head>
-    <!-- picker.styles.html -->
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -32,31 +30,28 @@
         transform: translateY(-1px);
       }
 
-      #add_another_button,
-      #import_button,
-      #update_master_button {
+      #addAnotherButton,
+      #importButton,
+      #updateMasterButton {
         background-color: #4caf50;
       }
-      #add_another_button:hover {
+      #addAnotherButton:hover {
         background-color: #45a049;
       }
-
-      #sheetid-submit-btn {
+      #sheetidSubmitBtn {
         background-color: #ffb300;
       }
-      #sheetid-submit-btn:hover {
+      #sheetidSubmitBtn:hover {
         background-color: #f9a825;
       }
-
-      #add_another_button:disabled,
-      #import_button:disabled,
-      #update_master_button:disabled,
-      #sheetid-submit-btn:disabled {
+      #addAnotherButton:disabled,
+      #importButton:disabled,
+      #updateMasterButton:disabled,
+      #sheetidSubmitBtn:disabled {
         background-color: #e0e0e0;
         color: #888;
         cursor: not-allowed;
       }
-      
       input[type="text"] {
         width: 320px;
         max-width: 90%;
@@ -88,57 +83,64 @@
         box-sizing: border-box;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        animation: slideIn 0.3s ease-out;
       }
-      .status-section {
+      .statusSection {
         background-color: #f0f0f0;
         border-color: #e0e0e0;
       }
-      .file-access-section {
+      .fileAccessSection {
         background-color: #e8f5e8;
         border-color: #4caf50;
-        animation: slideIn 0.3s ease-out;
       }
-      .instructions-section {
+      .instructionsSection {
         background-color: #e8f4fd;
         border-color: #1976d2;
       }
-      .instructions-content {
+      .instructionsContent {
         background-color: #f0f8ff;
         border-color: #4285f4;
       }
-      .sheetid-input-section {
+      .sheetidInputSection {
         background-color: #fff3e0;
         border-color: #ffb300;
       }
-      .title {
-        margin-top: 0;
+      .fileAccessTitle {
+        color: #2e7d32;
       }
-      .sheetid-input-title {
+      .instructionsTitle {
+        color: #1976d2;
+      }
+      .sheetidInputTitle {
         color: #f9a825;
         margin-top: 0;
         margin-bottom: 15px;
       }
-      .file-access-title {
+      .fileAccessTitle {
         color: #2e7d32;
       }
-      .instructions-title {
+      .instructionsTitle {
         color: #1976d2;
       }
-      .sheetid-input-hint {
+      #selectedFileSummary {
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .sheetidInputHint {
         font-size: 0.9em;
         color: #666;
         line-height: 1.4;
         margin-top: 5px;
         word-break: break-all;
       }
-      .sheetid-input-row {
+      .sheetidInputRow {
         display: flex;
         align-items: center;
         margin-bottom: 10px;
         gap: 10px;
         flex-wrap: wrap;
       }
-      .sheetid-status {
+      .sheetidStatus {
         margin-top: 10px;
         color: #b26a00;
         font-size: 1em;
@@ -235,35 +237,34 @@
           font-size: 24px;
         }
 
-        #selected-file-summary {
+        #selectedFileSummary {
           font-size: 16px;
           line-height: 1.5;
         }
 
-        .sheetid-input-row {
+        .sheetidInputRow {
           flex-direction: column;
           align-items: stretch;
           gap: 10px;
         }
 
-        .sheetid-input-row input {
+        .sheetidInputRow input {
           width: 100%;
           max-width: 100%;
           margin-bottom: 10px;
         }
 
-        .sheetid-input-row button {
+        .sheetidInputRow button {
           width: 100%;
           margin: 0;
         }
 
-        .sheetid-input-hint {
+        .sheetidInputHint {
           font-size: 0.85em;
           line-height: 1.3;
         }
       }
     </style>
-    <!-- End of picker.styles.html -->
     <title>The Tower Import Data</title>
     <meta charset="utf-8" />
     <meta
@@ -275,52 +276,52 @@
     <h1>The Tower Import Data</h1>
     <div
       id="status"
-      class="section status-section"
+      class="section statusSection"
     >
-      <strong>Status:</strong> <span id="status_text">Loading...</span>
+      <strong>Status:</strong> <span id="statusText">Initializing APIs...</span>
     </div>
-    <div 
-      id="sheetid-input-section"
-      class="section sheetid-input-section"
+      <div 
+      id="sheetidInputSection"
+      class="section sheetidInputSection"
       style="display: none;">
-      <h3 class="sheetid-input-title">🔑 Enter Sheet ID</h3>
-      <p>
+      <h3 id="sheetidInputTitle" class="sheetidInputTitle">🔑 Enter Sheet ID</h3>
+      <p id="sheetidInputHint">
         Please enter the <strong>ID of the new Google Sheet</strong> you want to import data from.<br>
-        <span class="sheetid-input-hint">(You can find the Sheet ID on the <strong>Home Page sheet</strong> or in the URL: <code>https://docs.google.com/spreadsheets/d/<b>[SHEET_ID]</b>/edit</code>)</span>
+        <span class="sheetidInputHint">(You can find the Sheet ID on the <strong>Home Page sheet</strong> or in the URL: <code>https://docs.google.com/spreadsheets/d/<b>[SHEET_ID]</b>/edit</code>)</span>
       </p>
-      <div class="sheetid-input-row">
+      <div id="sheetidInputRow" class="sheetidInputRow">
         <input
-          id="sheetid-input"
+          id="sheetidInput"
           type="text"
           placeholder="Paste new Sheet ID here"
         />
         <button 
-          id="sheetid-submit-btn"
+          id="sheetidSubmitBtn"
           onclick="onSubmitNewSheetId()"
         >
         Submit</button>
       </div>
-      <div id="sheetid-status" class="sheetid-status"></div>
+      <div id="sheetidStatus" class="sheetidStatus"></div>
     </div>
 
-    <div
-      id="file-access-section"
-      class="section file-access-section"
+    <div 
+      id="fileAccessSection"
+      class="section fileAccessSection"
     >
-      <h3 id="file-access-title" class="file-access-title">📁 File Access Required</h3>
-      <p id="selected-file-summary">
+      <h3 id="fileAccessTitle" class="fileAccessTitle">📁 File Access Required</h3>
+      <p id="selectedFileSummary">
         Checking which files need access permissions...
       </p>
       <div style="margin: 15px 0">
         <button
-          id="add_another_button"
+          id="addAnotherButton"
           onclick="addAnotherFile()"
           style="display: none"
         >
           Grant Access to Files
         </button>
         <button
-          id="import_button"
+          id="importButton"
           onclick="checkCompatibility()"
           style="display: none"
           disabled
@@ -328,7 +329,7 @@
           Import data
         </button>
         <button
-          id="update_master_button"
+          id="updateMasterButton"
           onclick="updateSheet()"
           style="display: none"
           disabled
@@ -339,11 +340,11 @@
     </div>
     <div
       id="instructions"
-      class="section instructions-section"
+      class="section instructionsSection"
     >
-      <h3 class="instructions-title">� File Access Management</h3>
+      <h3 class="instructionsTitle">� File Access Management</h3>
       <div
-        class="section instructions-content"
+        class="section instructionsContent"
       >
         <p>
           <strong>🎯 Automatic Check:</strong> The app will automatically check
@@ -355,7 +356,7 @@
           Picker.
         </p>
       </div>
-      <div id="desktop-instructions">
+      <div id="desktopInstructions">
         <p><strong>Desktop Multi-Select:</strong></p>
         <ul>
           <li>
@@ -371,7 +372,7 @@
           </li>
         </ul>
       </div>
-      <div id="mobile-instructions" style="display: none">
+      <div id="mobileInstructions" style="display: none">
         <p><strong>Mobile/Touch Multi-Select Options:</strong></p>
         <ul>
           <li>
@@ -400,7 +401,6 @@
         <button id="noBtn">No</button>
       </div>
     </div>
-    <!-- picker.scripts.html -->
     <script>
       // API credentials - only need API key for picker when using server-side OAuth
       const API_KEY = "<?= API_KEY ?>";
@@ -410,6 +410,7 @@
       let oldSheetID = "<?= oldSheetID ? oldSheetID : '' ?>";
       let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
       let sheetType = "<?= sheetType ? sheetType : '' ?>";
+      let userEmail = "";
 
       console.log("Parameters:", {
         newSheetID,
@@ -417,15 +418,15 @@
         idMasterID,
         sheetType,
       });
-      const idType = sheetType + " ID";
 
       let accessToken = null;
       let pickerInited = false;
       let isMobile = false;
-      let selectedFiles = []; // Store selected files for mobile multi-select fallback
-      let finalSelectedFiles = []; // Store the final selection for continue step
-      let accessibleFilesCache = []; // Store the last known accessible files for reselection
-      let inaccessibleFilesCache = []; // Store files that need access permissions
+      let selectedFiles = [];
+      let finalSelectedFiles = [];
+      let accessibleFilesCache = [];
+      let inaccessibleFilesCache = [];
+      let notOwnedFilesCache = [];
 
       // Detect mobile devices
       function detectMobile() {
@@ -455,51 +456,54 @@
 
       // Show appropriate instructions immediately based on device type
       if (isMobile) {
-        document.getElementById("desktop-instructions").style.display = "none";
-        document.getElementById("mobile-instructions").style.display = "block";
+        document.getElementById("desktopInstructions").style.display = "none";
+        document.getElementById("mobileInstructions").style.display = "block";
       } else {
-        document.getElementById("desktop-instructions").style.display = "block";
-        document.getElementById("mobile-instructions").style.display = "none";
+        document.getElementById("desktopInstructions").style.display = "block";
+        document.getElementById("mobileInstructions").style.display = "none";
       }
 
       // --- Custom: Handle missing URL parameters for sheet selection ---
       function promptForSheetIdIfMissing() {
-        document.getElementById("file-access-section").style.display = "none";
+        document.getElementById("fileAccessSection").style.display = "none";
         document.getElementById("instructions").style.display = "none";
-        document.getElementById("sheetid-input-section").style.display = "block";
-        document.getElementById("status_text").innerText =
+        document.getElementById("sheetidInputSection").style.display = "block";
+        document.getElementById("statusText").innerText =
           "Missing required parameters. Please enter the ID of the new sheet you want to import data from.";
-        document.getElementById("sheetid-input").value = "";
-        document.getElementById("sheetid-status").innerText =
+        document.getElementById("sheetidInput").value = "";
+        document.getElementById("sheetidStatus").innerText =
           "Please enter the ID of the new sheet you want to import data from.";
       }
 
       // Called when user submits newSheetID
       async function onSubmitNewSheetId() {
-        const input = document.getElementById("sheetid-input").value.trim();
+        const input = document.getElementById("sheetidInput").value.trim();
         if (!input) {
-          document.getElementById("sheetid-status").innerText = "Please enter a valid Sheet ID.";
+          document.getElementById("sheetidStatus").innerText = "Please enter a valid Sheet ID.";
           return;
         }
-        document.getElementById("sheetid-status").innerText = "Checking access to sheet...";
+        document.getElementById("statusText").innerText = "Checking access to sheet...";
+        document.getElementById("sheetidStatus").innerText = "Checking access to sheet...";
         window.dynamicNewSheetID = input;
 
         // Ensure we have an access token before opening the picker
         if (!accessToken) {
-          document.getElementById("sheetid-status").innerText = "Requesting authorization...";
+          document.getElementById("sheetidStatus").innerText = "Requesting authorization...";
           await new Promise((resolve) => {
             google.script.run
               .withSuccessHandler(function (result) {
                 if (result.success) {
                   accessToken = result.token;
-                  resolve();
+                  getUserEmailFromToken(accessToken).then(() => {
+                    resolve();
+                  });
                 } else {
-                  document.getElementById("sheetid-status").innerText = `Authorization failed: ${result.message}`;
+                  document.getElementById("sheetidStatus").innerText = `Authorization failed: ${result.message}`;
                   resolve();
                 }
               })
               .withFailureHandler(function (error) {
-                document.getElementById("sheetid-status").innerText = `Authorization error: ${error.message || error}`;
+                document.getElementById("sheetidStatus").innerText = `Authorization error: ${error.message || error}`;
                 resolve();
               })
               .getOAuthToken();
@@ -507,26 +511,34 @@
         }
 
         if (!accessToken) {
-          document.getElementById("sheetid-status").innerText = "Could not get authorization. Please try again.";
+          document.getElementById("sheetidStatus").innerText = "Could not get authorization. Please try again.";
           return;
         }
 
         google.script.run
           .withSuccessHandler(function (result) {
             if (result.success) {
-              if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
-                document.getElementById("sheetid-status").innerText = `Grant access to the new sheet.`;
+              if (result.notOwnedFiles && result.notOwnedFiles.length > 0) {
+                document.getElementById("sheetidInputTitle").innerText = `⛔ ${result.notOwnedFiles.length} Files Not Owned By You`;
+                document.getElementById("sheetidInputHint").innerHTML = 
+                  `<strong>📂 Please ensure you own the following file </strong><br>` +
+                  result.notOwnedFiles.map(file => `&nbsp;&nbsp;• ${file.name || file.id}`).join("<br>");
+                document.getElementById("sheetidInputRow").style.display = "none";
+                document.getElementById("sheetidStatus").style.display = "none";
+              }
+              else if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
+                document.getElementById("sheetidStatus").innerText = `Grant access to the new sheet.`;
                 openSingleFilePicker(input, function(granted) {
                   if (granted) {
-                    document.getElementById("sheetid-status").innerText = "Access to new sheet granted. Searching for IDS Master...";
+                    document.getElementById("sheetidStatus").innerText = "Access to new sheet granted. Searching for IDS Master...";
                     findAndGrantIdMaster(input);
                   }
                   else {
-                    document.getElementById("sheetid-status").innerText = "Access to new sheet denied. Please grant access.";
+                    document.getElementById("sheetidStatus").innerText = "Access to new sheet denied. Please grant access.";
                   }
                 });
               } else {
-                document.getElementById("sheetid-status").innerText = "Access to new sheet granted. Searching for IDS Master...";
+                document.getElementById("sheetidStatus").innerText = "Access to new sheet granted. Searching for IDS Master...";
                 findAndGrantIdMaster(input);
               }
             }
@@ -534,9 +546,9 @@
             }
           })
           .withFailureHandler(function (error) {
-            document.getElementById("sheetid-status").innerText = `Error checking access: ${error.message || error}`;
+            document.getElementById("sheetidStatus").innerText = `Error checking access: ${error.message || error}`;
           })
-          .checkSheetAccess([input]);
+          .checkSheetAccess([input], userEmail);
 
         // Helper: Find IDS Master and handle access
         function findAndGrantIdMaster(sheetID) {
@@ -547,31 +559,31 @@
                   .withSuccessHandler(function(result) {
                     if (result.success) {
                       if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
-                        document.getElementById("sheetid-status").innerText = `Grant access to the IDS Master sheet.`;
+                        document.getElementById("sheetidStatus").innerText = `Grant access to the IDS Master sheet.`;
                         openSingleFilePicker(idMasterResult.sheetID, function(granted) {
                           if (granted) {
-                            document.getElementById("sheetid-status").innerText = "IDS Master access granted. Searching for old sheet...";
+                            document.getElementById("sheetidStatus").innerText = "IDS Master access granted. Searching for old sheet...";
                             findAndGrantOldSheet(input, idMasterResult);
                           }
                         });
                       } else {
-                        document.getElementById("sheetid-status").innerText = "IDS Master access granted. Searching for old sheet...";
+                        document.getElementById("sheetidStatus").innerText = "IDS Master access granted. Searching for old sheet...";
                         findAndGrantOldSheet(input, idMasterResult);
                       }
                     } else {
-                      document.getElementById("sheetid-status").innerText = "Access to IDS Master sheet denied. Please grant access.";
+                      document.getElementById("sheetidStatus").innerText = "Access to IDS Master sheet denied. Please grant access.";
                     }
                   })
                   .withFailureHandler(function(e) {
-                    document.getElementById("sheetid-status").innerText = "Error checking access to IDS Master: " + (e.message || e);
+                    document.getElementById("sheetidStatus").innerText = "Error checking access to IDS Master: " + (e.message || e);
                   })
-                  .checkSheetAccess([idMasterResult.sheetID]);
+                  .checkSheetAccess([idMasterResult.sheetID], userEmail);
               } else {
-                document.getElementById("sheetid-status").innerText = "Could not find IDS Master in sheet.";
+                document.getElementById("sheetidStatus").innerText = "Could not find IDS Master in sheet.";
               }
             })
             .withFailureHandler(function(e) {
-              document.getElementById("sheetid-status").innerText = "Error searching for IDS Master: " + (e.message || e);
+              document.getElementById("sheetidStatus").innerText = "Error searching for IDS Master: " + (e.message || e);
             })
             .findSheetIdAndType(sheetID);
         }
@@ -585,50 +597,50 @@
                 .withSuccessHandler(function(result) {
                   if (result.success) {
                     if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
-                      document.getElementById("sheetid-status").innerText = `Grant access to the old sheet.`;
+                      document.getElementById("sheetidStatus").innerText = `Grant access to the old sheet.`;
                       openSingleFilePicker(oldSheetResult.sheetID, function(granted2) {
                         if (granted2) {
-                          document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
+                          document.getElementById("sheetidStatus").innerText = "All files granted. You may continue.";
                           newSheetID = input;
                           idMasterID = idMasterResult.sheetID;
                           oldSheetID = oldSheetResult.sheetID;
                           sheetType = idMasterResult.sheetType;
-                          document.getElementById("sheetid-input-section").style.display = "none";
-                          document.getElementById("file-access-section").style.display = "block";
-                          document.getElementById("import_button").innerText = `Import ${sheetType} data`;
+                          document.getElementById("sheetidInputSection").style.display = "none";
+                          document.getElementById("fileAccessSection").style.display = "block";
+                          document.getElementById("importButton").innerText = `Import ${sheetType} data`;
                           handleAuthAndCheckAccess();
                         }
                       });
                     }
                     else {
-                      document.getElementById("sheetid-status").innerText = "All files granted. You may continue.";
+                      document.getElementById("sheetidStatus").innerText = "All files granted. You may continue.";
                       newSheetID = input;
                       idMasterID = idMasterResult.sheetID;
                       oldSheetID = oldSheetResult.sheetID;
                       sheetType = idMasterResult.sheetType;
-                      document.getElementById("sheetid-input-section").style.display = "none";
-                      document.getElementById("file-access-section").style.display = "block";
-                      document.getElementById("import_button").innerText = `Import ${sheetType} data`;
+                      document.getElementById("sheetidInputSection").style.display = "none";
+                      document.getElementById("fileAccessSection").style.display = "block";
+                      document.getElementById("importButton").innerText = `Import ${sheetType} data`;
                       handleAuthAndCheckAccess();
                     }
                   }
                   else {
-                    document.getElementById("sheetid-status").innerText = "Access to old sheet denied. Please grant access.";
+                    document.getElementById("sheetidStatus").innerText = "Access to old sheet denied. Please grant access.";
                   }
                 })
                 .withFailureHandler(function(e) {
-                  document.getElementById("sheetid-status").innerText = "Error granting access to old sheet: " + (e.message || e);
+                  document.getElementById("sheetidStatus").innerText = "Error granting access to old sheet: " + (e.message || e);
                 })
-                .checkSheetAccess([oldSheetResult.sheetID]);
+                .checkSheetAccess([oldSheetResult.sheetID], userEmail);
 
-                document.getElementById("sheetid-status").innerText = "Old sheet found. Please grant access to old sheet.";
+                document.getElementById("sheetidStatus").innerText = "Old sheet found. Please grant access to old sheet.";
                 
               } else {
-                document.getElementById("sheetid-status").innerText = "Could not find old sheet in IDS Master.";
+              document.getElementById("sheetidStatus").innerText = "Could not find old sheet in IDS Master.";
               }
             })
             .withFailureHandler(function(e) {
-              document.getElementById("sheetid-status").innerText = "Error searching for old sheet: " + (e.message || e);
+            document.getElementById("sheetidStatus").innerText = "Error searching for old sheet: " + (e.message || e);
             })
             .findSheetIdAndType(idMasterResult.sheetID, idMasterResult.sheetType);
         }
@@ -638,7 +650,7 @@
       function openSingleFilePicker(fileId, callback) {
         // Use Google Picker to grant access to a single file
         if (!accessToken || !pickerInited) {
-          document.getElementById("sheetid-status").innerText = "Picker not ready or not authorized.";
+        document.getElementById("sheetidStatus").innerText = "Picker not ready or not authorized.";
           return callback(false);
         }
         try {
@@ -664,7 +676,7 @@
             .build();
           picker.setVisible(true);
         } catch (e) {
-          document.getElementById("sheetid-status").innerText = "Picker error: " + (e.message || e);
+          document.getElementById("sheetidStatus").innerText = "Picker error: " + (e.message || e);
           callback(false);
         }
       }
@@ -676,22 +688,22 @@
 
       // Ensures auth, then opens picker if successful
       async function ensureAuthThenOpenPicker() {
-        document.getElementById("status_text").innerText =
+        document.getElementById("statusText").innerText =
           "Checking authorization...";
         const authSuccess = await handleAuthAndCheckAccess();
         if (authSuccess) {
           openPicker();
         } else {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Authorization failed. Cannot open picker.";
         }
       }
 
       function checkCompatibility() {
-        document.getElementById("import_button").disabled = true;
-        document.getElementById("update_master_button").disabled = true;
+        document.getElementById("importButton").disabled = true;
+        document.getElementById("updateMasterButton").disabled = true;
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Checking ${sheetType} version compatibility...`;
         google.script.run
           .withSuccessHandler(onCompatibilitySuccess)
@@ -703,14 +715,14 @@
         console.log("Version compatibility result:", result);
         if (result.success) {
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `${result.message}`;
           if (result.versionDifference > 0) {
             showYesNoDialog(`${result.message}`, function (doImport) {
               if (doImport) {
                 importData(result.versionDifference);
               } else {
-                document.getElementById("status_text").innerText =
+                document.getElementById("statusText").innerText =
                   "Import cancelled by user due to version mismatch.";
               }
             });
@@ -719,22 +731,23 @@
           }
         } else {
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Version check failed: ${result.message}`;
         }
       }
 
       function onCompatibilityFailure(error) {
-        document.getElementById("import_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").disabled = false;
         console.error("Version check error:", error);
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Version check error: ${error.message || error}`;
       }
 
       function importData(versionDifference) {
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Importing ${sheetType} data...`;
 
         google.script.run
@@ -744,43 +757,43 @@
       }
 
       function onImportSuccess(result) {
-        document.getElementById("import_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
         console.log("Import result:", result);
         if (result.success) {
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `${result.message}`;
-          document.getElementById("update_master_button").disabled = false;
-          document.getElementById("selected-file-summary").innerHTML =
-            `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
+          document.getElementById("updateMasterButton").disabled = false;
+          document.getElementById("selectedFileSummary").innerHTML =
+            `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
           showAccessibleFilesSummary()
         } else {
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Import failed: ${result.message}`;
         }
       }
 
       function onImportFailure(error) {
-        document.getElementById("import_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
         console.error("Import error:", error);
-        document.getElementById("status_text").innerText = `Import error: ${
+        document.getElementById("statusText").innerText = `Import error: ${
           error.message || error
         }`;
       }
 
       function updateSheet() {
         if (finalSelectedFiles.length === 0) {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "No files selected. Please select files first.";
           return;
         }
 
-        document.getElementById("import_button").disabled = true;
-        document.getElementById("update_master_button").disabled = true;
+        document.getElementById("importButton").disabled = true;
+        document.getElementById("updateMasterButton").disabled = true;
         document.getElementById(
-          "status_text"
-        ).innerText = `Processing ${finalSelectedFiles.length} selected file(s)...`;
+          "statusText"
+        ).innerText = `Processing ${finalSelectedFiles.length} selected files...`;
 
         // Extract file IDs for the server-side function
         const fileIds = finalSelectedFiles.map(
@@ -788,7 +801,7 @@
         );
 
         console.log(
-          `Calling updateSheet -> idType: ${idType}, newSheetID: ${newSheetID}, idMasterID: ${idMasterID}`
+          `Calling updateSheet -> sheetType: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
         );
 
         // Call the Apps Script function to process the selected files
@@ -800,35 +813,40 @@
 
       // Handle successful processing
       function onUpdateSheetSuccess(result) {
-        document.getElementById("import_button").disabled = false;
-        document.getElementById("update_master_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").disabled = false;
         if (result.success) {
+          var gid = result.gid || "";
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `${result.message}`;
-          // You can add more success handling here
           console.log("Update IDS Master result:", result);
+          document.getElementById("fileAccessTitle").innerHTML =
+            `<strong>✅ IDS Master updated successfully!</strong>`;
+          document.getElementById("selectedFileSummary").innerHTML =
+            `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>` +
+            `<br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet.</a>`;
         } else {
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Update IDS Master failed: ${result.message}`;
         }
       }
 
       function onUpdateSheetFailure(error) {
-        document.getElementById("import_button").disabled = false;
-        document.getElementById("update_master_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").disabled = false;
         console.error("Import error:", error);
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Update IDS Master error: ${error.message || error}`;
       }
 
       function showAccessibleFilesSummary() {
-        const summary = document.getElementById("selected-file-summary");
+        const summary = document.getElementById("selectedFileSummary");
         if (accessibleFilesCache.length > 0) {
           summary.innerHTML +=
-            `<br>The app will access the following file(s):` +
+            `<br>The app will access the following files:` +
             "<br>" +
             accessibleFilesCache
               .map(
@@ -844,22 +862,25 @@
       // Show continue section with inaccessible files that need permission
       function showContinueSection(
         accessibleFiles = [],
-        inaccessibleFiles = []
+        inaccessibleFiles = [],
+        notOwnedFiles = [],
       ) {
         // Cache the files for later use
         accessibleFilesCache = accessibleFiles.slice();
         inaccessibleFilesCache = inaccessibleFiles.slice();
+        notOwnedFilesCache = notOwnedFiles.slice();
 
-        const fileAcessTitle = document.getElementById("file-access-title");
-        const summary = document.getElementById("selected-file-summary");
-        const addAnotherButton = document.getElementById("add_another_button");
-        const importButton = document.getElementById("import_button");
-        const updateButton = document.getElementById("update_master_button");
+
+        const fileAccessTitle = document.getElementById("fileAccessTitle");
+        const summary = document.getElementById("selectedFileSummary");
+        const addAnotherButton = document.getElementById("addAnotherButton");
+        const importButton = document.getElementById("importButton");
+        const updateButton = document.getElementById("updateMasterButton");
         const instructions = document.getElementById("instructions");
 
         if (inaccessibleFiles.length === 0) {
-          document.getElementById("status_text").innerText = `Checking import status.`;
-          fileAcessTitle.innerText = `✅ All Required Files Access Granted`;
+          document.getElementById("statusText").innerText = `Checking import status.`;
+          fileAccessTitle.innerText = `✅ All Required Files Access Granted`;
           summary.innerHTML = "";
           showAccessibleFilesSummary();
           addAnotherButton.style.display = "none";
@@ -873,45 +894,56 @@
 
           // Set final selected files to all accessible files for processing
           finalSelectedFiles = accessibleFiles.slice();
+        } else if (notOwnedFiles.length > 0) {
+          fileAccessTitle.innerHTML = 
+            `<strong>⛔ ${notOwnedFiles.length} Files Not Owned By You</strong><br>`
+          
+          summary.innerHTML = 
+            `<strong>📂 Please ensure you own the following files </strong><br>` +
+            notOwnedFiles.map(file => `&nbsp;&nbsp;• ${file.name || file.id}`).join("<br>");
+          
+          addAnotherButton.style.display = "none";
+          importButton.style.display = "none";
+          updateButton.style.display = "none";
+          instructions.style.display = "none";
         } else {
           // Some files need access - show grant access button
-          summary.innerHTML = `<strong>🔐 ${inaccessibleFiles.length} File(s) Need Access Permission</strong><br>`
-
+          summary.innerHTML = 
+            `<strong>🔐 ${inaccessibleFiles.length} Files Need Access Permission</strong><br>`
+          
           addAnotherButton.style.display = "inline-block";
           importButton.style.display = "none";
           updateButton.style.display = "none";
         }
 
-        document.getElementById("file-access-section").style.display = "block";
+        document.getElementById("fileAccessSection").style.display = "block";
       }
 
-      document.getElementById("status_text").innerText = "Initializing APIs...";
-
       function onImportStatusCheckSuccess(result) {
-        document.getElementById("import_button").disabled = false;
+        document.getElementById("importButton").disabled = false;
         console.log("Import status check result:", result);
         if (result.success) {
-          document.getElementById("status_text").innerText = `${result.message}`;
+          document.getElementById("statusText").innerText = `${result.message}`;
           if (result.imported) {
-            document.getElementById("update_master_button").disabled = false;
-            document.getElementById("selected-file-summary").innerHTML =
-              `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong>`;
+            document.getElementById("updateMasterButton").disabled = false;
+            document.getElementById("selectedFileSummary").innerHTML =
+              `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
             showAccessibleFilesSummary()
           } else {
-            document.getElementById("update_master_button").disabled = true;
+            document.getElementById("updateMasterButton").disabled = true;
           }
         } else {
-          document.getElementById("update_master_button").disabled = true;
-          document.getElementById("status_text").innerText = `Import status check failed: ${result.message}`;
+          document.getElementById("updateMasterButton").disabled = true;
+          document.getElementById("statusText").innerText = `Import status check failed: ${result.message}`;
         }
       }
 
       function onImportStatusCheckFailure(error) {
-        document.getElementById("import_button").disabled = false;
-        document.getElementById("update_master_button").disabled = true;
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").disabled = true;
         console.error("Import status check error:", error);
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Import status check error: ${error.message || error}`;
       }
 
@@ -921,7 +953,7 @@
           callback: initializePicker,
           onerror: function () {
             console.error("Failed to load GAPI client:picker");
-            document.getElementById("status_text").innerText =
+            document.getElementById("statusText").innerText =
               "Failed to load Google APIs";
           },
         });
@@ -949,7 +981,7 @@
           );
 
           pickerInited = true;
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Checking file access permissions...";
 
           if (!newSheetID || !oldSheetID || !idMasterID || !sheetType) {
@@ -957,12 +989,12 @@
             return;
           }
           
-          document.getElementById("import_button").innerText = `Import ${sheetType} data`;
+          document.getElementById("importButton").innerText = `Import ${sheetType} data`;
           handleAuthAndCheckAccess();
         } catch (error) {
           console.error("Error initializing GAPI client:", error);
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Initialization error: ${error.message}`;
         }
       }
@@ -972,24 +1004,24 @@
        */
       function handleAuthAndCheckAccess() {
         if (!newSheetID || !oldSheetID || !idMasterID || !sheetType) {
-          document.getElementById("file-access-section").style.display = "none";
+          document.getElementById("fileAccessSection").style.display = "none";
           document.getElementById("instructions").style.display = "none";
           console.error(
             `Missing required parameters -> newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
           );
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Missing required parameters for initialization, please check your setup.";
           return;
         }
         if ( [newSheetID, oldSheetID, idMasterID].includes("<Script loading...>") ||
           new Set([newSheetID, oldSheetID, idMasterID]).size !== 3
         ) {
-          document.getElementById("file-access-section").style.display = "none"; // Hide continue section if parameters are invalid
+          document.getElementById("fileAccessSection").style.display = "none"; // Hide continue section if parameters are invalid
           document.getElementById("instructions").style.display = "none"; // Hide instructions if parameters are invalid
           console.error(
             `Invalid parameters -> newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
           );
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Invalid parameters for initialization, expected unique IDs";
           return;
         }
@@ -1000,11 +1032,11 @@
           google.script.run
             .withSuccessHandler(onSheetAccessCheckSuccess)
             .withFailureHandler(onSheetAccessCheckFailure)
-            .checkSheetAccess([newSheetID, oldSheetID, idMasterID]);
+            .checkSheetAccess([newSheetID, oldSheetID, idMasterID], userEmail);
           return Promise.resolve(true);
         }
         return new Promise((resolve) => {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Getting authorization from Apps Script...";
           // Call Apps Script server-side function to get OAuth token
           google.script.run
@@ -1020,46 +1052,57 @@
         });
       }
 
-      /**
-       * Handle successful authorization and check which sheets are already accessible
-       * Returns true if auth was successful, false otherwise
-       */
       function onAuthSuccessAndCheckAccess(result) {
         console.log("Auth success result:", result);
         if (result.success) {
           accessToken = result.token;
+
           console.log("OAuth token received from Apps Script");
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Authorized successfully! Checking file access...";
-          // Check which sheets are accessible vs inaccessible
-          google.script.run
-            .withSuccessHandler(onSheetAccessCheckSuccess)
-            .withFailureHandler(onSheetAccessCheckFailure)
-            .checkSheetAccess([newSheetID, oldSheetID, idMasterID]);
+            
+          getUserEmailFromToken(accessToken).then(() => {
+            google.script.run
+              .withSuccessHandler(onSheetAccessCheckSuccess)
+              .withFailureHandler(onSheetAccessCheckFailure)
+              .checkSheetAccess([newSheetID, oldSheetID, idMasterID], userEmail);
+          });
           return true;
         } else {
           console.error("Authorization failed:", result.message);
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Authorization failed: ${result.message}`;
           return false;
         }
       }
 
-      /**
-       * Handle authorization failure
-       */
       function onAuthFailure(error) {
-        document.getElementById("open_picker_button").disabled = false;
         console.error("Auth error:", error);
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Authorization error: ${error.message || error}`;
       }
 
-      /**
-       * Handle successful sheet access check
-       */
+      function getUserEmailFromToken(token) {
+        return fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("User email fetched:", data);
+          console.log("User email:", data.email);
+          userEmail = data.email || "";
+          return userEmail
+        })
+        .catch((error) => {
+          console.error("Error fetching user email:", error);
+          return null
+        });
+      }
+      
       function onSheetAccessCheckSuccess(result) {
         console.log("Sheet access check result:", result);
 
@@ -1067,26 +1110,27 @@
           // Show the continue section with accessible and inaccessible files
           showContinueSection(
             result.accessibleFiles || [],
-            result.inaccessibleFiles || []
+            result.inaccessibleFiles || [],
+            result.notOwnedFiles || []
           );
 
           if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
-            document.getElementById("status_text").innerText = result.message;
+            document.getElementById("statusText").innerText = result.message;
           }
         } else {
           console.error("Sheet access check failed:", result.message);
-          document.getElementById("status_text").innerText = `Could not check file access: ${result.message}`;
-          showContinueSection([], []);
+          document.getElementById("statusText").innerText = `Could not check file access: ${result.message}`;
+          showContinueSection([], [], []);
         }
       }
 
       function onSheetAccessCheckFailure(error) {
         console.error("Sheet access check error:", error);
         document.getElementById(
-          "status_text"
+          "statusText"
         ).innerText = `Error checking sheet access: ${
           error.message || error
-        }. You can still use "Add Another File" to select sheets.`;
+        }.`;
         showContinueSection([]);
       }
 
@@ -1100,13 +1144,13 @@
         );
 
         if (!accessToken) {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Please authorize first";
           return;
         }
 
         if (!pickerInited) {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Picker not initialized yet";
           return;
         }
@@ -1115,7 +1159,7 @@
           typeof google === "undefined" ||
           typeof google.picker === "undefined"
         ) {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Google Picker API not loaded";
           console.error("Google Picker API not available");
           return;
@@ -1123,7 +1167,7 @@
 
         // Check if we have inaccessible files to show
         if (inaccessibleFilesCache.length === 0) {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "No files need access permission";
           return;
         }
@@ -1144,14 +1188,14 @@
         );
 
         try {
-          document.getElementById("status_text").innerText =
+          document.getElementById("statusText").innerText =
             "Opening picker with files that need access...";
 
           // Convert array to comma-separated string for setFileIds
           const fileIdsString = inaccessibleFileIds.join(",");
           console.log("File IDs string:", fileIdsString);
           if (!fileIdsString) {
-            document.getElementById("status_text").innerText =
+            document.getElementById("statusText").innerText =
               "No valid file IDs to show in picker.";
             return;
           }
@@ -1200,16 +1244,13 @@
             // .setOrigin(window.location.origin)
             // .setOrigin(origin)
             .setSize(pickerWidth, pickerHeight)
-            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+            .enableFeature(google.picker.Feature.MINE_ONLY);
 
           // Add features based on device type
-          if (!isMobile) {
-            picker
-              .enableFeature(google.picker.Feature.MINE_ONLY)
-              .enableFeature(google.picker.Feature.NAV_HIDDEN);
-          } else {
-            picker.enableFeature(google.picker.Feature.MINE_ONLY);
-          }
+          // if (!isMobile) {
+          //   picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+          // }
 
           const builtPicker = picker.build();
 
@@ -1220,7 +1261,7 @@
           );
 
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Select the files you want to grant access to (${inaccessibleFileIds.length} files available).`;
 
           builtPicker.setVisible(true);
@@ -1228,7 +1269,7 @@
         } catch (error) {
           console.error("Error creating/showing picker:", error);
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Picker error: ${error.message}`;
         }
       }
@@ -1241,33 +1282,33 @@
             const documents = data[google.picker.Response.DOCUMENTS];
 
             if (!documents || documents.length === 0) {
-              document.getElementById("status_text").innerText =
+              document.getElementById("statusText").innerText =
                 "No files selected";
               return;
             }
 
             document.getElementById(
-              "status_text"
-            ).innerText = `Access granted to ${documents.length} file(s). Rechecking access status...`;
+              "statusText"
+            ).innerText = `Access granted to ${documents.length} files. Rechecking access status...`;
 
             google.script.run
               .withSuccessHandler(onSheetAccessCheckSuccess)
               .withFailureHandler(onSheetAccessCheckFailure)
-              .checkSheetAccess([newSheetID, oldSheetID, idMasterID]);
+              .checkSheetAccess([newSheetID, oldSheetID, idMasterID], userEmail);
           } else if (data.action === google.picker.Action.CANCEL) {
             console.log("User cancelled the picker");
-            document.getElementById("status_text").innerText =
+            document.getElementById("statusText").innerText =
               "File selection cancelled";
           } else {
             console.log("Unknown picker action:", data.action);
             document.getElementById(
-              "status_text"
+              "statusText"
             ).innerText = `Unknown action: ${data.action}`;
           }
         } catch (error) {
           console.error("Error in picker callback:", error);
           document.getElementById(
-            "status_text"
+            "statusText"
           ).innerText = `Callback error: ${error.message}`;
         }
       }
@@ -1303,6 +1344,5 @@
       src="https://apis.google.com/js/api.js"
       onload="gapiLoaded()"
     ></script>
-    <!-- End of picker.scripts.html -->
   </body>
 </html>

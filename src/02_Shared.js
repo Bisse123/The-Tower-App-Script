@@ -4,7 +4,7 @@ const SheetsAPI = {
     try {
       return Sheets.Spreadsheets.get(spreadsheetId);
     } catch (error) {
-      console.error("Error getting spreadsheet:", error);
+      console.error(`Error getting spreadsheet: ${error}`);
       return null;
     }
   },
@@ -17,7 +17,7 @@ const SheetsAPI = {
       );
       return sheet ? sheet.properties : null;
     } catch (error) {
-      console.error("Error getting sheet by name:", error);
+      console.error(`Error getting sheet by name: ${error}`);
       return null;
     }
   },
@@ -28,7 +28,7 @@ const SheetsAPI = {
       const response = Sheets.Spreadsheets.Values.get(spreadsheetId, range);
       return response.values;
     } catch (error) {
-      console.error("Error getting values:", error);
+      console.error(`Error getting values: ${error}`);
       return null;
     }
   },
@@ -39,7 +39,7 @@ const SheetsAPI = {
       const values = this.getValues(spreadsheetId, range);
       return values && values.length > 0 && values[0].length > 0 ? values[0][0] : null;
     } catch (error) {
-      console.error("Error getting single value:", error);
+      console.error(`Error getting single value: ${error}`);
       return null;
     }
   },
@@ -59,7 +59,7 @@ const SheetsAPI = {
         }
       );
     } catch (error) {
-      console.error("Error setting values:", error);
+      console.error(`Error setting values: ${error}`);
       return null;
     }
   },
@@ -79,7 +79,7 @@ const SheetsAPI = {
         }
       );
     } catch (error) {
-      console.error("Error setting value:", error);
+      console.error(`Error setting value: ${error}`);
       return null;
     }
   },
@@ -89,7 +89,7 @@ const SheetsAPI = {
     try {
       return this.getValues(spreadsheetId, sheetName);
     } catch (error) {
-      console.error("Error getting data range:", error);
+      console.error(`Error getting data range: ${error}`);
       return null;
     }
   },
@@ -106,7 +106,7 @@ const SheetsAPI = {
       };
       return Sheets.Spreadsheets.Values.batchUpdate(requestBody, spreadsheetId);
     } catch (error) {
-      console.error("Error in batchUpdateValues:", error);
+      console.error(`Error in batchUpdateValues: ${error}`);
       return null;
     }
   },
@@ -126,7 +126,7 @@ const shared = {
     var idType = idType || "IDS Master's ID";
     var values = SheetsAPI.getDataRange(spreadsheetId, sheetName);
     if (!values || values.length === 0) {
-      console.log("No data found in sheet:", sheetName, "in spreadsheet:", spreadsheetId);
+      console.log(`No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`);
       return null;
     }
 
@@ -201,16 +201,18 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
   try {
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
+      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: "New spreadsheet not found with ID: " + newSheetID,
+        message: `New spreadsheet not found with ID: ${newSheetID}`,
         updated: false,
       };
     }
     if (!SheetsAPI.getSheetByName(newSpreadsheet, "IDS")) {
+      console.log(`IDS sheet not found in new spreadsheet`);
       return {
         success: false,
-        message: "IDS sheet not found in new spreadsheet",
+        message: `IDS sheet not found in new spreadsheet`,
         updated: false,
       };
     }
@@ -221,24 +223,27 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       !newSheetTypeInfo.isImported ||
       newSheetTypeInfo.isImported.value !== "✅"
     ) {
+      console.log(`Can not update until old sheet has been Imported.`);
       return {
         success: false,
-        message: "Can not update until old sheet has been Imported.",
+        message: `Can not update until old sheet has been Imported.`,
         updated: false,
       };
     }
     var idsMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
     if (!idsMasterSpreadsheet) {
+      console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
       return {
         success: false,
-        message: "IDS Master Spreadsheet not found with ID: " + idMasterID,
+        message: `IDS Master Spreadsheet not found with ID: ${idMasterID}`,
         updated: false,
       };
     }
     if (!SheetsAPI.getSheetByName(idsMasterSpreadsheet, "IDS")) {
+      console.log(`IDS sheet not found in ID master spreadsheet`);
       return {
         success: false,
-        message: "IDS sheet not found in ID master spreadsheet",
+        message: `IDS sheet not found in ID master spreadsheet`,
         updated: false,
       };
     }
@@ -246,9 +251,10 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     var newFile = Drive.Files.get(newSheetID, { fields: "id, name, parents" });
     var oldFile = Drive.Files.get(oldSheetID, { fields: "id, name, parents" });
     if (!newFile || !oldFile) {
+      console.log(`Could not retrieve file information for new or old sheet.`);
       return {
         success: false,
-        message: "Could not retrieve file information for new or old sheet.",
+        message: `Could not retrieve file information for new or old sheet.`,
         updated: false,
       };
     }
@@ -265,17 +271,19 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       sheetType + " ID"
     );
     if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.cell) {
+      console.log(`Could not find ID Master spreadsheet info`);
       return {
         success: false,
-        message: "Could not find ID Master spreadsheet info",
+        message: `Could not find ID Master spreadsheet info`,
         updated: false,
       };
     }
     idCell = idMasterSpreadsheetInfo.cell;
     if (!idCell.range) {
+      console.log(`ID Master cell range not found`);
       return {
         success: false,
-        message: "ID Master cell range not found",
+        message: `ID Master cell range not found`,
         updated: false,
       };
     }
@@ -293,9 +301,10 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
         }
       );
     } catch (error) {
+      console.log(`Error renaming or moving new sheet: ${error.toString()}`);
       return {
         success: false,
-        message: "Error renaming or moving new sheet: " + error.toString(),
+        message: `Error renaming or moving new sheet: ${error.toString()}`,
         updated: false,
       };
     }
@@ -303,9 +312,10 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     try {
       Drive.Files.update({ trashed: true }, oldSheetID);
     } catch (error) {
+      console.log(`Error deleting old sheet: ${error.toString()}`);
       return {
         success: false,
-        message: "Error deleting old sheet: " + error.toString(),
+        message: `Error deleting old sheet: ${error.toString()}`,
         updated: false,
       };
     }
@@ -313,9 +323,10 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     try {
       SheetsAPI.setValue(idMasterID, idCell.range, newSheetID);
     } catch (error) {
+      console.log(`Error updating ID Master sheet: ${error.toString()}`);
       return {
         success: false,
-        message: "Error updating ID Master sheet: " + error.toString(),
+        message: `Error updating ID Master sheet: ${error.toString()}`,
         updated: false,
       };
     }
@@ -326,6 +337,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       updated: true,
     };
   } catch (error) {
+    console.log(`Error in updateSheet: ${error.toString()}`);
     return {
       success: false,
       message: error.toString(),
@@ -335,15 +347,14 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
 }
 
 function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
-  console.log(
-    `Checking compatibility for sheet type: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
-  );
+  // console.log(`Checking compatibility for sheet type: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`);
   try {
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
+      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: "New spreadsheet not found with ID: " + newSheetID,
+        message: `New spreadsheet not found with ID: ${newSheetID}`,
       };
     }
     var newExportSheet = SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT");
@@ -351,10 +362,11 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
       newExportSheet = SheetsAPI.getSheetByName(newSpreadsheet, "STATS");
     }
     if (!newExportSheet) {
+      console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
         message:
-          "Cannot find sheet version (EXPORT or STATS) in the new spreadsheet.",
+          `Export sheet not found in new ${sheetType} spreadsheet`,
       };
     }
 
@@ -363,17 +375,19 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
       `${newExportSheet.title}!A1`
     );
     if (!newVersion) {
+      console.log(`Export version not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: "New sheet version not found in the new spreadsheet.",
+        message: `Export version not found in new ${sheetType} spreadsheet.`,
       };
     }
 
     var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
     if (!oldSpreadsheet) {
+      console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
-        message: "Old spreadsheet not found with ID: " + oldSheetID,
+        message: `Old spreadsheet not found with ID: ${oldSheetID}`,
       };
     }
     var oldExportSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT");
@@ -381,10 +395,10 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
       oldExportSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "STATS");
     }
     if (!oldExportSheet) {
+      console.log(`Export sheet not found in old ${sheetType} spreadsheet`);
       return {
         success: false,
-        message:
-          "Cannot find sheet version (EXPORT or STATS) in the old spreadsheet.",
+        message: `Export sheet not found in old ${sheetType} spreadsheet`,
       };
     }
 
@@ -393,15 +407,17 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
       `${oldExportSheet.title}!A1`
     );
     if (!oldVersion) {
+      console.log(`Export version not found in old ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: "Old sheet version not found in the old spreadsheet.",
+        message: `Export version not found in old ${sheetType} spreadsheet.`,
       };
     }
 
     var compareVersions = shared.compareVersions(oldVersion, newVersion);
 
     if (compareVersions === -1) {
+      console.log(`The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`);
       return {
         success: false,
         message: `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`,
@@ -429,7 +445,7 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
       versionDifference: 0,
     };
   } catch (error) {
-    console.log("Error checking compatibility: " + error.message);
+    console.log(`Error checking compatibility: ${error.message}`);
     return {
       success: false,
       message: "Error checking compatibility: " + error.message,
@@ -441,25 +457,28 @@ function checkImportStatus(newSheetID) {
   try {
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
+      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: "New spreadsheet not found with ID: " + newSheetID,
+        message: `New spreadsheet not found with ID: ${newSheetID}`,
       };
     }
 
     var newIdSheet = SheetsAPI.getSheetByName(newSpreadsheet, "IDS");
     if (!newIdSheet) {
+      console.log(`IDS sheet not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: "IDS sheet not found in the new spreadsheet.",
+        message: `IDS sheet not found in new ${sheetType} spreadsheet.`,
       };
     }
 
     var newSpreadsheetInfo = shared.findSheetTypeID(newSheetID, "IDS");
     if (!newSpreadsheetInfo || !newSpreadsheetInfo.isImported) {
+      console.log(`Can not find import cell in the new IDS sheet.`);
       return {
         success: false,
-        message: "Is Imported range not found in the new IDS sheet.",
+        message: `Can not find import cell in the new IDS sheet.`,
       };
     }
 
@@ -478,10 +497,10 @@ function checkImportStatus(newSheetID) {
       imported: false,
     };
   } catch (error) {
-    console.log("Error checking import status: " + error.message);
+    console.log(`Error checking import status: ${error.message}`);
     return {
       success: false,
-      message: "Error checking import status: " + error.message,
+      message: `Error checking import status: ${error.message}`,
       imported: false,
     };
   }
@@ -505,39 +524,51 @@ function getOAuthToken() {
   }
 }
 
-function checkSheetAccess(fileIds) {
+function checkSheetAccess(fileIds, userEmail) {
   try {
     // const fileIds = [newSheetID, oldsheetID, idMasterID];
     const accessibleFiles = [];
     const inaccessibleFiles = [];
-
-    console.log("Checking access to", fileIds.length, "predefined sheets...");
+    const notOwnedFiles = [];
+    
+    // console.log("Checking access to", fileIds.length, "predefined sheets...");
 
     fileIds.forEach((fileId) => {
       try {
         const file = Drive.Files.get(fileId, {
-          fields: "name",
+          fields: "name, owners",
         });
+        
+        // console.log("Access confirmed for:", file.name, "(" + fileId + ")");
 
-        console.log("Access confirmed for:", file.name, "(" + fileId + ")");
-        accessibleFiles.push({ id: fileId, name: file.name });
+        const owners = file.owners || [];
+        const isOwner = owners.some(owner => owner.emailAddress && owner.emailAddress.toLowerCase() === userEmail.toLowerCase());
+        
+        if (isOwner) {
+          accessibleFiles.push({id: fileId, name: file.name});
+        } else {
+          notOwnedFiles.push({id: fileId, name: file.name});
+          inaccessibleFiles.push({id: fileId});
+        }
+
       } catch (error) {
-        console.log("No access to file:", fileId, "Error:", error.toString());
-        inaccessibleFiles.push({ id: fileId });
+        // console.log("No access to file:", fileId, "Error:", error.toString());
+        inaccessibleFiles.push({id: fileId});
       }
     });
 
-    console.log(
-      "Access check complete. Accessible:",
-      accessibleFiles.length,
-      "Inaccessible:",
-      inaccessibleFiles.length
-    );
+    // console.log(
+    //   "Access check complete. Accessible:",
+    //   accessibleFiles.length,
+    //   "Inaccessible:",
+    //   inaccessibleFiles.length
+    // );
 
     return {
       success: true,
       accessibleFiles: accessibleFiles,
       inaccessibleFiles: inaccessibleFiles,
+      notOwnedFiles: notOwnedFiles,
       message: `Access check complete. ${accessibleFiles.length} of ${fileIds.length} sheets are accessible.`,
     };
   } catch (error) {
@@ -546,6 +577,7 @@ function checkSheetAccess(fileIds) {
       success: false,
       accessibleFiles: [],
       inaccessibleFiles: [],
+      notOwnedFiles: [],
       message: error.toString(),
     };
   }
@@ -553,19 +585,22 @@ function checkSheetAccess(fileIds) {
 
 function findSheetIdAndType(sheetID, sheetType) {
   if (!sheetID) {
-    return { error: "Missing sheetId or sheetType parameter." };
+    console.log(`Missing sheetId parameter.`);
+    return { error: "Missing sheetType parameter." };
   }
   var idType = sheetType ? sheetType + " ID" : "IDS Master's ID";
   var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", idType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
-    return { error: "Could not find sheet type ID for " + sheetID };
+    console.log(`Could not find sheet type ID for ${sheetID}`);
+    return {error: `Could not find sheet type ID for ${sheetID}`};
   }
   
   var spreadsheetId = shared.extractSheetId(
     spreadsheetInfo.id
   );
   if (!spreadsheetId) {
-    return { error: "Could not extract sheet ID from " + spreadsheetInfo.id };
+    console.log(`Could not extract sheet ID from ${spreadsheetInfo.id}`);
+    return {error: `Could not extract sheet ID from ${spreadsheetInfo.id}`};
   }
   if (!sheetType) {
     sheetType = SheetsAPI.getValue(sheetID, "Home Page!B2");

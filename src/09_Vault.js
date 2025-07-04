@@ -6,7 +6,7 @@ const vault = {
       try {
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -16,7 +16,7 @@ const vault = {
 
         var oldSpreadsheet = spreadsheets("oldSpreadsheet");
         if (!oldSpreadsheet) {
-          console.log("Old spreadsheet not found");
+          console.log(`Old spreadsheet not found`);
           return {
             success: false,
             message: "Old spreadsheet not found",
@@ -25,7 +25,7 @@ const vault = {
         var oldSheetID = oldSpreadsheet.spreadsheetId;
         
         if (versionDifference === 0) {
-          console.log("Same Version");
+          // console.log(`Same Version`);
 
           // Get old vault data using Sheets API
           var vaultHarmonyHeaderPattern = ["U", "Value", "Bonus Type"];
@@ -52,7 +52,7 @@ const vault = {
             1
           );
           if (!result || !result.success) {
-            console.log("Error updating Harmony vault: " + result.message);
+            console.log(`Error updating Harmony vault: ${result.message}`);
             return result;
           }
 
@@ -64,22 +64,22 @@ const vault = {
             1
           );
           if (!result || !result.success) {
-            console.log("Error updating Power vault: " + result.message);
+            console.log(`Error updating Power vault: ${result.message}`);
             return result;
           }
-          console.log("Vault data imported successfully");
+          // console.log(`Vault data imported successfully`);
           return {
             success: true,
-            message: "Vault data imported successfully"
+            message: `Vault data imported successfully`
           };
         }
         // else {// Else do something to convert old version to new one (Future me problem)
         // }
       } catch (error) {
-        console.log("Error importing vault data: " + error.toString());
+        console.log(`Error importing vault data: ${error.toString()}`);
         return {
           success: false,
-          message: "Error importing vault data"
+          message: `Error importing vault data: ${error.message}`
         };
       }
     }
@@ -96,18 +96,19 @@ const vault = {
       // Get sheet data using SheetsAPI
       var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
       if (!sheetData) {
-        console.log("Error getting sheet data");
+        console.log(`Error getting sheet data`);
         return {
           success: false,
-          message: "Error getting sheet data"
+          message: `Error getting sheet data`
         };
       }
 
-      if (sheetData.length < skipRows + 2) return; // Not enough data
+      if (sheetData.length < skipRows + 2) return;
       if (sheetData.length < skipRows + 2) {
+        console.log(`Not enough data in sheet`);
         return {
           success: false,
-          message: "Not enough data in sheet"
+          message: `Not enough data in sheet`
         };
       }
 
@@ -116,17 +117,15 @@ const vault = {
 
       var newHeaderIndices = findHeaderIndices(newVaultHeaders, vaultPattern);
 
-      // Iterate through data (excluding headers)
       var newVault = {};
-      var batchUpdate = []; // Store updates to batch them
+      var batchUpdate = [];
 
       for (var r = 0; r < newVaultData.length; r++) {
         var row = newVaultData[r];
         for (var t = 0; t < newHeaderIndices.length; t++) {
           var uIdx = newHeaderIndices[t][vaultPattern.indexOf("U")];
           var valueIdx = newHeaderIndices[t][vaultPattern.indexOf("Value")];
-          var bonusTypeIdx =
-            newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")];
+          var bonusTypeIdx = newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")];
           var u = row[uIdx];
           var value = row[valueIdx];
           var bonusType = row[bonusTypeIdx];
@@ -137,33 +136,28 @@ const vault = {
               delete oldVault[key];
             }
           }
-          if (tierUnlock.includes(key)) {
-            // Store update for later batch processing
-            var cellAddress =
-              shared.columnToLetter(uIdx + 1) + (r + skipRows + 2);
-            batchUpdate.push({
-              range: sheetName + "!" + cellAddress,
-              value: u,
-            });
-          }
+          // if (tierUnlock.includes(key)) {
+          //   // Store update for later batch processing
+          //   var cellAddress = shared.columnToLetter(uIdx + 1) + (r + skipRows + 2);
+          //   batchUpdate.push({
+          //     range: sheetName + "!" + cellAddress,
+          //     value: u,
+          //   });
+          // }
           if (!newVault.hasOwnProperty(uIdx)) {
             newVault[uIdx] = [];
           }
           newVault[uIdx].push([u]);
         }
       }
-      if (batchUpdate.length !== 0) {
-        SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-      }
 
-      batchUpdate = []
-      // Apply bulk updates for columns
+      // Apply bulk updates for columns (preserve this block)
       Object.keys(newVault).forEach(function (colKey) {
         var colIdx = parseInt(colKey, 10);
         var colLetter = shared.columnToLetter(colIdx + 1);
         var values = newVault[colKey];
-        var range =
-          sheetName + "!" + colLetter + "3:" + colLetter + (2 + values.length);
+        var lastRow = values.length + 2;
+        var range = `${sheetName}!${colLetter}3:${colLetter}${lastRow}`;
         batchUpdate.push({
           range: range,
           values: values,
@@ -172,16 +166,16 @@ const vault = {
 
       if (batchUpdate.length !== 0) {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        console.log("Vault updated successfully");
+        // console.log(`Vault updated successfully`);
         return {
           success: true,
-          message: "Vault updated successfully"
+          message: `Vault updated successfully`
         };
       }
-      console.log("No updates needed for vault");
+      // console.log(`No updates needed for vault`);
       return {
         success: true,
-        message: "No updates needed for vault"
+        message: `No updates needed for vault`
       };
     }
 
@@ -189,7 +183,7 @@ const vault = {
       // Get sheet data using SheetsAPI
       var sheetData = SheetsAPI.getDataRange(oldSheetID, sheetName);
       if (!sheetData) {
-        console.log("Error getting old vault data");
+        console.log(`Error getting old vault data`);
         return {};
       }
 

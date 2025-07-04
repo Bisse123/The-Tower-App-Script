@@ -22,14 +22,14 @@ const spreadsheets = (() => {
   };
   return function (spreadsheet, sheetID) {
     if (!spreadsheet) {
-      console.log("No spreadsheet name provided.");
+      console.log(`No spreadsheet name provided.`);
       return null;
     }
     if (storedSpreadsheets[spreadsheet]) {
       return storedSpreadsheets[spreadsheet];
     }
     if (!sheetID) {
-      console.log("Spreadsheet not defined and no sheet ID provided.");
+      console.log(`Spreadsheet not defined and no sheet ID provided.`);
       return null;
     }
     var spreadsheetInfo = SheetsAPI.getSpreadsheet(sheetID);
@@ -44,7 +44,7 @@ const spreadsheets = (() => {
 
 
 function doGet(e) {
-  console.log("doGet called with parameters: " + JSON.stringify(e.parameter));
+  // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
   var template = HtmlService.createTemplateFromFile("WebApp");
   template.newSheetID = e.parameter.newSheetID;
   template.oldSheetID = e.parameter.oldSheetID;
@@ -60,12 +60,12 @@ function doGet(e) {
 }
 
 function onOpen(e) {
-  console.log("onOpen called with event: " + JSON.stringify(e));
+  // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
     var ui = SpreadsheetApp.getUi();
     var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
     if (sheetVars(sheetType)) {
-      console.log("Sheet type found in Home Page B2: " + sheetType);
+      // console.log("Sheet type found in Home Page B2: " + sheetType);
       ui.createMenu("Import Data")
         .addItem("Help", "showHelpDialog")
         .addItem("Import Data", "showImportDialog")
@@ -80,20 +80,20 @@ function onOpen(e) {
 }
 
 function showHelpDialog() {
-  console.log("showHelpDialog called");
+  // console.log(`showHelpDialog called`);
   try {
     var html = HtmlService.createHtmlOutputFromFile('HelpDialog')
       .setWidth(300)
       .setHeight(150);
     SpreadsheetApp.getUi().showModalDialog(html, 'Help and Support');
   } catch (error) {
-    console.log("Error in showHelpDialog: " + error.message);
+    console.log(`Error in showHelpDialog: ${error.message}`);
     SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
 
 function showImportDialog() {
-  console.log("showImportDialog called");
+  // console.log(`showImportDialog called`);
   try {
     var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
     var newSheetID = SpreadsheetApp.getActiveSpreadsheet().getId();
@@ -122,25 +122,23 @@ function showImportDialog() {
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
-    console.log("Error in showImportDialog: " + error.message);
+    console.log(`Error in showImportDialog: ${error.message}`);
     SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
 
 function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDifference) {
-  console.log(
-    `Starting import for sheet type: ${sheetType} with ID: ${newSheetID}`
-  );
+  // console.log(`Starting import for sheet type: ${sheetType} with ID: ${newSheetID}`);
   try {
     if (!sheetType) {
-      console.log("Sheet type is not defined.");
+      console.log(`Sheet type is not defined.`);
       return {
         success: false,
         message: "Sheet type is not defined.",
       };
     }
     if (!newSheetID || !oldSheetID || !idMasterID) {
-      console.log("One or more required IDs are missing.");
+      console.log(`One or more required IDs are missing.`);
       return {
         success: false,
         message: "One or more required IDs are missing.",
@@ -149,6 +147,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
     // Check if new spreadsheet exists
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
+      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
         message: `New spreadsheet not found with ID: ${newSheetID}`,
@@ -156,6 +155,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
     }
 
     if (!SheetsAPI.getSheetByName(newSpreadsheet, "IDS")) {
+      console.log(`IDS sheet not found in the new ${sheetType} spreadsheet.`);
       return {
         success: false,
         message:`IDS sheet not found in the new ${sheetType} spreadsheet.`,
@@ -172,6 +172,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
 
     var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
     if (!idMasterSpreadsheet) {
+      console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
       return {
         success: false,
         message: `IDS Master Spreadsheet not found with ID: ${idMasterID}`,
@@ -179,6 +180,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
     }
 
     if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "IDS")) {
+      console.log(`IDS sheet not found in the IDS Master Spreadsheet.`);
       return {
         success: false,
         message: `IDS sheet not found in the IDS Master Spreadsheet.`,
@@ -187,6 +189,7 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
 
     var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
     if (!oldSpreadsheet) {
+      console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
         message: `Old spreadsheet not found with ID: ${oldSheetID}`,
@@ -203,20 +206,20 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
       };
     }
 
-    console.log(
-      `Importing data for sheet type: ${sheetType} with ID: ${newSheetID}`
-    );
+    // console.log(`Importing data for sheet type: ${sheetType} with ID: ${newSheetID}`);
 
     var result = sheetTypeFunction.importData(versionDifference);
     if (!result || !result.success) {
+      console.log(`Error importing data for ${sheetType}: ${result ? result.message : "Unknown error"}`);
       return {
         success: false,
-        message: `Error importing data for ${sheetType}: ${result.message}`,
+        message: `Error importing data for ${sheetType}: ${result && result.message ? result.message : "Unknown error"}`,
       };
     }
     
     var isImportedInfo = shared.findSheetTypeID(newSheetID, "IDS");
     if (!isImportedInfo || !isImportedInfo.isImported) {
+      console.log(`Can not find import cell in the new IDS sheet.`);
       return {
         success: false,
         message: "Can not find import cell in the new IDS sheet.",
@@ -239,10 +242,10 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
       updated: true,
     };
   } catch (error) {
-    console.log("Error during import: " + error.message);
+    console.log(`Error during import: ${error.message}`);
     return {
       success: false,
-      message: "Error during import: " + error.message,
+      message: `Error during import: ${error.message}`,
     };
   }
 }

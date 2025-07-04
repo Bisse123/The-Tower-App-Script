@@ -13,7 +13,7 @@ const bots = {
 
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -22,37 +22,30 @@ const bots = {
         var newSheetID = newSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
-          console.log(
-            "Same Version - proceeding with bots data import"
-          );
-          
+          // console.log(`Same Version - proceeding with bots data import`);
           var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
           if (!newSpreadsheet) {
-            console.log("New spreadsheet not found with ID: " + newSheetID);
+            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
             return {
               success: false,
-              message: "New spreadsheet not found with ID: " + newSheetID,
+              message: `New spreadsheet not found with ID: ${newSheetID}`,
             };
           }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(
-              "_IDS sheet not found in new bots spreadsheet"
-            );
+            console.log(`_IDS sheet not found in new bots spreadsheet`);
             return {
               success: false,
-              message: "_IDS sheet not found in new bots spreadsheet"
+              message: `_IDS sheet not found in new bots spreadsheet`
             };
           }
 
           // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(
-              "Master Sheet not found in new bots spreadsheet"
-            );
+            console.log(`Master Sheet not found in new bots spreadsheet`);
             return {
               success: false,
-              message: "Master Sheet not found in new bots spreadsheet"
+              message: `Master Sheet not found in new bots spreadsheet`
             };
           }
           // Get header row to find UWs column
@@ -61,37 +54,37 @@ const bots = {
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
-          console.log("Could not read header row from _IDS sheet");
-          return {
-            success: false,
-            message: "Could not read header row from _IDS sheet"
-          };
+            console.log(`Could not read header row from _IDS sheet`);
+            return {
+              success: false,
+              message: `Could not read header row from _IDS sheet`
+            };
           }
 
           var headerRow = headerValues[0];
           var importbotColStart = headerRow.indexOf("Bots");
           if (importbotColStart === -1) {
-          console.log("Bots column not found in header");
-          return {
-            success: false,
-            message: "Bots column not found in header"
-          };
+            console.log(`Bots column not found in header`);
+            return {
+              success: false,
+              message: `Bots column not found in header`
+            };
           }
 
           // Get old bot levels data using Sheets API
           var oldBotLevelsData;
           try {
-          var colStart = shared.columnToLetter(importbotColStart + 1);
-          var colEnd = shared.columnToLetter(importbotColStart + 5);
-          var oldBotLevelsData = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!" + colStart + "2:" + colEnd
-          );
+            var colStart = shared.columnToLetter(importbotColStart + 1);
+            var colEnd = shared.columnToLetter(importbotColStart + 5);
+            oldBotLevelsData = SheetsAPI.getValues(
+              newSheetID,
+              `_IDS!${colStart}2:${colEnd}`
+            );
           } catch (error) {
-            console.log("Error getting old bot levels: " + error.toString());
+            console.log(`Error getting old bot levels: ${error.toString()}`);
             return {
               success: false,
-              message: "Error getting old bot levels: " + error.message
+              message: `Error getting old bot levels: ${error.message}`
             };
           }
 
@@ -114,8 +107,8 @@ const bots = {
         // else {// Else do something to convert old version to new one (Future me problem)
         // }
       } catch (error) {
-        console.log("Error importing bots data: " + error.toString());
-        return { success: false, message: "Error importing bots data" };
+        console.log(`Error importing bots data: ${error.toString()}`);
+        return { success: false, message: `Error importing bots data: ${error.message}` };
       }
     }
 
@@ -123,29 +116,30 @@ const bots = {
       // Get all data from Master Sheet using Sheets API
       var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
       if (!sheetData) {
-      console.log("Error getting bot master sheet data");
-      return {
-        success: false,
-        message: "Error getting bot master sheet data"
-      };
+        console.log(`Error getting bot master sheet data`);
+        return {
+          success: false,
+          message: `Error getting bot master sheet data`
+        };
       }
 
       if (sheetData.length < 2) return; // Need at least header and one row
       if (sheetData.length < 2) {
+        console.log(`Not enough data in Master Sheet`);
         return {
           success: false,
-          message: "Not enough data in Master Sheet"
+          message: `Not enough data in Master Sheet`
         };
       }
 
       var headerRow = sheetData[0];
       var botCol = headerRow.indexOf("Bot");
       if (botCol === -1) {
-      console.log("Bot column not found in Master Sheet");
-      return {
-        success: false,
-        message: "Bot column not found in Master Sheet"
-      };
+        console.log(`Bot column not found in Master Sheet`);
+        return {
+          success: false,
+          message: `Bot column not found in Master Sheet`
+        };
       }
 
       // Get bot data starting from row 2
@@ -237,15 +231,16 @@ const bots = {
 
       if (batchUpdate.length !== 0) {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        console.log("Bot levels updated successfully");
+        // console.log(`Bot levels updated successfully`);
         return {
           success: true,
-          message: "Bot levels updated successfully",
+          message: `Bot levels updated successfully`,
         };
       }
+      // console.log(`No updates needed for bot levels`);
       return {
         success: true,
-        message: "No updates needed for bot levels",
+        message: `No updates needed for bot levels`,
       };
     }
 

@@ -18,7 +18,7 @@ const ultimate = {
         
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -27,37 +27,31 @@ const ultimate = {
         var newSheetID = newSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
-          console.log(
-            "Same Version - proceeding with ultimate weapons data import"
-          );
+          // console.log(`Same Version - proceeding with ultimate weapons data import`);
 
           var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
           if (!newSpreadsheet) {
-            console.log("New spreadsheet not found with ID: " + newSheetID);
+            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
             return {
               success: false,
-              message: "New spreadsheet not found with ID: " + newSheetID,
+              message: `New spreadsheet not found with ID: ${newSheetID}`,
             };
           }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(
-              "_IDS sheet not found in new ultimate weapons spreadsheet"
-            );
+            console.log(`_IDS sheet not found in new ultimate weapons spreadsheet`);
             return {
               success: false,
-              message: "_IDS sheet not found in new ultimate weapons spreadsheet"
+              message: `_IDS sheet not found in new ultimate weapons spreadsheet`
             };
           }
 
           // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(
-              "Master Sheet not found in new ultimate weapons spreadsheet"
-            );
+            console.log(`Master Sheet not found in new ultimate weapons spreadsheet`);
             return {
               success: false,
-              message: "Master Sheet not found in new ultimate weapons spreadsheet"
+              message: `Master Sheet not found in new ultimate weapons spreadsheet`
             };
           }
 
@@ -67,22 +61,22 @@ const ultimate = {
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
-          console.log("Could not read header row from _IDS sheet");
-          return {
-            success: false,
-            message: "Could not read header row from _IDS sheet"
-          };
+            console.log(`Could not read header row from _IDS sheet`);
+            return {
+              success: false,
+              message: `Could not read header row from _IDS sheet`
+            };
           }
 
           var headerRow = headerValues[0];
           var importUltimateColStart = headerRow.indexOf("UWs") + 1;
 
           if (importUltimateColStart === 0) {
-          console.log("UWs column not found in _IDS sheet");
-          return {
-            success: false,
-            message: "UWs column not found in _IDS sheet"
-          };
+            console.log(`UWs column not found in _IDS sheet`);
+            return {
+              success: false,
+              message: `UWs column not found in _IDS sheet`
+            };
           }
 
           // Get ultimate weapons levels data (5 columns starting from UWs column)
@@ -97,11 +91,11 @@ const ultimate = {
             ultimateLevelsRange
           );
           if (!oldUltimateLevelsValues) {
-          console.log("Could not read ultimate weapons levels data");
-          return {
-            success: false,
-            message: "Could not read ultimate weapons levels data"
-          };
+            console.log(`Could not read ultimate weapons levels data`);
+            return {
+              success: false,
+              message: `Could not read ultimate weapons levels data`
+            };
           }
 
           // Filter out empty rows
@@ -125,9 +119,11 @@ const ultimate = {
             oldUltimate
           );
         } else {
-          console.log(
-            "Version mismatch - skipping ultimate weapons data import"
-          );
+          console.log(`Version mismatch - skipping ultimate weapons data import`);
+          return {
+            success: false,
+            message: `Ultimate weapons version mismatch`,
+          };
         }
       } catch (error) {
         console.log("Error in importUltimateData: " + error.toString());
@@ -143,10 +139,10 @@ const ultimate = {
         // Get all data from Master Sheet to determine range and find columns
         var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
         if (!allData || allData.length < 2) {
-          console.log("Not enough data in Master Sheet");
+          console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
-            message: "Not enough data in Master Sheet"
+            message: `Not enough data in Master Sheet`
           };
         }
 
@@ -154,10 +150,10 @@ const ultimate = {
         var ultimateCol = headerRow.indexOf("Ultimate Weapon") + 1;
 
         if (ultimateCol === 0) {
-          console.log("Ultimate Weapon column not found");
+          console.log(`Ultimate Weapon column not found`);
           return {
             success: false,
-            message: "Ultimate Weapon column not found"
+            message: `Ultimate Weapon column not found`
           };
         }
 
@@ -173,10 +169,10 @@ const ultimate = {
           ultimateDataRange
         );
         if (!newUltimateDataValues) {
-          console.log("Could not read ultimate weapons data from Master Sheet");
+          console.log(`Could not read ultimate weapons data from Master Sheet`);
           return {
             success: false,
-            message: "Could not read ultimate weapons data from Master Sheet"
+            message: `Could not read ultimate weapons data from Master Sheet`
           };
         }
 
@@ -257,22 +253,22 @@ const ultimate = {
 
         if (batchUpdate.length !== 0) {
           SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-          console.log("Ultimate weapons levels updated successfully");
+          // console.log(`Ultimate weapons levels updated successfully`);
           return {
             success: true,
-            message: "Ultimate weapons levels updated successfully",
+            message: `Ultimate weapons levels updated successfully`,
           };
         }
-        console.log("No updates needed for ultimate weapons levels");
+        // console.log(`No updates needed for ultimate weapons levels`);
         return {
           success: true,
-          message: "No updates needed for ultimate weapons levels",
+          message: `No updates needed for ultimate weapons levels`,
         };
       } catch (error) {
-        console.log("Error in updateUltimateLevels: " + error.toString());
+        console.log(`Error in updateUltimateLevels: ${error.toString()}`);
         return {
           success: false,
-          message: "Error updating ultimate weapons levels: " + error.message,
+          message: `Error updating ultimate weapons levels: ${error.message}`,
         };
       }
     }

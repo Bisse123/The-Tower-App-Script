@@ -6,7 +6,7 @@ const lab = {
       try {
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -15,18 +15,18 @@ const lab = {
         var newSheetID = newSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
-          console.log("Same Version - proceeding with lab data import");
+          // console.log("Same Version - proceeding with lab data import");
           var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
           if (!newSpreadsheet) {
-            console.log("New spreadsheet not found with ID: " + newSheetID);
+            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
             return {
               success: false,
-              message: "New spreadsheet not found with ID: " + newSheetID,
+              message: `New spreadsheet not found with ID: ${newSheetID}`,
             };
           }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log("_IDS sheet not found in new lab spreadsheet");
+            console.log(`_IDS sheet not found in new lab spreadsheet`);
             return {
               success: false,
               message: "_IDS sheet not found in new lab spreadsheet",
@@ -35,7 +35,7 @@ const lab = {
           
           // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log("Master Sheet not found in new lab spreadsheet");
+            console.log(`Master Sheet not found in new lab spreadsheet`);
             return {
               success: false,
               message: "Master Sheet not found in new lab spreadsheet",
@@ -49,7 +49,7 @@ const lab = {
           );
 
           if (!headerValues || headerValues.length === 0) {
-            console.log("Could not read header row from _IDS sheet");
+            console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
               message: "Could not read header row from _IDS sheet",
@@ -60,7 +60,7 @@ const lab = {
           var importLabColStart = headerRow.indexOf("Labs") + 1;
 
           if (importLabColStart === 0) {
-            console.log("Labs column not found in _IDS sheet");
+            console.log(`Labs column not found in _IDS sheet`);
             return {
               success: false,
               message: "Labs column not found in _IDS sheet",
@@ -79,7 +79,7 @@ const lab = {
             labLevelsRange
           );
           if (!oldLabLevelsValues) {
-            console.log("Could not read lab levels data");
+            console.log(`Could not read lab levels data`);
             return {
               success: false,
               message: "Could not read lab levels data",
@@ -98,14 +98,14 @@ const lab = {
 
           return updateLabLevels(newSheetID, oldLabLevels);
         } else {
-          console.log("Version mismatch - skipping lab data import");
+          console.log(`Version mismatch - skipping lab data import`);
           return {
             success: false,
             message: "Version mismatch - skipping lab data import",
           };
         }
       } catch (error) {
-        console.log("Error in importLabData: " + error.toString());
+        console.log(`Error in importLabData: ${error.toString()}`);
         return {
           success: false,
           message: "Error importing lab data: " + error.message,
@@ -120,7 +120,7 @@ const lab = {
         // Get all data from Master Sheet to determine range
         var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
         if (!allData || allData.length < 2) {
-          console.log("Not enough data in Master Sheet");
+          console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
             message: "Not enough data in Master Sheet",
@@ -139,7 +139,7 @@ const lab = {
         }
 
         if (columnsToCheck.length === 0) {
-          console.log("No Labs columns found in Master Sheet");
+          console.log(`No Labs columns found in Master Sheet`);
           return {
             success: false,
             message: "No Labs columns found in Master Sheet",
@@ -193,7 +193,7 @@ const lab = {
         // Execute batch updates
         if (batchUpdate.length > 0) {
           SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-          console.log("Lab levels updated successfully");
+          // console.log("Lab levels updated successfully");
           return {
             success: true,
             message: "Lab levels updated successfully",
@@ -204,10 +204,10 @@ const lab = {
           message: "No updates needed for lab levels",
         };
       } catch (error) {
-        console.log("Error in updateLabLevels: " + error.toString());
+        console.log(`Error in updateLabLevels: ${error.toString()}`);
         return {
           success: false,
-          message: "Error updating lab levels: " + error.message,
+          message: `Error updating lab levels: ${error.message}`,
         };
       }
     }

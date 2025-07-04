@@ -6,7 +6,7 @@ const workshop = {
       try {
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
-          console.log("New spreadsheet not found");
+          console.log(`New spreadsheet not found`);
           return {
             success: false,
             message: "New spreadsheet not found",
@@ -15,31 +15,31 @@ const workshop = {
         var newSheetID = newSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
-          console.log("Same Version - proceeding with workshop data import");
+          // console.log(`Same Version - proceeding with workshop data import`);
 
           var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
           if (!newSpreadsheet) {
-            console.log("New spreadsheet not found with ID: " + newSheetID);
+            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
             return {
               success: false,
-              message: "New spreadsheet not found with ID: " + newSheetID,
+              message: `New spreadsheet not found with ID: ${newSheetID}`,
             };
           }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log("_IDS sheet not found in new workshop spreadsheet");
+            console.log(`_IDS sheet not found in new workshop spreadsheet`);
             return {
               success: false,
-              message: "_IDS sheet not found in new workshop spreadsheet"
+              message: `_IDS sheet not found in new workshop spreadsheet`
             };
           }
 
           // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log("Master Sheet not found in new workshop spreadsheet");
+            console.log(`Master Sheet not found in new workshop spreadsheet`);
             return {
               success: false,
-              message: "Master Sheet not found in new workshop spreadsheet"
+              message: `Master Sheet not found in new workshop spreadsheet`
             };
           }
 
@@ -49,10 +49,10 @@ const workshop = {
             "_IDS!1:1"
           );
           if (!headerValues || headerValues.length === 0) {
-            console.log("Could not read header row from _IDS sheet");
+            console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: "Could not read header row from _IDS sheet"
+              message: `Could not read header row from _IDS sheet`
             };
           }
 
@@ -61,17 +61,17 @@ const workshop = {
           var importWorkshopPlusColStart = headerRow.indexOf("WS+") + 1;
 
           if (importWorkshopColStart === 0) {
-            console.log("WS column not found in _IDS sheet");
+            console.log(`WS column not found in _IDS sheet`);
             return {
               success: false,
-              message: "WS column not found in _IDS sheet"
+              message: `WS column not found in _IDS sheet`
             };
           }
           if (importWorkshopPlusColStart === 0) {
-            console.log("WS+ column not found in _IDS sheet");
+            console.log(`WS+ column not found in _IDS sheet`);
             return {
               success: false,
-              message: "WS+ column not found in _IDS sheet"
+              message: `WS+ column not found in _IDS sheet`
             };
           }
 
@@ -87,10 +87,10 @@ const workshop = {
             workshopLevelsRange
           );
           if (!oldWorkshopLevelsValues) {
-            console.log("Could not read workshop levels data");
+            console.log(`Could not read workshop levels data`);
             return {
               success: false,
-              message: "Could not read workshop levels data"
+              message: `Could not read workshop levels data`
             };
           }
 
@@ -116,10 +116,10 @@ const workshop = {
             workshopPlusLevelsRange
           );
           if (!oldWorkshopPlusLevelsValues) {
-            console.log("Could not read workshop plus levels data");
+            console.log(`Could not read workshop plus levels data`);
             return {
               success: false,
-              message: "Could not read workshop plus levels data"
+              message: `Could not read workshop plus levels data`
             };
           }
 
@@ -140,10 +140,10 @@ const workshop = {
             oldWorkshopPlusLevels
           );
         } else {
-          console.log("Version mismatch - skipping workshop data import");
+          console.log(`Version mismatch - skipping workshop data import`);
           return {
             success: false,
-            message: "Workshop version mismatch",
+            message: `Workshop version mismatch`,
           };
         }
       } catch (error) {
@@ -164,10 +164,10 @@ const workshop = {
         // Get all data from Master Sheet to determine range and find columns
         var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
         if (!allData || allData.length < 2) {
-          console.log("Not enough data in Master Sheet");
+          console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
-            message: "Not enough data in Master Sheet"
+            message: `Not enough data in Master Sheet`
           };
         }
 
@@ -179,17 +179,17 @@ const workshop = {
         var enhancementCol = headerRow.indexOf("Workshop Enhancement") + 1;
 
         if (upgradeCol === 0) {
-          console.log("Workshop Upgrade column not found");
+          console.log(`Workshop Upgrade column not found`);
           return {
             success: false,
-            message: "Workshop Upgrade column not found"
+            message: `Workshop Upgrade column not found`
           };
         }
         if (enhancementCol === 0) {
-          console.log("Workshop Enhancement column not found");
+          console.log(`Workshop Enhancement column not found`);
           return {
             success: false,
-            message: "Workshop Enhancement column not found"
+            message: `Workshop Enhancement column not found`
           };
         }
 
@@ -260,21 +260,21 @@ const workshop = {
         // Execute batch updates
         if (batchUpdate.length > 0) {
           SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-          console.log("Workshop levels updated successfully");
+          // console.log(`Workshop levels updated successfully`);
           return {
             success: true,
-            message: "Workshop levels updated successfully",
+            message: `Workshop levels updated successfully`,
           };
         }
         return {
           success: true,
-          message: "No updates needed for workshop levels",
+          message: `No updates needed for workshop levels`,
         };
       } catch (error) {
-        console.log("Error in updateWorkshopLevels: " + error.toString());
+        console.log(`Error in updateWorkshopLevels: ${error.toString()}`);
         return {
           success: false,
-          message: "Error updating workshop levels: " + error.message,
+          message: `Error updating workshop levels: ${error.message}`,
         };
       }
     }
