@@ -208,6 +208,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
         updated: false,
       };
     }
+    
     if (!SheetsAPI.getSheetByName(newSpreadsheet, "IDS")) {
       console.log(`IDS sheet not found in new spreadsheet`);
       return {
@@ -239,7 +240,8 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
         updated: false,
       };
     }
-    if (!SheetsAPI.getSheetByName(idsMasterSpreadsheet, "IDS")) {
+    var idMasterIDSheet = SheetsAPI.getSheetByName(idsMasterSpreadsheet, "IDS");
+    if (!idMasterIDSheet) {
       console.log(`IDS sheet not found in ID master spreadsheet`);
       return {
         success: false,
@@ -335,6 +337,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       success: true,
       message: "New ID Set, new sheet moved and renamed, old sheet deleted.",
       updated: true,
+      gid: idMasterIDSheet.sheetId,
     };
   } catch (error) {
     console.log(`Error in updateSheet: ${error.toString()}`);
