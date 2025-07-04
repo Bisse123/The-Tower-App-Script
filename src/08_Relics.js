@@ -28,7 +28,7 @@ const relics = {
           console.log("Same Version");
 
           // Check if Relics sheet exists in old spreadsheet
-          if (!SheetsAPI.getSheetByName(oldSheetID, "Relics")) {
+          if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Relics")) {
             console.log("Relics sheet not found in old relic spreadsheet");
             return {
               success: false,
@@ -95,7 +95,7 @@ const relics = {
               )
             );
             // Check if Relics sheet exists in new spreadsheet
-            if (!SheetsAPI.getSheetByName(newSheetID, "Relics")) {
+            if (!SheetsAPI.getSheetByName(newSpreadsheet, "Relics")) {
               console.log("Relics sheet not found in new relic spreadsheet");
               return {
                 success: false,
