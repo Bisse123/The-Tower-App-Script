@@ -91,7 +91,6 @@ const guardians = {
           return updateGuardianLevels(
             targetGuardians,
             newSheetID,
-            "Master Sheet",
             oldGuardians
           );
         }
@@ -109,11 +108,10 @@ const guardians = {
     function updateGuardianLevels(
       targetGuardians,
       newSheetID,
-      sheetName,
       oldGuardians
     ) {
       // Get all data from Master Sheet using SheetsAPI
-      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
+      var sheetData = SheetsAPI.getDataRange(newSheetID, "Master Sheet");
       if (!sheetData || sheetData.length < 2) return; // Need at least header and one row
       if (!sheetData || sheetData.length < 2) {
         return {
@@ -123,32 +121,37 @@ const guardians = {
       }
 
       var headerRow = sheetData[0];
-      var guardianCol = headerRow.indexOf("Guardians");
-      if (guardianCol === -1) {
-        console.log(`Guardians column not found in Master Sheet`);
+      var guardianCol = headerRow.indexOf("Guardians") + 1;
+
+      if (guardianCol === 0) {
+        console.log(`Guardian Weapon column not found`);
         return {
           success: false,
-          message: "Guardians column not found in Master Sheet"
+          message: `Guardian Weapon column not found`
         };
       }
 
-      // Get guardian data starting from row 2
-      var guardianDataRange = [];
-      for (var i = 1; i < sheetData.length; i++) {
-        var row = sheetData[i];
-        if (row.length > guardianCol + 4) {
-          guardianDataRange.push([
-            row[guardianCol + 1] || "",
-            row[guardianCol + 2] || "",
-            row[guardianCol + 3] || "",
-            row[guardianCol + 4] || "",
-            row[guardianCol + 5] || "",
-          ]);
-        }
+      // Get current Guardians data starting from column after "Guardian Weapon"
+      var guardianDataRange =
+        "Master Sheet!" +
+        shared.columnToLetter(guardianCol + 1) +
+        "2:" +
+        shared.columnToLetter(guardianCol + 5);
+
+      var newGuardianDataValues = SheetsAPI.getValues(
+        newSheetID,
+        guardianDataRange
+      );
+      if (!newGuardianDataValues) {
+        console.log(`Could not read Guardians data from Master Sheet`);
+        return {
+          success: false,
+          message: `Could not read Guardians data from Master Sheet`
+        };
       }
 
       // Filter out empty rows
-      var newGuardianData = guardianDataRange.filter((row) =>
+      var newGuardianData = newGuardianDataValues.filter((row) =>
         row.some(
           (cell) =>
             cell !== null && cell !== undefined && String(cell || '').trim() !== ""
@@ -162,14 +165,10 @@ const guardians = {
         var rowData = newGuardianData[row];
         if (oldGuardians.hasOwnProperty(rowData[0])) {
           var oldGuardian = oldGuardians[rowData[0]];
-          newGuardianUnlocked.push(
-            [rowData[0]],
-            [""],
-            [oldGuardian.unlocked]
-          );
           newGuardianUnlocked.push([rowData[0]]);
           newGuardianUnlocked.push([""]);
           newGuardianUnlocked.push([oldGuardian.unlocked]);
+
           for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
             var nextRowData = newGuardianData[nextRow];
             if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
@@ -194,14 +193,13 @@ const guardians = {
       var batchUpdate = [];
       // Update the data using SheetsAPI
       if (newGuardianUnlocked.length > 0) {
-        var unlockedCol = shared.columnToLetter(guardianCol + 2);
+        var unlockedCol = shared.columnToLetter(guardianCol + 1);
         var unlockedRange =
-          sheetName +
-          "!" +
+          "Master Sheet!" +
           unlockedCol +
           "2:" +
           unlockedCol +
-          (1 + newGuardianUnlocked.length);
+          (newGuardianUnlocked.length + 1);
         batchUpdate.push({
           range: unlockedRange,
           values: newGuardianUnlocked,
@@ -209,14 +207,13 @@ const guardians = {
       }
 
       if (newGuardianLevel.length > 0) {
-        var levelCol = shared.columnToLetter(guardianCol + 6);
+        var levelCol = shared.columnToLetter(guardianCol + 5);
         var levelRange =
-          sheetName +
-          "!" +
+          "Master Sheet!" +
           levelCol +
           "2:" +
           levelCol +
-          (1 + newGuardianLevel.length);
+          (newGuardianLevel.length + 1);
         batchUpdate.push({
           range: levelRange,
           values: newGuardianLevel,

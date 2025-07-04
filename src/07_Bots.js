@@ -133,8 +133,8 @@ const bots = {
       }
 
       var headerRow = sheetData[0];
-      var botCol = headerRow.indexOf("Bot");
-      if (botCol === -1) {
+      var botCol = headerRow.indexOf("Bot") + 1;
+      if (botCol === 0) {
         console.log(`Bot column not found in Master Sheet`);
         return {
           success: false,
@@ -143,22 +143,25 @@ const bots = {
       }
 
       // Get bot data starting from row 2
-      var botDataRange = [];
-      for (var i = 1; i < sheetData.length; i++) {
-        var row = sheetData[i];
-        if (row.length > botCol + 4) {
-          botDataRange.push([
-            row[botCol + 1] || "",
-            row[botCol + 2] || "",
-            row[botCol + 3] || "",
-            row[botCol + 4] || "",
-            row[botCol + 5] || "",
-          ]);
-        }
+      var botDataRange = 
+        "Master Sheet!" +
+        shared.columnToLetter(botCol + 1) +
+        "2:" +
+        shared.columnToLetter(botCol + 5);
+      
+      var newBotDataValues = SheetsAPI.getValues(
+        newSheetID,
+        botDataRange
+      );
+      if (!newBotDataValues) {
+        console.log(`Could not read bot data from Master Sheet`);
+        return {
+          success: false,
+          message: `Could not read bot data from Master Sheet`
+        };
       }
-
       // Filter out empty rows
-      var newBotData = botDataRange.filter((row) =>
+      var newBotData = newBotDataValues.filter((row) =>
         row.some(
           (cell) =>
             cell !== null && cell !== undefined && String(cell || '').trim() !== ""
@@ -171,20 +174,20 @@ const bots = {
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];
         if (oldBots.hasOwnProperty(rowData[0])) {
-          var oldWeapon = oldBots[rowData[0]];
+          var oldBot = oldBots[rowData[0]];
           newBotUnlocked.push([rowData[0]]);
           newBotUnlocked.push([""]);
           newBotUnlocked.push([""]);
-          newBotUnlocked.push([oldWeapon.unlocked]);
+          newBotUnlocked.push([oldBot.unlocked]);
           for (var nextRow = row; nextRow < newBotData.length; nextRow++) {
             var nextRowData = newBotData[nextRow];
             if (nextRow !== row && targetBots.includes(nextRowData[0])) {
               row = nextRow - 1;
               break;
             }
-            var newWeaponProp = nextRowData[2];
-            if (oldWeapon.props.hasOwnProperty(newWeaponProp)) {
-              newBotLevel.push([oldWeapon.props[newWeaponProp]]);
+            var newBotProp = nextRowData[2];
+            if (oldBot.props.hasOwnProperty(newBotProp)) {
+              newBotLevel.push([oldBot.props[newBotProp]]);
             } else {
               newBotLevel.push([nextRowData[4]]);
             }
@@ -200,14 +203,14 @@ const bots = {
       var batchUpdate = [];
       // Update the data using Sheets API
       if (newBotUnlocked.length > 0) {
-        var unlockedCol = shared.columnToLetter(botCol + 2);
+        var unlockedCol = shared.columnToLetter(botCol + 1);
         var unlockedRange =
           sheetName +
           "!" +
           unlockedCol +
           "2:" +
           unlockedCol +
-          (1 + newBotUnlocked.length);
+          (newBotUnlocked.length + 1);
         batchUpdate.push({
           range: unlockedRange,
           values: newBotUnlocked,
@@ -215,14 +218,14 @@ const bots = {
       }
 
       if (newBotLevel.length > 0) {
-        var levelCol = shared.columnToLetter(botCol + 6);
+        var levelCol = shared.columnToLetter(botCol + 5);
         var levelRange =
           sheetName +
           "!" +
           levelCol +
           "2:" +
           levelCol +
-          (1 + newBotLevel.length);
+          (newBotLevel.length + 1);
         batchUpdate.push({
           range: levelRange,
           values: newBotLevel,
@@ -247,11 +250,11 @@ const bots = {
     function getOldBots(targetBots, oldBotLevels) {
       var bots = {};
       for (var row = 0; row < oldBotLevels.length; row++) {
-        var weaponName = oldBotLevels[row][0];
-        // Only proceed if weaponName is in targetBots
-        if (weaponName && targetBots.includes(weaponName)) {
+        var botName = oldBotLevels[row][0];
+        // Only proceed if botName is in targetBots
+        if (botName && targetBots.includes(botName)) {
           var unlocked = oldBotLevels[row + 3][0];
-          var weapon = {
+          var bot = {
             unlocked: unlocked,
             props: {},
           };
@@ -265,10 +268,10 @@ const bots = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              weapon.props[key] = value;
+              bot.props[key] = value;
             }
           }
-          bots[weaponName] = weapon;
+          bots[botName] = bot;
         }
       }
       return bots;

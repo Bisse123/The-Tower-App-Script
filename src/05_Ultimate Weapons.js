@@ -137,8 +137,8 @@ const ultimate = {
     function updateUltimateLevels(targetWeapons, newSheetID, oldUltimate) {
       try {
         // Get all data from Master Sheet to determine range and find columns
-        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
-        if (!allData || allData.length < 2) {
+        var sheetData = SheetsAPI.getValues(newSheetID, "Master Sheet");
+        if (!sheetData || sheetData.length < 2) {
           console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
@@ -146,7 +146,7 @@ const ultimate = {
           };
         }
 
-        var headerRow = allData[0];
+        var headerRow = sheetData[0];
         var ultimateCol = headerRow.indexOf("Ultimate Weapon") + 1;
 
         if (ultimateCol === 0) {
