@@ -4,61 +4,54 @@ const guardians = {
   importData: function (versionDifference) {
     function importGuardiansData(versionDifference) {
       try {
-        var targetGuardians = [
-          "Attack",
-          "Ally",
-          "Steal",
-          "Fetch"
-        ];
+        var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
+
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log(`New spreadsheet not found`);
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
+
+        var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
+        if (!idMasterSpreadsheet) {
+          console.log(`IDS Master Spreadsheet not found`);
+          return {
+            success: false,
+            message: "IDS Master Spreadsheet not found",
+          };
+        }
+        var idMasterID = idMasterSpreadsheet.spreadsheetId;
 
         if (versionDifference === 0) {
           // console.log(`Same Version - proceeding with guardians data import`);
 
-          var newSpreadsheet = spreadsheets("newSpreadsheet");
-          if (!newSpreadsheet) {
-            console.log(`New spreadsheet not found`);
-            return {
-              success: false,
-              message: "New spreadsheet not found",
-            };
-          }
-          // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
             console.log(`Master Sheet not found in new guardians spreadsheet`);
             return {
               success: false,
-              message: "Master Sheet not found in new guardians spreadsheet"
+              message: "Master Sheet not found in new guardians spreadsheet",
             };
           }
-          var newSheetID = newSpreadsheet.spreadsheetId;
 
-          var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
-          if (!idMasterSpreadsheet) {
-            console.log(`IDS Master Spreadsheet not found`);
-            return {
-              success: false,
-              message: "IDS Master Spreadsheet not found",
-            };
-          }
           // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "_IDS")) {
             console.log(`_IDS sheet not found in new guardians spreadsheet`);
             return {
               success: false,
-              message: "_IDS sheet not found in new guardians spreadsheet"
+              message: "_IDS sheet not found in new guardians spreadsheet",
             };
           }
-          var idMasterID = idMasterSpreadsheet.spreadsheetId;
           // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(
-            idMasterID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(idMasterID, "_IDS!1:1");
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: "Could not read header row from _IDS sheet"
+              message: "Could not read header row from _IDS sheet",
             };
           }
 
@@ -68,7 +61,7 @@ const guardians = {
             console.log(`Guardians column not found in header`);
             return {
               success: false,
-              message: "Guardians column not found in header"
+              message: "Guardians column not found in header",
             };
           }
 
@@ -83,11 +76,16 @@ const guardians = {
           var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
             row.some(
               (cell) =>
-                cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+                cell !== null &&
+                cell !== undefined &&
+                String(cell || "").trim() !== ""
             )
           );
 
-          var oldGuardians = getOldGuardians(targetGuardians, oldGuardianLevels);
+          var oldGuardians = getOldGuardians(
+            targetGuardians,
+            oldGuardianLevels
+          );
           return updateGuardianLevels(
             targetGuardians,
             newSheetID,
@@ -105,18 +103,14 @@ const guardians = {
       }
     }
 
-    function updateGuardianLevels(
-      targetGuardians,
-      newSheetID,
-      oldGuardians
-    ) {
+    function updateGuardianLevels(targetGuardians, newSheetID, oldGuardians) {
       // Get all data from Master Sheet using SheetsAPI
       var sheetData = SheetsAPI.getDataRange(newSheetID, "Master Sheet");
       if (!sheetData || sheetData.length < 2) return; // Need at least header and one row
       if (!sheetData || sheetData.length < 2) {
         return {
           success: false,
-          message: "Not enough data in Master Sheet"
+          message: "Not enough data in Master Sheet",
         };
       }
 
@@ -127,7 +121,7 @@ const guardians = {
         console.log(`Guardian Weapon column not found`);
         return {
           success: false,
-          message: `Guardian Weapon column not found`
+          message: `Guardian Weapon column not found`,
         };
       }
 
@@ -146,7 +140,7 @@ const guardians = {
         console.log(`Could not read Guardians data from Master Sheet`);
         return {
           success: false,
-          message: `Could not read Guardians data from Master Sheet`
+          message: `Could not read Guardians data from Master Sheet`,
         };
       }
 
@@ -154,13 +148,15 @@ const guardians = {
       var newGuardianData = newGuardianDataValues.filter((row) =>
         row.some(
           (cell) =>
-            cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
         )
       );
 
       var newGuardianUnlocked = [];
       var newGuardianLevel = [];
-      
+
       for (var row = 0; row < newGuardianData.length; row++) {
         var rowData = newGuardianData[row];
         if (oldGuardians.hasOwnProperty(rowData[0])) {

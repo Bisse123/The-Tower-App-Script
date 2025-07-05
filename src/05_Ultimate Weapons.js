@@ -15,7 +15,7 @@ const ultimate = {
           "Black Hole",
           "Spotlight",
         ];
-        
+
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -28,43 +28,33 @@ const ultimate = {
 
         if (versionDifference === 0) {
           // console.log(`Same Version - proceeding with ultimate weapons data import`);
-
-          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
-          if (!newSpreadsheet) {
-            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
-            return {
-              success: false,
-              message: `New spreadsheet not found with ID: ${newSheetID}`,
-            };
-          }
-          // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(`_IDS sheet not found in new ultimate weapons spreadsheet`);
+            console.log(
+              `_IDS sheet not found in new ultimate weapons spreadsheet`
+            );
             return {
               success: false,
-              message: `_IDS sheet not found in new ultimate weapons spreadsheet`
+              message: `_IDS sheet not found in new ultimate weapons spreadsheet`,
             };
           }
 
-          // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(`Master Sheet not found in new ultimate weapons spreadsheet`);
+            console.log(
+              `Master Sheet not found in new ultimate weapons spreadsheet`
+            );
             return {
               success: false,
-              message: `Master Sheet not found in new ultimate weapons spreadsheet`
+              message: `Master Sheet not found in new ultimate weapons spreadsheet`,
             };
           }
 
           // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: `Could not read header row from _IDS sheet`
+              message: `Could not read header row from _IDS sheet`,
             };
           }
 
@@ -75,7 +65,7 @@ const ultimate = {
             console.log(`UWs column not found in _IDS sheet`);
             return {
               success: false,
-              message: `UWs column not found in _IDS sheet`
+              message: `UWs column not found in _IDS sheet`,
             };
           }
 
@@ -94,7 +84,7 @@ const ultimate = {
             console.log(`Could not read ultimate weapons levels data`);
             return {
               success: false,
-              message: `Could not read ultimate weapons levels data`
+              message: `Could not read ultimate weapons levels data`,
             };
           }
 
@@ -104,7 +94,7 @@ const ultimate = {
               (cell) =>
                 cell !== null &&
                 cell !== undefined &&
-                String(cell || '').trim() !== ""
+                String(cell || "").trim() !== ""
             )
           );
 
@@ -113,13 +103,11 @@ const ultimate = {
             oldUltimateLevels
           );
 
-          return updateUltimateLevels(
-            targetWeapons,
-            newSheetID,
-            oldUltimate
-          );
+          return updateUltimateLevels(targetWeapons, newSheetID, oldUltimate);
         } else {
-          console.log(`Version mismatch - skipping ultimate weapons data import`);
+          console.log(
+            `Version mismatch - skipping ultimate weapons data import`
+          );
           return {
             success: false,
             message: `Ultimate weapons version mismatch`,
@@ -142,7 +130,7 @@ const ultimate = {
           console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
-            message: `Not enough data in Master Sheet`
+            message: `Not enough data in Master Sheet`,
           };
         }
 
@@ -153,7 +141,7 @@ const ultimate = {
           console.log(`Ultimate Weapon column not found`);
           return {
             success: false,
-            message: `Ultimate Weapon column not found`
+            message: `Ultimate Weapon column not found`,
           };
         }
 
@@ -172,7 +160,7 @@ const ultimate = {
           console.log(`Could not read ultimate weapons data from Master Sheet`);
           return {
             success: false,
-            message: `Could not read ultimate weapons data from Master Sheet`
+            message: `Could not read ultimate weapons data from Master Sheet`,
           };
         }
 
@@ -180,7 +168,9 @@ const ultimate = {
         var newUltimateData = newUltimateDataValues.filter((row) =>
           row.some(
             (cell) =>
-              cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
           )
         );
 

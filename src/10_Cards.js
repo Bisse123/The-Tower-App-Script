@@ -23,20 +23,17 @@ const cards = {
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
+
         if (versionDifference === 0) {
           // console.log(`Same Version`);
 
           // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: "Could not read header row from _IDS sheet"
+              message: "Could not read header row from _IDS sheet",
             };
           }
 
@@ -46,7 +43,7 @@ const cards = {
             console.log(`Cards column not found in header`);
             return {
               success: false,
-              message: "Cards column not found in header"
+              message: "Cards column not found in header",
             };
           }
 
@@ -60,14 +57,16 @@ const cards = {
             console.log(`Error getting old cards levels data`);
             return {
               success: false,
-              message: "Error getting old cards levels data"
+              message: "Error getting old cards levels data",
             };
           }
 
           var oldCardsLevels = oldCardsLevelsData.filter((row) =>
             row.some(
               (cell) =>
-                cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+                cell !== null &&
+                cell !== undefined &&
+                String(cell || "").trim() !== ""
             )
           );
 
@@ -76,15 +75,19 @@ const cards = {
             console.log(`Error getting old card slots`);
             return {
               success: false,
-              message: "Error getting old card slots"
+              message: "Error getting old card slots",
             };
           }
 
           var importCardsPresetsColStart = headerRow.indexOf("Cards Presets");
           if (importCardsPresetsColStart !== -1) {
             try {
-              var colStart = shared.columnToLetter(importCardsPresetsColStart + 1);
-              var colEnd = shared.columnToLetter(importCardsPresetsColStart + 5);
+              var colStart = shared.columnToLetter(
+                importCardsPresetsColStart + 1
+              );
+              var colEnd = shared.columnToLetter(
+                importCardsPresetsColStart + 5
+              );
               var oldCardsPresetsData = SheetsAPI.getValues(
                 newSheetID,
                 "_IDS!" + colStart + "2:" + colEnd
@@ -94,7 +97,7 @@ const cards = {
                   (cell) =>
                     cell !== null &&
                     cell !== undefined &&
-                    String(cell || '').trim() !== ""
+                    String(cell || "").trim() !== ""
                 )
               );
 
@@ -124,30 +127,37 @@ const cards = {
               batchUpdate = batchUpdate.concat(result.batchUpdate || []);
 
               if (batchUpdate.length > 0) {
-                var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+                var updateResult = SheetsAPI.batchUpdateValues(
+                  newSheetID,
+                  batchUpdate
+                );
                 if (!updateResult) {
-                  console.log(`Error applying batch updates to new spreadsheet`);
+                  console.log(
+                    `Error applying batch updates to new spreadsheet`
+                  );
                   return {
                     success: false,
-                    message: "Error applying batch updates to new spreadsheet"
+                    message: "Error applying batch updates to new spreadsheet",
                   };
                 }
                 // console.log(`Cards data imported successfully`);
                 return {
                   success: true,
-                  message: `Cards data imported successfully`
+                  message: `Cards data imported successfully`,
                 };
               }
               // console.log(`No updates needed for cards presets`);
               return {
                 success: true,
-                message: `No updates needed for cards presets`
+                message: `No updates needed for cards presets`,
               };
             } catch (error) {
-              console.log(`Error processing cards presets: ${error.toString()}`);
+              console.log(
+                `Error processing cards presets: ${error.toString()}`
+              );
               return {
                 success: false,
-                message: `Error processing cards presets: ${error.message}`
+                message: `Error processing cards presets: ${error.message}`,
               };
             }
           } else {
@@ -164,7 +174,7 @@ const cards = {
             // console.log(`Cards levels updated successfully`);
             return {
               success: true,
-              message: `Cards levels updated successfully`
+              message: `Cards levels updated successfully`,
             };
           }
         }
@@ -172,7 +182,10 @@ const cards = {
         // }
       } catch (error) {
         console.log(`Error importing cards data: ${error.toString()}`);
-        return { success: false, message: `Error importing cards data: ${error.message}` };
+        return {
+          success: false,
+          message: `Error importing cards data: ${error.message}`,
+        };
       }
     }
 
@@ -188,7 +201,7 @@ const cards = {
         console.log(`Error getting cards master sheet data`);
         return {
           success: false,
-          message: "Error getting cards master sheet data"
+          message: "Error getting cards master sheet data",
         };
       }
 
@@ -206,7 +219,7 @@ const cards = {
         console.log(`Card Name column not found in Master Sheet`);
         return {
           success: false,
-          message: "Card Name column not found in Master Sheet"
+          message: "Card Name column not found in Master Sheet",
         };
       }
 
@@ -260,13 +273,13 @@ const cards = {
         return {
           success: true,
           message: `Cards levels updated successfully`,
-          batchUpdate: batchUpdate
+          batchUpdate: batchUpdate,
         };
       }
       // console.log(`No updates needed for cards levels`);
       return {
         success: true,
-        message: `No updates needed for cards levels`
+        message: `No updates needed for cards levels`,
       };
     }
 
@@ -277,7 +290,7 @@ const cards = {
         console.log(`Error getting cards preset sheet data`);
         return {
           success: false,
-          message: "Error getting cards preset sheet data"
+          message: "Error getting cards preset sheet data",
         };
       }
 
@@ -292,7 +305,7 @@ const cards = {
       var headerRow = sheetData[1]; // Row 2 contains the headers
       var newCardPresetNameIdxs = headerRow
         .map(function (cell, idx) {
-          return String(cell || '').trim() !== "" ? idx : -1;
+          return String(cell || "").trim() !== "" ? idx : -1;
         })
         .filter(function (idx) {
           return idx !== -1;
@@ -335,13 +348,13 @@ const cards = {
         return {
           success: true,
           message: `Cards presets updated successfully`,
-          batchUpdate: batchUpdate
+          batchUpdate: batchUpdate,
         };
       }
       // console.log(`No updates needed for cards presets`);
       return {
         success: true,
-        message: `No updates needed for cards presets`
+        message: `No updates needed for cards presets`,
       };
     }
     return importCardsData(versionDifference);

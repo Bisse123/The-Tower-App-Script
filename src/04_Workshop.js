@@ -16,43 +16,29 @@ const workshop = {
 
         if (versionDifference === 0) {
           // console.log(`Same Version - proceeding with workshop data import`);
-
-          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
-          if (!newSpreadsheet) {
-            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
-            return {
-              success: false,
-              message: `New spreadsheet not found with ID: ${newSheetID}`,
-            };
-          }
-          // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
             console.log(`_IDS sheet not found in new workshop spreadsheet`);
             return {
               success: false,
-              message: `_IDS sheet not found in new workshop spreadsheet`
+              message: `_IDS sheet not found in new workshop spreadsheet`,
             };
           }
 
-          // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
             console.log(`Master Sheet not found in new workshop spreadsheet`);
             return {
               success: false,
-              message: `Master Sheet not found in new workshop spreadsheet`
+              message: `Master Sheet not found in new workshop spreadsheet`,
             };
           }
 
           // Get header row to find WS and WS+ columns
-          var headerValues = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: `Could not read header row from _IDS sheet`
+              message: `Could not read header row from _IDS sheet`,
             };
           }
 
@@ -64,14 +50,14 @@ const workshop = {
             console.log(`WS column not found in _IDS sheet`);
             return {
               success: false,
-              message: `WS column not found in _IDS sheet`
+              message: `WS column not found in _IDS sheet`,
             };
           }
           if (importWorkshopPlusColStart === 0) {
             console.log(`WS+ column not found in _IDS sheet`);
             return {
               success: false,
-              message: `WS+ column not found in _IDS sheet`
+              message: `WS+ column not found in _IDS sheet`,
             };
           }
 
@@ -90,7 +76,7 @@ const workshop = {
             console.log(`Could not read workshop levels data`);
             return {
               success: false,
-              message: `Could not read workshop levels data`
+              message: `Could not read workshop levels data`,
             };
           }
 
@@ -100,7 +86,7 @@ const workshop = {
               (cell) =>
                 cell !== null &&
                 cell !== undefined &&
-                String(cell || '').trim() !== ""
+                String(cell || "").trim() !== ""
             )
           );
 
@@ -119,19 +105,19 @@ const workshop = {
             console.log(`Could not read workshop plus levels data`);
             return {
               success: false,
-              message: `Could not read workshop plus levels data`
+              message: `Could not read workshop plus levels data`,
             };
           }
 
           // Filter out empty rows
           var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
             (row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || '').trim() !== ""
-            )
+              row.some(
+                (cell) =>
+                  cell !== null &&
+                  cell !== undefined &&
+                  String(cell || "").trim() !== ""
+              )
           );
 
           return updateWorkshopLevels(
@@ -167,7 +153,7 @@ const workshop = {
           console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
-            message: `Not enough data in Master Sheet`
+            message: `Not enough data in Master Sheet`,
           };
         }
 
@@ -182,14 +168,14 @@ const workshop = {
           console.log(`Workshop Upgrade column not found`);
           return {
             success: false,
-            message: `Workshop Upgrade column not found`
+            message: `Workshop Upgrade column not found`,
           };
         }
         if (enhancementCol === 0) {
           console.log(`Workshop Enhancement column not found`);
           return {
             success: false,
-            message: `Workshop Enhancement column not found`
+            message: `Workshop Enhancement column not found`,
           };
         }
 

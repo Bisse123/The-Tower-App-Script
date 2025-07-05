@@ -6,12 +6,7 @@ const modules = {
   importData: function (versionDifference) {
     function importModulesData(versionDifference) {
       try {
-        var targetModuleTypes = [
-          "cannon",
-          "armor",
-          "generator",
-          "core",
-        ];
+        var targetModuleTypes = ["cannon", "armor", "generator", "core"];
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -36,11 +31,10 @@ const modules = {
           // console.log("Same Version");
 
           // Get old modules inventory data using Sheets API
-          var oldModulesInventoryValues =
-            SheetsAPI.getDataRange(
-              oldSheetID,
-              "Modules Inventory"
-            )
+          var oldModulesInventoryValues = SheetsAPI.getDataRange(
+            oldSheetID,
+            "Modules Inventory"
+          );
 
           var oldModulesInventory = getOldModulesInventory(
             targetModuleTypes,
@@ -62,11 +56,10 @@ const modules = {
           var batchUpdate = result.batchUpdate || [];
 
           // Get old modules presets data using Sheets API
-          var oldModulesPresetsValues =
-            SheetsAPI.getDataRange(
-              oldSheetID,
-              "Modules Presets"
-            )
+          var oldModulesPresetsValues = SheetsAPI.getDataRange(
+            oldSheetID,
+            "Modules Presets"
+          );
 
           var oldModulesPresets = getOldModulesPresets(
             targetModuleTypes,
@@ -136,7 +129,7 @@ const modules = {
               message: result.message,
             };
           }
-          
+
           batchUpdate = batchUpdate.concat(result.batchUpdate || []);
 
           if (batchUpdate.length > 0) {
@@ -175,10 +168,7 @@ const modules = {
       // Get sheet data using Sheets API
       var newModulePresetsValues;
       try {
-        newModulePresetsValues = SheetsAPI.getDataRange(
-          newSheetID,
-          sheetName
-        );
+        newModulePresetsValues = SheetsAPI.getDataRange(newSheetID, sheetName);
       } catch (error) {
         console.log("Error getting modules presets data: " + error.toString());
         return {
