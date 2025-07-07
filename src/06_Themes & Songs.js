@@ -1,6 +1,4 @@
 const themes = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importThemesData(versionDifference) {
       try {
@@ -174,10 +172,17 @@ const themes = {
 
       return oldThemesNames;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importThemesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

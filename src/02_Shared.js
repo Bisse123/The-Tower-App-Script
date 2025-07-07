@@ -404,8 +404,8 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
   }
 }
 
-function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
-  // console.log(`Checking compatibility for sheet type: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`);
+function checkCompatibility(newSheetID, oldSheetID, sheetType) {
+  // console.log(`Checking compatibility for sheet type: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}`);
   try {
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
     if (!newSpreadsheet) {
@@ -472,7 +472,7 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
     }
 
     var compareVersions = shared.compareVersions(oldVersion, newVersion);
-
+    
     if (compareVersions === -1) {
       console.log(
         `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`
@@ -490,7 +490,9 @@ function checkCompatibility(newSheetID, oldSheetID, idMasterID, sheetType) {
         return {
           success: true,
           message: `The version of the old sheet (${oldVersion}) is compatible with the new sheet (${newVersion}).`,
-          versionDifference: oldVersion,
+          oldVersion: oldVersion,
+          newVersion: newVersion,
+          versionDifference: compareVersions,
         };
       }
       return {

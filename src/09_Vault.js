@@ -1,6 +1,4 @@
 const vault = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importVaultData(versionDifference) {
       try {
@@ -262,10 +260,17 @@ const vault = {
       }
       return indices;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importVaultData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

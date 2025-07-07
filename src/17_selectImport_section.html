@@ -1,0 +1,29 @@
+<div id="selectImportSection" class="section selectImportSection">
+  <h3 id="selectImportTitle" class="title selectImportTitle">
+    📂 Select new file
+  </h3>
+  <p id="selectImportText">
+    Please select the <strong>new Google Sheet</strong> you want to import data to
+    <br>
+    Or select your <strong>IDS Master sheet</strong> to copy a template sheet
+    <br>
+    <span class="hint">
+      Don't have either? <a href="#" onclick="showGetStartedSection(); return false;" style="color: inherit;">Click here</a> to get started by setting up your first sheets
+      </span>
+  </p>
+  <label id="labelImportType" for="selectImportType">Select import type:</label>
+  <select id="selectImportType" name="Select import type"></select>
+  <button id="chooseNewFileBtn" onclick="chooseNewFile()">
+    Select new Sheet
+  </button>
+  <button id="chooseMasterFileBtn" onclick="chooseMasterFile()">
+    Select IDS Master Sheet
+  </button>
+  <button
+    id="selectImportContinueBtn"
+    onclick="checkNewSheetRef()"
+    style="display: none"
+  >
+    Continue
+  </button>
+</div>

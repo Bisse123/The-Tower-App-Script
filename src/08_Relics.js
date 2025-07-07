@@ -1,6 +1,4 @@
 const relics = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importRelicsData(versionDifference) {
       try {
@@ -244,10 +242,17 @@ const relics = {
         };
       }
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importRelicsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

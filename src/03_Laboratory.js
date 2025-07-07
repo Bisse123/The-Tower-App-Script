@@ -1,6 +1,4 @@
 const lab = {
-  convertVersionFunctions: {},
-
   importData: function importData(versionDifference) {
     function importLabData(versionDifference) {
       try {
@@ -199,10 +197,17 @@ const lab = {
       }
     }
 
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importLabData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

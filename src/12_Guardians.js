@@ -1,6 +1,4 @@
 const guardians = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importGuardiansData(versionDifference) {
       try {
@@ -259,10 +257,17 @@ const guardians = {
       }
       return guardians;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importGuardiansData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

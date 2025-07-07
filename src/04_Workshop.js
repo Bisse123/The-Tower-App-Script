@@ -1,6 +1,4 @@
 const workshop = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importWorkshopData(versionDifference) {
       try {
@@ -265,10 +263,17 @@ const workshop = {
       }
     }
 
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importWorkshopData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

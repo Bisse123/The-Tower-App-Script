@@ -1,6 +1,4 @@
 const cards = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importCardsData(versionDifference) {
       try {
@@ -357,10 +355,17 @@ const cards = {
         message: `No updates needed for cards presets`,
       };
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importCardsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

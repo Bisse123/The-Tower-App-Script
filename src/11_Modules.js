@@ -1,8 +1,4 @@
 const modules = {
-  convertVersionFunctions: {
-    3: this.convertVersion3,
-  },
-
   importData: function (versionDifference) {
     function importModulesData(versionDifference) {
       try {
@@ -101,7 +97,7 @@ const modules = {
         // Else do something to convert old version to new one (Future me problem)
         else {
           var { oldModulesInventory, oldModulesPresets } =
-            this.convertVersionFunctions[versionDifference](oldSheetID);
+            convertVersionFunctions[versionDifference](oldSheetID);
           var result = updateModulesInventory(
             targetModuleTypes,
             newSheetID,
@@ -464,6 +460,108 @@ const modules = {
       return oldModules;
     }
 
+    function convertVersion3(oldSheetID) {
+      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+
+      var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
+      if (!oldSpreadsheet) {
+        console.log(`New spreadsheet not found with ID: ${oldSheetID}`);
+        return {
+          success: false,
+          message: `New spreadsheet not found with ID: ${oldSheetID}`,
+        };
+      }
+      // Check if Modules Presets sheet exists
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Modules Presets")) {
+        console.log(`Modules Presets sheet not found`);
+        return {
+          success: false,
+          message: `Modules Presets sheet not found`,
+        };
+      }
+
+      var oldModulesPresetsValues = SheetsAPI.getDataRange(
+        oldSheetID,
+        "Modules Presets"
+      );
+
+      var oldModuleTypeIndex = findModuleTypesRowIndex(
+        targetModuleTypes,
+        oldModulesPresetsValues
+      );
+      var oldModulesPresets = {};
+      var oldModulesInventory = {};
+      targetModuleTypes.forEach(function (moduleType) {
+        var rowIdx = oldModuleTypeIndex[moduleType] + 1;
+        if (typeof rowIdx === "undefined") return;
+        oldModulesPresets[moduleType] = {};
+        oldModulesInventory[moduleType] = {};
+        var row = oldModulesPresetsValues[rowIdx];
+        for (var col = 0; col < row.length; col++) {
+          var colVal = row[col] != null ? String(row[col]).trim() : "";
+          if (colVal === "Module Name") {
+            var moduleName =
+              oldModulesPresetsValues[rowIdx + 1][col] != null
+                ? String(oldModulesPresetsValues[rowIdx + 1][col]).trim()
+                : "";
+            if (moduleName) {
+              var presetName =
+                oldModulesPresetsValues[rowIdx - 1][col] != null
+                  ? String(oldModulesPresetsValues[rowIdx - 1][col]).trim()
+                  : "";
+              if (presetName) {
+                oldModulesPresets[moduleType][presetName] = moduleName;
+              }
+              if (!oldModulesInventory[moduleType].hasOwnProperty(moduleName)) {
+                var moduleRarity =
+                  oldModulesPresetsValues[rowIdx + 1][col + 1] != null
+                    ? String(oldModulesPresetsValues[rowIdx + 1][col + 1]).trim()
+                    : "";
+                var moduleLevel =
+                  oldModulesPresetsValues[rowIdx + 1][col + 2] != null
+                    ? String(oldModulesPresetsValues[rowIdx + 1][col + 2]).trim()
+                    : "";
+                oldModulesInventory[moduleType][moduleName] = {
+                  rarity: moduleRarity,
+                  level: moduleLevel,
+                  substats: [],
+                };
+                for (
+                  var substat = rowIdx + 3;
+                  substat < oldModulesPresetsValues.length;
+                  substat++
+                ) {
+                  var substatRow = oldModulesPresetsValues[substat];
+                  var substatColVal =
+                    substatRow && substatRow[col] != null
+                      ? String(substatRow[col]).trim()
+                      : "";
+                  var substatCol1Val =
+                    substatRow && substatRow[col + 1] != null
+                      ? String(substatRow[col + 1]).trim()
+                      : "";
+                  if (substatColVal === "" && substatCol1Val === "") {
+                    break;
+                  }
+                  var substats = [
+                    substatRow ? substatRow[col] : "",
+                    substatRow ? substatRow[col + 1] : "",
+                  ];
+                  oldModulesInventory[moduleType][moduleName]["substats"].push(
+                    substats
+                  );
+                }
+              }
+            }
+          }
+        }
+      });
+      return {
+        oldModulesInventory: oldModulesInventory,
+        oldModulesPresets: oldModulesPresets,
+      };
+    }
+
     function findModuleTypesRowIndex(targetModuleTypes, moduleRange) {
       var moduleTypeIndex = {};
       var moduleFound = {};
@@ -491,112 +589,18 @@ const modules = {
 
       return moduleTypeIndex;
     }
+
+    var convertVersionFunctions = {
+      3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importModulesData(versionDifference);
   },
 
-  convertVersion3: function (oldSheetID) {
-    var targetModuleTypes = ["cannon", "armor", "generator", "core"];
-
-    var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
-    if (!oldSpreadsheet) {
-      console.log(`New spreadsheet not found with ID: ${oldSheetID}`);
-      return {
-        success: false,
-        message: `New spreadsheet not found with ID: ${oldSheetID}`,
-      };
-    }
-    // Check if Modules Presets sheet exists
-    if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Modules Presets")) {
-      console.log(`Modules Presets sheet not found`);
-      return {
-        success: false,
-        message: `Modules Presets sheet not found`,
-      };
-    }
-
-    var oldModulesPresetsValues = SheetsAPI.getDataRange(
-      oldSheetID,
-      "Modules Presets"
-    );
-
-    var oldModuleTypeIndex = findModuleTypesRowIndex(
-      targetModuleTypes,
-      oldModulesPresetsValues
-    );
-    var oldModulesPresets = {};
-    var oldModulesInventory = {};
-    targetModuleTypes.forEach(function (moduleType) {
-      var rowIdx = oldModuleTypeIndex[moduleType] + 1;
-      if (typeof rowIdx === "undefined") return;
-      oldModulesPresets[moduleType] = {};
-      oldModulesInventory[moduleType] = {};
-      var row = oldModulesPresetsValues[rowIdx];
-      for (var col = 0; col < row.length; col++) {
-        var colVal = row[col] != null ? String(row[col]).trim() : "";
-        if (colVal === "Module Name") {
-          var moduleName =
-            oldModulesPresetsValues[rowIdx + 1][col] != null
-              ? String(oldModulesPresetsValues[rowIdx + 1][col]).trim()
-              : "";
-          if (moduleName) {
-            var presetName =
-              oldModulesPresetsValues[rowIdx - 1][col] != null
-                ? String(oldModulesPresetsValues[rowIdx - 1][col]).trim()
-                : "";
-            if (presetName) {
-              oldModulesPresets[moduleType][presetName] = moduleName;
-            }
-            if (!oldModulesInventory[moduleType].hasOwnProperty(moduleName)) {
-              var moduleRarity =
-                oldModulesPresetsValues[rowIdx + 1][col + 1] != null
-                  ? String(oldModulesPresetsValues[rowIdx + 1][col + 1]).trim()
-                  : "";
-              var moduleLevel =
-                oldModulesPresetsValues[rowIdx + 1][col + 2] != null
-                  ? String(oldModulesPresetsValues[rowIdx + 1][col + 2]).trim()
-                  : "";
-              oldModulesInventory[moduleType][moduleName] = {
-                rarity: moduleRarity,
-                level: moduleLevel,
-                substats: [],
-              };
-              for (
-                var substat = rowIdx + 3;
-                substat < oldModulesPresetsValues.length;
-                substat++
-              ) {
-                var substatRow = oldModulesPresetsValues[substat];
-                var substatColVal =
-                  substatRow && substatRow[col] != null
-                    ? String(substatRow[col]).trim()
-                    : "";
-                var substatCol1Val =
-                  substatRow && substatRow[col + 1] != null
-                    ? String(substatRow[col + 1]).trim()
-                    : "";
-                if (substatColVal === "" && substatCol1Val === "") {
-                  break;
-                }
-                var substats = [
-                  substatRow ? substatRow[col] : "",
-                  substatRow ? substatRow[col + 1] : "",
-                ];
-                oldModulesInventory[moduleType][moduleName]["substats"].push(
-                  substats
-                );
-              }
-            }
-          }
-        }
-      }
-    });
-    return {
-      oldModulesInventory: oldModulesInventory,
-      oldModulesPresets: oldModulesPresets,
-    };
-  },
-
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

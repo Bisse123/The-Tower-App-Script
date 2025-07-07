@@ -1,0 +1,485 @@
+<script>
+  // Global variables
+  console.log("Parameters:", {
+    newSheetID,
+    oldSheetID,
+    idMasterID,
+    sheetType,
+  });
+  let accessToken = null;
+  let pickerInited = false;
+  let isMobile = false;
+  let selectedFiles = [];
+  let finalSelectedFiles = [];
+  let accessibleFilesCache = [];
+  let inaccessibleFilesCache = [];
+  let notOwnedFilesCache = [];
+
+  // Detect mobile devices with enhanced touch detection
+  function detectMobile() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = [
+      "mobile",
+      "android",
+      "iphone",
+      "ipad",
+      "ipod",
+      "blackberry",
+      "windows phone",
+    ];
+    const isMobileUA = mobileKeywords.some((keyword) =>
+      userAgent.includes(keyword)
+    );
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+
+    return isMobileUA || (isTouchDevice && isSmallScreen);
+  }
+
+  // Check if device is touch-only (no mouse/trackpad)
+  function isTouchOnlyDevice() {
+    return (
+      "ontouchstart" in window && !window.matchMedia("(pointer: fine)").matches
+    );
+  }
+
+  // Mobile-optimized status messages for better UX
+  function setMobileStatus(message) {
+    if (isMobile) {
+      const mobileMessages = {
+        "Opening picker with files that need access...":
+          "Opening file picker...",
+        "Select the files you want to grant access to": "Tap files to select",
+        "Access granted to files. Rechecking access status...":
+          "Files selected. Checking...",
+        "Picker loaded successfully": "Picker ready",
+        "File selection cancelled": "Selection cancelled",
+      };
+      const shortMessage = mobileMessages[message];
+      if (shortMessage) {
+        document.getElementById("statusText").innerText = shortMessage;
+        return;
+      }
+    }
+    document.getElementById("statusText").innerText = message;
+  }
+
+  // Initialize mobile detection
+  isMobile = detectMobile();
+  console.log("Mobile device detected:", isMobile);
+
+  // Show appropriate instructions immediately based on device type
+  if (isMobile) {
+    document.getElementById("desktopInstructions").style.display = "none";
+    document.getElementById("mobileInstructions").style.display = "block";
+  } else {
+    document.getElementById("desktopInstructions").style.display = "block";
+    document.getElementById("mobileInstructions").style.display = "none";
+  }
+
+  // OAuth and authentication functions
+  async function getOAuthToken() {
+    document.getElementById("statusText").innerText =
+      "Requesting authorization...";
+    await new Promise((resolve) => {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (result.success) {
+            accessToken = result.token;
+            getUserEmailFromToken(accessToken).then(() => {
+              resolve();
+            });
+          } else {
+            document.getElementById(
+              "statusText"
+            ).innerText = `Authorization failed: ${result.message}`;
+            resolve();
+          }
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById(
+            "statusText"
+          ).innerText = `Authorization error: ${error.message || error}`;
+          resolve();
+        })
+        .getOAuthToken();
+    });
+
+    if (!accessToken) {
+      document.getElementById("statusText").innerText =
+        "Authorization failed. Please try again.";
+      return false;
+    }
+    document.getElementById("statusText").innerText =
+      "Authorization successful. Initializing Google Picker...";
+    return true;
+  }
+
+  function getUserEmailFromToken(token) {
+    return fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("User email fetched:", data);
+        console.log("User email:", data.email);
+        userEmail = data.email || "";
+        return userEmail;
+      })
+      .catch((error) => {
+        console.error("Error fetching user email:", error);
+        return null;
+      });
+  }
+
+  // Google API initialization
+  function gapiLoaded() {
+    console.log("GAPI loaded, loading client and picker...");
+    gapi.load("client:picker", {
+      callback: initializePicker,
+      onerror: function () {
+        console.error("Failed to load GAPI client:picker");
+        document.getElementById("statusText").innerText =
+          "Failed to load Google APIs";
+      },
+    });
+  }
+
+  async function initializePicker() {
+    try {
+      console.log("Initializing GAPI client...");
+
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        ],
+      });
+
+      console.log("GAPI client initialized successfully");
+      console.log(
+        "Picker API available:",
+        typeof google.picker !== "undefined"
+      );
+
+      pickerInited = true;
+      document.getElementById("statusText").innerText =
+        "Checking file access permissions...";
+      if (!accessToken) {
+        const authSuccess = await getOAuthToken();
+        if (!authSuccess) {
+          document.getElementById("statusText").innerText =
+            "Authorization failed. Please try again.";
+          return;
+        }
+      }
+      checkValidParameters();
+    } catch (error) {
+      console.error("Error initializing GAPI client:", error);
+      document.getElementById(
+        "statusText"
+      ).innerText = `Initialization error: ${error.message}`;
+    }
+  }
+
+  function checkValidParameters() {
+    console.log("Checking valid parameters...");
+    if (
+      !newSheetID ||
+      !oldSheetID ||
+      !idMasterID ||
+      !sheetType ||
+      new Set([newSheetID, oldSheetID, idMasterID]).size !== 3
+    ) {
+      console.log(
+        "Invalid or missing parameters:",
+        newSheetID,
+        oldSheetID,
+        idMasterID,
+        sheetType
+      );
+      showSelectImportSection();
+      return;
+    }
+    showFileAccessSection();
+
+    const fileIds = [newSheetID, oldSheetID, idMasterID];
+
+    google.script.run
+      .withSuccessHandler(onSheetAccessCheckSuccess)
+      .withFailureHandler(onSheetAccessCheckFailure)
+      .checkSheetAccess(fileIds, userEmail);
+  }
+  
+  function calculatePickerSize() {
+    let pickerWidth, pickerHeight;
+    if (isMobile) {
+      pickerWidth = Math.min(window.innerWidth - 10, 900);
+      pickerHeight = Math.min(window.innerHeight - 80, 700);
+
+      pickerWidth = Math.max(pickerWidth, 320);
+      pickerHeight = Math.max(pickerHeight, 450);
+    } else {
+      pickerWidth = 1400;
+      pickerHeight = 900;
+    }
+    return { width: pickerWidth, height: pickerHeight };
+  }
+
+  function openMultiFilePicker() {
+    if (!accessToken) {
+      document.getElementById("statusText").innerText =
+        "Please authorize first";
+      return;
+    }
+
+    if (!pickerInited) {
+      document.getElementById("statusText").innerText =
+        "Picker not initialized yet";
+      return;
+    }
+
+    if (typeof google === "undefined" || typeof google.picker === "undefined") {
+      document.getElementById("statusText").innerText =
+        "Google Picker API not loaded";
+      console.error("Google Picker API not available");
+      return;
+    }
+
+    // Check if we have inaccessible files to show
+    if (inaccessibleFilesCache.length === 0) {
+      document.getElementById("statusText").innerText =
+        "No files need access permission";
+      return;
+    }
+
+    // Extract file IDs from inaccessible files, filter out any without a valid id
+    const inaccessibleFileIds = inaccessibleFilesCache
+      .map((file) => file.id)
+      .filter((id) => typeof id === "string" && id.length > 0);
+    if (inaccessibleFileIds.length !== inaccessibleFilesCache.length) {
+      console.warn(
+        "Some inaccessible files are missing an id:",
+        inaccessibleFilesCache
+      );
+    }
+    console.log(
+      "Opening picker with inaccessible file IDs:",
+      inaccessibleFileIds
+    );
+
+    try {
+      setMobileStatus("Opening picker with files that need access...");
+
+      const fileIdsString = inaccessibleFileIds.join(",");
+      console.log("File IDs string:", fileIdsString);
+      if (!fileIdsString) {
+        setMobileStatus("No valid file IDs to show in picker.");
+        return;
+      }
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEET)
+        .setFileIds(fileIdsString)
+        .setIncludeFolders(false)
+        .setSelectFolderEnabled(false)
+        .setMode(google.picker.DocsViewMode.LIST)
+        .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+      console.log(
+        "DocsView created with",
+        inaccessibleFileIds.length,
+        "inaccessible files"
+      );
+
+      const pickerSize = calculatePickerSize();
+
+      const picker = new google.picker.PickerBuilder()
+        .setDeveloperKey(API_KEY)
+        .setAppId(APP_ID)
+        .setOAuthToken(accessToken)
+        .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+        .addView(view)
+        .setCallback(pickerCallback)
+        .setOrigin(google.script.host.origin)
+        .setSize(pickerSize.width, pickerSize.height)
+        .enableFeature(google.picker.Feature.MINE_ONLY);
+
+      if (!isMobile || !isTouchOnlyDevice()) {
+        picker.enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+        console.log("Multi-select enabled for non-touch device");
+      } else {
+        console.log("Multi-select disabled for touch-only device");
+      }
+
+      if (isMobile) {
+        picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+      }
+
+      const builtPicker = picker.build();
+
+      console.log(
+        "Picker built successfully with",
+        inaccessibleFileIds.length,
+        "inaccessible files"
+      );
+
+      const statusMessage = isMobile
+        ? `Tap files to select (${inaccessibleFileIds.length} available)`
+        : `Select the files you want to grant access to (${inaccessibleFileIds.length} files available).`;
+      setMobileStatus(statusMessage);
+
+      builtPicker.setVisible(true);
+      console.log("Picker.setVisible(true) called");
+    } catch (error) {
+      console.error("Error creating/showing picker:", error);
+      document.getElementById(
+        "statusText"
+      ).innerText = `Picker error: ${error.message}`;
+    }
+  }
+
+  async function pickerCallback(data) {
+    console.log("Picker callback received:", data);
+    try {
+      if (data.action === google.picker.Action.PICKED) {
+        const documents = data[google.picker.Response.DOCUMENTS];
+
+        if (!documents || documents.length === 0) {
+          setMobileStatus("No files selected");
+          return;
+        }
+
+        setMobileStatus(
+          `Access granted to ${documents.length} files. Rechecking access status...`
+        );
+
+        const fileIds = [newSheetID, oldSheetID, idMasterID];
+        google.script.run
+          .withSuccessHandler(onSheetAccessCheckSuccess)
+          .withFailureHandler(onSheetAccessCheckFailure)
+          .checkSheetAccess(fileIds, userEmail);
+      } else if (data.action === google.picker.Action.CANCEL) {
+        console.log("User cancelled the picker");
+        setMobileStatus("File selection cancelled");
+      } else if (data.action === "loaded") {
+        console.log("Picker loaded successfully");
+        setMobileStatus("Picker loaded successfully");
+      } else {
+        console.log("Unknown picker action:", data.action);
+        setMobileStatus(`Unknown action: ${data.action}`);
+      }
+    } catch (error) {
+      console.error("Error in picker callback:", error);
+      document.getElementById(
+        "statusText"
+      ).innerText = `Callback error: ${error.message}`;
+    }
+  }
+
+  function openSingleFilePicker(fileId, callback, options = {}) {
+    if (!accessToken || !pickerInited) {
+      document.getElementById("statusText").innerText =
+        "Picker not ready or not authorized.";
+      return callback(false);
+    }
+    try {
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEET)
+        .setIncludeFolders(false)
+        .setSelectFolderEnabled(false)
+        .setMode(google.picker.DocsViewMode.LIST)
+        .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+      if (typeof fileId === "string") {
+        view.setFileIds(fileId);
+      } else {
+        view.setQuery(fileId.join(" "));
+      }
+
+      const pickerSize = calculatePickerSize();
+
+      const picker = new google.picker.PickerBuilder()
+        .setDeveloperKey(API_KEY)
+        .setAppId(APP_ID)
+        .setOAuthToken(accessToken)
+        .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+        .addView(view)
+        .setCallback(function (data) {
+          if (data.action === google.picker.Action.PICKED) {
+            callback(data.docs[0][google.picker.Document.ID]);
+          } else if (data.action !== "loaded") {
+            callback(null);
+          }
+        })
+        .setOrigin(google.script.host.origin)
+        .setSize(pickerSize.width, pickerSize.height);
+
+      if (options.allowSharedFiles !== true) {
+        picker.enableFeature(google.picker.Feature.MINE_ONLY);
+      }
+
+      // Mobile-specific optimizations
+      if (isMobile) {
+        picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+      }
+
+      const builtPicker = picker.build();
+      builtPicker.setVisible(true);
+      console.log("Picker.setVisible(true) called");
+    } catch (e) {
+      console.error("Picker error:", e);
+      document.getElementById("statusText").innerText =
+        "Picker error: " + (e.message || e);
+      callback(null);
+    }
+  }
+  
+  function onSheetAccessCheckSuccess(result) {
+    console.log("Sheet access check result:", result);
+    if (result.success) {
+      // Update file caches based on the result with proper file names
+      accessibleFilesCache = result.accessibleFiles || [];
+      inaccessibleFilesCache = result.inaccessibleFiles || [];
+      notOwnedFilesCache = result.notOwnedFiles || [];
+
+      console.log("File caches updated:", {
+        accessible: accessibleFilesCache,
+        inaccessible: inaccessibleFilesCache,
+        notOwned: notOwnedFilesCache,
+      });
+
+      showContinueSection(
+        result.accessibleFiles || [],
+        result.inaccessibleFiles || [],
+        result.notOwnedFiles || []
+      );
+
+      if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
+        document.getElementById("statusText").innerText = result.message;
+      }
+    } else {
+      console.error("Sheet access check failed:", result.message);
+      document.getElementById(
+        "statusText"
+      ).innerText = `Could not check file access: ${result.message}`;
+      // Initialize empty caches on failure
+      accessibleFilesCache = [];
+      inaccessibleFilesCache = [];
+      notOwnedFilesCache = [];
+      showContinueSection([], [], []);
+    }
+  }
+
+  function onSheetAccessCheckFailure(error) {
+    console.error("Sheet access check error:", error);
+    document.getElementById(
+      "statusText"
+    ).innerText = `Error checking sheet access: ${error.message || error}`;
+    // Initialize empty caches on failure
+    accessibleFilesCache = [];
+    inaccessibleFilesCache = [];
+    notOwnedFilesCache = [];
+    showContinueSection([], [], []);
+  }
+</script>

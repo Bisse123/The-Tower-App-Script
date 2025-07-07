@@ -1,6 +1,4 @@
 const bots = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importBotsData(versionDifference) {
       try {
@@ -267,10 +265,18 @@ const bots = {
       }
       return bots;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importBotsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Add supported version numbers here as needed
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

@@ -1,6 +1,4 @@
 const ultimate = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importUltimateData(versionDifference) {
       try {
@@ -292,10 +290,17 @@ const ultimate = {
       }
       return weapons;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importUltimateData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };
