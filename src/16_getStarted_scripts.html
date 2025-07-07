@@ -2,11 +2,15 @@
   // Get Started section functions
   
   function showGetStartedSection() {
-    document.getElementById("selectImportSection").style.display = "none";
-    document.getElementById("fileAccessSection").style.display = "none";
-    document.getElementById("instructionsSection").style.display = "none";
-    document.getElementById("getStartedSection").style.display = "block";
-    document.getElementById("statusText").innerText =
-      "Review setup instructions below";
+    if (viewType === "sidebar") {
+      google.script.run.showGetStartedDialog();
+    } else {
+      document.getElementById("selectImportSection").style.display = "none";
+      document.getElementById("fileAccessSection").style.display = "none";
+      document.getElementById("instructionsSection").style.display = "none";
+      document.getElementById("getStartedSection").style.display = "block";
+      document.getElementById("statusText").innerText =
+        "Review setup instructions below";
+    }
   }
 </script>

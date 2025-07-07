@@ -52,12 +52,7 @@
           newSheetID = fileId;
           const success = await findAndGrantIdMaster(fileId);
           if (success) {
-            showFileAccessSection();
-            const fileIds = [newSheetID, oldSheetID, idMasterID];
-            google.script.run
-              .withSuccessHandler(onSheetAccessCheckSuccess)
-              .withFailureHandler(onSheetAccessCheckFailure)
-              .checkSheetAccess(fileIds, userEmail);
+            checkValidParameters();
           } else {
             chooseNewFileBtn.disabled = false;
             chooseMasterFileBtn.disabled = false;

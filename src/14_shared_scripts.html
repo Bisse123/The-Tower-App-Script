@@ -191,8 +191,7 @@
       !newSheetID ||
       !oldSheetID ||
       !idMasterID ||
-      !sheetType ||
-      new Set([newSheetID, oldSheetID, idMasterID]).size !== 3
+      !sheetType
     ) {
       console.log(
         "Invalid or missing parameters:",
@@ -203,7 +202,21 @@
       );
       showSelectImportSection();
       return;
-    }
+    } else if (
+      new Set([newSheetID, oldSheetID, idMasterID]).size !== 3) {
+      console.log(
+        "Duplicate or invalid parameters detected:",
+        newSheetID,
+        oldSheetID,
+        idMasterID
+      );
+      document.getElementById(
+        "statusText"
+      ).innerText = "Duplicate or invalid file IDs detected. Please check your linked IDs.";
+      hideAllSections();
+      return;
+      }
+
     showFileAccessSection();
 
     const fileIds = [newSheetID, oldSheetID, idMasterID];
@@ -214,6 +227,13 @@
       .checkSheetAccess(fileIds, userEmail);
   }
   
+  function hideAllSections() {
+    document.getElementById("getStartedSection").style.display = "none";
+    document.getElementById("selectImportSection").style.display = "none";
+    document.getElementById("fileAccessSection").style.display = "none";
+    document.getElementById("instructionsSection").style.display = "none";
+  }
+
   function calculatePickerSize() {
     let pickerWidth, pickerHeight;
     if (isMobile) {

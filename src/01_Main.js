@@ -54,6 +54,7 @@ function doGet(e) {
   template.APP_ID =
     PropertiesService.getScriptProperties().getProperty("APP_ID");
 
+  template.viewType = "webapp";
   return template
     .evaluate()
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
@@ -62,32 +63,40 @@ function doGet(e) {
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
+
 function onOpen(e) {
   // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
     var ui = SpreadsheetApp.getUi();
-    var sheetType = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName("Home Page")
-      .getRange("B2")
-      .getValue();
-    if (sheetVars(sheetType)) {
       // console.log("Sheet type found in Home Page B2: " + sheetType);
       ui.createMenu("Import Data")
         .addItem("Get Started", "showGetStartedDialog")
         .addItem("Import Data", "showImportDialog")
         .addToUi();
-    } else {
-      ui.createMenu("Import Data").addItem("Get Started", "showGetStartedDialog").addToUi();
-    }
+  } catch (error) {}
+}
+
+function onInstall(e) {
+  // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
+  try {
+    var ui = SpreadsheetApp.getUi();
+      // console.log("Sheet type found in Home Page B2: " + sheetType);
+      ui.createMenu("Import Data")
+        .addItem("Get Started", "showGetStartedDialog")
+        .addItem("Import Data", "showImportDialog")
+        .addToUi();
   } catch (error) {}
 }
 
 function showGetStartedDialog() {
   // console.log(`showGetStartedDialog called`);
   try {
-    var html = HtmlService.createHtmlOutputFromFile("getStartedSection")
-      .setWidth(300)
-      .setHeight(150);
+    var template = HtmlService.createTemplateFromFile("13_getStartedApp")
+    var html = template
+      .evaluate()
+      .setWidth(1200)
+      .setHeight(700)
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
     SpreadsheetApp.getUi().showModalDialog(html, "Get Started");
   } catch (error) {
     console.log(`Error in showGetStartedDialog: ${error.message}`);
@@ -103,11 +112,11 @@ function showImportDialog() {
       .getRange("B2")
       .getValue();
     var newSheetID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
     var idMasterInfo = shared.findSheetTypeID(newSheetID, "IDS");
     var idMasterID = idMasterInfo ? shared.extractSheetId(idMasterInfo.id) : "";
-    var oldSheetInfo = idMasterID
-      ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID")
-      : "";
+    
+    var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
     var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
 
     var template = HtmlService.createTemplateFromFile("13_WebApp");
@@ -125,16 +134,37 @@ function showImportDialog() {
     template.APP_ID =
       PropertiesService.getScriptProperties().getProperty("APP_ID");
 
+    template.viewType = "sidebar";
+
     var html = template
       .evaluate()
-      // .setWidth(600)
-      // .setHeight(300)
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
     console.log(`Error in showImportDialog: ${error.message}`);
-    SpreadsheetApp.getUi().alert("Error: " + error.message);
+    var template = HtmlService.createTemplateFromFile("13_WebApp");
+    template.newSheetID = "";
+    template.oldSheetID = "";
+    template.idMasterID = "";
+    template.sheetType = "";
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.viewType = "sidebar";
+
+    var html = template
+      .evaluate()
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setTitle("Import Data");
+    SpreadsheetApp.getUi().showSidebar(html);
   }
 }
 

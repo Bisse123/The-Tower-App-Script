@@ -1,13 +1,11 @@
 <script>
-  // Modal section functions
-  
   function showYesNoDialog(oldVersion, newVersion, callback) {
     const messageElement = document.getElementById("yesNoMessage");
-    const yesNoModalBackground = document.getElementById("yesNoModalBackground");
+    const modalBackground = document.getElementById("modalBackground");
     const yesBtn = document.getElementById("yesBtn");
     const noBtn = document.getElementById("noBtn");
     
-    if (!messageElement || !yesNoModalBackground || !yesBtn || !noBtn) {
+    if (!messageElement || !modalBackground || !yesBtn || !noBtn) {
       console.error("Modal elements not found. Cannot show dialog.");
       callback(false);
       return;
@@ -18,11 +16,11 @@
       New Version: ${newVersion}<br>
       Do you want to proceed with the import?`;
 
-    yesNoModalBackground.style.display = "flex";
+    modalBackground.style.display = "flex";
 
     function cleanup(result) {
       console.log("Dialog cleanup, result:", result);
-      yesNoModalBackground.style.display = "none";
+      modalBackground.style.display = "none";
       yesBtn.removeEventListener("click", onYes);
       noBtn.removeEventListener("click", onNo);
       callback(result);
