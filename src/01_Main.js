@@ -68,7 +68,6 @@ function onOpen(e) {
   // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
     var ui = SpreadsheetApp.getUi();
-      // console.log("Sheet type found in Home Page B2: " + sheetType);
       ui.createMenu("Import Data")
         .addItem("Get Started", "showGetStartedDialog")
         .addItem("Import Data", "showImportDialog")
@@ -80,7 +79,6 @@ function onInstall(e) {
   // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
     var ui = SpreadsheetApp.getUi();
-      // console.log("Sheet type found in Home Page B2: " + sheetType);
       ui.createMenu("Import Data")
         .addItem("Get Started", "showGetStartedDialog")
         .addItem("Import Data", "showImportDialog")
