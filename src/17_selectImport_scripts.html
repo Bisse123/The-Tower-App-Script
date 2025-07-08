@@ -1,0 +1,453 @@
+<script>
+  function showSelectImportSection() {
+    var fileTypes = [
+      "Laboratory",
+      "Workshop",
+      "Ultimate Weapon",
+      "Themes & Songs",
+      "Bots",
+      "Relics",
+      "Vault",
+      "Cards",
+      "Modules",
+      "Guardians",
+    ];
+    document.getElementById("fileAccessSection").style.display = "none";
+    document.getElementById("instructionsSection").style.display = "none";
+    document.getElementById("selectImportSection").style.display = "block";
+    document.getElementById("statusText").innerText =
+      "Select sheet or IDS Master";
+
+    var selectImportType = document.getElementById("selectImportType");
+    fileTypes.forEach(function (type) {
+      var option = document.createElement("option");
+      option.value = type;
+      option.text = type;
+      selectImportType.appendChild(option);
+    });
+    if (selectImportType.options.length > 0) {
+      selectImportType.selectedIndex = 0;
+    }
+  }
+
+  async function chooseNewFile() {
+    var chooseNewFileBtn = document.getElementById("chooseNewFileBtn");
+    var chooseMasterFileBtn = document.getElementById("chooseMasterFileBtn");
+    chooseNewFileBtn.disabled = true;
+    chooseMasterFileBtn.disabled = true;
+
+    if (!accessToken) {
+        chooseNewFileBtn.disabled = false;
+        chooseMasterFileBtn.disabled = false;
+        document.getElementById("statusText").innerText =
+          "Authorization failed. Cannot open picker.";
+        return;
+    }
+    var importType = document.getElementById("selectImportType").value;
+    openSingleFilePicker([importType], async function (fileId) {
+      if (fileId) {
+        try {
+          document.getElementById("statusText").innerText =
+            "Access to new sheet granted. Searching for IDS Master...";
+          newSheetID = fileId;
+          const success = await findAndGrantIdMaster(fileId);
+          if (success) {
+            checkValidParameters();
+          } else {
+            chooseNewFileBtn.disabled = false;
+            chooseMasterFileBtn.disabled = false;
+            document.getElementById("statusText").innerText =
+              "Error submitting new sheet ID. Please try again.";
+          }
+        } catch (error) {
+          chooseNewFileBtn.disabled = false;
+          chooseMasterFileBtn.disabled = false;
+          document.getElementById("statusText").innerText =
+            "Error submitting new sheet ID: " + (error.message || error);
+        }
+      } else {
+        chooseNewFileBtn.disabled = false;
+        chooseMasterFileBtn.disabled = false;
+        document.getElementById("statusText").innerText =
+          "No file selected. Please select a valid file.";
+      }
+    });
+  }
+
+  async function chooseMasterFile() {
+    var chooseNewFileBtn = document.getElementById("chooseNewFileBtn");
+    var chooseMasterFileBtn = document.getElementById("chooseMasterFileBtn");
+    chooseNewFileBtn.disabled = true;
+    chooseMasterFileBtn.disabled = true;
+
+    if (!accessToken) {
+        chooseNewFileBtn.disabled = false;
+        chooseMasterFileBtn.disabled = false;
+        return;
+    }
+    openSingleFilePicker(["IDS Master"], function (fileId) {
+      if (fileId) {
+        document.getElementById("statusText").innerText =
+          "Attempting to copy template file...";
+        var importType = document.getElementById("selectImportType").value;
+        google.script.run
+          .withSuccessHandler(checkFileTemplateAccessSuccess)
+          .withFailureHandler(checkFileTemplateAccessFailure)
+          .checkFileTemplateAccess(fileId, importType);
+      } else {
+        chooseNewFileBtn.disabled = false;
+        chooseMasterFileBtn.disabled = false;
+        document.getElementById("statusText").innerText =
+          "No file selected. Please select a valid IDS Master file.";
+      }
+    });
+  }
+
+  function checkFileTemplateAccessSuccess(result) {
+    console.log("checkFileTemplateAccessSuccess result:", result);
+    if (result.success) {
+      oldSheetID = result.oldFileId;
+      idMasterID = result.idMasterFileId;
+      sheetType = result.sheetType;
+      if (result.accessDenied) {
+        document.getElementById("statusText").innerText =
+          "Access denied to template file. Please grant access.";
+        openSingleFilePicker(
+          result.templateID,
+          function (fileId) {
+            if (fileId) {
+              document.getElementById("statusText").innerText =
+                "Access granted to template file. Copying template...";
+              google.script.run
+                .withSuccessHandler(copyFileTemplateSuccess)
+                .withFailureHandler(copyFileTemplateFailure)
+                .copyFileTemplate(
+                  idMasterID,
+                  result.templateID,
+                  sheetType,
+                  result.templateVersion
+                );
+            } else {
+              document.getElementById("chooseNewFileBtn").disabled = false;
+              document.getElementById("chooseMasterFileBtn").disabled = false;
+              document.getElementById("statusText").innerText =
+                "No template file selected. Please try again.";
+            }
+          },
+          { allowSharedFiles: true }
+        );
+      } else {
+        document.getElementById("statusText").innerText =
+          "Template file copied successfully.";
+        newSheetID = result.newFileId;
+        var gid = result.gid || "";
+        showFileCopiedSuccess(gid);
+      }
+    } else {
+      document.getElementById("chooseNewFileBtn").disabled = false;
+      document.getElementById("chooseMasterFileBtn").disabled = false;
+      document.getElementById(
+        "statusText"
+      ).innerText = `Error checking Template file access: ${result.message}`;
+    }
+  }
+
+  function checkFileTemplateAccessFailure(error) {
+    document.getElementById("chooseNewFileBtn").disabled = false;
+    document.getElementById("chooseMasterFileBtn").disabled = false;
+    document.getElementById(
+      "statusText"
+    ).innerText = `Error checking Template file access: ${
+      error.message || error
+    }`;
+  }
+
+  function copyFileTemplateSuccess(result) {
+    if (result.success) {
+      document.getElementById("statusText").innerText =
+        "Template file copied successfully.";
+      newSheetID = result.newFileId;
+      var gid = result.gid || "";
+      showFileCopiedSuccess(gid);
+    } else {
+      document.getElementById("chooseNewFileBtn").disabled = false;
+      document.getElementById("chooseMasterFileBtn").disabled = false;
+      document.getElementById(
+        "statusText"
+      ).innerText = `Error copying template: ${result.message}`;
+    }
+  }
+
+  function copyFileTemplateFailure(error) {
+    document.getElementById("chooseNewFileBtn").disabled = false;
+    document.getElementById("chooseMasterFileBtn").disabled = false;
+    document.getElementById(
+      "statusText"
+    ).innerText = `Error copying template: ${error.message || error}`;
+  }
+
+  function showFileCopiedSuccess(gid) {
+    document.getElementById(
+      "selectImportTitle"
+    ).innerText = `📂 New ${sheetType} file created`;
+    document.getElementById("selectImportText").innerHTML =
+      `<strong>➡️ Go to your new ${sheetType} sheet and allow access to your IDS Master sheet.</strong>` +
+      `<br><a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open ${sheetType} sheet</a>`;
+    document.getElementById("labelImportType").style.display = "none";
+    document.getElementById("selectImportType").style.display = "none";
+    document.getElementById("chooseNewFileBtn").style.display = "none";
+    document.getElementById("chooseMasterFileBtn").style.display = "none";
+
+    document.getElementById("selectImportContinueBtn").style.display = "block";
+  }
+
+  function checkNewSheetRef() {
+    document.getElementById("selectImportContinueBtn").disabled = true;
+    document.getElementById("statusText").innerText =
+      "Checking new sheet reference...";
+
+    google.script.run
+      .withSuccessHandler(async function (result) {
+        if (result.success) {
+          document.getElementById("selectImportSection").style.display = "none";
+          document.getElementById("fileAccessSection").style.display = "block";
+          document.getElementById(
+            "importButton"
+          ).innerText = `Import ${sheetType} data`;
+          showFileAccessSection();
+          const fileIds = [newSheetID, oldSheetID, idMasterID];
+          google.script.run
+            .withSuccessHandler(onSheetAccessCheckSuccess)
+            .withFailureHandler(onSheetAccessCheckFailure)
+            .checkSheetAccess(fileIds, userEmail);
+        } else {
+          document.getElementById("selectImportContinueBtn").disabled = false;
+          document.getElementById("statusText").innerText = `${result.message}`;
+        }
+      })
+      .withFailureHandler(function (error) {
+        document.getElementById("selectImportContinueBtn").disabled = false;
+        document.getElementById(
+          "statusText"
+        ).innerText = `Error checking new sheet reference: ${
+          error.message || error
+        }`;
+      })
+      .checkNewSheetReference(newSheetID);
+  }
+
+  function findAndGrantNewSheet(newFileID) {
+    return new Promise((resolve, reject) => {
+      if (!newFileID) {
+        document.getElementById("statusText").innerText =
+          "Please enter a valid Sheet ID.";
+        resolve(false);
+        return;
+      }
+
+      document.getElementById("statusText").innerText =
+        "Checking access to sheet...";
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (result.success) {
+            if (result.notOwnedFiles && result.notOwnedFiles.length > 0) {
+              document.getElementById(
+                "selectImportTitle"
+              ).innerText = `⛔ ${result.notOwnedFiles.length} Files Not Owned By You`;
+              document.getElementById("selectImportText").innerHTML =
+                `<strong>📂 Please ensure you own the following file </strong><br>` +
+                result.notOwnedFiles
+                  .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
+                  .join("<br>");
+              document.getElementById("labelImportType").style.display = "none";
+              document.getElementById("selectImportType").style.display =
+                "none";
+              document.getElementById("chooseNewFileBtn").style.display =
+                "none";
+              document.getElementById("chooseMasterFileBtn").style.display =
+                "none";
+              document.getElementById("statusText").style.display = "none";
+              resolve(false);
+            } else if (
+              result.inaccessibleFiles &&
+              result.inaccessibleFiles.length > 0
+            ) {
+              document.getElementById(
+                "statusText"
+              ).innerText = `Grant access to the new sheet.`;
+              openSingleFilePicker(newFileID, function (granted) {
+                if (granted) {
+                  newSheetID = newFileID;
+                  document.getElementById("statusText").innerText =
+                    "Access to new sheet granted. Searching for IDS Master...";
+                  findAndGrantIdMaster(newFileID).then(resolve).catch(reject);
+                } else {
+                  document.getElementById("statusText").innerText =
+                    "Access to new sheet denied. Please grant access.";
+                  resolve(false);
+                }
+              });
+            } else {
+              newSheetID = newFileID;
+              document.getElementById("statusText").innerText =
+                "Access to new sheet granted. Searching for IDS Master...";
+              findAndGrantIdMaster(newFileID).then(resolve).catch(reject);
+            }
+          } else {
+            resolve(false);
+          }
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById(
+            "statusText"
+          ).innerText = `Error checking access: ${error.message || error}`;
+          reject(error);
+        })
+        .checkSheetAccess([newFileID], userEmail);
+    });
+  }
+
+  function findAndGrantIdMaster(sheetID) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(function (idMasterResult) {
+          if (idMasterResult && idMasterResult.sheetID) {
+            // Set the global idMasterID when we find the IDS Master
+            idMasterID = idMasterResult.sheetID;
+            sheetType = idMasterResult.sheetType;
+
+            google.script.run
+              .withSuccessHandler(function (result) {
+                if (result.success) {
+                  if (
+                    result.inaccessibleFiles &&
+                    result.inaccessibleFiles.length > 0
+                  ) {
+                    document.getElementById(
+                      "statusText"
+                    ).innerText = `Grant access to the IDS Master sheet.`;
+                    openSingleFilePicker(
+                      idMasterResult.sheetID,
+                      function (granted) {
+                        if (granted) {
+                          document.getElementById("statusText").innerText =
+                            "IDS Master access granted. Searching for old sheet...";
+                          findAndGrantOldSheet(idMasterResult)
+                            .then(() => resolve(true))
+                            .catch((error) => reject(error));
+                        } else {
+                          reject(
+                            new Error(
+                              "Access to IDS Master sheet denied by user."
+                            )
+                          );
+                        }
+                      }
+                    );
+                  } else {
+                    document.getElementById("statusText").innerText =
+                      "IDS Master access granted. Searching for old sheet...";
+                    findAndGrantOldSheet(idMasterResult)
+                      .then(() => resolve(true))
+                      .catch((error) => reject(error));
+                  }
+                } else {
+                  document.getElementById("statusText").innerText =
+                    "Access to IDS Master sheet denied. Please grant access.";
+                  reject(new Error("Access to IDS Master sheet denied."));
+                }
+              })
+              .withFailureHandler(function (e) {
+                document.getElementById("statusText").innerText =
+                  "Error checking access to IDS Master: " + (e.message || e);
+                reject(
+                  new Error(
+                    "Error checking access to IDS Master: " + (e.message || e)
+                  )
+                );
+              })
+              .checkSheetAccess([idMasterResult.sheetID], userEmail);
+          } else {
+            document.getElementById("statusText").innerText =
+              "Could not find IDS Master in sheet.";
+            reject(new Error("Could not find IDS Master in sheet."));
+          }
+        })
+        .withFailureHandler(function (e) {
+          document.getElementById("statusText").innerText =
+            "Error searching for IDS Master: " + (e.message || e);
+          reject(
+            new Error("Error searching for IDS Master: " + (e.message || e))
+          );
+        })
+        .findSheetIdAndType(sheetID);
+    });
+  }
+
+  function findAndGrantOldSheet(idMasterResult) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(function (oldSheetResult) {
+          if (oldSheetResult && oldSheetResult.sheetID) {
+            // Set the global oldSheetID when we find the old sheet
+            oldSheetID = oldSheetResult.sheetID;
+
+            google.script.run
+              .withSuccessHandler(function (result) {
+                if (result.success) {
+                  if (
+                    result.inaccessibleFiles &&
+                    result.inaccessibleFiles.length > 0
+                  ) {
+                    document.getElementById(
+                      "statusText"
+                    ).innerText = `Grant access to the old sheet.`;
+                    openSingleFilePicker(
+                      oldSheetResult.sheetID,
+                      function (granted2) {
+                        if (granted2) {
+                          resolve(true);
+                        } else {
+                          reject(
+                            new Error("Access to old sheet denied by user.")
+                          );
+                        }
+                      }
+                    );
+                  } else {
+                    resolve(true);
+                  }
+                } else {
+                  document.getElementById("statusText").innerText =
+                    "Access to old sheet denied. Please grant access.";
+                  reject(new Error("Access to old sheet denied."));
+                }
+              })
+              .withFailureHandler(function (e) {
+                document.getElementById("statusText").innerText =
+                  "Error granting access to old sheet: " + (e.message || e);
+                reject(
+                  new Error(
+                    "Error granting access to old sheet: " + (e.message || e)
+                  )
+                );
+              })
+              .checkSheetAccess([oldSheetResult.sheetID], userEmail);
+          } else {
+            document.getElementById("statusText").innerText =
+              "Could not find old sheet in IDS Master.";
+            reject(new Error("Could not find old sheet in IDS Master."));
+          }
+        })
+        .withFailureHandler(function (e) {
+          document.getElementById("statusText").innerText =
+            "Error searching for old sheet: " + (e.message || e);
+          reject(
+            new Error("Error searching for old sheet: " + (e.message || e))
+          );
+        })
+        .findSheetIdAndType(idMasterResult.sheetID, idMasterResult.sheetType);
+    });
+  }
+</script>

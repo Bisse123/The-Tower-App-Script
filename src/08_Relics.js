@@ -1,6 +1,4 @@
 const relics = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importRelicsData(versionDifference) {
       try {
@@ -23,7 +21,7 @@ const relics = {
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
+
         if (versionDifference === 0) {
           // console.log(`Same Version`);
 
@@ -32,20 +30,17 @@ const relics = {
             console.log("Relics sheet not found in old relic spreadsheet");
             return {
               success: false,
-              message: `Relics sheet not found in old relic spreadsheet`
+              message: `Relics sheet not found in old relic spreadsheet`,
             };
           }
 
           // Get all data from old Relics sheet
-          var oldRelicsData = SheetsAPI.getDataRange(
-            oldSheetID,
-            "Relics"
-          );
+          var oldRelicsData = SheetsAPI.getDataRange(oldSheetID, "Relics");
           if (!oldRelicsData || oldRelicsData.length === 0) {
             console.log(`Could not read data from old Relics sheet`);
             return {
               success: false,
-              message: `Could not read data from old Relics sheet`
+              message: `Could not read data from old Relics sheet`,
             };
           }
 
@@ -70,7 +65,8 @@ const relics = {
             var oldRelicsRange =
               "Relics!" +
               shared.columnToLetter(oldRelicNameCol) +
-              startRow + ":" +
+              startRow +
+              ":" +
               shared.columnToLetter(oldRelicUnlockedCol);
 
             var oldRelicsValues = SheetsAPI.getValues(
@@ -81,7 +77,7 @@ const relics = {
               console.log(`Could not read relic data from old spreadsheet`);
               return {
                 success: false,
-                message: `Could not read relic data from old spreadsheet`
+                message: `Could not read relic data from old spreadsheet`,
               };
             }
 
@@ -99,19 +95,19 @@ const relics = {
               console.log("Relics sheet not found in new relic spreadsheet");
               return {
                 success: false,
-                message: `Relics sheet not found in new relic spreadsheet`
+                message: `Relics sheet not found in new relic spreadsheet`,
               };
             }
 
             return updateRelics(newSheetID, oldRelics);
-          } 
+          }
           // else {
           // }
         } else {
           console.log(`Version mismatch - skipping relic data import`);
           return {
             success: false,
-            message: `Version mismatch - skipping relic data import`
+            message: `Version mismatch - skipping relic data import`,
           };
         }
       } catch (error) {
@@ -131,7 +127,7 @@ const relics = {
           console.log(`Not enough data in new Relics sheet`);
           return {
             success: false,
-            message: `Not enough data in new Relics sheet`
+            message: `Not enough data in new Relics sheet`,
           };
         }
 
@@ -156,14 +152,18 @@ const relics = {
           console.log(`Could not find header row in new Relics sheet`);
           return {
             success: false,
-            message: `Could not find header row in new Relics sheet`
+            message: `Could not find header row in new Relics sheet`,
           };
         }
 
         // Extract unlocked relic names from old data (skip header row)
         var oldRelicsNames = [];
         oldRelics.forEach(function (relic) {
-          if (relic[relic.length - 1] === true || relic[relic.length - 1] === "TRUE" || relic[relic.length - 1] === "true") {
+          if (
+            relic[relic.length - 1] === true ||
+            relic[relic.length - 1] === "TRUE" ||
+            relic[relic.length - 1] === "true"
+          ) {
             oldRelicsNames.push(relic[0]);
           }
         });
@@ -174,7 +174,8 @@ const relics = {
         var newRelicNamesRange =
           "Relics!" +
           shared.columnToLetter(newRelicNameCol) +
-          startRow + ":" +
+          startRow +
+          ":" +
           shared.columnToLetter(newRelicNameCol) +
           endRow;
 
@@ -186,7 +187,7 @@ const relics = {
           console.log(`Could not read new relic names`);
           return {
             success: false,
-            message: `Could not read new relic names`
+            message: `Could not read new relic names`,
           };
         }
 
@@ -197,7 +198,7 @@ const relics = {
               (cell) =>
                 cell !== null &&
                 cell !== undefined &&
-                String(cell || '').trim() !== ""
+                String(cell || "").trim() !== ""
             )
           )
           .map((row) => row[0]);
@@ -216,7 +217,8 @@ const relics = {
           var unlockedRange =
             "Relics!" +
             shared.columnToLetter(newRelicUnlockedCol) +
-            startRow + ":" +
+            startRow +
+            ":" +
             shared.columnToLetter(newRelicUnlockedCol) +
             endRow;
 
@@ -224,13 +226,13 @@ const relics = {
           // console.log(`Relics updated successfully: ${newRelicsUnlocked.length} relics processed`);
           return {
             success: true,
-            message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`
+            message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`,
           };
         }
         // console.log(`No updates needed for relics`);
         return {
           success: true,
-          message: `No updates needed for relics`
+          message: `No updates needed for relics`,
         };
       } catch (error) {
         console.log("Error in updateRelics: " + error.toString());
@@ -240,10 +242,17 @@ const relics = {
         };
       }
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importRelicsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

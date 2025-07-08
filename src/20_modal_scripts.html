@@ -1,0 +1,39 @@
+<script>
+  function showYesNoDialog(oldVersion, newVersion, callback) {
+    const messageElement = document.getElementById("yesNoMessage");
+    const modalBackground = document.getElementById("modalBackground");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+    
+    if (!messageElement || !modalBackground || !yesBtn || !noBtn) {
+      console.error("Modal elements not found. Cannot show dialog.");
+      callback(false);
+      return;
+    }
+    
+    messageElement.innerHTML = `<strong>Version Mismatch Detected</strong><br>
+      Old Version: ${oldVersion}<br>
+      New Version: ${newVersion}<br>
+      Do you want to proceed with the import?`;
+
+    modalBackground.style.display = "flex";
+
+    function cleanup(result) {
+      console.log("Dialog cleanup, result:", result);
+      modalBackground.style.display = "none";
+      yesBtn.removeEventListener("click", onYes);
+      noBtn.removeEventListener("click", onNo);
+      callback(result);
+    }
+
+    function onYes() {
+      cleanup(true);
+    }
+    function onNo() {
+      cleanup(false);
+    }
+
+    yesBtn.addEventListener("click", onYes);
+    noBtn.addEventListener("click", onNo);
+  }
+</script>

@@ -1,6 +1,4 @@
 const bots = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importBotsData(versionDifference) {
       try {
@@ -23,41 +21,28 @@ const bots = {
 
         if (versionDifference === 0) {
           // console.log(`Same Version - proceeding with bots data import`);
-          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
-          if (!newSpreadsheet) {
-            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
-            return {
-              success: false,
-              message: `New spreadsheet not found with ID: ${newSheetID}`,
-            };
-          }
-          // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
             console.log(`_IDS sheet not found in new bots spreadsheet`);
             return {
               success: false,
-              message: `_IDS sheet not found in new bots spreadsheet`
+              message: `_IDS sheet not found in new bots spreadsheet`,
             };
           }
 
-          // Check if Master Sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
             console.log(`Master Sheet not found in new bots spreadsheet`);
             return {
               success: false,
-              message: `Master Sheet not found in new bots spreadsheet`
+              message: `Master Sheet not found in new bots spreadsheet`,
             };
           }
           // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
             return {
               success: false,
-              message: `Could not read header row from _IDS sheet`
+              message: `Could not read header row from _IDS sheet`,
             };
           }
 
@@ -67,7 +52,7 @@ const bots = {
             console.log(`Bots column not found in header`);
             return {
               success: false,
-              message: `Bots column not found in header`
+              message: `Bots column not found in header`,
             };
           }
 
@@ -84,7 +69,7 @@ const bots = {
             console.log(`Error getting old bot levels: ${error.toString()}`);
             return {
               success: false,
-              message: `Error getting old bot levels: ${error.message}`
+              message: `Error getting old bot levels: ${error.message}`,
             };
           }
 
@@ -92,7 +77,9 @@ const bots = {
           var oldBotLevels = oldBotLevelsData.filter((row) =>
             row.some(
               (cell) =>
-                cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+                cell !== null &&
+                cell !== undefined &&
+                String(cell || "").trim() !== ""
             )
           );
 
@@ -108,7 +95,10 @@ const bots = {
         // }
       } catch (error) {
         console.log(`Error importing bots data: ${error.toString()}`);
-        return { success: false, message: `Error importing bots data: ${error.message}` };
+        return {
+          success: false,
+          message: `Error importing bots data: ${error.message}`,
+        };
       }
     }
 
@@ -119,7 +109,7 @@ const bots = {
         console.log(`Error getting bot master sheet data`);
         return {
           success: false,
-          message: `Error getting bot master sheet data`
+          message: `Error getting bot master sheet data`,
         };
       }
 
@@ -128,7 +118,7 @@ const bots = {
         console.log(`Not enough data in Master Sheet`);
         return {
           success: false,
-          message: `Not enough data in Master Sheet`
+          message: `Not enough data in Master Sheet`,
         };
       }
 
@@ -138,33 +128,32 @@ const bots = {
         console.log(`Bot column not found in Master Sheet`);
         return {
           success: false,
-          message: `Bot column not found in Master Sheet`
+          message: `Bot column not found in Master Sheet`,
         };
       }
 
       // Get bot data starting from row 2
-      var botDataRange = 
+      var botDataRange =
         "Master Sheet!" +
         shared.columnToLetter(botCol + 1) +
         "2:" +
         shared.columnToLetter(botCol + 5);
-      
-      var newBotDataValues = SheetsAPI.getValues(
-        newSheetID,
-        botDataRange
-      );
+
+      var newBotDataValues = SheetsAPI.getValues(newSheetID, botDataRange);
       if (!newBotDataValues) {
         console.log(`Could not read bot data from Master Sheet`);
         return {
           success: false,
-          message: `Could not read bot data from Master Sheet`
+          message: `Could not read bot data from Master Sheet`,
         };
       }
       // Filter out empty rows
       var newBotData = newBotDataValues.filter((row) =>
         row.some(
           (cell) =>
-            cell !== null && cell !== undefined && String(cell || '').trim() !== ""
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
         )
       );
 
@@ -276,10 +265,18 @@ const bots = {
       }
       return bots;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importBotsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Add supported version numbers here as needed
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

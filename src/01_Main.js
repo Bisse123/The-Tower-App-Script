@@ -1,15 +1,15 @@
 const sheetVars = (sheetType) => {
   var sheetTypeFunctions = {
-    "Laboratory": lab,
-    "Workshop": workshop,
+    Laboratory: lab,
+    Workshop: workshop,
     "Ultimate Weapon": ultimate,
     "Themes & Songs": themes,
-    "Bots": bots,
-    "Relics": relics,
-    "Vault": vault,
-    "Cards": cards,
-    "Modules": modules,
-    "Guardians": guardians,
+    Bots: bots,
+    Relics: relics,
+    Vault: vault,
+    Cards: cards,
+    Modules: modules,
+    Guardians: guardians,
   };
   return sheetTypeFunctions[sheetType];
 };
@@ -39,55 +39,65 @@ const spreadsheets = (() => {
     }
     storedSpreadsheets[spreadsheet] = spreadsheetInfo;
     return spreadsheetInfo;
-  }
+  };
 })();
-
 
 function doGet(e) {
   // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
-  var template = HtmlService.createTemplateFromFile("WebApp");
+  var template = HtmlService.createTemplateFromFile("13_WebApp");
   template.newSheetID = e.parameter.newSheetID;
   template.oldSheetID = e.parameter.oldSheetID;
   template.idMasterID = e.parameter.idMasterID;
   template.sheetType = e.parameter.sheetType;
-  template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
-  template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
+  template.API_KEY =
+    PropertiesService.getScriptProperties().getProperty("API_KEY");
+  template.APP_ID =
+    PropertiesService.getScriptProperties().getProperty("APP_ID");
 
+  template.viewType = "webapp";
   return template
     .evaluate()
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setTitle("Import Data");
+}
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function onOpen(e) {
   // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
     var ui = SpreadsheetApp.getUi();
-    var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
-    if (sheetVars(sheetType)) {
-      // console.log("Sheet type found in Home Page B2: " + sheetType);
       ui.createMenu("Import Data")
-        .addItem("Help", "showHelpDialog")
+        .addItem("Get Started", "showGetStartedDialog")
         .addItem("Import Data", "showImportDialog")
         .addToUi();
-    } else {
-      ui.createMenu("Import Data")
-        .addItem("Help", "showHelpDialog")
-        .addToUi();
-    }
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
-function showHelpDialog() {
-  // console.log(`showHelpDialog called`);
+function onInstall(e) {
+  // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
   try {
-    var html = HtmlService.createHtmlOutputFromFile('HelpDialog')
-      .setWidth(300)
-      .setHeight(150);
-    SpreadsheetApp.getUi().showModalDialog(html, 'Help and Support');
+    var ui = SpreadsheetApp.getUi();
+      ui.createMenu("Import Data")
+        .addItem("Get Started", "showGetStartedDialog")
+        .addItem("Import Data", "showImportDialog")
+        .addToUi();
+  } catch (error) {}
+}
+
+function showGetStartedDialog() {
+  // console.log(`showGetStartedDialog called`);
+  try {
+    var template = HtmlService.createTemplateFromFile("13_getStartedApp")
+    var html = template
+      .evaluate()
+      .setWidth(1200)
+      .setHeight(700)
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+    SpreadsheetApp.getUi().showModalDialog(html, "Get Started");
   } catch (error) {
-    console.log(`Error in showHelpDialog: ${error.message}`);
+    console.log(`Error in showGetStartedDialog: ${error.message}`);
     SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
@@ -95,39 +105,74 @@ function showHelpDialog() {
 function showImportDialog() {
   // console.log(`showImportDialog called`);
   try {
-    var sheetType = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Home Page").getRange("B2").getValue();
+    var sheetType = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName("Home Page")
+      .getRange("B2")
+      .getValue();
     var newSheetID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
     var idMasterInfo = shared.findSheetTypeID(newSheetID, "IDS");
     var idMasterID = idMasterInfo ? shared.extractSheetId(idMasterInfo.id) : "";
+    
     var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
     var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
 
-    var template = HtmlService.createTemplateFromFile("WebApp");
+    var template = HtmlService.createTemplateFromFile("13_WebApp");
     template.newSheetID = newSheetID;
     template.oldSheetID = oldSheetID;
     template.idMasterID = idMasterID;
     template.sheetType = sheetType;
-    template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
-    template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
-  
-    template.API_KEY = PropertiesService.getScriptProperties().getProperty('API_KEY');
-    template.APP_ID = PropertiesService.getScriptProperties().getProperty('APP_ID');
-  
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.viewType = "sidebar";
 
     var html = template
       .evaluate()
-      // .setWidth(600)
-      // .setHeight(300)
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
     console.log(`Error in showImportDialog: ${error.message}`);
-    SpreadsheetApp.getUi().alert("Error: " + error.message);
+    var template = HtmlService.createTemplateFromFile("13_WebApp");
+    template.newSheetID = "";
+    template.oldSheetID = "";
+    template.idMasterID = "";
+    template.sheetType = "";
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+    template.viewType = "sidebar";
+
+    var html = template
+      .evaluate()
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setTitle("Import Data");
+    SpreadsheetApp.getUi().showSidebar(html);
   }
 }
 
-function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDifference) {
+function importData(
+  newSheetID,
+  oldSheetID,
+  idMasterID,
+  sheetType,
+  versionDifference
+) {
   // console.log(`Starting import for sheet type: ${sheetType} with ID: ${newSheetID}`);
   try {
     if (!sheetType) {
@@ -158,15 +203,31 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
       console.log(`IDS sheet not found in the new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message:`IDS sheet not found in the new ${sheetType} spreadsheet.`,
+        message: `IDS sheet not found in the new ${sheetType} spreadsheet.`,
       };
     }
 
-    if (!SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT") && !SheetsAPI.getSheetByName(newSpreadsheet, "STATS")) {
+    if (
+      !SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT") &&
+      !SheetsAPI.getSheetByName(newSpreadsheet, "STATS")
+    ) {
       console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
         message: `Export sheet not found in new ${sheetType} spreadsheet`,
+      };
+    }
+
+    var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS");
+    if (
+      !newSheetInfo ||
+      !newSheetInfo.accessStatus ||
+      newSheetInfo.accessStatus.value !== "✅"
+    ) {
+      console.log(`New sheet has not been granted access to IDS Master.`);
+      return {
+        success: false,
+        message: `New sheet has not been granted access to IDS Master.`,
       };
     }
 
@@ -184,6 +245,29 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
       return {
         success: false,
         message: `IDS sheet not found in the IDS Master Spreadsheet.`,
+      };
+    }
+    var idMasterInfo = shared.findSheetTypeID(
+      idMasterID,
+      "IDS",
+      sheetType + " ID"
+    );
+    if (versionDifference === 0) {
+      var statusValue = "✅";
+    } else {
+      var statusValue = "Wrong ID or Version";
+    }
+    if (
+      !idMasterInfo ||
+      !idMasterInfo.accessStatus ||
+      idMasterInfo.accessStatus.value !== statusValue
+    ) {
+      console.log(
+        `IDS Master has not granted access to the old ${sheetType} sheet.`
+      );
+      return {
+        success: false,
+        message: `IDS Master has not granted access to the old ${sheetType} sheet.`,
       };
     }
 
@@ -210,24 +294,21 @@ function importData(newSheetID, oldSheetID, idMasterID, sheetType, versionDiffer
 
     var result = sheetTypeFunction.importData(versionDifference);
     if (!result || !result.success) {
-      console.log(`Error importing data for ${sheetType}: ${result ? result.message : "Unknown error"}`);
+      console.log(
+        `Error importing data for ${sheetType}: ${
+          result ? result.message : "Unknown error"
+        }`
+      );
       return {
         success: false,
-        message: `Error importing data for ${sheetType}: ${result && result.message ? result.message : "Unknown error"}`,
+        message: `Error importing data for ${sheetType}: ${
+          result && result.message ? result.message : "Unknown error"
+        }`,
       };
     }
-    
-    var isImportedInfo = shared.findSheetTypeID(newSheetID, "IDS");
-    if (!isImportedInfo || !isImportedInfo.isImported) {
-      console.log(`Can not find import cell in the new IDS sheet.`);
-      return {
-        success: false,
-        message: "Can not find import cell in the new IDS sheet.",
-      };
-    }
-    
+
     try {
-      SheetsAPI.setValue(newSheetID, isImportedInfo.isImported.range, "✅");
+      SheetsAPI.setValue(newSheetID, newSheetInfo.importStatus.range, "✅");
     } catch (error) {
       console.log(`Error updating imported status:  ${error.toString()}`);
       return {

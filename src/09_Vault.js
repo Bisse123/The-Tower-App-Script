@@ -1,6 +1,4 @@
 const vault = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importVaultData(versionDifference) {
       try {
@@ -23,7 +21,7 @@ const vault = {
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
+
         if (versionDifference === 0) {
           // console.log(`Same Version`);
 
@@ -73,24 +71,27 @@ const vault = {
           batchUpdate = batchUpdate.concat(result.batchUpdate || []);
           if (batchUpdate.length > 0) {
             // Apply batch updates to the new spreadsheet
-            var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+            var updateResult = SheetsAPI.batchUpdateValues(
+              newSheetID,
+              batchUpdate
+            );
             if (!updateResult) {
               console.log(`Error applying batch updates to new spreadsheet`);
               return {
                 success: false,
-                message: "Error applying batch updates to new spreadsheet"
+                message: "Error applying batch updates to new spreadsheet",
               };
             }
             // console.log(`Vault data imported successfully`);
             return {
               success: true,
-              message: `Vault data imported successfully`
+              message: `Vault data imported successfully`,
             };
           }
           // console.log(`No updates needed for vault`);
           return {
             success: true,
-            message: `No updates needed for vault`
+            message: `No updates needed for vault`,
           };
         }
         // else {// Else do something to convert old version to new one (Future me problem)
@@ -99,7 +100,7 @@ const vault = {
         console.log(`Error importing vault data: ${error.toString()}`);
         return {
           success: false,
-          message: `Error importing vault data: ${error.message}`
+          message: `Error importing vault data: ${error.message}`,
         };
       }
     }
@@ -119,7 +120,7 @@ const vault = {
         console.log(`Error getting sheet data`);
         return {
           success: false,
-          message: `Error getting sheet data`
+          message: `Error getting sheet data`,
         };
       }
 
@@ -128,7 +129,7 @@ const vault = {
         console.log(`Not enough data in sheet`);
         return {
           success: false,
-          message: `Not enough data in sheet`
+          message: `Not enough data in sheet`,
         };
       }
 
@@ -145,7 +146,8 @@ const vault = {
         for (var t = 0; t < newHeaderIndices.length; t++) {
           var uIdx = newHeaderIndices[t][vaultPattern.indexOf("U")];
           var valueIdx = newHeaderIndices[t][vaultPattern.indexOf("Value")];
-          var bonusTypeIdx = newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")];
+          var bonusTypeIdx =
+            newHeaderIndices[t][vaultPattern.indexOf("Bonus Type")];
           var u = row[uIdx];
           var value = row[valueIdx];
           var bonusType = row[bonusTypeIdx];
@@ -189,13 +191,13 @@ const vault = {
         return {
           success: true,
           message: `Vault updated successfully`,
-          batchUpdate: batchUpdate
+          batchUpdate: batchUpdate,
         };
       }
       // console.log(`No updates needed for vault`);
       return {
         success: true,
-        message: `No updates needed for vault`
+        message: `No updates needed for vault`,
       };
     }
 
@@ -258,10 +260,17 @@ const vault = {
       }
       return indices;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importVaultData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

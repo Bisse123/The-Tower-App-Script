@@ -1,6 +1,4 @@
 const themes = {
-  convertVersionFunctions: {},
-
   importData: function (versionDifference) {
     function importThemesData(versionDifference) {
       try {
@@ -32,7 +30,7 @@ const themes = {
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
+
         if (versionDifference === 0) {
           // console.log(`Same Version`);
           var oldThemesData = SheetsAPI.getDataRange(
@@ -63,16 +61,14 @@ const themes = {
         };
       } catch (error) {
         console.log(`Error importing themes data: ${error.toString()}`);
-        return { success: false, message: `Error importing themes data: ${error.message}` };
+        return {
+          success: false,
+          message: `Error importing themes data: ${error.message}`,
+        };
       }
     }
 
-    function updateThemes(
-      targetThemes,
-      newSheetID,
-      sheetName,
-      oldThemesNames
-    ) {
+    function updateThemes(targetThemes, newSheetID, sheetName, oldThemesNames) {
       // Get sheet data using SheetsAPI
       var newThemesData = SheetsAPI.getDataRange(newSheetID, sheetName);
       if (!newThemesData) {
@@ -136,7 +132,10 @@ const themes = {
 
       if (batchUpdate.length !== 0) {
         SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        return { success: true, message: "Themes & Songs updated successfully" };
+        return {
+          success: true,
+          message: "Themes & Songs updated successfully",
+        };
       }
       return { success: true, message: "No updates needed for Themes & Songs" };
     }
@@ -173,10 +172,17 @@ const themes = {
 
       return oldThemesNames;
     }
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importThemesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };

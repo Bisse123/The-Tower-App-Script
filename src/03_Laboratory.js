@@ -1,6 +1,4 @@
 const lab = {
-  convertVersionFunctions: {},
-
   importData: function importData(versionDifference) {
     function importLabData(versionDifference) {
       try {
@@ -16,15 +14,6 @@ const lab = {
 
         if (versionDifference === 0) {
           // console.log("Same Version - proceeding with lab data import");
-          var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
-          if (!newSpreadsheet) {
-            console.log(`New spreadsheet not found with ID: ${newSheetID}`);
-            return {
-              success: false,
-              message: `New spreadsheet not found with ID: ${newSheetID}`,
-            };
-          }
-          // Check if _IDS sheet exists
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
             console.log(`_IDS sheet not found in new lab spreadsheet`);
             return {
@@ -32,8 +21,7 @@ const lab = {
               message: "_IDS sheet not found in new lab spreadsheet",
             };
           }
-          
-          // Check if Master Sheet exists
+
           if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
             console.log(`Master Sheet not found in new lab spreadsheet`);
             return {
@@ -43,10 +31,7 @@ const lab = {
           }
 
           // Get header row to find Labs column
-          var headerValues = SheetsAPI.getValues(
-            newSheetID,
-            "_IDS!1:1"
-          );
+          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
 
           if (!headerValues || headerValues.length === 0) {
             console.log(`Could not read header row from _IDS sheet`);
@@ -92,7 +77,7 @@ const lab = {
               (cell) =>
                 cell !== null &&
                 cell !== undefined &&
-                String(cell || '').trim() !== ""
+                String(cell || "").trim() !== ""
             )
           );
 
@@ -211,11 +196,18 @@ const lab = {
         };
       }
     }
-    
+
+    var convertVersionFunctions = {
+      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+    };
+
     return importLabData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    return this.convertVersionFunctions[oldVersion];
+    var supportedVersions = {
+      // Example: 3: true,
+    };
+    return supportedVersions[oldVersion] || false;
   },
 };
