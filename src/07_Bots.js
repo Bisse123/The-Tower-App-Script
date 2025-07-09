@@ -2,13 +2,6 @@ const bots = {
   importData: function (versionDifference) {
     function importBotsData(versionDifference) {
       try {
-        var targetBots = [
-          "Flame Bot",
-          "Thunder Bot",
-          "Golden Bot",
-          "Amplify Bot",
-        ];
-
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -19,85 +12,128 @@ const bots = {
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log(`Same Version - proceeding with bots data import`);
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(`_IDS sheet not found in new bots spreadsheet`);
-            return {
-              success: false,
-              message: `_IDS sheet not found in new bots spreadsheet`,
-            };
-          }
-
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(`Master Sheet not found in new bots spreadsheet`);
-            return {
-              success: false,
-              message: `Master Sheet not found in new bots spreadsheet`,
-            };
-          }
-          // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-          if (!headerValues || headerValues.length === 0) {
-            console.log(`Could not read header row from _IDS sheet`);
-            return {
-              success: false,
-              message: `Could not read header row from _IDS sheet`,
-            };
-          }
-
-          var headerRow = headerValues[0];
-          var importbotColStart = headerRow.indexOf("Bots");
-          if (importbotColStart === -1) {
-            console.log(`Bots column not found in header`);
-            return {
-              success: false,
-              message: `Bots column not found in header`,
-            };
-          }
-
-          // Get old bot levels data using Sheets API
-          var oldBotLevelsData;
-          try {
-            var colStart = shared.columnToLetter(importbotColStart + 1);
-            var colEnd = shared.columnToLetter(importbotColStart + 5);
-            oldBotLevelsData = SheetsAPI.getValues(
-              newSheetID,
-              `_IDS!${colStart}2:${colEnd}`
-            );
-          } catch (error) {
-            console.log(`Error getting old bot levels: ${error.toString()}`);
-            return {
-              success: false,
-              message: `Error getting old bot levels: ${error.message}`,
-            };
-          }
-
-          // Filter out empty rows
-          var oldBotLevels = oldBotLevelsData.filter((row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || "").trim() !== ""
-            )
-          );
-
-          var oldBots = getOldBots(targetBots, oldBotLevels);
-          return updateBotLevels(
-            targetBots,
-            newSheetID,
-            "Master Sheet",
-            oldBots
-          );
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log(`Old spreadsheet not found`);
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
         }
-        // else {// Else do something to convert old version to new one (Future me problem)
-        // }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
+        }
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing bots data: ${result.message}`);
+          return result;
+        }
+
+        var targetBots = result.targetBots || [];
+        var oldBots = result.oldBots || {};
+        return updateBotLevels(targetBots, newSheetID, "Master Sheet", oldBots);
       } catch (error) {
         console.log(`Error importing bots data: ${error.toString()}`);
         return {
           success: false,
           message: `Error importing bots data: ${error.message}`,
+        };
+      }
+    }
+
+    function version10(newSheetID, oldSheetID) {
+      try {
+        var targetBots = [
+          "Flame Bot",
+          "Thunder Bot",
+          "Golden Bot",
+          "Amplify Bot",
+        ];
+
+        var newSpreadsheet = SpreadsheetApp.openById(newSheetID);
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
+          console.log(`_IDS sheet not found in new bots spreadsheet`);
+          return {
+            success: false,
+            message: `_IDS sheet not found in new bots spreadsheet`,
+          };
+        }
+
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+          console.log(`Master Sheet not found in new bots spreadsheet`);
+          return {
+            success: false,
+            message: `Master Sheet not found in new bots spreadsheet`,
+          };
+        }
+
+        // Get header row to find Bots column
+        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
+        if (!headerValues || headerValues.length === 0) {
+          console.log(`Could not read header row from _IDS sheet`);
+          return {
+            success: false,
+            message: `Could not read header row from _IDS sheet`,
+          };
+        }
+
+        var headerRow = headerValues[0];
+        var importbotColStart = headerRow.indexOf("Bots");
+        if (importbotColStart === -1) {
+          console.log(`Bots column not found in header`);
+          return {
+            success: false,
+            message: `Bots column not found in header`,
+          };
+        }
+
+        // Get old bot levels data using Sheets API
+        var oldBotLevelsData;
+        try {
+          var colStart = shared.columnToLetter(importbotColStart + 1);
+          var colEnd = shared.columnToLetter(importbotColStart + 5);
+          oldBotLevelsData = SheetsAPI.getValues(
+            newSheetID,
+            `_IDS!${colStart}2:${colEnd}`
+          );
+        } catch (error) {
+          console.log(`Error getting old bot levels: ${error.toString()}`);
+          return {
+            success: false,
+            message: `Error getting old bot levels: ${error.message}`,
+          };
+        }
+
+        // Filter out empty rows
+        var oldBotLevels = oldBotLevelsData.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+          )
+        );
+
+        var oldBots = getOldBots(targetBots, oldBotLevels);
+        
+        return {
+          success: true,
+          message: "Bots processed successfully",
+          targetBots: targetBots,
+          oldBots: oldBots,
+        };
+      } catch (error) {
+        console.log(`Error processing bots data: ${error.toString()}`);
+        return {
+          success: false,
+          message: `Error processing bots data: ${error.message}`,
         };
       }
     }
@@ -266,17 +302,42 @@ const bots = {
       return bots;
     }
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importBotsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Add supported version numbers here as needed
-      // Example: 3: true,
+    var versionCompatibility = {
+      "v1.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };

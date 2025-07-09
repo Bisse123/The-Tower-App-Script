@@ -2,6 +2,54 @@ const ultimate = {
   importData: function (versionDifference) {
     function importUltimateData(versionDifference) {
       try {
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!newSpreadsheet) {
+          console.log(`New spreadsheet not found`);
+          return {
+            success: false,
+            message: "New spreadsheet not found",
+          };
+        }
+        var newSheetID = newSpreadsheet.spreadsheetId;
+
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log(`Old spreadsheet not found`);
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
+        }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
+        }
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing ultimate weapons data: ${result.message}`);
+          return result;
+        }
+
+        var targetWeapons = result.targetWeapons || [];
+        var oldUltimate = result.oldUltimate || {};
+        return updateUltimateLevels(targetWeapons, newSheetID, oldUltimate);
+      } catch (error) {
+        console.log("Error in importUltimateData: " + error.toString());
+        return {
+          success: false,
+          message: "Error importing ultimate weapons data: " + error.message,
+        };
+      }
+    }
+
+    function version10(newSheetID, oldSheetID) {
+      try {
         var targetWeapons = [
           "Chain Lightning",
           "Smart Missiles",
@@ -14,112 +62,80 @@ const ultimate = {
           "Spotlight",
         ];
 
-        var newSpreadsheet = spreadsheets("newSpreadsheet");
-        if (!newSpreadsheet) {
-          console.log(`New spreadsheet not found`);
+        var oldSpreadsheet = SpreadsheetApp.openById(oldSheetID);
+        if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Master Sheet")) {
+          console.log(`Master Sheet not found in old ultimate weapons spreadsheet`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: `Master Sheet not found in old ultimate weapons spreadsheet`,
           };
         }
-        var newSheetID = newSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log(`Same Version - proceeding with ultimate weapons data import`);
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(
-              `_IDS sheet not found in new ultimate weapons spreadsheet`
-            );
-            return {
-              success: false,
-              message: `_IDS sheet not found in new ultimate weapons spreadsheet`,
-            };
-          }
-
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(
-              `Master Sheet not found in new ultimate weapons spreadsheet`
-            );
-            return {
-              success: false,
-              message: `Master Sheet not found in new ultimate weapons spreadsheet`,
-            };
-          }
-
-          // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-          if (!headerValues || headerValues.length === 0) {
-            console.log(`Could not read header row from _IDS sheet`);
-            return {
-              success: false,
-              message: `Could not read header row from _IDS sheet`,
-            };
-          }
-
-          var headerRow = headerValues[0];
-          var importUltimateColStart = headerRow.indexOf("UWs") + 1;
-
-          if (importUltimateColStart === 0) {
-            console.log(`UWs column not found in _IDS sheet`);
-            return {
-              success: false,
-              message: `UWs column not found in _IDS sheet`,
-            };
-          }
-
-          // Get ultimate weapons levels data (5 columns starting from UWs column)
-          var ultimateLevelsRange =
-            "_IDS!" +
-            shared.columnToLetter(importUltimateColStart) +
-            "2:" +
-            shared.columnToLetter(importUltimateColStart + 4);
-
-          var oldUltimateLevelsValues = SheetsAPI.getValues(
-            newSheetID,
-            ultimateLevelsRange
-          );
-          if (!oldUltimateLevelsValues) {
-            console.log(`Could not read ultimate weapons levels data`);
-            return {
-              success: false,
-              message: `Could not read ultimate weapons levels data`,
-            };
-          }
-
-          // Filter out empty rows
-          var oldUltimateLevels = oldUltimateLevelsValues.filter((row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || "").trim() !== ""
-            )
-          );
-
-          var oldUltimate = getOldUltimateWeapons(
-            targetWeapons,
-            oldUltimateLevels
-          );
-
-          return updateUltimateLevels(targetWeapons, newSheetID, oldUltimate);
-        } else {
-          console.log(
-            `Version mismatch - skipping ultimate weapons data import`
-          );
+        // Get all data from Master Sheet to determine range and find columns
+        var sheetData = SheetsAPI.getValues(oldSheetID, "Master Sheet");
+        if (!sheetData || sheetData.length < 2) {
+          console.log(`Not enough data in Master Sheet`);
           return {
             success: false,
-            message: `Ultimate weapons version mismatch`,
+            message: `Not enough data in Master Sheet`,
           };
         }
+
+        var headerRow = sheetData[0];
+        var ultimateCol = headerRow.indexOf("Ultimate Weapon") + 1;
+
+        if (ultimateCol === 0) {
+          console.log(`Ultimate Weapon column not found`);
+          return {
+            success: false,
+            message: `Ultimate Weapon column not found`,
+          };
+        }
+
+        // Get current ultimate weapons data starting from column after "Ultimate Weapon"
+        var ultimateDataRange =
+          "Master Sheet!" +
+          shared.columnToLetter(ultimateCol + 1) +
+          "2:" +
+          shared.columnToLetter(ultimateCol + 5);
+
+        var oldUltimateDataValues = SheetsAPI.getValues(
+          oldSheetID,
+          ultimateDataRange
+        );
+        if (!oldUltimateDataValues) {
+          console.log(`Could not read ultimate weapons data from Master Sheet`);
+          return {
+            success: false,
+            message: `Could not read ultimate weapons data from Master Sheet`,
+          };
+        }
+
+        // Filter out empty rows
+        var oldUltimateData = oldUltimateDataValues.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+          )
+        );
+
+        var oldUltimate = getOldUltimateWeapons(targetWeapons, oldUltimateData);
+
+        return {
+          success: true,
+          targetWeapons: targetWeapons,
+          oldUltimate: oldUltimate,
+        };
       } catch (error) {
-        console.log("Error in importUltimateData: " + error.toString());
+        console.log("Error in version10: " + error.toString());
         return {
           success: false,
-          message: "Error importing ultimate weapons data: " + error.message,
+          message: "Error in version10: " + error.message,
         };
       }
     }
-
     function updateUltimateLevels(targetWeapons, newSheetID, oldUltimate) {
       try {
         // Get all data from Master Sheet to determine range and find columns
@@ -291,16 +307,42 @@ const ultimate = {
       return weapons;
     }
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importUltimateData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Example: 3: true,
+    var versionCompatibility = {
+      "v1.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };

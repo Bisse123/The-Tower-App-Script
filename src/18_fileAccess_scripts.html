@@ -37,20 +37,7 @@
     if (result.success) {
       document.getElementById("statusText").innerText = `${result.message}`;
       console.log("Version difference:", result.versionDifference);
-      if (result.versionDifference > 0) {
-        showYesNoDialog(result.oldVersion, result.newVersion, function (doImport) {
-          console.log("Dialog callback received, doImport:", doImport);
-          if (doImport) {
-            importData(result.versionDifference);
-          } else {
-            document.getElementById("statusText").innerText =
-              "Import cancelled by user due to version mismatch.";
-          }
-        });
-      } else {
-        console.log("No version difference, importing directly");
-        importData(result.versionDifference);
-      }
+      importData(result.versionDifference);
     } else {
       document.getElementById(
         "statusText"

@@ -12,129 +12,160 @@ const workshop = {
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log(`Same Version - proceeding with workshop data import`);
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(`_IDS sheet not found in new workshop spreadsheet`);
-            return {
-              success: false,
-              message: `_IDS sheet not found in new workshop spreadsheet`,
-            };
-          }
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log(`Old spreadsheet not found`);
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
+        }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
+        }
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing workshop data: ${result.message}`);
+          return result;
+        }
 
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(`Master Sheet not found in new workshop spreadsheet`);
-            return {
-              success: false,
-              message: `Master Sheet not found in new workshop spreadsheet`,
-            };
-          }
+        var oldWorkshopLevels = result.oldWorkshopLevels || [];
+        var oldWorkshopPlusLevels = result.oldWorkshopPlusLevels || [];
+        return updateWorkshopLevels(newSheetID, oldWorkshopLevels, oldWorkshopPlusLevels);
+      } catch (error) {
+        console.log("Error in importWorkshopData: " + error.toString());
+        return {
+          success: false,
+          message: "Error importing workshop data: " + error.message,
+        };
+      }
+    }
 
-          // Get header row to find WS and WS+ columns
-          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-          if (!headerValues || headerValues.length === 0) {
-            console.log(`Could not read header row from _IDS sheet`);
-            return {
-              success: false,
-              message: `Could not read header row from _IDS sheet`,
-            };
-          }
+    function version10(newSheetID, oldSheetID) {
+      try {
+        var newSpreadsheet = SpreadsheetApp.openById(newSheetID);
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
+          console.log(`_IDS sheet not found in new workshop spreadsheet`);
+          return {
+            success: false,
+            message: `_IDS sheet not found in new workshop spreadsheet`,
+          };
+        }
 
-          var headerRow = headerValues[0];
-          var importWorkshopColStart = headerRow.indexOf("WS") + 1;
-          var importWorkshopPlusColStart = headerRow.indexOf("WS+") + 1;
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+          console.log(`Master Sheet not found in new workshop spreadsheet`);
+          return {
+            success: false,
+            message: `Master Sheet not found in new workshop spreadsheet`,
+          };
+        }
 
-          if (importWorkshopColStart === 0) {
-            console.log(`WS column not found in _IDS sheet`);
-            return {
-              success: false,
-              message: `WS column not found in _IDS sheet`,
-            };
-          }
-          if (importWorkshopPlusColStart === 0) {
-            console.log(`WS+ column not found in _IDS sheet`);
-            return {
-              success: false,
-              message: `WS+ column not found in _IDS sheet`,
-            };
-          }
+        // Get header row to find WS and WS+ columns
+        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
+        if (!headerValues || headerValues.length === 0) {
+          console.log(`Could not read header row from _IDS sheet`);
+          return {
+            success: false,
+            message: `Could not read header row from _IDS sheet`,
+          };
+        }
 
-          // Get workshop levels data (4 columns starting from WS column)
-          var workshopLevelsRange =
-            "_IDS!" +
-            shared.columnToLetter(importWorkshopColStart) +
-            "2:" +
-            shared.columnToLetter(importWorkshopColStart + 3);
+        var headerRow = headerValues[0];
+        var importWorkshopColStart = headerRow.indexOf("WS") + 1;
+        var importWorkshopPlusColStart = headerRow.indexOf("WS+") + 1;
 
-          var oldWorkshopLevelsValues = SheetsAPI.getValues(
-            newSheetID,
-            workshopLevelsRange
-          );
-          if (!oldWorkshopLevelsValues) {
-            console.log(`Could not read workshop levels data`);
-            return {
-              success: false,
-              message: `Could not read workshop levels data`,
-            };
-          }
+        if (importWorkshopColStart === 0) {
+          console.log(`WS column not found in _IDS sheet`);
+          return {
+            success: false,
+            message: `WS column not found in _IDS sheet`,
+          };
+        }
+        if (importWorkshopPlusColStart === 0) {
+          console.log(`WS+ column not found in _IDS sheet`);
+          return {
+            success: false,
+            message: `WS+ column not found in _IDS sheet`,
+          };
+        }
 
-          // Filter out empty rows
-          var oldWorkshopLevels = oldWorkshopLevelsValues.filter((row) =>
+        // Get workshop levels data (4 columns starting from WS column)
+        var workshopLevelsRange =
+          "_IDS!" +
+          shared.columnToLetter(importWorkshopColStart) +
+          "2:" +
+          shared.columnToLetter(importWorkshopColStart + 3);
+
+        var oldWorkshopLevelsValues = SheetsAPI.getValues(
+          newSheetID,
+          workshopLevelsRange
+        );
+        if (!oldWorkshopLevelsValues) {
+          console.log(`Could not read workshop levels data`);
+          return {
+            success: false,
+            message: `Could not read workshop levels data`,
+          };
+        }
+
+        // Filter out empty rows
+        var oldWorkshopLevels = oldWorkshopLevelsValues.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+          )
+        );
+
+        // Get workshop plus levels data (3 columns starting from WS+ column)
+        var workshopPlusLevelsRange =
+          "_IDS!" +
+          shared.columnToLetter(importWorkshopPlusColStart) +
+          "2:" +
+          shared.columnToLetter(importWorkshopPlusColStart + 2);
+
+        var oldWorkshopPlusLevelsValues = SheetsAPI.getValues(
+          newSheetID,
+          workshopPlusLevelsRange
+        );
+        if (!oldWorkshopPlusLevelsValues) {
+          console.log(`Could not read workshop plus levels data`);
+          return {
+            success: false,
+            message: `Could not read workshop plus levels data`,
+          };
+        }
+
+        // Filter out empty rows
+        var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
+          (row) =>
             row.some(
               (cell) =>
                 cell !== null &&
                 cell !== undefined &&
                 String(cell || "").trim() !== ""
             )
-          );
+        );
 
-          // Get workshop plus levels data (3 columns starting from WS+ column)
-          var workshopPlusLevelsRange =
-            "_IDS!" +
-            shared.columnToLetter(importWorkshopPlusColStart) +
-            "2:" +
-            shared.columnToLetter(importWorkshopPlusColStart + 2);
-
-          var oldWorkshopPlusLevelsValues = SheetsAPI.getValues(
-            newSheetID,
-            workshopPlusLevelsRange
-          );
-          if (!oldWorkshopPlusLevelsValues) {
-            console.log(`Could not read workshop plus levels data`);
-            return {
-              success: false,
-              message: `Could not read workshop plus levels data`,
-            };
-          }
-
-          // Filter out empty rows
-          var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
-            (row) =>
-              row.some(
-                (cell) =>
-                  cell !== null &&
-                  cell !== undefined &&
-                  String(cell || "").trim() !== ""
-              )
-          );
-
-          return updateWorkshopLevels(
-            newSheetID,
-            oldWorkshopLevels,
-            oldWorkshopPlusLevels
-          );
-        } else {
-          console.log(`Version mismatch - skipping workshop data import`);
-          return {
-            success: false,
-            message: `Workshop version mismatch`,
-          };
-        }
+        return {
+          success: true,
+          message: "Workshop levels processed successfully",
+          oldWorkshopLevels: oldWorkshopLevels,
+          oldWorkshopPlusLevels: oldWorkshopPlusLevels,
+        };
       } catch (error) {
-        console.log("Error in importWorkshopData: " + error.toString());
+        console.log(`Error processing workshop data: ${error.toString()}`);
         return {
           success: false,
-          message: "Error importing workshop data: " + error.message,
+          message: `Error processing workshop data: ${error.message}`,
         };
       }
     }
@@ -264,16 +295,42 @@ const workshop = {
     }
 
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importWorkshopData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Example: 3: true,
+    var versionCompatibility = {
+      "v1.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };

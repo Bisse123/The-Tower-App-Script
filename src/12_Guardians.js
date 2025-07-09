@@ -2,8 +2,6 @@ const guardians = {
   importData: function (versionDifference) {
     function importGuardiansData(versionDifference) {
       try {
-        var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
-
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -13,6 +11,46 @@ const guardians = {
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
+
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log(`Old spreadsheet not found`);
+          return {
+            success: false,
+            message: "Old spreadsheet not found",
+          };
+        }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
+        }
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing guardians data: ${result.message}`);
+          return result;
+        }
+
+        var targetGuardians = result.targetGuardians || [];
+        var oldGuardians = result.oldGuardians || {};
+        return updateGuardianLevels(targetGuardians, newSheetID, oldGuardians);
+      } catch (error) {
+        console.log(`Error in importGuardiansData: ${error.toString()}`);
+        return {
+          success: false,
+          message: `Error in importGuardiansData: ${error.message}`,
+        };
+      }
+    }
+
+    function version10(newSheetID, oldSheetID) {
+      try {
+        var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
 
         var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
         if (!idMasterSpreadsheet) {
@@ -24,79 +62,77 @@ const guardians = {
         }
         var idMasterID = idMasterSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log(`Same Version - proceeding with guardians data import`);
-
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(`Master Sheet not found in new guardians spreadsheet`);
-            return {
-              success: false,
-              message: "Master Sheet not found in new guardians spreadsheet",
-            };
-          }
-
-          // Check if _IDS sheet exists
-          if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "_IDS")) {
-            console.log(`_IDS sheet not found in new guardians spreadsheet`);
-            return {
-              success: false,
-              message: "_IDS sheet not found in new guardians spreadsheet",
-            };
-          }
-          // Get header row to find UWs column
-          var headerValues = SheetsAPI.getValues(idMasterID, "_IDS!1:1");
-          if (!headerValues || headerValues.length === 0) {
-            console.log(`Could not read header row from _IDS sheet`);
-            return {
-              success: false,
-              message: "Could not read header row from _IDS sheet",
-            };
-          }
-
-          var headerRow = headerValues[0];
-          var importGuardianColStart = headerRow.indexOf("Guardians");
-          if (importGuardianColStart === -1) {
-            console.log(`Guardians column not found in header`);
-            return {
-              success: false,
-              message: "Guardians column not found in header",
-            };
-          }
-
-          // Get old guardian levels data using SheetsAPI
-          var colStart = shared.columnToLetter(importGuardianColStart + 1);
-          var colEnd = shared.columnToLetter(importGuardianColStart + 5);
-          var oldGuardianLevelsData = SheetsAPI.getValues(
-            idMasterID,
-            "_IDS!" + colStart + "2:" + colEnd
-          );
-          // Filter out empty rows
-          var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || "").trim() !== ""
-            )
-          );
-
-          var oldGuardians = getOldGuardians(
-            targetGuardians,
-            oldGuardianLevels
-          );
-          return updateGuardianLevels(
-            targetGuardians,
-            newSheetID,
-            oldGuardians
-          );
+        var newSpreadsheet = SpreadsheetApp.openById(newSheetID);
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+          console.log(`Master Sheet not found in new guardians spreadsheet`);
+          return {
+            success: false,
+            message: "Master Sheet not found in new guardians spreadsheet",
+          };
         }
-        // else {// Else do something to convert old version to new one (Future me problem)
-        // }
+
+        // Check if _IDS sheet exists
+        if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "_IDS")) {
+          console.log(`_IDS sheet not found in new guardians spreadsheet`);
+          return {
+            success: false,
+            message: "_IDS sheet not found in new guardians spreadsheet",
+          };
+        }
+        
+        // Get header row to find Guardians column
+        var headerValues = SheetsAPI.getValues(idMasterID, "_IDS!1:1");
+        if (!headerValues || headerValues.length === 0) {
+          console.log(`Could not read header row from _IDS sheet`);
+          return {
+            success: false,
+            message: "Could not read header row from _IDS sheet",
+          };
+        }
+
+        var headerRow = headerValues[0];
+        var importGuardianColStart = headerRow.indexOf("Guardians");
+        if (importGuardianColStart === -1) {
+          console.log(`Guardians column not found in header`);
+          return {
+            success: false,
+            message: "Guardians column not found in header",
+          };
+        }
+
+        // Get old guardian levels data using SheetsAPI
+        var colStart = shared.columnToLetter(importGuardianColStart + 1);
+        var colEnd = shared.columnToLetter(importGuardianColStart + 5);
+        var oldGuardianLevelsData = SheetsAPI.getValues(
+          idMasterID,
+          "_IDS!" + colStart + "2:" + colEnd
+        );
+        
+        // Filter out empty rows
+        var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+          )
+        );
+
+        var oldGuardians = getOldGuardians(
+          targetGuardians,
+          oldGuardianLevels
+        );
+
+        return {
+          success: true,
+          targetGuardians: targetGuardians,
+          oldGuardians: oldGuardians,
+        };
       } catch (error) {
-        console.log(`Error in importGuardiansData: ${error.toString()}`);
+        console.log("Error in version10: " + error.toString());
         return {
           success: false,
-          message: `Error in importGuardiansData: ${error.message}`,
+          message: "Error in version10: " + error.message,
         };
       }
     }
@@ -258,16 +294,42 @@ const guardians = {
       return guardians;
     }
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importGuardiansData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Example: 3: true,
+    var versionCompatibility = {
+      "v1.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };

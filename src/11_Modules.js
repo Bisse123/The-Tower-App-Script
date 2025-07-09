@@ -2,7 +2,6 @@ const modules = {
   importData: function (versionDifference) {
     function importModulesData(versionDifference) {
       try {
-        var targetModuleTypes = ["cannon", "armor", "generator", "core"];
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -23,134 +22,115 @@ const modules = {
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log("Same Version");
-
-          // Get old modules inventory data using Sheets API
-          var oldModulesInventoryValues = SheetsAPI.getDataRange(
-            oldSheetID,
-            "Modules Inventory"
-          );
-
-          var oldModulesInventory = getOldModulesInventory(
-            targetModuleTypes,
-            oldModulesInventoryValues
-          );
-          var result = updateModulesInventory(
-            targetModuleTypes,
-            newSheetID,
-            "Modules Inventory",
-            oldModulesInventory
-          );
-          if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
-
-          var batchUpdate = result.batchUpdate || [];
-
-          // Get old modules presets data using Sheets API
-          var oldModulesPresetsValues = SheetsAPI.getDataRange(
-            oldSheetID,
-            "Modules Presets"
-          );
-
-          var oldModulesPresets = getOldModulesPresets(
-            targetModuleTypes,
-            oldModulesPresetsValues
-          );
-
-          var result = updateModulesPresets(
-            targetModuleTypes,
-            newSheetID,
-            "Modules Presets",
-            oldModulesPresets
-          );
-
-          if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
-
-          batchUpdate = batchUpdate.concat(result.batchUpdate || []);
-
-          if (batchUpdate.length > 0) {
-            SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-            // Update the sheet with the new data
-            // console.log(`Modules data imported successfully`);
-            return {
-              success: true,
-              message: `Modules data imported successfully`,
-            };
-          }
-          // No updates needed
-          // console.log(`No updates needed for modules data`);
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
           return {
-            success: true,
-            message: `No updates needed for modules data`,
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        // Else do something to convert old version to new one (Future me problem)
-        else {
-          var { oldModulesInventory, oldModulesPresets } =
-            convertVersionFunctions[versionDifference](oldSheetID);
-          var result = updateModulesInventory(
-            targetModuleTypes,
-            newSheetID,
-            "Modules Inventory",
-            oldModulesInventory
-          );
-          if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing modules data: ${result.message}`);
+          return result;
+        }
 
-          var batchUpdate = result.batchUpdate || [];
+        var targetModuleTypes = result.targetModuleTypes || [];
+        var oldModulesInventory = result.oldModulesInventory || {};
+        var oldModulesPresets = result.oldModulesPresets || {};
 
-          var result = updateModulesPresets(
-            targetModuleTypes,
-            newSheetID,
-            "Modules Presets",
-            oldModulesPresets
-          );
-          if (!result || !result.success) {
-            return {
-              success: false,
-              message: result.message,
-            };
-          }
-
-          batchUpdate = batchUpdate.concat(result.batchUpdate || []);
-
-          if (batchUpdate.length > 0) {
-            SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-            // console.log(`Modules data imported successfully`);
-            return {
-              success: true,
-              message: `Modules data imported successfully`,
-            };
-          }
-          // console.log(`No updates needed for modules data`);
+        var inventoryResult = updateModulesInventory(
+          targetModuleTypes,
+          newSheetID,
+          "Modules Inventory",
+          oldModulesInventory
+        );
+        if (!inventoryResult || !inventoryResult.success) {
           return {
-            success: true,
-            message: `No updates needed for modules data`,
+            success: false,
+            message: inventoryResult.message,
           };
         }
-        // Check version to figure out which convert function to use
-        // Potentially do something where if new version is v4 and old is v2
-        // you can do convert v2 -> v3 and then convert v3 -> v4
-        // Means more calculations but less rewriting of convert functions when new version are released
+
+        var batchUpdate = inventoryResult.batchUpdate || [];
+
+        var presetsResult = updateModulesPresets(
+          targetModuleTypes,
+          newSheetID,
+          "Modules Presets",
+          oldModulesPresets
+        );
+
+        if (!presetsResult || !presetsResult.success) {
+          return {
+            success: false,
+            message: presetsResult.message,
+          };
+        }
+
+        batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
+
+        if (batchUpdate.length > 0) {
+          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+          // Update the sheet with the new data
+          // console.log(`Modules data imported successfully`);
+          return {
+            success: true,
+            message: `Modules data imported successfully`,
+          };
+        }
+        // No updates needed
+        // console.log(`No updates needed for modules data`);
+        return {
+          success: true,
+          message: `No updates needed for modules data`,
+        };
       } catch (error) {
         console.log(`Error importing modules data: ${error.toString()}`);
         return {
           success: false,
           message: `Error importing modules data: ${error.message}`,
+        };
+      }
+    }
+
+    function version40(newSheetID, oldSheetID) {
+      try {
+        var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+
+        var oldModulesInventoryValues = SheetsAPI.getDataRange(
+          oldSheetID,
+          "Modules Inventory"
+        );
+
+        var oldModulesInventory = getOldModulesInventory(
+          targetModuleTypes,
+          oldModulesInventoryValues
+        );
+
+        // Get old modules presets data using Sheets API
+        var oldModulesPresetsValues = SheetsAPI.getDataRange(
+          oldSheetID,
+          "Modules Presets"
+        );
+
+        var oldModulesPresets = getOldModulesPresets(
+          targetModuleTypes,
+          oldModulesPresetsValues
+        );
+
+        return {
+          success: true,
+          targetModuleTypes: targetModuleTypes,
+          oldModulesInventory: oldModulesInventory,
+          oldModulesPresets: oldModulesPresets,
+        };
+      } catch (error) {
+        console.log("Error in version40: " + error.toString());
+        return {
+          success: false,
+          message: "Error in version40: " + error.message,
         };
       }
     }
@@ -460,108 +440,6 @@ const modules = {
       return oldModules;
     }
 
-    function convertVersion3(oldSheetID) {
-      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
-
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
-      if (!oldSpreadsheet) {
-        console.log(`New spreadsheet not found with ID: ${oldSheetID}`);
-        return {
-          success: false,
-          message: `New spreadsheet not found with ID: ${oldSheetID}`,
-        };
-      }
-      // Check if Modules Presets sheet exists
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Modules Presets")) {
-        console.log(`Modules Presets sheet not found`);
-        return {
-          success: false,
-          message: `Modules Presets sheet not found`,
-        };
-      }
-
-      var oldModulesPresetsValues = SheetsAPI.getDataRange(
-        oldSheetID,
-        "Modules Presets"
-      );
-
-      var oldModuleTypeIndex = findModuleTypesRowIndex(
-        targetModuleTypes,
-        oldModulesPresetsValues
-      );
-      var oldModulesPresets = {};
-      var oldModulesInventory = {};
-      targetModuleTypes.forEach(function (moduleType) {
-        var rowIdx = oldModuleTypeIndex[moduleType] + 1;
-        if (typeof rowIdx === "undefined") return;
-        oldModulesPresets[moduleType] = {};
-        oldModulesInventory[moduleType] = {};
-        var row = oldModulesPresetsValues[rowIdx];
-        for (var col = 0; col < row.length; col++) {
-          var colVal = row[col] != null ? String(row[col]).trim() : "";
-          if (colVal === "Module Name") {
-            var moduleName =
-              oldModulesPresetsValues[rowIdx + 1][col] != null
-                ? String(oldModulesPresetsValues[rowIdx + 1][col]).trim()
-                : "";
-            if (moduleName) {
-              var presetName =
-                oldModulesPresetsValues[rowIdx - 1][col] != null
-                  ? String(oldModulesPresetsValues[rowIdx - 1][col]).trim()
-                  : "";
-              if (presetName) {
-                oldModulesPresets[moduleType][presetName] = moduleName;
-              }
-              if (!oldModulesInventory[moduleType].hasOwnProperty(moduleName)) {
-                var moduleRarity =
-                  oldModulesPresetsValues[rowIdx + 1][col + 1] != null
-                    ? String(oldModulesPresetsValues[rowIdx + 1][col + 1]).trim()
-                    : "";
-                var moduleLevel =
-                  oldModulesPresetsValues[rowIdx + 1][col + 2] != null
-                    ? String(oldModulesPresetsValues[rowIdx + 1][col + 2]).trim()
-                    : "";
-                oldModulesInventory[moduleType][moduleName] = {
-                  rarity: moduleRarity,
-                  level: moduleLevel,
-                  substats: [],
-                };
-                for (
-                  var substat = rowIdx + 3;
-                  substat < oldModulesPresetsValues.length;
-                  substat++
-                ) {
-                  var substatRow = oldModulesPresetsValues[substat];
-                  var substatColVal =
-                    substatRow && substatRow[col] != null
-                      ? String(substatRow[col]).trim()
-                      : "";
-                  var substatCol1Val =
-                    substatRow && substatRow[col + 1] != null
-                      ? String(substatRow[col + 1]).trim()
-                      : "";
-                  if (substatColVal === "" && substatCol1Val === "") {
-                    break;
-                  }
-                  var substats = [
-                    substatRow ? substatRow[col] : "",
-                    substatRow ? substatRow[col + 1] : "",
-                  ];
-                  oldModulesInventory[moduleType][moduleName]["substats"].push(
-                    substats
-                  );
-                }
-              }
-            }
-          }
-        }
-      });
-      return {
-        oldModulesInventory: oldModulesInventory,
-        oldModulesPresets: oldModulesPresets,
-      };
-    }
-
     function findModuleTypesRowIndex(targetModuleTypes, moduleRange) {
       var moduleTypeIndex = {};
       var moduleFound = {};
@@ -591,16 +469,43 @@ const modules = {
     }
 
     var convertVersionFunctions = {
-      3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v4.0": version40
     };
 
     return importModulesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      3: true,
+    var versionCompatibility = {
+      "v3.99": false,
+      "v4.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };

@@ -2,15 +2,6 @@ const themes = {
   importData: function (versionDifference) {
     function importThemesData(versionDifference) {
       try {
-        var targetThemes = [
-          "Tower Skin",
-          "Background Skin",
-          "Songs",
-          "Guardians",
-          "Menu",
-          "Profile Banner",
-        ];
-
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
           console.log(`New spreadsheet not found`);
@@ -31,39 +22,66 @@ const themes = {
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log(`Same Version`);
-          var oldThemesData = SheetsAPI.getDataRange(
-            oldSheetID,
-            "Themes & Songs"
-          );
-          if (!oldThemesData) {
-            console.log(`Error getting old themes data`);
-            return { success: false, message: "Error getting old themes data" };
-          }
-          var oldThemesNames = getOldUnlockedThemesNames(
-            targetThemes,
-            oldThemesData
-          );
-          var updateResult = updateThemes(
-            targetThemes,
-            newSheetID,
-            "Themes & Songs",
-            oldThemesNames
-          );
-          return updateResult;
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
         }
-        // else {// Else do something to convert old version to new one (Future me problem)
-        // }
-        return {
-          success: false,
-          message: "Theme version mismatch or conversion not implemented.",
-        };
+        var result = getVersionFunction(newSheetID, oldSheetID);
+        if (!result || !result.success) {
+          console.log(`Error processing themes data: ${result.message}`);
+          return result;
+        }
+
+        var targetThemes = result.targetThemes || [];
+        var oldThemesNames = result.oldThemesNames || {};
+        return updateThemes(targetThemes, newSheetID, "Themes & Songs", oldThemesNames);
       } catch (error) {
         console.log(`Error importing themes data: ${error.toString()}`);
         return {
           success: false,
           message: `Error importing themes data: ${error.message}`,
+        };
+      }
+    }
+
+    function version10(newSheetID, oldSheetID) {
+      try {
+        var targetThemes = [
+          "Tower Skin",
+          "Background Skin",
+          "Songs",
+          "Guardians",
+          "Menu",
+          "Profile Banner",
+        ];
+
+        var oldThemesData = SheetsAPI.getDataRange(
+          oldSheetID,
+          "Themes & Songs"
+        );
+        if (!oldThemesData) {
+          console.log(`Error getting old themes data`);
+          return { success: false, message: "Error getting old themes data" };
+        }
+        var oldThemesNames = getOldUnlockedThemesNames(
+          targetThemes,
+          oldThemesData
+        );
+
+        return {
+          success: true,
+          targetThemes: targetThemes,
+          oldThemesNames: oldThemesNames,
+        };
+      } catch (error) {
+        console.log("Error in version10: " + error.toString());
+        return {
+          success: false,
+          message: "Error in version10: " + error.message,
         };
       }
     }
@@ -173,16 +191,42 @@ const themes = {
       return oldThemesNames;
     }
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importThemesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Example: 3: true,
+    var versionCompatibility = {
+      "v1.0": true,
     };
-    return supportedVersions[oldVersion] || false;
+    
+    var highestThreshold = null;
+    var compatibleThreshold = null;
+    
+    for (var threshold in versionCompatibility) {
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "older" || compareResult === "same") {
+        if (versionCompatibility[threshold]) {
+          compatibleThreshold = threshold;
+        }
+        break;
+      }
+      
+      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
+        highestThreshold = threshold;
+      }
+    }
+    
+    if (!compatibleThreshold && highestThreshold) {
+      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
+      if (compareWithHighest === "older") {
+        compatibleThreshold = highestThreshold;
+      }
+    }
+    
+    return compatibleThreshold;
   },
 };
