@@ -92,7 +92,13 @@ const cards = {
       }
     }
 
-    function version17(newSheetID, oldSheetID) {
+    function version17() {
+      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      
+      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+      
       var oldSheetData = SheetsAPI.getDataRange(oldSheetID, "Card Preset");
       if (!oldSheetData) {
         console.log(`Error getting old card preset sheet data`);
