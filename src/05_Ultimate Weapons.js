@@ -72,7 +72,7 @@ const ultimate = {
           console.log(`Master Sheet not found in old ultimate weapons spreadsheet`);
           return {
             success: false,
-            message: `Master Sheet not found in old ultimate weapons spreadsheet`,
+            message: `Master Sheet™ not found in old ultimate weapons spreadsheet™`,
           };
         }
 

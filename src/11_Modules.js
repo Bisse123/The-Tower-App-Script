@@ -7,7 +7,7 @@ const modules = {
           console.log(`New spreadsheet not found`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: "New spreadsheet™ not found",
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
@@ -17,7 +17,7 @@ const modules = {
           console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Old spreadsheet not found",
+            message: "Old spreadsheet™ not found",
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;

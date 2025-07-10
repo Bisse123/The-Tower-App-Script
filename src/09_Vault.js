@@ -7,7 +7,7 @@ const vault = {
           console.log(`New spreadsheet not found`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: "New spreadsheet™ not found",
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
@@ -17,7 +17,7 @@ const vault = {
           console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Old spreadsheet not found",
+            message: "Old spreadsheet™ not found",
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -78,7 +78,7 @@ const vault = {
             console.log(`Error applying batch updates to new spreadsheet`);
             return {
               success: false,
-              message: "Error applying batch updates to new spreadsheet",
+              message: "Error applying batch updates to new spreadsheet™",
             };
           }
           // console.log(`Vault data imported successfully`);

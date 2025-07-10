@@ -195,7 +195,7 @@ function importData(
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${newSheetID}`,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
 
@@ -203,7 +203,7 @@ function importData(
       console.log(`IDS sheet not found in the new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `IDS sheet not found in the new ${sheetType} spreadsheet.`,
+        message: `IDS sheet™ not found in the new ${sheetType} spreadsheet™.`,
       };
     }
 
@@ -214,7 +214,7 @@ function importData(
       console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
-        message: `Export sheet not found in new ${sheetType} spreadsheet`,
+        message: `Export sheet™ not found in new ${sheetType} spreadsheet™`,
       };
     }
 
@@ -227,7 +227,7 @@ function importData(
       console.log(`New sheet has not been granted access to IDS Master.`);
       return {
         success: false,
-        message: `New sheet has not been granted access to IDS Master.`,
+        message: `New sheet™ has not been granted access to IDS Master.`,
       };
     }
 
@@ -236,7 +236,7 @@ function importData(
       console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
       return {
         success: false,
-        message: `IDS Master Spreadsheet not found with ID: ${idMasterID}`,
+        message: `IDS Master Spreadsheet™ not found with ID: ${idMasterID}`,
       };
     }
 
@@ -244,7 +244,7 @@ function importData(
       console.log(`IDS sheet not found in the IDS Master Spreadsheet.`);
       return {
         success: false,
-        message: `IDS sheet not found in the IDS Master Spreadsheet.`,
+        message: `IDS sheet™ not found in the IDS Master Spreadsheet™.`,
       };
     }
     var idMasterInfo = shared.findSheetTypeID(
@@ -262,7 +262,7 @@ function importData(
       );
       return {
         success: false,
-        message: `IDS Master has not granted access to the old ${sheetType} sheet.`,
+        message: `IDS Master has not granted access to the old ${sheetType} sheet™.`,
       };
     }
 
@@ -271,7 +271,7 @@ function importData(
       console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
-        message: `Old spreadsheet not found with ID: ${oldSheetID}`,
+        message: `Old spreadsheet™ not found with ID: ${oldSheetID}`,
       };
     }
 
@@ -281,7 +281,7 @@ function importData(
       console.log(`Sheet type function not found for: ${sheetType}`);
       return {
         success: false,
-        message: `Sheet type function not found for: ${sheetType}`,
+        message: `Sheet™ type function not found for: ${sheetType}`,
       };
     }
 

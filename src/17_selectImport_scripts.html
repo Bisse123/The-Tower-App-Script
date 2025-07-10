@@ -16,7 +16,7 @@
     document.getElementById("instructionsSection").style.display = "none";
     document.getElementById("selectImportSection").style.display = "block";
     document.getElementById("statusText").innerText =
-      "Select sheet or IDS Master";
+      "Select Sheet™ or IDS Master";
 
     var selectImportType = document.getElementById("selectImportType");
     fileTypes.forEach(function (type) {
@@ -57,13 +57,13 @@
             chooseNewFileBtn.disabled = false;
             chooseMasterFileBtn.disabled = false;
             document.getElementById("statusText").innerText =
-              "Error submitting new sheet ID. Please try again.";
+              "Could not submit new sheet ID. Please check your setup and try again.";
           }
         } catch (error) {
           chooseNewFileBtn.disabled = false;
           chooseMasterFileBtn.disabled = false;
           document.getElementById("statusText").innerText =
-            "Error submitting new sheet ID: " + (error.message || error);
+            (error.message || error);
         }
       } else {
         chooseNewFileBtn.disabled = false;
@@ -148,7 +148,7 @@
       document.getElementById("chooseMasterFileBtn").disabled = false;
       document.getElementById(
         "statusText"
-      ).innerText = `Error checking Template file access: ${result.message}`;
+      ).innerText = `${result.message}`;
     }
   }
 
@@ -174,7 +174,7 @@
       document.getElementById("chooseMasterFileBtn").disabled = false;
       document.getElementById(
         "statusText"
-      ).innerText = `Error copying template: ${result.message}`;
+      ).innerText = `${result.message}`;
     }
   }
 
@@ -191,8 +191,8 @@
       "selectImportTitle"
     ).innerText = `📂 New ${sheetType} file created`;
     document.getElementById("selectImportText").innerHTML =
-      `<strong>➡️ Go to your new ${sheetType} sheet and allow access to your IDS Master sheet.</strong>` +
-      `<br><a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open ${sheetType} sheet</a>`;
+      `<strong>➡️ Go to your new ${sheetType} Sheet™ and allow access to your IDS Master Sheet™.</strong>` +
+      `<br><a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open ${sheetType} Sheet™</a>`;
     document.getElementById("labelImportType").style.display = "none";
     document.getElementById("selectImportType").style.display = "none";
     document.getElementById("chooseNewFileBtn").style.display = "none";
@@ -275,12 +275,12 @@
             ) {
               document.getElementById(
                 "statusText"
-              ).innerText = `Grant access to the new sheet.`;
+              ).innerText = `Grant access to the new Sheet™.`;
               openSingleFilePicker(newFileID, function (granted) {
                 if (granted) {
                   newSheetID = newFileID;
                   document.getElementById("statusText").innerText =
-                    "Access to new sheet granted. Searching for IDS Master...";
+                    "Access to new Sheet™ granted. Searching for IDS Master...";
                   findAndGrantIdMaster(newFileID).then(resolve).catch(reject);
                 } else {
                   document.getElementById("statusText").innerText =
@@ -312,8 +312,7 @@
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(function (idMasterResult) {
-          if (idMasterResult && idMasterResult.sheetID) {
-            // Set the global idMasterID when we find the IDS Master
+          if (idMasterResult && idMasterResult.success) {
             idMasterID = idMasterResult.sheetID;
             sheetType = idMasterResult.sheetType;
 
@@ -326,13 +325,13 @@
                   ) {
                     document.getElementById(
                       "statusText"
-                    ).innerText = `Grant access to the IDS Master sheet.`;
+                    ).innerText = `Grant access to the IDS Master Sheet™.`;
                     openSingleFilePicker(
                       idMasterResult.sheetID,
                       function (granted) {
                         if (granted) {
                           document.getElementById("statusText").innerText =
-                            "IDS Master access granted. Searching for old sheet...";
+                            "IDS Master access granted. Searching for old Sheet™...";
                           findAndGrantOldSheet(idMasterResult)
                             .then(() => resolve(true))
                             .catch((error) => reject(error));
@@ -370,8 +369,8 @@
               .checkSheetAccess([idMasterResult.sheetID], userEmail);
           } else {
             document.getElementById("statusText").innerText =
-              "Could not find IDS Master in sheet.";
-            reject(new Error("Could not find IDS Master in sheet."));
+              idMasterResult.message || "Could not find IDS Master in sheet.";
+            reject(new Error(idMasterResult.message || "Could not find IDS Master in sheet."));
           }
         })
         .withFailureHandler(function (e) {
@@ -389,8 +388,7 @@
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(function (oldSheetResult) {
-          if (oldSheetResult && oldSheetResult.sheetID) {
-            // Set the global oldSheetID when we find the old sheet
+          if (oldSheetResult && oldSheetResult.success) {
             oldSheetID = oldSheetResult.sheetID;
 
             google.script.run
@@ -402,7 +400,7 @@
                   ) {
                     document.getElementById(
                       "statusText"
-                    ).innerText = `Grant access to the old sheet.`;
+                    ).innerText = `Grant access to the old Sheet™.`;
                     openSingleFilePicker(
                       oldSheetResult.sheetID,
                       function (granted2) {
@@ -436,8 +434,8 @@
               .checkSheetAccess([oldSheetResult.sheetID], userEmail);
           } else {
             document.getElementById("statusText").innerText =
-              "Could not find old sheet in IDS Master.";
-            reject(new Error("Could not find old sheet in IDS Master."));
+              oldSheetResult.message || "Could not find old sheet in IDS Master.";
+            reject(new Error(oldSheetResult.message || "Could not find old sheet in IDS Master."));
           }
         })
         .withFailureHandler(function (e) {

@@ -54,7 +54,7 @@ const lab = {
           console.log(`_IDS sheet not found in new lab spreadsheet`);
           return {
             success: false,
-            message: "_IDS sheet not found in new lab spreadsheet",
+            message: "_IDS sheet™ not found in new lab spreadsheet™",
           };
         }
 
@@ -63,7 +63,7 @@ const lab = {
           console.log(`Master Sheet not found in new lab spreadsheet`);
           return {
             success: false,
-            message: "Master Sheet not found in new lab spreadsheet",
+            message: "Master Sheet™ not found in new lab spreadsheet™",
           };
         }
 
