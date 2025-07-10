@@ -270,7 +270,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${newSheetID}`,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
         updated: false,
       };
     }
@@ -279,7 +279,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`IDS sheet not found in new spreadsheet`);
       return {
         success: false,
-        message: `IDS sheet not found in new spreadsheet`,
+        message: `IDS sheet™ not found in new spreadsheet™`,
         updated: false,
       };
     }
@@ -293,7 +293,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Can not update until old sheet has been Imported.`);
       return {
         success: false,
-        message: `Can not update until old sheet has been Imported.`,
+        message: `Can not update until old sheet™ has been Imported.`,
         updated: false,
       };
     }
@@ -302,7 +302,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
       return {
         success: false,
-        message: `IDS Master Spreadsheet not found with ID: ${idMasterID}`,
+        message: `IDS Master Spreadsheet™ not found with ID: ${idMasterID}`,
         updated: false,
       };
     }
@@ -311,7 +311,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`IDS sheet not found in ID master spreadsheet`);
       return {
         success: false,
-        message: `IDS sheet not found in ID master spreadsheet`,
+        message: `IDS sheet™ not found in ID master spreadsheet™`,
         updated: false,
       };
     }
@@ -322,7 +322,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Could not retrieve file information for new or old sheet.`);
       return {
         success: false,
-        message: `Could not retrieve file information for new or old sheet.`,
+        message: `Could not retrieve file information for new or old sheet™.`,
         updated: false,
       };
     }
@@ -342,7 +342,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Could not find ID Master spreadsheet info`);
       return {
         success: false,
-        message: `Could not find ID Master spreadsheet info`,
+        message: `Could not find ID Master spreadsheet™ info`,
         updated: false,
       };
     }
@@ -372,7 +372,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Error renaming or moving new sheet: ${error.toString()}`);
       return {
         success: false,
-        message: `Error renaming or moving new sheet: ${error.toString()}`,
+        message: `Error renaming or moving new sheet™: ${error.toString()}`,
         updated: false,
       };
     }
@@ -383,7 +383,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Error deleting old sheet: ${error.toString()}`);
       return {
         success: false,
-        message: `Error deleting old sheet: ${error.toString()}`,
+        message: `Error deleting old sheet™: ${error.toString()}`,
         updated: false,
       };
     }
@@ -394,14 +394,14 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       console.log(`Error updating ID Master sheet: ${error.toString()}`);
       return {
         success: false,
-        message: `Error updating ID Master sheet: ${error.toString()}`,
+        message: `Error updating ID Master sheet™: ${error.toString()}`,
         updated: false,
       };
     }
 
     return {
       success: true,
-      message: "New ID Set, new sheet moved and renamed, old sheet deleted.",
+      message: "New ID Set, new sheet™ moved and renamed, old sheet™ deleted.",
       updated: true,
       gid: idMasterIDSheet.sheetId,
     };
@@ -423,7 +423,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${newSheetID}`,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
     var newHomePageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "Home Page");
@@ -431,7 +431,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`Home Page sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
-        message: `Home Page sheet not found in new ${sheetType} spreadsheet`,
+        message: `Home Page sheet™ not found in new ${sheetType} spreadsheet™`,
       };
     }
 
@@ -443,7 +443,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `Version not found in new ${sheetType} spreadsheet.`,
+        message: `Version not found in new ${sheetType} spreadsheet™.`,
       };
     }
 
@@ -452,7 +452,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
-        message: `Old spreadsheet not found with ID: ${oldSheetID}`,
+        message: `Old spreadsheet™ not found with ID: ${oldSheetID}`,
       };
     }
     var oldHomePageSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "Home Page");
@@ -460,7 +460,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`Home Page sheet not found in old ${sheetType} spreadsheet`);
       return {
         success: false,
-        message: `Home Page sheet not found in old ${sheetType} spreadsheet`,
+        message: `Home Page sheet™ not found in old ${sheetType} spreadsheet™`,
       };
     }
 
@@ -472,7 +472,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       console.log(`Version not found in old ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `Version not found in old ${sheetType} spreadsheet.`,
+        message: `Version not found in old ${sheetType} spreadsheet™.`,
       };
     }
 
@@ -526,7 +526,7 @@ function checkImportStatus(newSheetID) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${newSheetID}`,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
 
@@ -535,7 +535,7 @@ function checkImportStatus(newSheetID) {
       console.log(`IDS sheet not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `IDS sheet not found in new ${sheetType} spreadsheet.`,
+        message: `IDS sheet™ not found in new ${sheetType} spreadsheet™.`,
       };
     }
 
@@ -658,23 +658,31 @@ function findSheetIdAndType(sheetID, sheetType) {
     console.log(`Missing sheetId parameter.`);
     return { error: "Missing sheetType parameter." };
   }
-  var idType = sheetType ? sheetType + " ID" : "IDS Master's ID";
+  sheetType = sheetType || "IDS Master's";
+  var idType = `${sheetType} ID`;
   var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", idType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
-    console.log(`Could not find sheet type ID for ${sheetID}`);
-    return { error: `Could not find sheet type ID for ${sheetID}` };
+    console.log(`Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`);
+    return {
+      success: false,
+      message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+    };
   }
-
+  console.log(`Found sheet type ID: ${spreadsheetInfo.id}`);
   var spreadsheetId = shared.extractSheetId(spreadsheetInfo.id);
   if (!spreadsheetId) {
     console.log(`Could not extract sheet ID from ${spreadsheetInfo.id}`);
-    return { error: `Could not extract sheet ID from ${spreadsheetInfo.id}` };
+    return {
+      success: false,
+      message: `Could not extract sheet™ ID from ${spreadsheetInfo.id}`
+    };
   }
-  if (!sheetType) {
+  if (!sheetType || sheetType === "IDS Master's") {
     sheetType = SheetsAPI.getValue(sheetID, "Home Page!B2");
   }
 
   return {
+    success: true,
     sheetID: spreadsheetId,
     sheetType: sheetType,
   };
@@ -711,7 +719,17 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
     var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", idType);
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
       console.log(`Could not find sheet template for ${sheetType}`);
-      return { error: `Could not find sheet template for ${sheetType}` };
+      return {
+        success: false,
+        message: `Could not find sheet template for ${sheetType}`
+      };
+    }
+    if (!spreadsheetInfo.id) {
+      console.log(`Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`);
+      return {
+        success: false,
+        message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
+      };
     }
 
     var oldSheetID = shared.extractSheetId(spreadsheetInfo.id);
@@ -719,7 +737,7 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
       console.log(`Could not extract old sheet ID from ${spreadsheetInfo.id}`);
       return {
         success: false,
-        message: `Could not extract old sheet ID from ${spreadsheetInfo.id}`,
+        message: `Could not extract old sheet™ ID from ${spreadsheetInfo.id}`,
       };
     }
 
@@ -823,7 +841,7 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
       console.log(`IDS sheet not found in Copy of ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `IDS sheet not found in Copy of ${sheetType} spreadsheet.`,
+        message: `IDS sheet™ not found in Copy of ${sheetType} spreadsheet™.`,
       };
     }
 
@@ -856,7 +874,7 @@ function checkNewSheetReference(newSheetID) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet not found with ID: ${newSheetID}`,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
 
@@ -865,7 +883,7 @@ function checkNewSheetReference(newSheetID) {
       console.log(`IDS sheet not found in the new spreadsheet.`);
       return {
         success: false,
-        message: `IDS sheet not found in the new spreadsheet.`,
+        message: `IDS sheet™ not found in the new spreadsheet™.`,
       };
     }
 

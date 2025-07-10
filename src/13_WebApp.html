@@ -15,6 +15,7 @@
     />
   </head>
   <body>
+    <?!= include('14_header'); ?>
     <?!= include('15_status_section'); ?>
     <?!= include('16_getStarted_section'); ?>
     <?!= include('17_selectImport_section'); ?>
@@ -35,10 +36,10 @@
       const viewType = "<?= viewType ? viewType : 'webapp' ?>";
 
       console.log("Parameters:", {
-      newSheetID,
-      oldSheetID,
-      idMasterID,
-      sheetType,
+        newSheetID,
+        oldSheetID,
+        idMasterID,
+        sheetType,
       });
     </script>
 
@@ -47,7 +48,7 @@
     <?!= include('17_selectImport_scripts'); ?>
     <?!= include('18_fileAccess_scripts'); ?>
     <?!= include('20_modal_scripts'); ?>
-    
+
     <script
       async
       defer

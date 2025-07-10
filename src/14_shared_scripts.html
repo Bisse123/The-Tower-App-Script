@@ -112,7 +112,7 @@
       return false;
     }
     document.getElementById("statusText").innerText =
-      "Authorization successful. Initializing Google Picker...";
+      "Authorization successful. Initializing Google™ Picker...";
     return true;
   }
 
@@ -143,7 +143,7 @@
       onerror: function () {
         console.error("Failed to load GAPI client:picker");
         document.getElementById("statusText").innerText =
-          "Failed to load Google APIs";
+          "Failed to load Google™ APIs";
       },
     });
   }
@@ -264,7 +264,7 @@
 
     if (typeof google === "undefined" || typeof google.picker === "undefined") {
       document.getElementById("statusText").innerText =
-        "Google Picker API not loaded";
+        "Google™ Picker API not loaded";
       console.error("Google Picker API not available");
       return;
     }
@@ -495,7 +495,7 @@
     console.error("Sheet access check error:", error);
     document.getElementById(
       "statusText"
-    ).innerText = `Error checking sheet access: ${error.message || error}`;
+    ).innerText = `Error checking Sheet™ access: ${error.message || error}`;
     // Initialize empty caches on failure
     accessibleFilesCache = [];
     inaccessibleFilesCache = [];

@@ -7,7 +7,7 @@ const bots = {
           console.log(`New spreadsheet not found`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: "New spreadsheet™ not found",
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
@@ -17,7 +17,7 @@ const bots = {
           console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Old spreadsheet not found",
+            message: "Old spreadsheet™ not found",
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -67,7 +67,7 @@ const bots = {
           console.log(`_IDS sheet not found in new bots spreadsheet`);
           return {
             success: false,
-            message: `_IDS sheet not found in new bots spreadsheet`,
+            message: `_IDS sheet not found in new bots spreadsheet™`,
           };
         }
 
@@ -75,7 +75,7 @@ const bots = {
           console.log(`Master Sheet not found in new bots spreadsheet`);
           return {
             success: false,
-            message: `Master Sheet not found in new bots spreadsheet`,
+            message: `Master Sheet™ not found in new bots spreadsheet™`,
           };
         }
 

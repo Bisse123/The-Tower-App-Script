@@ -7,7 +7,7 @@ const guardians = {
           console.log(`New spreadsheet not found`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: "New spreadsheet™ not found",
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
@@ -17,7 +17,7 @@ const guardians = {
           console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Old spreadsheet not found",
+            message: "Old spreadsheet™ not found",
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -60,7 +60,7 @@ const guardians = {
           console.log(`IDS Master Spreadsheet not found`);
           return {
             success: false,
-            message: "IDS Master Spreadsheet not found",
+            message: "IDS Master Spreadsheet™ not found",
           };
         }
         var idMasterID = idMasterSpreadsheet.spreadsheetId;
@@ -69,7 +69,7 @@ const guardians = {
           console.log(`Master Sheet not found in new guardians spreadsheet`);
           return {
             success: false,
-            message: "Master Sheet not found in new guardians spreadsheet",
+            message: "Master Sheet™ not found in new guardians spreadsheet™",
           };
         }
 
@@ -78,7 +78,7 @@ const guardians = {
           console.log(`_IDS sheet not found in new guardians spreadsheet`);
           return {
             success: false,
-            message: "_IDS sheet not found in new guardians spreadsheet",
+            message: "_IDS sheet™ not found in new guardians spreadsheet™",
           };
         }
         
@@ -88,7 +88,7 @@ const guardians = {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
-            message: "Could not read header row from _IDS sheet",
+            message: "Could not read header row from _IDS sheet™",
           };
         }
 
@@ -146,7 +146,7 @@ const guardians = {
       if (!sheetData || sheetData.length < 2) {
         return {
           success: false,
-          message: "Not enough data in Master Sheet",
+          message: "Not enough data in Master Sheet™",
         };
       }
 
@@ -176,7 +176,7 @@ const guardians = {
         console.log(`Could not read Guardians data from Master Sheet`);
         return {
           success: false,
-          message: `Could not read Guardians data from Master Sheet`,
+          message: `Could not read Guardians data from Master Sheet™`,
         };
       }
 

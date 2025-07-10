@@ -7,7 +7,7 @@ const relics = {
           console.log(`New spreadsheet not found`);
           return {
             success: false,
-            message: "New spreadsheet not found",
+            message: "New spreadsheet™ not found",
           };
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
@@ -17,7 +17,7 @@ const relics = {
           console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Old spreadsheet not found",
+            message: "Old spreadsheet™ not found",
           };
         }
         var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -60,7 +60,7 @@ const relics = {
           console.log("Relics sheet not found in old relic spreadsheet");
           return {
             success: false,
-            message: `Relics sheet not found in old relic spreadsheet`,
+            message: `Relics sheet not found in old relic spreadsheet™`,
           };
         }
 
@@ -115,7 +115,7 @@ const relics = {
           console.log(`Could not read relic data from old spreadsheet`);
           return {
             success: false,
-            message: `Could not read relic data from old spreadsheet`,
+            message: `Could not read relic data from old spreadsheet™`,
           };
         }
 
@@ -134,7 +134,7 @@ const relics = {
           console.log("Relics sheet not found in new relic spreadsheet");
           return {
             success: false,
-            message: `Relics sheet not found in new relic spreadsheet`,
+            message: `Relics sheet not found in new relic spreadsheet™`,
           };
         }
 
