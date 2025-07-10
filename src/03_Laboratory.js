@@ -12,88 +12,122 @@ const lab = {
         }
         var newSheetID = newSpreadsheet.spreadsheetId;
 
-        if (versionDifference === 0) {
-          // console.log("Same Version - proceeding with lab data import");
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-            console.log(`_IDS sheet not found in new lab spreadsheet`);
-            return {
-              success: false,
-              message: "_IDS sheet not found in new lab spreadsheet",
-            };
-          }
-
-          if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-            console.log(`Master Sheet not found in new lab spreadsheet`);
-            return {
-              success: false,
-              message: "Master Sheet not found in new lab spreadsheet",
-            };
-          }
-
-          // Get header row to find Labs column
-          var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-
-          if (!headerValues || headerValues.length === 0) {
-            console.log(`Could not read header row from _IDS sheet`);
-            return {
-              success: false,
-              message: "Could not read header row from _IDS sheet",
-            };
-          }
-
-          var headerRow = headerValues[0];
-          var importLabColStart = headerRow.indexOf("Labs") + 1;
-
-          if (importLabColStart === 0) {
-            console.log(`Labs column not found in _IDS sheet`);
-            return {
-              success: false,
-              message: "Labs column not found in _IDS sheet",
-            };
-          }
-
-          // Get lab levels data starting from row 2
-          var labLevelsRange =
-            "_IDS!" +
-            shared.columnToLetter(importLabColStart) +
-            "2:" +
-            shared.columnToLetter(importLabColStart + 2);
-
-          var oldLabLevelsValues = SheetsAPI.getValues(
-            newSheetID,
-            labLevelsRange
-          );
-          if (!oldLabLevelsValues) {
-            console.log(`Could not read lab levels data`);
-            return {
-              success: false,
-              message: "Could not read lab levels data",
-            };
-          }
-
-          // Filter out empty rows
-          var oldLabLevels = oldLabLevelsValues.filter((row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || "").trim() !== ""
-            )
-          );
-
-          return updateLabLevels(newSheetID, oldLabLevels);
-        } else {
-          console.log(`Version mismatch - skipping lab data import`);
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        if (!oldSpreadsheet) {
+          console.log(`Old spreadsheet not found`);
           return {
             success: false,
-            message: "Version mismatch - skipping lab data import",
+            message: "Old spreadsheet not found",
           };
         }
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        var getVersionFunction = convertVersionFunctions[versionDifference];
+        if (!getVersionFunction) {
+          console.log(`Unsupported version difference: ${versionDifference}`);
+          return {
+            success: false,
+            message: `Unsupported version difference: ${versionDifference}`,
+          };
+        }
+        var result = getVersionFunction();
+        if (!result || !result.success) {
+          console.log(`Error processing lab data: ${result.message}`);
+          return result;
+        }
+
+        var oldLabLevels = result.oldLabLevels || [];
+        return updateLabLevels(newSheetID, oldLabLevels);
       } catch (error) {
         console.log(`Error in importLabData: ${error.toString()}`);
         return {
           success: false,
           message: "Error importing lab data: " + error.message,
+        };
+      }
+    }
+
+    function version10() {
+      try {
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
+          console.log(`_IDS sheet not found in new lab spreadsheet`);
+          return {
+            success: false,
+            message: "_IDS sheet not found in new lab spreadsheet",
+          };
+        }
+
+        var newSheetID = newSpreadsheet.spreadsheetId;
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
+          console.log(`Master Sheet not found in new lab spreadsheet`);
+          return {
+            success: false,
+            message: "Master Sheet not found in new lab spreadsheet",
+          };
+        }
+
+        // Get header row to find Labs column
+        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
+
+        if (!headerValues || headerValues.length === 0) {
+          console.log(`Could not read header row from _IDS sheet`);
+          return {
+            success: false,
+            message: "Could not read header row from _IDS sheet",
+          };
+        }
+
+        var headerRow = headerValues[0];
+        var importLabColStart = headerRow.indexOf("Labs") + 1;
+
+        if (importLabColStart === 0) {
+          console.log(`Labs column not found in _IDS sheet`);
+          return {
+            success: false,
+            message: "Labs column not found in _IDS sheet",
+          };
+        }
+
+        // Get lab levels data starting from row 2
+        var labLevelsRange =
+          "_IDS!" +
+          shared.columnToLetter(importLabColStart) +
+          "2:" +
+          shared.columnToLetter(importLabColStart + 2);
+
+        var oldLabLevelsValues = SheetsAPI.getValues(
+          newSheetID,
+          labLevelsRange
+        );
+        if (!oldLabLevelsValues) {
+          console.log(`Could not read lab levels data`);
+          return {
+            success: false,
+            message: "Could not read lab levels data",
+          };
+        }
+
+        // Filter out empty rows
+        var oldLabLevels = oldLabLevelsValues.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+          )
+        );
+
+        return {
+          success: true,
+          message: "Lab levels processed successfully",
+          oldLabLevels: oldLabLevels,
+        };
+      } catch (error) {
+        console.log(`Error processing lab data: ${error.toString()}`);
+        return {
+          success: false,
+          message: `Error processing lab data: ${error.message}`,
         };
       }
     }
@@ -198,16 +232,30 @@ const lab = {
     }
 
     var convertVersionFunctions = {
-      // Example: 3: function(oldSheetID) { return convertVersion3(oldSheetID); },
+      "v1.0": version10,
     };
 
     return importLabData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var supportedVersions = {
-      // Example: 3: true,
-    };
-    return supportedVersions[oldVersion] || false;
+    var versionCompatibility = [
+      "v1.0"
+    ];
+    
+    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+    });
+    
+    for (var i = 0; i < sortedThresholds.length; i++) {
+      var threshold = sortedThresholds[i];
+      var compareResult = shared.compareVersions(oldVersion, threshold);
+      
+      if (compareResult === "same" || compareResult === "newer") {
+        return threshold;
+      }
+    }
+    
+    return null;
   },
 };

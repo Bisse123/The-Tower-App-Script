@@ -252,15 +252,10 @@ function importData(
       "IDS",
       sheetType + " ID"
     );
-    if (versionDifference === 0) {
-      var statusValue = "✅";
-    } else {
-      var statusValue = "Wrong ID or Version";
-    }
     if (
       !idMasterInfo ||
       !idMasterInfo.accessStatus ||
-      idMasterInfo.accessStatus.value !== statusValue
+      !["✅", "Wrong ID or Version"].includes(idMasterInfo.accessStatus.value)
     ) {
       console.log(
         `IDS Master has not granted access to the old ${sheetType} sheet.`

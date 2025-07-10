@@ -120,12 +120,23 @@ const SheetsAPI = {
 
 const shared = {
   compareVersions: function (oldVersion, newVersion) {
-    var oldVersionNumber = parseInt(oldVersion.replace(/\D/g, ""), 10);
-    var newVersionNumber = parseInt(newVersion.replace(/\D/g, ""), 10);
+    function parseVersion(v) {
+      v = v.replace(/^[^\d]*/, "");
+      // Split into number segments
+      return v.split(".").map(Number);
+    }
 
-    if (oldVersionNumber > newVersionNumber) return -1;
-    if (oldVersionNumber < newVersionNumber) return oldVersionNumber;
-    return 0;
+    var oldParts = parseVersion(oldVersion || "");
+    var newParts = parseVersion(newVersion || "");
+    var len = Math.max(oldParts.length, newParts.length);
+
+    for (var i = 0; i < len; i++) {
+      var oldNum = oldParts[i] || 0;
+      var newNum = newParts[i] || 0;
+      if (oldNum > newNum) return "newer";
+      if (oldNum < newNum) return "older";
+    }
+    return "same";
   },
 
   findSheetTypeID: function (spreadsheetId, sheetName, idType) {
@@ -415,27 +426,24 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `New spreadsheet not found with ID: ${newSheetID}`,
       };
     }
-    var newExportSheet = SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT");
-    if (!newExportSheet) {
-      newExportSheet = SheetsAPI.getSheetByName(newSpreadsheet, "STATS");
-    }
-    if (!newExportSheet) {
-      console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
+    var newHomePageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "Home Page");
+    if (!newHomePageSheet) {
+      console.log(`Home Page sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
-        message: `Export sheet not found in new ${sheetType} spreadsheet`,
+        message: `Home Page sheet not found in new ${sheetType} spreadsheet`,
       };
     }
 
     var newVersion = SheetsAPI.getValue(
       newSheetID,
-      `${newExportSheet.title}!A1`
+      `${newHomePageSheet.title}!B12`
     );
     if (!newVersion) {
-      console.log(`Export version not found in new ${sheetType} spreadsheet.`);
+      console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `Export version not found in new ${sheetType} spreadsheet.`,
+        message: `Version not found in new ${sheetType} spreadsheet.`,
       };
     }
 
@@ -447,33 +455,30 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `Old spreadsheet not found with ID: ${oldSheetID}`,
       };
     }
-    var oldExportSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT");
-    if (!oldExportSheet) {
-      oldExportSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "STATS");
-    }
-    if (!oldExportSheet) {
-      console.log(`Export sheet not found in old ${sheetType} spreadsheet`);
+    var oldHomePageSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "Home Page");
+    if (!oldHomePageSheet) {
+      console.log(`Home Page sheet not found in old ${sheetType} spreadsheet`);
       return {
         success: false,
-        message: `Export sheet not found in old ${sheetType} spreadsheet`,
+        message: `Home Page sheet not found in old ${sheetType} spreadsheet`,
       };
     }
 
     var oldVersion = SheetsAPI.getValue(
       oldSheetID,
-      `${oldExportSheet.title}!A1`
+      `${oldHomePageSheet.title}!B12`
     );
     if (!oldVersion) {
-      console.log(`Export version not found in old ${sheetType} spreadsheet.`);
+      console.log(`Version not found in old ${sheetType} spreadsheet.`);
       return {
         success: false,
-        message: `Export version not found in old ${sheetType} spreadsheet.`,
+        message: `Version not found in old ${sheetType} spreadsheet.`,
       };
     }
 
     var compareVersions = shared.compareVersions(oldVersion, newVersion);
     
-    if (compareVersions === -1) {
+    if (compareVersions === "newer") {
       console.log(
         `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`
       );
@@ -481,29 +486,28 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         success: false,
         message: `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`,
       };
-    } else if (compareVersions > 0) {
-      var sheetTypeFunction = sheetVars(sheetType);
-      if (
-        sheetTypeFunction &&
-        sheetTypeFunction.isCompatibleVersion(compareVersions)
-      ) {
+    }
+    var sheetTypeFunction = sheetVars(sheetType);
+    if (sheetTypeFunction) {
+      var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
+      if (!versionDifference) {
+        console.log(
+          `Old version of ${sheetType} is incompatible import.`
+        );
         return {
-          success: true,
-          message: `The version of the old sheet (${oldVersion}) is compatible with the new sheet (${newVersion}).`,
-          oldVersion: oldVersion,
-          newVersion: newVersion,
-          versionDifference: compareVersions,
+          success: false,
+          message: `Old version of ${sheetType} is incompatible import.`,
         };
       }
       return {
-        success: false,
-        message: `Old version of ${sheetType} is incompatible import.`,
+        success: true,
+        message: `The version of the old sheet (${oldVersion}) is compatible with the new sheet (${newVersion}).`,
+        versionDifference: versionDifference,
       };
     }
     return {
-      success: true,
-      message: `The version of the old sheet (${oldVersion}) is the same as the new sheet (${newVersion}).`,
-      versionDifference: 0,
+      success: false,
+      message: `Old version of ${sheetType} is incompatible import.`,
     };
   } catch (error) {
     console.log(`Error checking compatibility: ${error.message}`);
