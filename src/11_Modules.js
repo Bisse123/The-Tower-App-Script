@@ -30,7 +30,7 @@ const modules = {
             message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        var result = getVersionFunction(newSheetID, oldSheetID);
+        var result = getVersionFunction();
         if (!result || !result.success) {
           console.log(`Error processing modules data: ${result.message}`);
           return result;
@@ -95,8 +95,11 @@ const modules = {
       }
     }
 
-    function version40(newSheetID, oldSheetID) {
+    function version40() {
       try {
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
         var targetModuleTypes = ["cannon", "armor", "generator", "core"];
 
         var oldModulesInventoryValues = SheetsAPI.getDataRange(
@@ -476,36 +479,23 @@ const modules = {
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var versionCompatibility = {
-      "v3.99": false,
-      "v4.0": true,
-    };
+    var versionCompatibility = [
+      "v4.0"
+    ];
     
-    var highestThreshold = null;
-    var compatibleThreshold = null;
+    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+    });
     
-    for (var threshold in versionCompatibility) {
+    for (var i = 0; i < sortedThresholds.length; i++) {
+      var threshold = sortedThresholds[i];
       var compareResult = shared.compareVersions(oldVersion, threshold);
       
-      if (compareResult === "older" || compareResult === "same") {
-        if (versionCompatibility[threshold]) {
-          compatibleThreshold = threshold;
-        }
-        break;
-      }
-      
-      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
-        highestThreshold = threshold;
+      if (compareResult === "same" || compareResult === "newer") {
+        return threshold;
       }
     }
     
-    if (!compatibleThreshold && highestThreshold) {
-      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
-      if (compareWithHighest === "older") {
-        compatibleThreshold = highestThreshold;
-      }
-    }
-    
-    return compatibleThreshold;
+    return null;
   },
 };

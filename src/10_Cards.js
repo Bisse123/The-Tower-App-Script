@@ -30,7 +30,7 @@ const cards = {
             message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        var result = getVersionFunction(newSheetID, oldSheetID);
+        var result = getVersionFunction();
         if (!result || !result.success) {
           console.log(`Error processing cards data: ${result.message}`);
           return result;
@@ -197,8 +197,14 @@ const cards = {
       };
     }
 
-    function version16(newSheetID, oldSheetID) {
+    function version10() {
       try {
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        var newSheetID = newSpreadsheet.spreadsheetId;
+        
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
         var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
         if (!headerValues || headerValues.length === 0) {
           console.log(`Could not read header row from _IDS sheet`);
@@ -547,44 +553,32 @@ const cards = {
     }
 
     var convertVersionFunctions = {
-      "v1.6": version16,
       "v1.7": version17,
+      "v1.0": version10,
     };
 
     return importCardsData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var versionCompatibility = {
-      "v1.6": true,
-      "v1.7": true,
-    };
+    var versionCompatibility = [
+      "v1.7",
+      "v1.0"
+    ];
     
-    var highestThreshold = null;
-    var compatibleThreshold = null;
+    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+    });
     
-    for (var threshold in versionCompatibility) {
+    for (var i = 0; i < sortedThresholds.length; i++) {
+      var threshold = sortedThresholds[i];
       var compareResult = shared.compareVersions(oldVersion, threshold);
       
-      if (compareResult === "older" || compareResult === "same") {
-        if (versionCompatibility[threshold]) {
-          compatibleThreshold = threshold;
-        }
-        break;
-      }
-      
-      if (!highestThreshold || shared.compareVersions(highestThreshold, threshold) === "older") {
-        highestThreshold = threshold;
+      if (compareResult === "same" || compareResult === "newer") {
+        return threshold;
       }
     }
     
-    if (!compatibleThreshold && highestThreshold) {
-      var compareWithHighest = shared.compareVersions(highestThreshold, oldVersion);
-      if (compareWithHighest === "older") {
-        compatibleThreshold = highestThreshold;
-      }
-    }
-    
-    return compatibleThreshold;
+    return null;
   },
 };

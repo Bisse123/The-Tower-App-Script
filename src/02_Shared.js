@@ -486,29 +486,28 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         success: false,
         message: `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`,
       };
-    } else if (compareVersions ==="older") {
-      var sheetTypeFunction = sheetVars(sheetType);
-      if (
-        sheetTypeFunction &&
-        sheetTypeFunction.isCompatibleVersion(oldVersion)
-      ) {
+    }
+    var sheetTypeFunction = sheetVars(sheetType);
+    if (sheetTypeFunction) {
+      var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
+      if (!versionDifference) {
+        console.log(
+          `Old version of ${sheetType} is incompatible import.`
+        );
         return {
-          success: true,
-          message: `The version of the old sheet (${oldVersion}) is compatible with the new sheet (${newVersion}).`,
-          oldVersion: oldVersion,
-          newVersion: newVersion,
-          versionDifference: oldVersion,
+          success: false,
+          message: `Old version of ${sheetType} is incompatible import.`,
         };
       }
       return {
-        success: false,
-        message: `Old version of ${sheetType} is incompatible import.`,
+        success: true,
+        message: `The version of the old sheet (${oldVersion}) is compatible with the new sheet (${newVersion}).`,
+        versionDifference: versionDifference,
       };
     }
     return {
-      success: true,
-      message: `The version of the old sheet (${oldVersion}) is the same as the new sheet (${newVersion}).`,
-      versionDifference: oldVersion,
+      success: false,
+      message: `Old version of ${sheetType} is incompatible import.`,
     };
   } catch (error) {
     console.log(`Error checking compatibility: ${error.message}`);
