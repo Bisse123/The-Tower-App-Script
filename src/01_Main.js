@@ -87,7 +87,6 @@ function onInstall(e) {
 }
 
 function showGetStartedDialog() {
-  // console.log(`showGetStartedDialog called`);
   try {
     var template = HtmlService.createTemplateFromFile("13_getStartedApp")
     var html = template
@@ -103,7 +102,6 @@ function showGetStartedDialog() {
 }
 
 function showImportDialog() {
-  // console.log(`showImportDialog called`);
   try {
     var sheetType = SpreadsheetApp.getActiveSpreadsheet()
       .getSheetByName("Home Page")

@@ -621,17 +621,9 @@ function checkSheetAccess(fileIds, userEmail) {
           inaccessibleFiles.push({ id: fileId });
         }
       } catch (error) {
-        // console.log("No access to file:", fileId, "Error:", error.toString());
         inaccessibleFiles.push({ id: fileId });
       }
     });
-
-    // console.log(
-    //   "Access check complete. Accessible:",
-    //   accessibleFiles.length,
-    //   "Inaccessible:",
-    //   inaccessibleFiles.length
-    // );
 
     return {
       success: true,

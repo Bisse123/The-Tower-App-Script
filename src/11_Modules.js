@@ -39,6 +39,7 @@ const modules = {
         var targetModuleTypes = result.targetModuleTypes || [];
         var oldModulesInventory = result.oldModulesInventory || {};
         var oldModulesPresets = result.oldModulesPresets || {};
+        var oldModulesObtained = result.oldModulesObtained || {};
 
         var inventoryResult = updateModulesInventory(
           targetModuleTypes,
@@ -70,6 +71,22 @@ const modules = {
         }
 
         batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
+
+        var obtainedResult = updateModulesObtained(
+          targetModuleTypes,
+          newSheetID,
+          "Mods Obtained",
+          oldModulesObtained
+        );
+
+        if (!obtainedResult || !obtainedResult.success) {
+          return {
+            success: false,
+            message: obtainedResult.message,
+          };
+        }
+
+        batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
 
         if (batchUpdate.length > 0) {
           SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -112,7 +129,6 @@ const modules = {
           oldModulesInventoryValues
         );
 
-        // Get old modules presets data using Sheets API
         var oldModulesPresetsValues = SheetsAPI.getDataRange(
           oldSheetID,
           "Modules Presets"
@@ -123,11 +139,22 @@ const modules = {
           oldModulesPresetsValues
         );
 
+        var oldModulesObtainedValues = SheetsAPI.getDataRange(
+          oldSheetID,
+          "Mods Obtained"
+        );
+
+        var oldModulesObtained = getOldModulesObtained(
+          targetModuleTypes,
+          oldModulesObtainedValues
+        );
+
         return {
           success: true,
           targetModuleTypes: targetModuleTypes,
           oldModulesInventory: oldModulesInventory,
           oldModulesPresets: oldModulesPresets,
+          oldModulesObtained: oldModulesObtained,
         };
       } catch (error) {
         console.log("Error in version40: " + error.toString());
@@ -237,7 +264,6 @@ const modules = {
       sheetName,
       oldModulesInventory
     ) {
-      // Get sheet data using Sheets API
       var newModuleInventoryValues;
       try {
         newModuleInventoryValues = SheetsAPI.getDataRange(
@@ -259,8 +285,7 @@ const modules = {
         newModuleInventoryValues
       );
 
-      var singleCellUpdates = [];
-      var rangeUpdates = [];
+      var batchUpdate = [];
 
       targetModuleTypes.forEach(function (moduleType) {
         if (oldModulesInventory.hasOwnProperty(moduleType)) {
@@ -273,6 +298,18 @@ const modules = {
 
           for (var col = 1; col < row.length; col++) {
             var cellValue = String(row[col]);
+            if (cellValue.trim() === "Any Other" && !oldModulesInventory[moduleType].hasOwnProperty(cellValue)) {
+              for (var spare in oldModulesInventory[moduleType]) {
+                if (spare.includes("Spare")) {
+                  batchUpdate.push({
+                    range: sheetName + "!" + shared.columnToLetter(col + 1) + (rowIdx + 1),
+                    values: [[spare]],
+                  });
+                  cellValue = spare;
+                  break;
+                }
+              }
+            }
             if (
               cellValue.trim() !== "" &&
               oldModulesInventory[moduleType].hasOwnProperty(cellValue)
@@ -282,20 +319,12 @@ const modules = {
                 oldModulesInventory[moduleType][cellValue].level
               );
 
-              // Update rarity
               var rarityCell = shared.columnToLetter(col + 1) + (rowIdx + 3);
-              singleCellUpdates.push({
+              batchUpdate.push({
                 range: sheetName + "!" + rarityCell,
-                value: oldModulesInventory[moduleType][cellValue].rarity,
+                values: [[oldModulesInventory[moduleType][cellValue].rarity]],
               });
-
-              // var levelCell = shared.columnToLetter(col + 2) + (rowIdx + 3);
-              // singleCellUpdates.push({
-              //   range: sheetName + "!" + levelCell,
-              //   value: oldModulesInventory[moduleType][cellValue].level,
-              // });
-
-              // Update substats if available
+              
               var substats =
                 oldModulesInventory[moduleType][cellValue].substats;
               if (substats && substats.length > 0) {
@@ -305,7 +334,7 @@ const modules = {
                 var endCell =
                   shared.columnToLetter(col + numCols) +
                   (rowIdx + 5 + numRows - 1);
-                rangeUpdates.push({
+                batchUpdate.push({
                   range: sheetName + "!" + startCell + ":" + endCell,
                   values: substats,
                 });
@@ -317,47 +346,11 @@ const modules = {
           if (highestLevelCol !== -1) {
             var highestLevelCell =
               shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
-            singleCellUpdates.push({
+            batchUpdate.push({
               range: sheetName + "!" + highestLevelCell,
-              value: maxLevel,
+              values: [[maxLevel]],
             });
           }
-        }
-      });
-
-      var batchUpdate = [];
-      singleCellUpdates.forEach(function (update) {
-        try {
-          batchUpdate.push({
-            range: update.range,
-            values: [[update.value]],
-          });
-        } catch (error) {
-          console.log(
-            "Error updating cell " + update.range + ": " + error.toString()
-          );
-          return {
-            success: false,
-            message: "Error updating cell: " + error.message,
-          };
-        }
-      });
-
-      // Apply range updates
-      rangeUpdates.forEach(function (update) {
-        try {
-          batchUpdate.push({
-            range: update.range,
-            values: update.values,
-          });
-        } catch (error) {
-          console.log(
-            "Error updating range " + update.range + ": " + error.toString()
-          );
-          return {
-            success: false,
-            message: "Error updating range: " + error.message,
-          };
         }
       });
 
@@ -440,6 +433,97 @@ const modules = {
           }
         }
       });
+      return oldModules;
+    }
+
+    function updateModulesObtained(
+      targetModuleTypes,
+      newSheetID,
+      sheetName,
+      oldModulesObtained
+    ) {
+      var newModulesObtainedValues;
+      try {
+        newModulesObtainedValues = SheetsAPI.getDataRange(
+          newSheetID,
+          sheetName
+        );
+      } catch (error) {
+        console.log("Error getting modules obtained data: " + error.toString());
+        return {
+          success: false,
+          message: "Error getting modules obtained data: " + error.message,
+        };
+      }
+
+      var batchUpdate = [];
+      for (var row = 0; row < newModulesObtainedValues.length; row++) {
+        for (var col = 0; col < newModulesObtainedValues[row].length; col++) {
+          var cellValue = String(newModulesObtainedValues[row][col]).trim();
+          if (cellValue) {
+            var moduleType = targetModuleTypes.find(function (type) {
+              return cellValue.toLowerCase().includes(type);
+            });
+            if (moduleType && oldModulesObtained.hasOwnProperty(moduleType)) {
+              var valuesArray = [];
+              var startRow = row + 3;
+              for (var modIdx = row + 2; modIdx < newModulesObtainedValues.length; modIdx++) {
+                var moduleName = String(newModulesObtainedValues[modIdx][col]).trim();
+                if (!moduleName || moduleName === "Total") {
+                  break;
+                } else if (oldModulesObtained[moduleType].hasOwnProperty(moduleName)) {
+                  valuesArray.push([oldModulesObtained[moduleType][moduleName]]);
+                }
+              }
+              if (valuesArray.length > 0) {
+                var startCell = shared.columnToLetter(col + 2) + startRow;
+                var endCell = shared.columnToLetter(col + 2) + (startRow + valuesArray.length - 1);
+                batchUpdate.push({
+                  range: sheetName + "!" + startCell + ":" + endCell,
+                  values: valuesArray,
+                });
+              }
+            }
+          }
+        }
+      }
+      return {
+        success: true,
+        message: `Modules Obtained updated successfully`,
+        batchUpdate: batchUpdate,
+      };
+    }
+
+    function getOldModulesObtained(targetModuleTypes, oldModulesObtainedValues) {
+      var oldModules = {};
+      for (var row = 0; row < oldModulesObtainedValues.length; row++) {
+        for (var col = 0; col < oldModulesObtainedValues[row].length; col++) {
+          var cellValue = String(oldModulesObtainedValues[row][col]).trim();
+          if (cellValue) {
+            var moduleType = targetModuleTypes.find(function (type) {
+              return cellValue.toLowerCase().includes(type);
+            });
+            if (moduleType) {
+              if (!oldModules[moduleType]) {
+                oldModules[moduleType] = {};
+              }
+              for (var modIdx = row + 2; modIdx < oldModulesObtainedValues.length; modIdx++) {
+                var moduleName = String(
+                  oldModulesObtainedValues[modIdx][col]
+                ).trim();
+                if (!moduleName || moduleName === "Total") {
+                  break;
+                } else {
+                  oldModules[moduleType][moduleName] = oldModulesObtainedValues[modIdx][col + 1];
+                }
+              }
+              if (Object.keys(oldModules).length === targetModuleTypes.length) {
+                return oldModules;
+              }
+            }
+          }
+        }
+      }
       return oldModules;
     }
 
