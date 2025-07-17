@@ -185,12 +185,11 @@ const lab = {
             if (cellValue === "") break;
 
             var update = updateMap[cellValue];
-            // If labName is found then push update regardless of the imported levels
             if (update) {
-              updates.push([update[0], update[1]]);
+              updates.push([update[0] || 0, update[1] || ""]);
             } else {
               // Keep existing values
-              var currentLevel = allData[row][col] || "";
+              var currentLevel = allData[row][col] || 0;
               var currentTarget = allData[row][col + 1] || "";
               updates.push([currentLevel, currentTarget]);
             }
