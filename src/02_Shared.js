@@ -119,6 +119,28 @@ const SheetsAPI = {
 };
 
 const shared = {
+  findSheetVersion: function (sheetID, sheetName) {
+    try {
+      var values = SheetsAPI.getDataRange(sheetID, sheetName);
+      if (!values || values.length === 0) {
+        console.log(`No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`);
+        return null;
+      }
+      for (var row = 0; row < values.length; row++) {
+        var col = values[row].findIndex(cell => typeof cell === "string" && cell.includes("Version Change"));
+        if (col !== -1) {
+          var version = values[row + 1][col];
+          if (version) {
+            return version.trim();
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error finding sheet version: ${error}`);
+      return null;
+    }
+  },
+
   compareVersions: function (oldVersion, newVersion) {
     function parseVersion(v) {
       v = v.replace(/^[^\d]*/, "");
@@ -434,11 +456,8 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `Home Page sheet™ not found in new ${sheetType} spreadsheet™`,
       };
     }
-
-    var newVersion = SheetsAPI.getValue(
-      newSheetID,
-      `${newHomePageSheet.title}!B12`
-    );
+    
+    var newVersion = shared.findSheetVersion(newSheetID, newHomePageSheet.title);
     if (!newVersion) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
@@ -464,10 +483,8 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    var oldVersion = SheetsAPI.getValue(
-      oldSheetID,
-      `${oldHomePageSheet.title}!B12`
-    );
+    var oldVersion = shared.findSheetVersion(oldSheetID, oldHomePageSheet.title);
+
     if (!oldVersion) {
       console.log(`Version not found in old ${sheetType} spreadsheet.`);
       return {
@@ -521,7 +538,6 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
 function checkImportStatus(newSheetID) {
   try {
     var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
-    console.log(`New spreadsheet: ${JSON.stringify(newSpreadsheet)}`);
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
