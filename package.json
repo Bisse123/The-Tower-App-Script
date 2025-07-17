@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Google Apps Script project for The Tower",
   "scripts": {
-    "dev": "powershell -Command \"Copy-Item .clasp.dev.json .clasp.json; clasp push\""
+    "dev": "powershell -Command \"Copy-Item .clasp.dev.json .clasp.json; 'y' | clasp push; Remove-Item .clasp.json\""
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"
