@@ -406,7 +406,7 @@
     }
     try {
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEET)
-        .setIncludeFolders(false)
+        .setIncludeFolders(true)
         .setSelectFolderEnabled(false)
         .setMode(google.picker.DocsViewMode.LIST)
         .setMimeTypes("application/vnd.google-apps.spreadsheet");

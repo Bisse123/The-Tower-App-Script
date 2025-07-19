@@ -45,6 +45,9 @@ const spreadsheets = (() => {
 function doGet(e) {
   // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
   var template = HtmlService.createTemplateFromFile("13_WebApp");
+  if (e.parameter.newSheetID === "<Script loading...>") {
+    e.parameter.newSheetID = "";
+  }
   template.newSheetID = e.parameter.newSheetID;
   template.oldSheetID = e.parameter.oldSheetID;
   template.idMasterID = e.parameter.idMasterID;
