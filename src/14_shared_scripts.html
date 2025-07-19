@@ -479,7 +479,7 @@
         document.getElementById("statusText").innerText = result.message;
       }
     } else {
-      console.error("Sheet access check failed:", result.message);
+      console.error("Sheet™ access check failed:", result.message);
       document.getElementById(
         "statusText"
       ).innerText = `Could not check file access: ${result.message}`;
@@ -492,7 +492,7 @@
   }
 
   function onSheetAccessCheckFailure(error) {
-    console.error("Sheet access check error:", error);
+    console.error("Sheet™ access check error:", error);
     document.getElementById(
       "statusText"
     ).innerText = `Error checking Sheet™ access: ${error.message || error}`;
