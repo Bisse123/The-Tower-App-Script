@@ -176,6 +176,10 @@
           return;
         }
       }
+      if (accessRequired && newSheetID) {
+        console.log("Access required for new sheet:", newSheetID);
+        await findAndGrantNewSheet(newSheetID, userEmail);
+      }
       checkValidParameters();
     } catch (error) {
       console.error("Error initializing GAPI client:", error);
@@ -218,9 +222,7 @@
       }
 
     showFileAccessSection();
-
     const fileIds = [newSheetID, oldSheetID, idMasterID];
-
     google.script.run
       .withSuccessHandler(onSheetAccessCheckSuccess)
       .withFailureHandler(onSheetAccessCheckFailure)
