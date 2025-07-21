@@ -125,6 +125,10 @@ function showImportDialog() {
     }
     try {
       var values = sheet.getDataRange().getValues();
+      if (!values || values.length === 0) {
+        console.log(`No data found in the IDS sheet.`);
+        throw new Error("No data found in the IDS sheet.");
+      }
       var idMasterURL = "";
       for (var row = 0; row < values.length; row++) {
         for (var col = 0; col < values[row].length; col++) {
@@ -141,9 +145,25 @@ function showImportDialog() {
           break;
         }
       }
+      if (!idMasterURL) {
+        console.log(`IDS Master's ID not found in the new spreadsheet.`);
+        throw new Error("IDS Master's ID not found in the new spreadsheet.");
+      }
       var idMasterID = idMasterURL ? shared.extractSheetId(idMasterURL) : "";
+      if (!idMasterID) {
+        console.log(`IDS Master's ID not found in the new spreadsheet.`);
+        throw new Error("IDS Master's ID not found in the new spreadsheet.");
+      }
       var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
+      if (!oldSheetInfo || !oldSheetInfo.id) {
+        console.log(`Old sheet ID not found in the IDS Master.`);
+        throw new Error("Old sheet ID not found in the IDS Master.");
+      }
       var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
+      if (!oldSheetID) {
+        console.log(`Old sheet ID not found in the IDS Master.`);
+        throw new Error("Old sheet ID not found in the IDS Master.");
+      }
 
       var template = HtmlService.createTemplateFromFile("13_WebApp");
       template.newSheetID = newSheetID;
