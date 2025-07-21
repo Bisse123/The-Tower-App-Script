@@ -110,18 +110,21 @@ function showImportDialog() {
   try {
     var newSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     var newSheetID = newSpreadsheet.getId();
+    var sheetType = newSpreadsheet
+      .getSheetByName("Home Page")
+      .getRange("B2")
+      .getValue();
+    if (!sheetVars(sheetType)) {
+      console.log(`Sheet type not found in the new spreadsheet.`);
+      throw new Error("Sheet type not found in the new spreadsheet.");
+    }
+    var sheet = newSpreadsheet.getSheetByName("IDS");
+    if (!sheet) {
+      console.log(`IDS sheet not found in the new spreadsheet.`);
+      throw new Error("IDS sheet not found in the new spreadsheet.");
+    }
     try {
-      var sheetType = newSpreadsheet
-        .getSheetByName("Home Page")
-        .getRange("B2")
-        .getValue();
-
-      var sheet = newSpreadsheet.getSheetByName("IDS");
-      if (!sheet) {
-        console.log(`IDS sheet not found in the new spreadsheet.`);
-      }
-      var range = sheet.getDataRange();
-      var values = range.getValues();
+      var values = sheet.getDataRange().getValues();
       var idMasterURL = "";
       for (var row = 0; row < values.length; row++) {
         for (var col = 0; col < values[row].length; col++) {
@@ -139,7 +142,6 @@ function showImportDialog() {
         }
       }
       var idMasterID = idMasterURL ? shared.extractSheetId(idMasterURL) : "";
-      
       var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
       var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
 
