@@ -144,7 +144,6 @@ const shared = {
   compareVersions: function (oldVersion, newVersion) {
     function parseVersion(v) {
       v = v.replace(/^[^\d]*/, "");
-      // Split into number segments
       return v.split(".").map(Number);
     }
 
@@ -361,11 +360,20 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
         updated: false,
       };
     }
-    var version = shared.findSheetVersion(newSheetID, "Home Page") || "";
+    var newVersion = shared.findSheetVersion(newSheetID, "Home Page") || "";
+    var oldVersion = oldFile.name.match(/v\d+(?:\.\d+)*/g);
+
+    var newFileName = oldFile.name;
+    if (oldVersion && oldVersion.length > 0 && newVersion) {
+      newFileName = oldFile.name.replace(oldVersion[0], newVersion);
+    } else if (newVersion) {
+      newFileName = `${oldFile.name} ${newVersion}`;
+    }
+    
     try {
       Drive.Files.update(
         {
-          name: `${sheetType} ${version}`,
+          name: newFileName,
         },
         newSheetID,
         null,
