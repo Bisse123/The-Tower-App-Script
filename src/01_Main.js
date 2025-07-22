@@ -154,15 +154,47 @@ function showImportDialog() {
         console.log(`IDS Master's ID not found in the new spreadsheet.`);
         throw new Error("IDS Master's ID not found in the new spreadsheet.");
       }
-      var oldSheetInfo = idMasterID ? shared.findSheetTypeID(idMasterID, "IDS", sheetType + " ID") : "";
-      if (!oldSheetInfo || !oldSheetInfo.id) {
-        console.log(`Old sheet ID not found in the IDS Master.`);
-        throw new Error("Old sheet ID not found in the IDS Master.");
+      var oldSheetUrl = "";
+      
+      var idsSubsheet = newSpreadsheet.getSheetByName("_IDS");
+      if (idsSubsheet) {
+        var lastColumn = idsSubsheet.getLastColumn();
+        if (lastColumn > 0) {
+          var firstRowValues = idsSubsheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+          
+          var sheetTypeMapping = {
+            "Laboratory": "Labs",
+            "Workshop": "WS",
+            "Ultimate Weapon": "UWs",
+            "Themes & Songs": "Themes & Songs",
+            "Bots": "Bots",
+            "Relics": "Relics",
+            "Vault": "Vault",
+            "Cards": "Cards",
+            "Modules": "Modules",
+            "Guardians": "Guardians"
+          };
+          
+          var searchValue = sheetTypeMapping[sheetType] || sheetType;
+          
+          var foundIndex = firstRowValues.indexOf(searchValue);
+          if (foundIndex !== -1 && foundIndex < firstRowValues.length - 1) {
+            var foundValue = firstRowValues[foundIndex + 1];
+            if (foundValue) {
+              oldSheetUrl = foundValue;
+            }
+          }
+        }
       }
-      var oldSheetID = oldSheetInfo ? shared.extractSheetId(oldSheetInfo.id) : "";
+      
+      if (!oldSheetUrl) {
+        console.log(`Old sheet URL not found in the _IDS subsheet.`);
+        throw new Error("Old sheet URL not found in the _IDS subsheet.");
+      }
+      var oldSheetID = oldSheetUrl ? shared.extractSheetId(oldSheetUrl) : "";
       if (!oldSheetID) {
-        console.log(`Old sheet ID not found in the IDS Master.`);
-        throw new Error("Old sheet ID not found in the IDS Master.");
+        console.log(`Old sheet ID not found in the _IDS subsheet.`);
+        throw new Error("Old sheet ID not found in the _IDS subsheet.");
       }
 
       var template = HtmlService.createTemplateFromFile("13_WebApp");
