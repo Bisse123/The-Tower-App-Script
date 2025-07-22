@@ -155,8 +155,8 @@ try {
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 } finally {
-    # Restore original .clasp.json if it existed, or remove the temporary one
-    if (Test-Path ".clasp.json.bak") {
-        Move-Item ".clasp.json.bak" ".clasp.json" -Force
+    # Remove the temporary .clasp.json file
+    if (Test-Path ".clasp.json") {
+        Remove-Item ".clasp.json" -Force
     }
 }
