@@ -263,16 +263,6 @@ const shared = {
     return null;
   },
 
-  splitNameAndVersion: function (sheetName) {
-    var lastSpace = sheetName.lastIndexOf(" ");
-    if (lastSpace === -1) {
-      return { base: sheetName, version: "" };
-    }
-    var base = sheetName.substring(0, lastSpace);
-    var version = sheetName.substring(lastSpace + 1);
-    return { base: base, version: version };
-  },
-
   columnToLetter: function (column) {
     var temp = "";
     var letter = "";
@@ -349,12 +339,6 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       };
     }
 
-    var newNameParts = shared.splitNameAndVersion(newFile.name);
-    var oldNameParts = shared.splitNameAndVersion(oldFile.name);
-    var baseName = oldNameParts.base;
-    var newVersion = newNameParts.version;
-    var finalName = baseName + (newVersion ? " " + newVersion : "");
-
     var idMasterSpreadsheetInfo = shared.findSheetTypeID(
       idMasterID,
       "IDS",
@@ -377,11 +361,11 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
         updated: false,
       };
     }
-
+    var version = shared.findSheetVersion(newSheetID, "Home Page") || "";
     try {
       Drive.Files.update(
         {
-          name: finalName,
+          name: `${sheetType} ${version}`,
         },
         newSheetID,
         null,
