@@ -836,6 +836,9 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
         message: `IDS sheet™ not found in Copy of ${sheetType} spreadsheet™.`,
       };
     }
+    var thisSheetID = shared.findSheetTypeID(newFile.id, "IDS", "This Sheet ID");
+    var thisCell = thisSheetID.cell;
+    SheetsAPI.setValue(newFile.id, thisCell.range, newFile.id);
 
     var newSheetInfo = shared.findSheetTypeID(newFile.id, "IDS");
 
