@@ -160,8 +160,8 @@ const shared = {
     return "same";
   },
 
-  findSheetTypeID: function (spreadsheetId, sheetName, idType) {
-    var idType = idType || "IDS Master's ID";
+  findSheetTypeID: function (spreadsheetId, sheetName, sheetType) {
+    var sheetType = sheetType || "IDS Master's";
     var values = SheetsAPI.getDataRange(spreadsheetId, sheetName);
     if (!values || values.length === 0) {
       console.log(
@@ -170,7 +170,7 @@ const shared = {
       return null;
     }
 
-    var regex = new RegExp(idType, "i");
+    var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
         if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1) {
@@ -209,8 +209,8 @@ const shared = {
     return null;
   },
 
-  findSheetTypeURL: function (spreadsheetId, sheetName, idType) {
-    var idType = idType || "IDS Master's ID";
+  findSheetTypeURL: function (spreadsheetId, sheetName, sheetType) {
+    var sheetType = sheetType || "IDS Master's";
     var values = SheetsAPI.getDataRange(spreadsheetId, sheetName);
     if (!values || values.length === 0) {
       console.log(
@@ -219,7 +219,7 @@ const shared = {
       return null;
     }
 
-    var regex = new RegExp(idType, "i");
+    var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
         if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1) {
@@ -341,7 +341,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     var idMasterSpreadsheetInfo = shared.findSheetTypeID(
       idMasterID,
       "IDS",
-      sheetType + " ID"
+      sheetType
     );
     if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.cell) {
       console.log(`Could not find ID Master spreadsheet info`);
@@ -501,11 +501,11 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
       if (!versionDifference) {
         console.log(
-          `Old version of ${sheetType} is incompatible import.`
+          `Old version of ${sheetType} is incompatible for import.`
         );
         return {
           success: false,
-          message: `Old version of ${sheetType} is incompatible import.`,
+          message: `Old version of ${sheetType} is incompatible for import.`,
         };
       }
       return {
@@ -659,8 +659,7 @@ function findSheetIdAndType(sheetID, sheetType) {
     return { error: "Missing sheetType parameter." };
   }
   sheetType = sheetType || "IDS Master's";
-  var idType = `${sheetType} ID`;
-  var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", idType);
+  var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", sheetType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
     console.log(`Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`);
     return {
@@ -715,8 +714,7 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
       };
     }
 
-    var idType = sheetType ? sheetType + " ID" : "IDS Master's ID";
-    var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", idType);
+    var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", sheetType);
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
       console.log(`Could not find sheet template for ${sheetType}`);
       return {
