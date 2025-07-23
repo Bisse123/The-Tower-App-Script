@@ -301,22 +301,11 @@ function importData(
       };
     }
 
-    if (
-      !SheetsAPI.getSheetByName(newSpreadsheet, "EXPORT") &&
-      !SheetsAPI.getSheetByName(newSpreadsheet, "STATS")
-    ) {
-      console.log(`Export sheet not found in new ${sheetType} spreadsheet`);
-      return {
-        success: false,
-        message: `Export sheet™ not found in new ${sheetType} spreadsheet™`,
-      };
-    }
-
     var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS");
     if (
       !newSheetInfo ||
       !newSheetInfo.accessStatus ||
-      newSheetInfo.accessStatus.value !== "✅"
+      !["✅", "Wrong ID or Version"].includes(newSheetInfo.accessStatus.value)
     ) {
       console.log(`New sheet has not been granted access to IDS Master.`);
       return {
@@ -335,16 +324,16 @@ function importData(
     }
 
     if (!SheetsAPI.getSheetByName(idMasterSpreadsheet, "IDS")) {
-      console.log(`IDS sheet not found in the IDS Master Spreadsheet.`);
+      console.log(`IDS sheet not found in the IDS Master Spreadsheet`);
       return {
         success: false,
-        message: `IDS sheet™ not found in the IDS Master Spreadsheet™.`,
+        message: `IDS sheet™ not found in the IDS Master Spreadsheet™`,
       };
     }
     var idMasterInfo = shared.findSheetTypeID(
       idMasterID,
       "IDS",
-      sheetType + " ID"
+      sheetType
     );
     if (
       !idMasterInfo ||
@@ -352,11 +341,11 @@ function importData(
       !["✅", "Wrong ID or Version"].includes(idMasterInfo.accessStatus.value)
     ) {
       console.log(
-        `IDS Master has not granted access to the old ${sheetType} sheet.`
+        `IDS Master has not granted access to the old ${sheetType} sheet`
       );
       return {
         success: false,
-        message: `IDS Master has not granted access to the old ${sheetType} sheet™.`,
+        message: `IDS Master has not granted access to the old ${sheetType} sheet™`,
       };
     }
 
