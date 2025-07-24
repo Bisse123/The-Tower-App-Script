@@ -3,7 +3,7 @@ const SheetsAPI = {
   getSpreadsheet: function (spreadsheetId) {
     try {
       const response = Sheets.Spreadsheets.get(spreadsheetId, {
-        fields: "spreadsheetId,sheets(properties(sheetId,title))"
+        fields: "spreadsheetId,sheets(properties(sheetId,title))",
       });
       return response;
     } catch (error) {
@@ -26,76 +26,29 @@ const SheetsAPI = {
     }
   },
 
-  // Get values from a range
-  getValues: function (spreadsheetId, range) {
+  // Batch get values from multiple ranges
+  batchGetValues: function (spreadsheetId, ranges) {
     try {
-      const response = Sheets.Spreadsheets.Values.get(spreadsheetId, range);
-      return response.values;
+      const response = Sheets.Spreadsheets.Values.batchGet(spreadsheetId, {
+        ranges: ranges,
+      });
+      return response.valueRanges;
     } catch (error) {
-      console.error(`Error getting values: ${error}`);
+      console.error(`Error in batchGetValues: ${error}`);
       return null;
     }
   },
 
-  // Get a single value from a cell
-  getValue: function (spreadsheetId, range) {
+  // Batch get formulas from multiple ranges
+  batchGetFormulas: function (spreadsheetId, ranges) {
     try {
-      const values = this.getValues(spreadsheetId, range);
-      return values && values.length > 0 && values[0].length > 0
-        ? values[0][0]
-        : null;
+      const response = Sheets.Spreadsheets.Values.batchGet(spreadsheetId, {
+        ranges: ranges,
+        valueRenderOption: "FORMULA",
+      });
+      return response.valueRanges;
     } catch (error) {
-      console.error(`Error getting single value: ${error}`);
-      return null;
-    }
-  },
-
-  // Set multiple values in a range
-  setValues: function (spreadsheetId, range, values) {
-    try {
-      const requestBody = {
-        values: values,
-      };
-      return Sheets.Spreadsheets.Values.update(
-        requestBody,
-        spreadsheetId,
-        range,
-        {
-          valueInputOption: "USER_ENTERED",
-        }
-      );
-    } catch (error) {
-      console.error(`Error setting values: ${error}`);
-      return null;
-    }
-  },
-
-  // Set a single value in a cell
-  setValue: function (spreadsheetId, range, value) {
-    try {
-      const requestBody = {
-        values: [[value]],
-      };
-      return Sheets.Spreadsheets.Values.update(
-        requestBody,
-        spreadsheetId,
-        range,
-        {
-          valueInputOption: "USER_ENTERED",
-        }
-      );
-    } catch (error) {
-      console.error(`Error setting value: ${error}`);
-      return null;
-    }
-  },
-
-  // Get all data from a sheet
-  getDataRange: function (spreadsheetId, sheetName) {
-    try {
-      return this.getValues(spreadsheetId, sheetName);
-    } catch (error) {
-      console.error(`Error getting data range: ${error}`);
+      console.error(`Error in batchGetFormulas: ${error}`);
       return null;
     }
   },
@@ -121,13 +74,18 @@ const SheetsAPI = {
 const shared = {
   findSheetVersion: function (sheetID, sheetName) {
     try {
-      var values = SheetsAPI.getDataRange(sheetID, sheetName);
-      if (!values || values.length === 0) {
-        console.log(`No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`);
+      var batchResult = SheetsAPI.batchGetValues(sheetID, [sheetName]);
+      if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+        console.log(
+          `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`
+        );
         return null;
       }
+      var values = batchResult[0].values;
       for (var row = 0; row < values.length; row++) {
-        var col = values[row].findIndex(cell => typeof cell === "string" && cell.includes("Version Change"));
+        var col = values[row].findIndex(
+          (cell) => typeof cell === "string" && cell.includes("Version Change")
+        );
         if (col !== -1) {
           var version = values[row + 1][col];
           if (version) {
@@ -162,13 +120,14 @@ const shared = {
 
   findSheetTypeID: function (spreadsheetId, sheetName, sheetType) {
     var sheetType = sheetType || "IDS Master's";
-    var values = SheetsAPI.getDataRange(spreadsheetId, sheetName);
-    if (!values || values.length === 0) {
+    var batchResult = SheetsAPI.batchGetValues(spreadsheetId, [sheetName]);
+    if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
       console.log(
         `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`
       );
       return null;
     }
+    var values = batchResult[0].values;
 
     var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
@@ -177,6 +136,32 @@ const shared = {
           var cellA1 = shared.columnToLetter(j + 2) + (i + 1);
           var accessA1 = shared.columnToLetter(j + 4) + (i + 1);
           var importedA1 = shared.columnToLetter(j + 4) + (i + 2);
+
+          // Batch get the access and import status values
+          var ranges = [
+            sheetName + "!" + accessA1,
+            sheetName + "!" + importedA1,
+          ];
+          var batchResult = SheetsAPI.batchGetValues(spreadsheetId, ranges);
+
+          var accessValue = "";
+          var importValue = "";
+
+          if (batchResult && batchResult.length >= 2) {
+            accessValue =
+              batchResult[0].values &&
+              batchResult[0].values[0] &&
+              batchResult[0].values[0][0]
+                ? batchResult[0].values[0][0]
+                : "";
+            importValue =
+              batchResult[1].values &&
+              batchResult[1].values[0] &&
+              batchResult[1].values[0][0]
+                ? batchResult[1].values[0][0]
+                : "";
+          }
+
           return {
             id: values[i][j + 2],
             cell: {
@@ -188,19 +173,13 @@ const shared = {
               row: i + 1,
               col: j + 4,
               range: sheetName + "!" + accessA1,
-              value:
-                SheetsAPI.getValue(spreadsheetId, sheetName + "!" + accessA1) ||
-                "",
+              value: accessValue,
             },
             importStatus: {
               row: i + 2,
               col: j + 4,
               range: sheetName + "!" + importedA1,
-              value:
-                SheetsAPI.getValue(
-                  spreadsheetId,
-                  sheetName + "!" + importedA1
-                ) || "",
+              value: importValue,
             },
           };
         }
@@ -211,13 +190,14 @@ const shared = {
 
   findSheetTypeURL: function (spreadsheetId, sheetName, sheetType) {
     var sheetType = sheetType || "IDS Master's";
-    var values = SheetsAPI.getDataRange(spreadsheetId, sheetName);
-    if (!values || values.length === 0) {
+    var batchResult = SheetsAPI.batchGetValues(spreadsheetId, [sheetName]);
+    if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
       console.log(
         `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`
       );
       return null;
     }
+    var values = batchResult[0].values;
 
     var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
@@ -225,6 +205,21 @@ const shared = {
         if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1) {
           var versionA1 = shared.columnToLetter(j + 6) + (i + 1);
           var templateA1 = shared.columnToLetter(j + 1) + (i + 2);
+
+          // Batch get the version value
+          var ranges = [sheetName + "!" + versionA1];
+          var batchResult = SheetsAPI.batchGetValues(spreadsheetId, ranges);
+
+          var versionValue = "";
+          if (batchResult && batchResult.length >= 1) {
+            versionValue =
+              batchResult[0].values &&
+              batchResult[0].values[0] &&
+              batchResult[0].values[0][0]
+                ? batchResult[0].values[0][0]
+                : "";
+          }
+
           return {
             id: values[i][j + 2],
             template: {
@@ -236,9 +231,7 @@ const shared = {
               row: i + 1,
               col: j + 6,
               range: sheetName + "!" + versionA1,
-              value:
-                SheetsAPI.getValue(spreadsheetId, sheetName + "!" + versionA1) ||
-                "",
+              value: versionValue,
             },
           };
         }
@@ -369,7 +362,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     } else if (newVersion) {
       newFileName = `${oldFile.name} ${newVersion}`;
     }
-    
+
     try {
       Drive.Files.update(
         {
@@ -403,7 +396,12 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     }
 
     try {
-      SheetsAPI.setValue(idMasterID, idCell.range, newSheetID);
+      SheetsAPI.batchUpdateValues(idMasterID, [
+        {
+          range: idCell.range,
+          values: [[newSheetID]],
+        },
+      ]);
     } catch (error) {
       console.log(`Error updating ID Master sheet: ${error.toString()}`);
       return {
@@ -440,7 +438,10 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
-    var newHomePageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "Home Page");
+    var newHomePageSheet = SheetsAPI.getSheetByName(
+      newSpreadsheet,
+      "Home Page"
+    );
     if (!newHomePageSheet) {
       console.log(`Home Page sheet not found in new ${sheetType} spreadsheet`);
       return {
@@ -448,8 +449,11 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `Home Page sheet™ not found in new ${sheetType} spreadsheet™`,
       };
     }
-    
-    var newVersion = shared.findSheetVersion(newSheetID, newHomePageSheet.title);
+
+    var newVersion = shared.findSheetVersion(
+      newSheetID,
+      newHomePageSheet.title
+    );
     if (!newVersion) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
@@ -466,7 +470,10 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
         message: `Old spreadsheet™ not found with ID: ${oldSheetID}`,
       };
     }
-    var oldHomePageSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "Home Page");
+    var oldHomePageSheet = SheetsAPI.getSheetByName(
+      oldSpreadsheet,
+      "Home Page"
+    );
     if (!oldHomePageSheet) {
       console.log(`Home Page sheet not found in old ${sheetType} spreadsheet`);
       return {
@@ -475,7 +482,10 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    var oldVersion = shared.findSheetVersion(oldSheetID, oldHomePageSheet.title);
+    var oldVersion = shared.findSheetVersion(
+      oldSheetID,
+      oldHomePageSheet.title
+    );
 
     if (!oldVersion) {
       console.log(`Version not found in old ${sheetType} spreadsheet.`);
@@ -486,7 +496,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
     }
 
     var compareVersions = shared.compareVersions(oldVersion, newVersion);
-    
+
     if (compareVersions === "newer") {
       console.log(
         `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`
@@ -500,9 +510,7 @@ function checkCompatibility(newSheetID, oldSheetID, sheetType) {
     if (sheetTypeFunction) {
       var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
       if (!versionDifference) {
-        console.log(
-          `Old version of ${sheetType} is incompatible for import.`
-        );
+        console.log(`Old version of ${sheetType} is incompatible for import.`);
         return {
           success: false,
           message: `Old version of ${sheetType} is incompatible for import.`,
@@ -640,7 +648,6 @@ function checkSheetAccess(fileIds, userEmail) {
       notOwnedFiles: notOwnedFiles,
       message: `Access check complete. ${accessibleFiles.length} of ${fileIds.length} sheets are accessible.`,
     };
-
   } catch (error) {
     console.error("Error checking sheet access:", error);
     return {
@@ -661,10 +668,12 @@ function findSheetIdAndType(sheetID, sheetType) {
   sheetType = sheetType || "IDS Master's";
   var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", sheetType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
-    console.log(`Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`);
+    console.log(
+      `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+    );
     return {
       success: false,
-      message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+      message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
     };
   }
   console.log(`Found sheet type ID: ${spreadsheetInfo.id}`);
@@ -673,11 +682,12 @@ function findSheetIdAndType(sheetID, sheetType) {
     console.log(`Could not extract sheet ID from ${spreadsheetInfo.id}`);
     return {
       success: false,
-      message: `Could not extract sheet™ ID from ${spreadsheetInfo.id}`
+      message: `Could not extract sheet™ ID from ${spreadsheetInfo.id}`,
     };
   }
   if (!sheetType || sheetType === "IDS Master's") {
-    sheetType = SheetsAPI.getValue(sheetID, "Home Page!B2");
+    var sheetTypeResult = SheetsAPI.batchGetValues(sheetID, ["Home Page!B2"]);
+    sheetType = sheetTypeResult[0].values[0][0];
   }
 
   return {
@@ -719,11 +729,13 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
       console.log(`Could not find sheet template for ${sheetType}`);
       return {
         success: false,
-        message: `Could not find sheet template for ${sheetType}`
+        message: `Could not find sheet template for ${sheetType}`,
       };
     }
     if (!spreadsheetInfo.id) {
-      console.log(`Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`);
+      console.log(
+        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+      );
       return {
         success: false,
         message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
@@ -779,13 +791,24 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
     try {
       var file = Drive.Files.get(templateID, {
         fields: "id",
-      }); 
-      const newFile = copyFileTemplate(idMasterID ,templateID, sheetType, templateVersion);
+      });
+      const newFile = copyFileTemplate(
+        idMasterID,
+        templateID,
+        sheetType,
+        templateVersion
+      );
       if (!newFile || !newFile.success) {
-        console.log(`Error copying template file: ${newFile.message}`);
+        console.log(
+          `Error copying template file: ${
+            newFile ? newFile.message : "Unknown error"
+          }`
+        );
         return {
           success: false,
-          message: `Error copying template file: ${newFile.message}`,
+          message: `Error copying template file: ${
+            newFile ? newFile.message : "Unknown error"
+          }`,
         };
       }
       return {
@@ -798,10 +821,13 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
         sheetType: sheetType,
       };
     } catch (error) {
-      console.log(`Error retrieving template file information: ${error}`);
+      console.log(
+        `Error retrieving template file information: ${error.toString()}`
+      );
+      console.log(`Template ID: ${templateID}, Sheet Type: ${sheetType}`);
       return {
         success: true,
-        message: `Error retrieving template file information: ${error}`,
+        message: `Error retrieving template file information: ${error.toString()}`,
         accessDenied: true,
         templateID: templateID,
         templateVersion: templateVersion,
@@ -818,7 +844,6 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
 
 function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
   try {
-    console.log(idMasterID, templateID, sheetType, templateVersion);
     var newFile = Drive.Files.copy(
       { name: `Copy of ${sheetType} ${templateVersion}` },
       templateID,
@@ -826,12 +851,13 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
     );
 
     if (!newFile || !newFile.id) {
-      console.log(`Error copying ${sheetType} template.`);
+      console.log(`Error copying ${sheetType} template: no file returned`);
       return {
         success: false,
-        message: `Error copying ${sheetType} template.`,
+        message: `Error copying ${sheetType} template: no file returned`,
       };
     }
+
     var newSpreadsheet = spreadsheets("newSpreadsheet", newFile.id);
 
     var newSheet = SheetsAPI.getSheetByName(newSpreadsheet, "IDS");
@@ -842,14 +868,28 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
         message: `IDS sheet™ not found in Copy of ${sheetType} spreadsheet™.`,
       };
     }
-    var thisSheetID = shared.findSheetTypeID(newFile.id, "IDS", "This Sheet ID");
+    var thisSheetID = shared.findSheetTypeID(
+      newFile.id,
+      "IDS",
+      "This Sheet ID"
+    );
     var thisCell = thisSheetID.cell;
-    SheetsAPI.setValue(newFile.id, thisCell.range, newFile.id);
+    SheetsAPI.batchUpdateValues(newFile.id, [
+      {
+        range: thisCell.range,
+        values: [[newFile.id]],
+      },
+    ]);
 
     var newSheetInfo = shared.findSheetTypeID(newFile.id, "IDS");
 
     var idCell = newSheetInfo.cell;
-    SheetsAPI.setValue(newFile.id, idCell.range, idMasterID);
+    SheetsAPI.batchUpdateValues(newFile.id, [
+      {
+        range: idCell.range,
+        values: [[idMasterID]],
+      },
+    ]);
 
     return {
       success: true,
