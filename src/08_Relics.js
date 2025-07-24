@@ -30,14 +30,62 @@ const relics = {
             message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        var result = getVersionFunction();
-        if (!result || !result.success) {
-          console.log(`Error processing relics data: ${result.message}`);
-          return result;
+        var oldDataResult = getVersionFunction();
+        if (!oldDataResult || !oldDataResult.success) {
+          console.log(`Error processing relics data: ${oldDataResult.message}`);
+          return oldDataResult;
         }
 
-        var oldRelics = result.oldRelics || [];
-        return updateRelics(newSheetID, oldRelics);
+        var oldRelics = oldDataResult.oldRelics || [];
+
+        var requiredRanges = ["Relics"];
+        var newRelicsBatchResult = SheetsAPI.batchGetValues(
+          newSheetID,
+          requiredRanges
+        );
+        if (!newRelicsBatchResult || newRelicsBatchResult.length === 0) {
+          console.log("Error getting relics sheet data");
+          return {
+            success: false,
+            message: "Error getting relics sheet data",
+          };
+        }
+
+        var newRelicsData =
+          newRelicsBatchResult[0] && newRelicsBatchResult[0].values
+            ? newRelicsBatchResult[0].values
+            : null;
+
+        var relicsResult = updateRelics("Relics", oldRelics, newRelicsData);
+        if (!relicsResult || !relicsResult.success) {
+          console.log(`Error updating relics: ${relicsResult.message}`);
+          return relicsResult;
+        }
+
+        var batchUpdate = relicsResult.batchUpdate || [];
+
+        if (batchUpdate.length > 0) {
+          var updateResult = SheetsAPI.batchUpdateValues(
+            newSheetID,
+            batchUpdate
+          );
+          if (!updateResult) {
+            console.log(`Error applying batch updates to new spreadsheet`);
+            return {
+              success: false,
+              message: "Error applying batch updates to new spreadsheet™",
+            };
+          }
+          return {
+            success: true,
+            message: relicsResult.message,
+          };
+        }
+
+        return {
+          success: true,
+          message: `No updates needed for Relics`,
+        };
       } catch (error) {
         console.log(`Error in importRelicsData: ${error.toString()}`);
         return {
@@ -47,122 +95,9 @@ const relics = {
       }
     }
 
-    function version10() {
+    function updateRelics(sheetName, oldRelics, newRelicsData) {
       try {
-        var newSpreadsheet = spreadsheets("newSpreadsheet");
-        var newSheetID = newSpreadsheet.spreadsheetId;
-        
-        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
-        var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
-        // Check if Relics sheet exists in old spreadsheet
-        if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Relics")) {
-          console.log("Relics sheet not found in old relic spreadsheet");
-          return {
-            success: false,
-            message: `Relics sheet not found in old relic spreadsheet™`,
-          };
-        }
-
-        // Get all data from old Relics sheet
-        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, ["Relics"]);
-        if (!oldRelicsBatchResult || oldRelicsBatchResult.length === 0 || !oldRelicsBatchResult[0].values) {
-          console.log(`Could not read data from old Relics sheet`);
-          return {
-            success: false,
-            message: `Could not read data from old Relics sheet`,
-          };
-        }
-        var oldRelicsData = oldRelicsBatchResult[0].values;
-
-        var oldRelicHeaderRow = null;
-        var oldRelicNameCol = null;
-        var oldRelicUnlockedCol = null;
-
-        // Scan each row to find the header
-        for (var row = 0; row < oldRelicsData.length; row++) {
-          var rowValues = oldRelicsData[row];
-          var relicNameIndex = rowValues.indexOf("Relic Name");
-          var relicUnlockedIndex = rowValues.indexOf("Unlocked");
-          if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
-            oldRelicHeaderRow = row + 1; // Convert to 1-based
-            oldRelicNameCol = relicNameIndex + 1; // Convert to 1-based
-            oldRelicUnlockedCol = relicUnlockedIndex + 1; // Convert to 1-based
-            break;
-          }
-        }
-        
-        if (!oldRelicHeaderRow) {
-          console.log(`Could not find header row in old Relics sheet`);
-          return {
-            success: false,
-            message: `Could not find header row in old Relics sheet`,
-          };
-        }
-
-        var startRow = oldRelicHeaderRow + 1;
-        var oldRelicsRange =
-          "Relics!" +
-          shared.columnToLetter(oldRelicNameCol) +
-          startRow +
-          ":" +
-          shared.columnToLetter(oldRelicUnlockedCol);
-
-        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [oldRelicsRange]);
-        if (!oldRelicsBatchResult || oldRelicsBatchResult.length === 0 || !oldRelicsBatchResult[0].values) {
-          console.log(`Could not read relic data from old spreadsheet`);
-          return {
-            success: false,
-            message: `Could not read relic data from old spreadsheet™`,
-          };
-        }
-        var oldRelicsValues = oldRelicsBatchResult[0].values;
-
-        // Filter out empty rows
-        var oldRelics = oldRelicsValues.filter((row) =>
-          row.some(
-            (cell) =>
-              cell !== null &&
-              cell !== undefined &&
-              String(cell).trim() !== ""
-          )
-        );
-
-        // Check if Relics sheet exists in new spreadsheet
-        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Relics")) {
-          console.log("Relics sheet not found in new relic spreadsheet");
-          return {
-            success: false,
-            message: `Relics sheet not found in new relic spreadsheet™`,
-          };
-        }
-
-        return {
-          success: true,
-          oldRelics: oldRelics,
-        };
-      } catch (error) {
-        console.log("Error in version10: " + error.toString());
-        return {
-          success: false,
-          message: "Error in version10: " + error.message,
-        };
-      }
-    }
-
-    function updateRelics(newSheetID, oldRelics) {
-      try {
-        // Get all data from new Relics sheet
-        var newRelicsBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Relics"]);
-        if (!newRelicsBatchResult || newRelicsBatchResult.length === 0 || !newRelicsBatchResult[0].values) {
-          console.log(`Not enough data in new Relics sheet`);
-          return {
-            success: false,
-            message: `Not enough data in new Relics sheet`,
-          };
-        }
-        var newRelicsData = newRelicsBatchResult[0].values;
-        if (newRelicsData.length < 3) {
+        if (!newRelicsData || newRelicsData.length < 3) {
           console.log(`Not enough data in new Relics sheet`);
           return {
             success: false,
@@ -207,38 +142,16 @@ const relics = {
           }
         });
 
-        // Get new relic names starting from the first data row (skip header)
+        // Extract new relic names from already fetched data (skip header row)
         var startRow = newRelicHeaderRow + 1;
-        var endRow = newRelicsData.length;
-        var newRelicNamesRange =
-          "Relics!" +
-          shared.columnToLetter(newRelicNameCol) +
-          startRow +
-          ":" +
-          shared.columnToLetter(newRelicNameCol) +
-          endRow;
-
-        var newRelicNamesBatchResult = SheetsAPI.batchGetValues(newSheetID, [newRelicNamesRange]);
-        if (!newRelicNamesBatchResult || newRelicNamesBatchResult.length === 0 || !newRelicNamesBatchResult[0].values) {
-          console.log(`Could not read new relic names`);
-          return {
-            success: false,
-            message: `Could not read new relic names`,
-          };
-        }
-        var newRelicNamesValues = newRelicNamesBatchResult[0].values;
-
-        // Filter out empty rows and flatten the array
-        var newRelicsNames = newRelicNamesValues
-          .filter((row) =>
-            row.some(
-              (cell) =>
-                cell !== null &&
-                cell !== undefined &&
-                String(cell || "").trim() !== ""
-            )
-          )
-          .map((row) => row[0]);
+        var newRelicsNames = newRelicsData
+          .slice(startRow - 1) // Skip to data rows (convert to 0-based)
+          .map(function (row) {
+            return row[newRelicNameCol - 1] || "";
+          }) // Extract name column
+          .filter(function (name) {
+            return String(name).trim() !== "";
+          }); // Filter out empty names
 
         // Create unlocked status array
         var newRelicsUnlocked = [];
@@ -251,22 +164,21 @@ const relics = {
         });
         // Update the unlocked column
         if (newRelicsUnlocked.length > 0) {
-          var unlockedRange =
-            "Relics!" +
-            shared.columnToLetter(newRelicUnlockedCol) +
-            startRow +
-            ":" +
-            shared.columnToLetter(newRelicUnlockedCol) +
-            endRow;
+          var endRow = startRow + newRelicsUnlocked.length - 1;
+          var unlockedRange = `${sheetName}!${shared.columnToLetter(
+            newRelicUnlockedCol
+          )}${startRow}:${shared.columnToLetter(newRelicUnlockedCol)}${endRow}`;
 
-          SheetsAPI.batchUpdateValues(newSheetID, [{
-            range: unlockedRange,
-            values: newRelicsUnlocked
-          }]);
-          // console.log(`Relics updated successfully: ${newRelicsUnlocked.length} relics processed`);
+          // Return batch update data instead of calling API directly
           return {
             success: true,
             message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`,
+            batchUpdate: [
+              {
+                range: unlockedRange,
+                values: newRelicsUnlocked,
+              },
+            ],
           };
         }
         // console.log(`No updates needed for relics`);
@@ -282,6 +194,119 @@ const relics = {
         };
       }
     }
+
+    function version10() {
+      try {
+        var newSpreadsheet = spreadsheets("newSpreadsheet");
+        var newSheetID = newSpreadsheet.spreadsheetId;
+
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        // Check if Relics sheet exists in old spreadsheet
+        if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Relics")) {
+          console.log("Relics sheet not found in old relic spreadsheet");
+          return {
+            success: false,
+            message: `Relics sheet not found in old relic spreadsheet™`,
+          };
+        }
+
+        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+          "Relics",
+        ]);
+        if (
+          !oldRelicsBatchResult ||
+          oldRelicsBatchResult.length === 0 ||
+          !oldRelicsBatchResult[0].values
+        ) {
+          console.log(`Could not read data from old Relics sheet`);
+          return {
+            success: false,
+            message: `Could not read data from old Relics sheet`,
+          };
+        }
+        var oldRelicsData = oldRelicsBatchResult[0].values;
+
+        var oldRelicHeaderRow = null;
+        var oldRelicNameCol = null;
+        var oldRelicUnlockedCol = null;
+
+        // Scan each row to find the header
+        for (var row = 0; row < oldRelicsData.length; row++) {
+          var rowValues = oldRelicsData[row];
+          var relicNameIndex = rowValues.indexOf("Relic Name");
+          var relicUnlockedIndex = rowValues.indexOf("Unlocked");
+          if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
+            oldRelicHeaderRow = row + 1; // Convert to 1-based
+            oldRelicNameCol = relicNameIndex + 1; // Convert to 1-based
+            oldRelicUnlockedCol = relicUnlockedIndex + 1; // Convert to 1-based
+            break;
+          }
+        }
+
+        if (!oldRelicHeaderRow) {
+          console.log(`Could not find header row in old Relics sheet`);
+          return {
+            success: false,
+            message: `Could not find header row in old Relics sheet`,
+          };
+        }
+
+        var startRow = oldRelicHeaderRow + 1;
+        var oldRelicsRange =
+          "Relics!" +
+          shared.columnToLetter(oldRelicNameCol) +
+          startRow +
+          ":" +
+          shared.columnToLetter(oldRelicUnlockedCol);
+
+        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+          oldRelicsRange,
+        ]);
+        if (
+          !oldRelicsBatchResult ||
+          oldRelicsBatchResult.length === 0 ||
+          !oldRelicsBatchResult[0].values
+        ) {
+          console.log(`Could not read old relics data`);
+          return {
+            success: false,
+            message: `Could not read old relics data`,
+          };
+        }
+        var oldRelicsValues = oldRelicsBatchResult[0].values;
+
+        // Filter out empty rows
+        var oldRelics = oldRelicsValues.filter((row) =>
+          row.some(
+            (cell) =>
+              cell !== null && cell !== undefined && String(cell).trim() !== ""
+          )
+        );
+
+        // Check if Relics sheet exists in new spreadsheet
+        if (!SheetsAPI.getSheetByName(newSpreadsheet, "Relics")) {
+          console.log("Relics sheet not found in new relic spreadsheet");
+          return {
+            success: false,
+            message: `Relics sheet not found in new relic spreadsheet™`,
+          };
+        }
+
+        return {
+          success: true,
+          oldRelics: oldRelics,
+        };
+      } catch (error) {
+        console.log("Error in version10: " + error.toString());
+        return {
+          success: false,
+          message: "Error in version10: " + error.message,
+        };
+      }
+    }
+
     var convertVersionFunctions = {
       "v1.0": version10,
     };
@@ -290,23 +315,21 @@ const relics = {
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var versionCompatibility = [
-      "v1.0"
-    ];
-    
-    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+    var versionCompatibility = ["v1.0"];
+
+    var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
       return shared.compareVersions(b, a) === "newer" ? 1 : -1;
     });
-    
+
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
       var compareResult = shared.compareVersions(oldVersion, threshold);
-      
+
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
       }
     }
-    
+
     return null;
   },
 };

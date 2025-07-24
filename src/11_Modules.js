@@ -30,22 +30,52 @@ const modules = {
             message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        var result = getVersionFunction();
-        if (!result || !result.success) {
-          console.log(`Error processing modules data: ${result.message}`);
-          return result;
+        var oldDataResult = getVersionFunction();
+        if (!oldDataResult || !oldDataResult.success) {
+          console.log(
+            `Error processing modules data: ${oldDataResult.message}`
+          );
+          return oldDataResult;
         }
 
-        var targetModuleTypes = result.targetModuleTypes || [];
-        var oldModulesInventory = result.oldModulesInventory || {};
-        var oldModulesPresets = result.oldModulesPresets || {};
-        var oldModulesObtained = result.oldModulesObtained || {};
+        var targetModuleTypes = oldDataResult.targetModuleTypes || [];
+        var oldModulesInventory = oldDataResult.oldModulesInventory || {};
+        var oldModulesPresets = oldDataResult.oldModulesPresets || {};
+        var oldModulesObtained = oldDataResult.oldModulesObtained || {};
+
+        // Batch fetch all required sheet data
+        var requiredRanges = [
+          "Modules Inventory",
+          "Modules Presets",
+          "Mods Obtained",
+        ];
+        var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
+        if (!batchResult || batchResult.length < 3) {
+          console.log("Error getting modules sheet data");
+          return {
+            success: false,
+            message: "Error getting modules sheet data",
+          };
+        }
+
+        var newModuleInventoryValues =
+          batchResult[0] && batchResult[0].values
+            ? batchResult[0].values
+            : null;
+        var newModulePresetsValues =
+          batchResult[1] && batchResult[1].values
+            ? batchResult[1].values
+            : null;
+        var newModulesObtainedValues =
+          batchResult[2] && batchResult[2].values
+            ? batchResult[2].values
+            : null;
 
         var inventoryResult = updateModulesInventory(
           targetModuleTypes,
-          newSheetID,
           "Modules Inventory",
-          oldModulesInventory
+          oldModulesInventory,
+          newModuleInventoryValues
         );
         if (!inventoryResult || !inventoryResult.success) {
           return {
@@ -58,9 +88,9 @@ const modules = {
 
         var presetsResult = updateModulesPresets(
           targetModuleTypes,
-          newSheetID,
           "Modules Presets",
-          oldModulesPresets
+          oldModulesPresets,
+          newModulePresetsValues
         );
 
         if (!presetsResult || !presetsResult.success) {
@@ -74,9 +104,9 @@ const modules = {
 
         var obtainedResult = updateModulesObtained(
           targetModuleTypes,
-          newSheetID,
           "Mods Obtained",
-          oldModulesObtained
+          oldModulesObtained,
+          newModulesObtainedValues
         );
 
         if (!obtainedResult || !obtainedResult.success) {
@@ -89,8 +119,17 @@ const modules = {
         batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
 
         if (batchUpdate.length > 0) {
-          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-          // Update the sheet with the new data
+          var updateResult = SheetsAPI.batchUpdateValues(
+            newSheetID,
+            batchUpdate
+          );
+          if (!updateResult) {
+            console.log(`Error applying batch updates to new spreadsheet`);
+            return {
+              success: false,
+              message: "Error applying batch updates to new spreadsheet™",
+            };
+          }
           // console.log(`Modules data imported successfully`);
           return {
             success: true,
@@ -112,86 +151,17 @@ const modules = {
       }
     }
 
-    function version40() {
-      try {
-        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
-        var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
-        var targetModuleTypes = ["cannon", "armor", "generator", "core"];
-
-        // Batch get all three module sheets at once
-        var ranges = [
-          "Modules Inventory",
-          "Modules Presets", 
-          "Mods Obtained"
-        ];
-        var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
-        
-        if (!batchResult || batchResult.length < 3) {
-          console.log("Could not read module data from old spreadsheet");
-          return {
-            success: false,
-            message: "Could not read module data from old spreadsheet",
-          };
-        }
-
-        var oldModulesInventoryValues = batchResult[0].values;
-        var oldModulesInventory = getOldModulesInventory(
-          targetModuleTypes,
-          oldModulesInventoryValues
-        );
-
-        var oldModulesPresetsValues = batchResult[1].values;
-        var oldModulesPresets = getOldModulesPresets(
-          targetModuleTypes,
-          oldModulesPresetsValues
-        );
-
-        var oldModulesObtainedValues = batchResult[2].values;
-        var oldModulesObtained = getOldModulesObtained(
-          targetModuleTypes,
-          oldModulesObtainedValues
-        );
-
-        return {
-          success: true,
-          targetModuleTypes: targetModuleTypes,
-          oldModulesInventory: oldModulesInventory,
-          oldModulesPresets: oldModulesPresets,
-          oldModulesObtained: oldModulesObtained,
-        };
-      } catch (error) {
-        console.log("Error in version40: " + error.toString());
-        return {
-          success: false,
-          message: "Error in version40: " + error.message,
-        };
-      }
-    }
-
     function updateModulesPresets(
       targetModuleTypes,
-      newSheetID,
       sheetName,
-      oldModulesPresets
+      oldModulesPresets,
+      newModulePresetsValues
     ) {
-      // Get sheet data using Sheets API
-      var newModulePresetsValues;
-      try {
-        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
-        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
-          console.log(`Could not read modules presets data`);
-          return {
-            success: false,
-            message: "Could not read modules presets data",
-          };
-        }
-        newModulePresetsValues = batchResult[0].values;
-      } catch (error) {
-        console.log("Error getting modules presets data: " + error.toString());
+      if (!newModulePresetsValues) {
+        console.log(`Could not read modules presets data`);
         return {
           success: false,
-          message: "Error getting modules presets data: " + error.message,
+          message: "Could not read modules presets data",
         };
       }
 
@@ -218,7 +188,7 @@ const modules = {
               ) {
                 var cellAddress = shared.columnToLetter(col + 1) + (rowIdx + 2);
                 batchUpdate.push({
-                  range: sheetName + "!" + cellAddress,
+                  range: `${sheetName}!${cellAddress}`,
                   values: [[oldModulesPresets[moduleType][presetName]]],
                 });
               }
@@ -242,58 +212,17 @@ const modules = {
       };
     }
 
-    function getOldModulesPresets(targetModuleTypes, oldModulesPresetsValues) {
-      var oldModuleTypeIndex = findModuleTypesRowIndex(
-        targetModuleTypes,
-        oldModulesPresetsValues
-      );
-      var oldModules = {};
-      targetModuleTypes.forEach(function (moduleType) {
-        var rowIdx = oldModuleTypeIndex[moduleType] + 1;
-        if (typeof rowIdx === "undefined") return;
-        oldModules[moduleType] = {};
-        var row = oldModulesPresetsValues[rowIdx];
-        for (var col = 0; col < row.length; col++) {
-          if (String(row[col]).trim() === "Module Name") {
-            var presetName = String(
-              oldModulesPresetsValues[rowIdx - 1][col]
-            ).trim();
-            var moduleName = String(
-              oldModulesPresetsValues[rowIdx + 1][col]
-            ).trim();
-            if (presetName && moduleName) {
-              oldModules[moduleType][presetName] = moduleName;
-            }
-          }
-        }
-      });
-      return oldModules;
-    }
-
     function updateModulesInventory(
       targetModuleTypes,
-      newSheetID,
       sheetName,
-      oldModulesInventory
+      oldModulesInventory,
+      newModuleInventoryValues
     ) {
-      var newModuleInventoryValues;
-      try {
-        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
-        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
-          console.log("Could not read modules inventory data");
-          return {
-            success: false,
-            message: "Could not read modules inventory data",
-          };
-        }
-        newModuleInventoryValues = batchResult[0].values;
-      } catch (error) {
-        console.log(
-          "Error getting modules inventory data: " + error.toString()
-        );
+      if (!newModuleInventoryValues) {
+        console.log("Could not read modules inventory data");
         return {
           success: false,
-          message: "Error getting modules inventory data: " + error.message,
+          message: "Could not read modules inventory data",
         };
       }
 
@@ -315,11 +244,16 @@ const modules = {
 
           for (var col = 1; col < row.length; col++) {
             var cellValue = String(row[col]);
-            if (cellValue.trim() === "Any Other" && !oldModulesInventory[moduleType].hasOwnProperty(cellValue)) {
+            if (
+              cellValue.trim() === "Any Other" &&
+              !oldModulesInventory[moduleType].hasOwnProperty(cellValue)
+            ) {
               for (var spare in oldModulesInventory[moduleType]) {
                 if (spare.includes("Spare")) {
                   batchUpdate.push({
-                    range: sheetName + "!" + shared.columnToLetter(col + 1) + (rowIdx + 1),
+                    range: `${sheetName}!${shared.columnToLetter(col + 1)}${
+                      rowIdx + 1
+                    }`,
                     values: [[spare]],
                   });
                   cellValue = spare;
@@ -338,10 +272,10 @@ const modules = {
 
               var rarityCell = shared.columnToLetter(col + 1) + (rowIdx + 3);
               batchUpdate.push({
-                range: sheetName + "!" + rarityCell,
+                range: `${sheetName}!${rarityCell}`,
                 values: [[oldModulesInventory[moduleType][cellValue].rarity]],
               });
-              
+
               var substats =
                 oldModulesInventory[moduleType][cellValue].substats;
               if (substats && substats.length > 0) {
@@ -352,7 +286,7 @@ const modules = {
                   shared.columnToLetter(col + numCols) +
                   (rowIdx + 5 + numRows - 1);
                 batchUpdate.push({
-                  range: sheetName + "!" + startCell + ":" + endCell,
+                  range: `${sheetName}!${startCell}:${endCell}`,
                   values: substats,
                 });
               }
@@ -364,7 +298,7 @@ const modules = {
             var highestLevelCell =
               shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
             batchUpdate.push({
-              range: sheetName + "!" + highestLevelCell,
+              range: `${sheetName}!${highestLevelCell}`,
               values: [[maxLevel]],
             });
           }
@@ -379,102 +313,17 @@ const modules = {
       };
     }
 
-    function getOldModulesInventory(
-      targetModuleTypes,
-      oldModulesInventoryValues
-    ) {
-      var oldModuleTypeIndex = findModuleTypesRowIndex(
-        targetModuleTypes,
-        oldModulesInventoryValues
-      );
-      var oldModules = {};
-      targetModuleTypes.forEach(function (moduleType) {
-        var rowIdx = oldModuleTypeIndex[moduleType];
-        if (typeof rowIdx === "undefined") return;
-        oldModules[moduleType] = {};
-        var row = oldModulesInventoryValues[rowIdx];
-        var highestLevelCol =
-          oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
-        if (highestLevelCol !== -1) {
-          oldModules[moduleType]["Highest Level"] =
-            oldModulesInventoryValues[rowIdx + 2][highestLevelCol];
-        }
-        for (var col = 1; col < row.length; col++) {
-          var cellValue = row[col] != null ? String(row[col]) : "";
-          if (cellValue.trim() !== "") {
-            var moduleName = cellValue;
-            if (moduleName) {
-              var removedRarity = ["Common", "Rare", "Rare+"];
-              var moduleRarity =
-                oldModulesInventoryValues[rowIdx + 2][col] != null
-                  ? String(oldModulesInventoryValues[rowIdx + 2][col]).trim()
-                  : "";
-              if (removedRarity.includes(moduleRarity)) {
-                moduleRarity = "Epic";
-              }
-              var moduleLevel =
-                oldModulesInventoryValues[rowIdx + 2][col + 1] != null
-                  ? String(
-                      oldModulesInventoryValues[rowIdx + 2][col + 1]
-                    ).trim()
-                  : "";
-              oldModules[moduleType][moduleName] = {
-                rarity: moduleRarity,
-                level: moduleLevel,
-                substats: [],
-              };
-              for (
-                var substat = rowIdx + 4;
-                substat < oldModulesInventoryValues.length;
-                substat++
-              ) {
-                var substatRow = oldModulesInventoryValues[substat];
-                var substatColVal =
-                  substatRow && substatRow[col] != null
-                    ? String(substatRow[col]).trim()
-                    : "";
-                var substatCol1Val =
-                  substatRow && substatRow[col + 1] != null
-                    ? String(substatRow[col + 1]).trim()
-                    : "";
-                if (substatColVal === "" && substatCol1Val === "") {
-                  break;
-                }
-                var substats = [
-                  substatRow ? substatRow[col] : "",
-                  substatRow ? substatRow[col + 1] : "",
-                ];
-                oldModules[moduleType][moduleName]["substats"].push(substats);
-              }
-            }
-          }
-        }
-      });
-      return oldModules;
-    }
-
     function updateModulesObtained(
       targetModuleTypes,
-      newSheetID,
       sheetName,
-      oldModulesObtained
+      oldModulesObtained,
+      newModulesObtainedValues
     ) {
-      var newModulesObtainedValues;
-      try {
-        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
-        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
-          console.log("Could not read modules obtained data");
-          return {
-            success: false,
-            message: "Could not read modules obtained data",
-          };
-        }
-        newModulesObtainedValues = batchResult[0].values;
-      } catch (error) {
-        console.log("Error getting modules obtained data: " + error.toString());
+      if (!newModulesObtainedValues) {
+        console.log("Could not read modules obtained data");
         return {
           success: false,
-          message: "Error getting modules obtained data: " + error.message,
+          message: "Could not read modules obtained data",
         };
       }
 
@@ -489,19 +338,31 @@ const modules = {
             if (moduleType && oldModulesObtained.hasOwnProperty(moduleType)) {
               var valuesArray = [];
               var startRow = row + 3;
-              for (var modIdx = row + 2; modIdx < newModulesObtainedValues.length; modIdx++) {
-                var moduleName = String(newModulesObtainedValues[modIdx][col]).trim();
+              for (
+                var modIdx = row + 2;
+                modIdx < newModulesObtainedValues.length;
+                modIdx++
+              ) {
+                var moduleName = String(
+                  newModulesObtainedValues[modIdx][col]
+                ).trim();
                 if (!moduleName || moduleName === "Total") {
                   break;
-                } else if (oldModulesObtained[moduleType].hasOwnProperty(moduleName)) {
-                  valuesArray.push([oldModulesObtained[moduleType][moduleName]]);
+                } else if (
+                  oldModulesObtained[moduleType].hasOwnProperty(moduleName)
+                ) {
+                  valuesArray.push([
+                    oldModulesObtained[moduleType][moduleName],
+                  ]);
                 }
               }
               if (valuesArray.length > 0) {
                 var startCell = shared.columnToLetter(col + 2) + startRow;
-                var endCell = shared.columnToLetter(col + 2) + (startRow + valuesArray.length - 1);
+                var endCell =
+                  shared.columnToLetter(col + 2) +
+                  (startRow + valuesArray.length - 1);
                 batchUpdate.push({
-                  range: sheetName + "!" + startCell + ":" + endCell,
+                  range: `${sheetName}!${startCell}:${endCell}`,
                   values: valuesArray,
                 });
               }
@@ -514,39 +375,6 @@ const modules = {
         message: `Modules Obtained updated successfully`,
         batchUpdate: batchUpdate,
       };
-    }
-
-    function getOldModulesObtained(targetModuleTypes, oldModulesObtainedValues) {
-      var oldModules = {};
-      for (var row = 0; row < oldModulesObtainedValues.length; row++) {
-        for (var col = 0; col < oldModulesObtainedValues[row].length; col++) {
-          var cellValue = String(oldModulesObtainedValues[row][col]).trim();
-          if (cellValue) {
-            var moduleType = targetModuleTypes.find(function (type) {
-              return cellValue.toLowerCase().includes(type);
-            });
-            if (moduleType) {
-              if (!oldModules[moduleType]) {
-                oldModules[moduleType] = {};
-              }
-              for (var modIdx = row + 2; modIdx < oldModulesObtainedValues.length; modIdx++) {
-                var moduleName = String(
-                  oldModulesObtainedValues[modIdx][col]
-                ).trim();
-                if (!moduleName || moduleName === "Total") {
-                  break;
-                } else {
-                  oldModules[moduleType][moduleName] = oldModulesObtainedValues[modIdx][col + 1];
-                }
-              }
-              if (Object.keys(oldModules).length === targetModuleTypes.length) {
-                return oldModules;
-              }
-            }
-          }
-        }
-      }
-      return oldModules;
     }
 
     function findModuleTypesRowIndex(targetModuleTypes, moduleRange) {
@@ -577,31 +405,208 @@ const modules = {
       return moduleTypeIndex;
     }
 
+    function version40() {
+      try {
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+        var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+
+        // Batch get all three module sheets at once
+        var ranges = ["Modules Inventory", "Modules Presets", "Mods Obtained"];
+        var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+
+        if (!batchResult || batchResult.length < 3) {
+          console.log("Could not read module data from old spreadsheet");
+          return {
+            success: false,
+            message: "Could not read module data from old spreadsheet",
+          };
+        }
+
+        var oldModulesInventoryValues = batchResult[0].values;
+        var oldModuleTypeIndex = findModuleTypesRowIndex(
+          targetModuleTypes,
+          oldModulesInventoryValues
+        );
+
+        var oldModulesInventory = {};
+        targetModuleTypes.forEach(function (moduleType) {
+          var rowIdx = oldModuleTypeIndex[moduleType];
+          if (typeof rowIdx === "undefined") return;
+          oldModulesInventory[moduleType] = {};
+          var row = oldModulesInventoryValues[rowIdx];
+          var highestLevelCol =
+            oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
+          if (highestLevelCol !== -1) {
+            oldModulesInventory[moduleType]["Highest Level"] =
+              oldModulesInventoryValues[rowIdx + 2][highestLevelCol];
+          }
+          for (var col = 1; col < row.length; col++) {
+            var cellValue = row[col] != null ? String(row[col]) : "";
+            if (cellValue.trim() !== "") {
+              var moduleName = cellValue;
+              if (moduleName) {
+                var removedRarity = ["Common", "Rare", "Rare+"];
+                var moduleRarity =
+                  oldModulesInventoryValues[rowIdx + 2][col] != null
+                    ? String(oldModulesInventoryValues[rowIdx + 2][col]).trim()
+                    : "";
+                if (removedRarity.includes(moduleRarity)) {
+                  moduleRarity = "Epic";
+                }
+                var moduleLevel =
+                  oldModulesInventoryValues[rowIdx + 2][col + 1] != null
+                    ? String(
+                        oldModulesInventoryValues[rowIdx + 2][col + 1]
+                      ).trim()
+                    : "";
+                oldModulesInventory[moduleType][moduleName] = {
+                  rarity: moduleRarity,
+                  level: moduleLevel,
+                  substats: [],
+                };
+                for (
+                  var substat = rowIdx + 4;
+                  substat < oldModulesInventoryValues.length;
+                  substat++
+                ) {
+                  var substatRow = oldModulesInventoryValues[substat];
+                  var substatColVal =
+                    substatRow && substatRow[col] != null
+                      ? String(substatRow[col]).trim()
+                      : "";
+                  var substatCol1Val =
+                    substatRow && substatRow[col + 1] != null
+                      ? String(substatRow[col + 1]).trim()
+                      : "";
+                  if (substatColVal === "" && substatCol1Val === "") {
+                    break;
+                  }
+                  var substats = [
+                    substatRow ? substatRow[col] : "",
+                    substatRow ? substatRow[col + 1] : "",
+                  ];
+                  oldModulesInventory[moduleType][moduleName]["substats"].push(
+                    substats
+                  );
+                }
+              }
+            }
+          }
+        });
+
+        var oldModulesPresetsValues = batchResult[1].values;
+        var oldModuleTypeIndex = findModuleTypesRowIndex(
+          targetModuleTypes,
+          oldModulesPresetsValues
+        );
+
+        var oldModulesPresets = {};
+        targetModuleTypes.forEach(function (moduleType) {
+          var rowIdx = oldModuleTypeIndex[moduleType] + 1;
+          if (typeof rowIdx === "undefined") return;
+          oldModulesPresets[moduleType] = {};
+          var row = oldModulesPresetsValues[rowIdx];
+          for (var col = 0; col < row.length; col++) {
+            if (String(row[col]).trim() === "Module Name") {
+              var presetName = String(
+                oldModulesPresetsValues[rowIdx - 1][col]
+              ).trim();
+              var moduleName = String(
+                oldModulesPresetsValues[rowIdx + 1][col]
+              ).trim();
+              if (presetName && moduleName) {
+                oldModulesPresets[moduleType][presetName] = moduleName;
+              }
+            }
+          }
+        });
+
+        var oldModulesObtainedValues = batchResult[2].values;
+
+        var oldModulesObtained = {};
+        for (var row = 0; row < oldModulesObtainedValues.length; row++) {
+          for (var col = 0; col < oldModulesObtainedValues[row].length; col++) {
+            var cellValue = String(oldModulesObtainedValues[row][col]).trim();
+            if (cellValue) {
+              var moduleType = targetModuleTypes.find(function (type) {
+                return cellValue.toLowerCase().includes(type);
+              });
+              if (moduleType) {
+                if (!oldModulesObtained[moduleType]) {
+                  oldModulesObtained[moduleType] = {};
+                }
+                for (
+                  var modIdx = row + 2;
+                  modIdx < oldModulesObtainedValues.length;
+                  modIdx++
+                ) {
+                  var moduleName = String(
+                    oldModulesObtainedValues[modIdx][col]
+                  ).trim();
+                  if (!moduleName || moduleName === "Total") {
+                    break;
+                  } else {
+                    oldModulesObtained[moduleType][moduleName] =
+                      oldModulesObtainedValues[modIdx][col + 1];
+                  }
+                }
+                if (
+                  Object.keys(oldModulesObtained).length ===
+                  targetModuleTypes.length
+                ) {
+                  break;
+                }
+              }
+            }
+          }
+          if (
+            Object.keys(oldModulesObtained).length === targetModuleTypes.length
+          ) {
+            break;
+          }
+        }
+
+        return {
+          success: true,
+          targetModuleTypes: targetModuleTypes,
+          oldModulesInventory: oldModulesInventory,
+          oldModulesPresets: oldModulesPresets,
+          oldModulesObtained: oldModulesObtained,
+        };
+      } catch (error) {
+        console.log("Error in version40: " + error.toString());
+        return {
+          success: false,
+          message: "Error in version40: " + error.message,
+        };
+      }
+    }
+
     var convertVersionFunctions = {
-      "v4.0": version40
+      "v4.0": version40,
     };
 
     return importModulesData(versionDifference);
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var versionCompatibility = [
-      "v4.0"
-    ];
-    
-    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+    var versionCompatibility = ["v4.0"];
+
+    var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
       return shared.compareVersions(b, a) === "newer" ? 1 : -1;
     });
-    
+
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
       var compareResult = shared.compareVersions(oldVersion, threshold);
-      
+
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
       }
     }
-    
+
     return null;
   },
 };

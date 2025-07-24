@@ -30,19 +30,163 @@ const lab = {
             message: `Unsupported version difference: ${versionDifference}`,
           };
         }
-        var result = getVersionFunction();
-        if (!result || !result.success) {
-          console.log(`Error processing lab data: ${result.message}`);
-          return result;
+        var oldDataResult = getVersionFunction();
+        if (!oldDataResult || !oldDataResult.success) {
+          console.log(`Error processing lab data: ${oldDataResult.message}`);
+          return oldDataResult;
         }
 
-        var oldLabLevels = result.oldLabLevels || [];
-        return updateLabLevels(newSheetID, oldLabLevels);
+        var oldLabLevels = oldDataResult.oldLabLevels || [];
+
+        // Batch get required data for update function only
+        var requiredRanges = ["Master Sheet"];
+        var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
+        if (!batchResults || batchResults.length === 0) {
+          console.log(`Could not read required data from spreadsheet`);
+          return {
+            success: false,
+            message: "Could not read required data from spreadsheet",
+          };
+        }
+
+        var masterSheetData = batchResults[0].values;
+
+        var labResult = updateLabLevels(
+          "Master Sheet",
+          oldLabLevels,
+          masterSheetData
+        );
+        if (!labResult || !labResult.success) {
+          console.log(`Error updating lab levels: ${labResult.message}`);
+          return labResult;
+        }
+
+        var batchUpdate = labResult.batchUpdate || [];
+
+        if (batchUpdate.length > 0) {
+          var updateResult = SheetsAPI.batchUpdateValues(
+            newSheetID,
+            batchUpdate
+          );
+          if (!updateResult) {
+            console.log(`Error applying batch updates to new spreadsheet`);
+            return {
+              success: false,
+              message: "Error applying batch updates to new spreadsheet™",
+            };
+          }
+          return {
+            success: true,
+            message: labResult.message,
+          };
+        }
+
+        return {
+          success: true,
+          message: `No updates needed for Laboratory`,
+        };
       } catch (error) {
         console.log(`Error in importLabData: ${error.toString()}`);
         return {
           success: false,
           message: "Error importing lab data: " + error.message,
+        };
+      }
+    }
+
+    function updateLabLevels(sheetName, labUpdates, masterSheetData) {
+      try {
+        var headerValues = ["Labs"];
+
+        if (!masterSheetData || masterSheetData.length < 2) {
+          console.log(`Not enough data in Master Sheet`);
+          return {
+            success: false,
+            message: "Not enough data in Master Sheet",
+          };
+        }
+
+        var headerRow = masterSheetData[0];
+        var lastRow = masterSheetData.length;
+
+        // Find columns where header is in headerValues
+        var columnsToCheck = [];
+        for (var i = 0; i < headerRow.length; i++) {
+          if (headerValues.includes(headerRow[i])) {
+            columnsToCheck.push(i + 1);
+          }
+        }
+
+        if (columnsToCheck.length === 0) {
+          console.log(`No Labs columns found in Master Sheet`);
+          return {
+            success: false,
+            message: "No Labs columns found in Master Sheet",
+          };
+        }
+
+        // Prepare update map from labName to update values
+        var updateMap = {};
+        labUpdates.forEach(function (update) {
+          updateMap[update[0]] = [update[1], update[2]];
+        });
+
+        var batchUpdate = [];
+        // Iterate each "Labs" column
+        columnsToCheck.forEach(function (col) {
+          var updates = [];
+          // Find labNames in each column (skip header row, ignore last row with sums)
+          var numRows = lastRow - 2;
+
+          for (var row = 1; row < numRows + 1; row++) {
+            if (row >= masterSheetData.length) break;
+
+            var cellValue = masterSheetData[row][col - 1];
+            if (!cellValue || cellValue.trim() === "") break;
+
+            var update = updateMap[cellValue];
+            if (update) {
+              updates.push([update[0] || 0, update[1] || ""]);
+            } else {
+              // Keep existing values
+              var currentLevel = masterSheetData[row][col] || 0;
+              var currentTarget = masterSheetData[row][col + 1] || "";
+              updates.push([currentLevel, currentTarget]);
+            }
+          }
+          // Add batch update for this column's Level and Target columns
+          if (updates.length > 0) {
+            var startCol = shared.columnToLetter(col + 1); // Level column
+            var endCol = shared.columnToLetter(col + 2); // Target column
+            var range = `${sheetName}!${startCol}2:${endCol}${
+              updates.length + 1
+            }`;
+
+            batchUpdate.push({
+              range: range,
+              values: updates,
+            });
+          }
+        });
+
+        // Execute batch updates
+        if (batchUpdate.length > 0) {
+          // Return batch update data instead of calling API directly
+          return {
+            success: true,
+            message: "Lab levels updated successfully",
+            batchUpdate: batchUpdate,
+          };
+        }
+        return {
+          success: true,
+          message: "No updates needed for lab levels",
+        };
+      } catch (error) {
+        console.log(`Error in updateLabLevels: ${error.toString()}`);
+        return {
+          success: false,
+          message: `Error updating lab levels: ${error.message}`,
         };
       }
     }
@@ -68,8 +212,14 @@ const lab = {
         }
 
         // Get header row to find Labs column
-        var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
-        if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
+        var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, [
+          "_IDS!1:1",
+        ]);
+        if (
+          !headerBatchResult ||
+          headerBatchResult.length === 0 ||
+          !headerBatchResult[0].values
+        ) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
@@ -96,11 +246,14 @@ const lab = {
           "2:" +
           shared.columnToLetter(importLabColStart + 2);
 
-        var labBatchResult = SheetsAPI.batchGetValues(
-          newSheetID,
-          [labLevelsRange]
-        );
-        if (!labBatchResult || labBatchResult.length === 0 || !labBatchResult[0].values) {
+        var labBatchResult = SheetsAPI.batchGetValues(newSheetID, [
+          labLevelsRange,
+        ]);
+        if (
+          !labBatchResult ||
+          labBatchResult.length === 0 ||
+          !labBatchResult[0].values
+        ) {
           console.log(`Could not read lab levels data`);
           return {
             success: false,
@@ -133,112 +286,6 @@ const lab = {
       }
     }
 
-    function updateLabLevels(newSheetID, labUpdates) {
-      try {
-        var headerValues = ["Labs"];
-
-        // Get all data from Master Sheet to determine range
-        var masterSheetBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Master Sheet"]);
-        if (!masterSheetBatchResult || masterSheetBatchResult.length === 0 || !masterSheetBatchResult[0].values) {
-          console.log(`Could not read Master Sheet data`);
-          return {
-            success: false,
-            message: "Could not read Master Sheet data",
-          };
-        }
-        var allData = masterSheetBatchResult[0].values;
-        if (!allData || allData.length < 2) {
-          console.log(`Not enough data in Master Sheet`);
-          return {
-            success: false,
-            message: "Not enough data in Master Sheet",
-          };
-        }
-
-        var headerRow = allData[0];
-        var lastRow = allData.length;
-
-        // Find columns where header is in headerValues
-        var columnsToCheck = [];
-        for (var i = 0; i < headerRow.length; i++) {
-          if (headerValues.includes(headerRow[i])) {
-            columnsToCheck.push(i + 1);
-          }
-        }
-
-        if (columnsToCheck.length === 0) {
-          console.log(`No Labs columns found in Master Sheet`);
-          return {
-            success: false,
-            message: "No Labs columns found in Master Sheet",
-          };
-        }
-
-        // Prepare update map from labName to update values
-        var updateMap = {};
-        labUpdates.forEach(function (update) {
-          updateMap[update[0]] = [update[1], update[2]];
-        });
-
-        var batchUpdate = [];
-        // Iterate each "Labs" column
-        columnsToCheck.forEach(function (col) {
-          var updates = [];
-          // Find labNames in each column (skip header row, ignore last row with sums)
-          var numRows = lastRow - 2;
-
-          for (var row = 1; row < numRows + 1; row++) {
-            if (row >= allData.length) break;
-
-            var cellValue = allData[row][col - 1];
-            if (!cellValue || cellValue.trim() === "") break;
-
-            var update = updateMap[cellValue];
-            if (update) {
-              updates.push([update[0] || 0, update[1] || ""]);
-            } else {
-              // Keep existing values
-              var currentLevel = allData[row][col] || 0;
-              var currentTarget = allData[row][col + 1] || "";
-              updates.push([currentLevel, currentTarget]);
-            }
-          }
-          // Add batch update for this column's Level and Target columns
-          if (updates.length > 0) {
-            var startCol = shared.columnToLetter(col + 1); // Level column
-            var endCol = shared.columnToLetter(col + 2); // Target column
-            var range =
-              "Master Sheet!" + startCol + "2:" + endCol + (updates.length + 1);
-
-            batchUpdate.push({
-              range: range,
-              values: updates,
-            });
-          }
-        });
-
-        // Execute batch updates
-        if (batchUpdate.length > 0) {
-          SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-          // console.log("Lab levels updated successfully");
-          return {
-            success: true,
-            message: "Lab levels updated successfully",
-          };
-        }
-        return {
-          success: true,
-          message: "No updates needed for lab levels",
-        };
-      } catch (error) {
-        console.log(`Error in updateLabLevels: ${error.toString()}`);
-        return {
-          success: false,
-          message: `Error updating lab levels: ${error.message}`,
-        };
-      }
-    }
-
     var convertVersionFunctions = {
       "v1.0": version10,
     };
@@ -247,23 +294,21 @@ const lab = {
   },
 
   isCompatibleVersion: function (oldVersion) {
-    var versionCompatibility = [
-      "v1.0"
-    ];
-    
-    var sortedThresholds = versionCompatibility.slice().sort(function(a, b) {
+    var versionCompatibility = ["v1.0"];
+
+    var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
       return shared.compareVersions(b, a) === "newer" ? 1 : -1;
     });
-    
+
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
       var compareResult = shared.compareVersions(oldVersion, threshold);
-      
+
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
       }
     }
-    
+
     return null;
   },
 };
