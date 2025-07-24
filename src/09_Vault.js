@@ -38,8 +38,8 @@ const vault = {
 
         var oldVaultHarmony = result.oldVaultHarmony || {};
         var oldVaultPower = result.oldVaultPower || {};
-        var vaultHarmonyHeaderPattern = result.vaultHarmonyHeaderPattern || [];
-        var vaultPowerHeaderPattern = result.vaultPowerHeaderPattern || [];
+        var vaultHarmonyHeaderPattern = ["U", "Value", "Bonus Type"];
+        var vaultPowerHeaderPattern = ["U", "", "Value", "", "Bonus Type"];
 
         var harmonyResult = updateVault(
           newSheetID,
@@ -101,6 +101,42 @@ const vault = {
       }
     }
 
+    function version142() {
+      try {
+        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+        var oldSheetID = oldSpreadsheet.spreadsheetId;
+        
+        // Get old vault data using Sheets API
+        var vaultHarmonyHeaderPattern = ["U", "Value", "Bonus Type"];
+        var oldVaultHarmony = getOldVault(
+          oldSheetID,
+          "Harmony",
+          vaultHarmonyHeaderPattern,
+          1
+        );
+
+        var vaultPowerHeaderPattern = ["U", "", "Value", "", "Bonus Type"];
+        var oldVaultPower = getOldVault(
+          oldSheetID,
+          "Power",
+          vaultPowerHeaderPattern,
+          1
+        );
+
+        return {
+          success: true,
+          oldVaultHarmony: oldVaultHarmony,
+          oldVaultPower: oldVaultPower,
+        };
+      } catch (error) {
+        console.log("Error in version10: " + error.toString());
+        return {
+          success: false,
+          message: "Error in version10: " + error.message,
+        };
+      }
+    }
+
     function version10() {
       try {
         var oldSpreadsheet = spreadsheets("oldSpreadsheet");
@@ -127,8 +163,6 @@ const vault = {
           success: true,
           oldVaultHarmony: oldVaultHarmony,
           oldVaultPower: oldVaultPower,
-          vaultHarmonyHeaderPattern: vaultHarmonyHeaderPattern,
-          vaultPowerHeaderPattern: vaultPowerHeaderPattern,
         };
       } catch (error) {
         console.log("Error in version10: " + error.toString());
@@ -295,6 +329,7 @@ const vault = {
       return indices;
     }
     var convertVersionFunctions = {
+      "v1.4.2": version142,
       "v1.0": version10,
     };
 
@@ -303,6 +338,7 @@ const vault = {
 
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = [
+      "v1.4.2",
       "v1.0"
     ];
     
