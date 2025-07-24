@@ -119,31 +119,35 @@ const modules = {
         
         var targetModuleTypes = ["cannon", "armor", "generator", "core"];
 
-        var oldModulesInventoryValues = SheetsAPI.getDataRange(
-          oldSheetID,
-          "Modules Inventory"
-        );
+        // Batch get all three module sheets at once
+        var ranges = [
+          "Modules Inventory",
+          "Modules Presets", 
+          "Mods Obtained"
+        ];
+        var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+        
+        if (!batchResult || batchResult.length < 3) {
+          console.log("Could not read module data from old spreadsheet");
+          return {
+            success: false,
+            message: "Could not read module data from old spreadsheet",
+          };
+        }
 
+        var oldModulesInventoryValues = batchResult[0].values;
         var oldModulesInventory = getOldModulesInventory(
           targetModuleTypes,
           oldModulesInventoryValues
         );
 
-        var oldModulesPresetsValues = SheetsAPI.getDataRange(
-          oldSheetID,
-          "Modules Presets"
-        );
-
+        var oldModulesPresetsValues = batchResult[1].values;
         var oldModulesPresets = getOldModulesPresets(
           targetModuleTypes,
           oldModulesPresetsValues
         );
 
-        var oldModulesObtainedValues = SheetsAPI.getDataRange(
-          oldSheetID,
-          "Mods Obtained"
-        );
-
+        var oldModulesObtainedValues = batchResult[2].values;
         var oldModulesObtained = getOldModulesObtained(
           targetModuleTypes,
           oldModulesObtainedValues
@@ -174,7 +178,15 @@ const modules = {
       // Get sheet data using Sheets API
       var newModulePresetsValues;
       try {
-        newModulePresetsValues = SheetsAPI.getDataRange(newSheetID, sheetName);
+        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+          console.log(`Could not read modules presets data`);
+          return {
+            success: false,
+            message: "Could not read modules presets data",
+          };
+        }
+        newModulePresetsValues = batchResult[0].values;
       } catch (error) {
         console.log("Error getting modules presets data: " + error.toString());
         return {
@@ -266,10 +278,15 @@ const modules = {
     ) {
       var newModuleInventoryValues;
       try {
-        newModuleInventoryValues = SheetsAPI.getDataRange(
-          newSheetID,
-          sheetName
-        );
+        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+          console.log("Could not read modules inventory data");
+          return {
+            success: false,
+            message: "Could not read modules inventory data",
+          };
+        }
+        newModuleInventoryValues = batchResult[0].values;
       } catch (error) {
         console.log(
           "Error getting modules inventory data: " + error.toString()
@@ -444,10 +461,15 @@ const modules = {
     ) {
       var newModulesObtainedValues;
       try {
-        newModulesObtainedValues = SheetsAPI.getDataRange(
-          newSheetID,
-          sheetName
-        );
+        var batchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+          console.log("Could not read modules obtained data");
+          return {
+            success: false,
+            message: "Could not read modules obtained data",
+          };
+        }
+        newModulesObtainedValues = batchResult[0].values;
       } catch (error) {
         console.log("Error getting modules obtained data: " + error.toString());
         return {

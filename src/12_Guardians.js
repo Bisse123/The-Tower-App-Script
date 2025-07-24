@@ -83,8 +83,8 @@ const guardians = {
         }
         
         // Get header row to find Guardians column
-        var headerValues = SheetsAPI.getValues(idMasterID, "_IDS!1:1");
-        if (!headerValues || headerValues.length === 0) {
+        var headerBatchResult = SheetsAPI.batchGetValues(idMasterID, ["_IDS!1:1"]);
+        if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
@@ -92,6 +92,7 @@ const guardians = {
           };
         }
 
+        var headerValues = headerBatchResult[0].values;
         var headerRow = headerValues[0];
         var importGuardianColStart = headerRow.indexOf("Guardians");
         if (importGuardianColStart === -1) {
@@ -105,10 +106,15 @@ const guardians = {
         // Get old guardian levels data using SheetsAPI
         var colStart = shared.columnToLetter(importGuardianColStart + 1);
         var colEnd = shared.columnToLetter(importGuardianColStart + 5);
-        var oldGuardianLevelsData = SheetsAPI.getValues(
-          idMasterID,
-          "_IDS!" + colStart + "2:" + colEnd
-        );
+        var guardianBatchResult = SheetsAPI.batchGetValues(idMasterID, ["_IDS!" + colStart + "2:" + colEnd]);
+        if (!guardianBatchResult || guardianBatchResult.length === 0 || !guardianBatchResult[0].values) {
+          console.log(`Could not read guardian levels data`);
+          return {
+            success: false,
+            message: "Could not read guardian levels data",
+          };
+        }
+        var oldGuardianLevelsData = guardianBatchResult[0].values;
         
         // Filter out empty rows
         var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
@@ -141,9 +147,15 @@ const guardians = {
 
     function updateGuardianLevels(targetGuardians, newSheetID, oldGuardians) {
       // Get all data from Master Sheet using SheetsAPI
-      var sheetData = SheetsAPI.getDataRange(newSheetID, "Master Sheet");
-      if (!sheetData || sheetData.length < 2) return; // Need at least header and one row
-      if (!sheetData || sheetData.length < 2) {
+      var sheetBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Master Sheet"]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
+        return {
+          success: false,
+          message: "Not enough data in Master Sheet™",
+        };
+      }
+      var sheetData = sheetBatchResult[0].values;
+      if (sheetData.length < 2) {
         return {
           success: false,
           message: "Not enough data in Master Sheet™",
@@ -168,10 +180,14 @@ const guardians = {
         "2:" +
         shared.columnToLetter(guardianCol + 5);
 
-      var newGuardianDataValues = SheetsAPI.getValues(
-        newSheetID,
-        guardianDataRange
-      );
+      var guardianDataBatchResult = SheetsAPI.batchGetValues(newSheetID, [guardianDataRange]);
+      if (!guardianDataBatchResult || guardianDataBatchResult.length === 0 || !guardianDataBatchResult[0].values) {
+        return {
+          success: false,
+          message: "Could not read guardian data",
+        };
+      }
+      var newGuardianDataValues = guardianDataBatchResult[0].values;
       if (!newGuardianDataValues) {
         console.log(`Could not read Guardians data from Master Sheet`);
         return {

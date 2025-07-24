@@ -80,8 +80,8 @@ const bots = {
         }
 
         // Get header row to find Bots column
-        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-        if (!headerValues || headerValues.length === 0) {
+        var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
+        if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
@@ -89,6 +89,7 @@ const bots = {
           };
         }
 
+        var headerValues = headerBatchResult[0].values;
         var headerRow = headerValues[0];
         var importbotColStart = headerRow.indexOf("Bots");
         if (importbotColStart === -1) {
@@ -104,10 +105,15 @@ const bots = {
         try {
           var colStart = shared.columnToLetter(importbotColStart + 1);
           var colEnd = shared.columnToLetter(importbotColStart + 5);
-          oldBotLevelsData = SheetsAPI.getValues(
-            newSheetID,
-            `_IDS!${colStart}2:${colEnd}`
-          );
+          var botBatchResult = SheetsAPI.batchGetValues(newSheetID, [`_IDS!${colStart}2:${colEnd}`]);
+          if (!botBatchResult || botBatchResult.length === 0 || !botBatchResult[0].values) {
+            console.log(`Could not read old bot levels data`);
+            return {
+              success: false,
+              message: `Could not read old bot levels data`,
+            };
+          }
+          oldBotLevelsData = botBatchResult[0].values;
         } catch (error) {
           console.log(`Error getting old bot levels: ${error.toString()}`);
           return {
@@ -145,7 +151,15 @@ const bots = {
 
     function updateBotLevels(targetBots, newSheetID, sheetName, oldBots) {
       // Get all data from Master Sheet using Sheets API
-      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
+      var sheetBatchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
+        console.log(`Could not read Master Sheet data`);
+        return {
+          success: false,
+          message: `Could not read Master Sheet data`,
+        };
+      }
+      var sheetData = sheetBatchResult[0].values;
       if (!sheetData) {
         console.log(`Error getting bot master sheet data`);
         return {
@@ -180,7 +194,15 @@ const bots = {
         "2:" +
         shared.columnToLetter(botCol + 5);
 
-      var newBotDataValues = SheetsAPI.getValues(newSheetID, botDataRange);
+      var botDataBatchResult = SheetsAPI.batchGetValues(newSheetID, [botDataRange]);
+      if (!botDataBatchResult || botDataBatchResult.length === 0 || !botDataBatchResult[0].values) {
+        console.log(`No bot data found in range: ${botDataRange}`);
+        return {
+          success: false,
+          message: `No bot data found`,
+        };
+      }
+      var newBotDataValues = botDataBatchResult[0].values;
       if (!newBotDataValues) {
         console.log(`Could not read bot data from Master Sheet`);
         return {

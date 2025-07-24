@@ -68,15 +68,15 @@ const lab = {
         }
 
         // Get header row to find Labs column
-        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-
-        if (!headerValues || headerValues.length === 0) {
+        var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
+        if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
             message: "Could not read header row from _IDS sheet",
           };
         }
+        var headerValues = headerBatchResult[0].values;
 
         var headerRow = headerValues[0];
         var importLabColStart = headerRow.indexOf("Labs") + 1;
@@ -96,17 +96,18 @@ const lab = {
           "2:" +
           shared.columnToLetter(importLabColStart + 2);
 
-        var oldLabLevelsValues = SheetsAPI.getValues(
+        var labBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          labLevelsRange
+          [labLevelsRange]
         );
-        if (!oldLabLevelsValues) {
+        if (!labBatchResult || labBatchResult.length === 0 || !labBatchResult[0].values) {
           console.log(`Could not read lab levels data`);
           return {
             success: false,
             message: "Could not read lab levels data",
           };
         }
+        var oldLabLevelsValues = labBatchResult[0].values;
 
         // Filter out empty rows
         var oldLabLevels = oldLabLevelsValues.filter((row) =>
@@ -137,7 +138,15 @@ const lab = {
         var headerValues = ["Labs"];
 
         // Get all data from Master Sheet to determine range
-        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
+        var masterSheetBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Master Sheet"]);
+        if (!masterSheetBatchResult || masterSheetBatchResult.length === 0 || !masterSheetBatchResult[0].values) {
+          console.log(`Could not read Master Sheet data`);
+          return {
+            success: false,
+            message: "Could not read Master Sheet data",
+          };
+        }
+        var allData = masterSheetBatchResult[0].values;
         if (!allData || allData.length < 2) {
           console.log(`Not enough data in Master Sheet`);
           return {
@@ -182,7 +191,7 @@ const lab = {
             if (row >= allData.length) break;
 
             var cellValue = allData[row][col - 1];
-            if (cellValue === "") break;
+            if (!cellValue || cellValue.trim() === "") break;
 
             var update = updateMap[cellValue];
             if (update) {

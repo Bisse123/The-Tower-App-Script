@@ -386,7 +386,10 @@ function importData(
     }
 
     try {
-      SheetsAPI.setValue(newSheetID, newSheetInfo.importStatus.range, "✅");
+      SheetsAPI.batchUpdateValues(newSheetID, [{
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]]
+      }]);
     } catch (error) {
       console.log(`Error updating imported status:  ${error.toString()}`);
       return {

@@ -65,14 +65,15 @@ const relics = {
         }
 
         // Get all data from old Relics sheet
-        var oldRelicsData = SheetsAPI.getDataRange(oldSheetID, "Relics");
-        if (!oldRelicsData || oldRelicsData.length === 0) {
+        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, ["Relics"]);
+        if (!oldRelicsBatchResult || oldRelicsBatchResult.length === 0 || !oldRelicsBatchResult[0].values) {
           console.log(`Could not read data from old Relics sheet`);
           return {
             success: false,
             message: `Could not read data from old Relics sheet`,
           };
         }
+        var oldRelicsData = oldRelicsBatchResult[0].values;
 
         var oldRelicHeaderRow = null;
         var oldRelicNameCol = null;
@@ -107,17 +108,15 @@ const relics = {
           ":" +
           shared.columnToLetter(oldRelicUnlockedCol);
 
-        var oldRelicsValues = SheetsAPI.getValues(
-          oldSheetID,
-          oldRelicsRange
-        );
-        if (!oldRelicsValues) {
+        var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [oldRelicsRange]);
+        if (!oldRelicsBatchResult || oldRelicsBatchResult.length === 0 || !oldRelicsBatchResult[0].values) {
           console.log(`Could not read relic data from old spreadsheet`);
           return {
             success: false,
             message: `Could not read relic data from old spreadsheet™`,
           };
         }
+        var oldRelicsValues = oldRelicsBatchResult[0].values;
 
         // Filter out empty rows
         var oldRelics = oldRelicsValues.filter((row) =>
@@ -154,8 +153,16 @@ const relics = {
     function updateRelics(newSheetID, oldRelics) {
       try {
         // Get all data from new Relics sheet
-        var newRelicsData = SheetsAPI.getValues(newSheetID, "Relics");
-        if (!newRelicsData || newRelicsData.length < 3) {
+        var newRelicsBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Relics"]);
+        if (!newRelicsBatchResult || newRelicsBatchResult.length === 0 || !newRelicsBatchResult[0].values) {
+          console.log(`Not enough data in new Relics sheet`);
+          return {
+            success: false,
+            message: `Not enough data in new Relics sheet`,
+          };
+        }
+        var newRelicsData = newRelicsBatchResult[0].values;
+        if (newRelicsData.length < 3) {
           console.log(`Not enough data in new Relics sheet`);
           return {
             success: false,
@@ -211,17 +218,15 @@ const relics = {
           shared.columnToLetter(newRelicNameCol) +
           endRow;
 
-        var newRelicNamesValues = SheetsAPI.getValues(
-          newSheetID,
-          newRelicNamesRange
-        );
-        if (!newRelicNamesValues) {
+        var newRelicNamesBatchResult = SheetsAPI.batchGetValues(newSheetID, [newRelicNamesRange]);
+        if (!newRelicNamesBatchResult || newRelicNamesBatchResult.length === 0 || !newRelicNamesBatchResult[0].values) {
           console.log(`Could not read new relic names`);
           return {
             success: false,
             message: `Could not read new relic names`,
           };
         }
+        var newRelicNamesValues = newRelicNamesBatchResult[0].values;
 
         // Filter out empty rows and flatten the array
         var newRelicsNames = newRelicNamesValues
@@ -254,7 +259,10 @@ const relics = {
             shared.columnToLetter(newRelicUnlockedCol) +
             endRow;
 
-          SheetsAPI.setValues(newSheetID, unlockedRange, newRelicsUnlocked);
+          SheetsAPI.batchUpdateValues(newSheetID, [{
+            range: unlockedRange,
+            values: newRelicsUnlocked
+          }]);
           // console.log(`Relics updated successfully: ${newRelicsUnlocked.length} relics processed`);
           return {
             success: true,

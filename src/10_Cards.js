@@ -92,22 +92,24 @@ const cards = {
       }
     }
 
-    function version17() {
+    function version10() {
       var newSpreadsheet = spreadsheets("newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       
       var oldSpreadsheet = spreadsheets("oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       
-      var oldSheetData = SheetsAPI.getDataRange(oldSheetID, "Card Preset");
-      if (!oldSheetData) {
-        console.log(`Error getting old card preset sheet data`);
+      // First, get header info from new spreadsheet to determine ranges
+      var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
+      if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
+        console.log(`Could not read header row from _IDS sheet`);
         return {
           success: false,
-          message: "Error getting old card preset sheet data",
+          message: "Could not read header row from _IDS sheet",
         };
       }
-      var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
+
+      var headerValues = headerBatchResult[0].values;
       if (!headerValues || headerValues.length === 0) {
         console.log(`Could not read header row from _IDS sheet`);
         return {
@@ -128,15 +130,45 @@ const cards = {
 
       var colStart = shared.columnToLetter(importCardsColStart + 1);
       var colEnd = shared.columnToLetter(importCardsColStart + 3);
-      var oldCardsLevelsData = SheetsAPI.getValues(
-        newSheetID,
+      
+      // Batch get data from old spreadsheet
+      var oldRanges = [
+        "Card Preset",
+        "EXPORT!C2"
+      ];
+      var oldBatchResult = SheetsAPI.batchGetValues(oldSheetID, oldRanges);
+      
+      // Batch get data from new spreadsheet
+      var newRanges = [
         "_IDS!" + colStart + "2:" + colEnd
-      );
-      if (!oldCardsLevelsData) {
-        console.log(`Error getting old cards levels data`);
+      ];
+      var newBatchResult = SheetsAPI.batchGetValues(newSheetID, newRanges);
+      
+      if (!oldBatchResult || oldBatchResult.length < 2) {
+        console.log(`Error getting data from old spreadsheet`);
         return {
           success: false,
-          message: "Error getting old cards levels data",
+          message: "Error getting data from old spreadsheet",
+        };
+      }
+      
+      if (!newBatchResult || newBatchResult.length < 1) {
+        console.log(`Error getting cards levels data from new spreadsheet`);
+        return {
+          success: false,
+          message: "Error getting cards levels data from new spreadsheet",
+        };
+      }
+      
+      var oldSheetData = oldBatchResult[0].values;
+      var oldCardSlots = oldBatchResult[1].values && oldBatchResult[1].values[0] && oldBatchResult[1].values[0][0] ? oldBatchResult[1].values[0][0] : null;
+      var oldCardsLevelsData = newBatchResult[0].values;
+      
+      if (!oldCardSlots) {
+        console.log(`Error getting old card slots`);
+        return {
+          success: false,
+          message: "Error getting old card slots",
         };
       }
 
@@ -148,15 +180,6 @@ const cards = {
             String(cell || "").trim() !== ""
         )
       );
-      
-      var oldCardSlots = SheetsAPI.getValue(oldSheetID, "EXPORT!C2");
-      if (!oldCardSlots) {
-        console.log(`Error getting old card slots`);
-        return {
-          success: false,
-          message: "Error getting old card slots",
-        };
-      }
 
       var shouldRemoveUsedCards
       var oldCardsPresets = {};
@@ -203,129 +226,15 @@ const cards = {
       };
     }
 
-    function version10() {
-      try {
-        var newSpreadsheet = spreadsheets("newSpreadsheet");
-        var newSheetID = newSpreadsheet.spreadsheetId;
-        
-        var oldSpreadsheet = spreadsheets("oldSpreadsheet");
-        var oldSheetID = oldSpreadsheet.spreadsheetId;
-        
-        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-        if (!headerValues || headerValues.length === 0) {
-          console.log(`Could not read header row from _IDS sheet`);
-          return {
-            success: false,
-            message: "Could not read header row from _IDS sheet",
-          };
-        }
-
-        var headerRow = headerValues[0];
-        var importCardsColStart = headerRow.indexOf("Cards");
-        if (importCardsColStart === -1) {
-          console.log(`Cards column not found in header`);
-          return {
-            success: false,
-            message: "Cards column not found in header",
-          };
-        }
-
-        var colStart = shared.columnToLetter(importCardsColStart + 1);
-        var colEnd = shared.columnToLetter(importCardsColStart + 3);
-        var oldCardsLevelsData = SheetsAPI.getValues(
-          newSheetID,
-          "_IDS!" + colStart + "2:" + colEnd
-        );
-        if (!oldCardsLevelsData) {
-          console.log(`Error getting old cards levels data`);
-          return {
-            success: false,
-            message: "Error getting old cards levels data",
-          };
-        }
-
-        var oldCardsLevels = oldCardsLevelsData.filter((row) =>
-          row.some(
-            (cell) =>
-              cell !== null &&
-              cell !== undefined &&
-              String(cell || "").trim() !== ""
-          )
-        );
-
-        var oldCardSlots = SheetsAPI.getValue(oldSheetID, "EXPORT!C2");
-        if (!oldCardSlots) {
-          console.log(`Error getting old card slots`);
-          return {
-            success: false,
-            message: "Error getting old card slots",
-          };
-        }
-
-        var importCardsPresetsColStart = headerRow.indexOf("Cards Presets");
-        if (importCardsPresetsColStart === -1) {
-          console.log(`Cards Presets column not found in header`);
-          return {
-            success: false,
-            message: "Cards Presets column not found in header",
-          };
-        }
-        var colStart = shared.columnToLetter(
-          importCardsPresetsColStart + 1
-        );
-        var colEnd = shared.columnToLetter(
-          importCardsPresetsColStart + 5
-        );
-        var oldCardsPresetsData = SheetsAPI.getValues(
-          newSheetID,
-          "_IDS!" + colStart + "2:" + colEnd
-        );
-        var oldCardsPresets = {};
-        if (oldCardsPresetsData.length > 1) {
-          var headers = oldCardsPresetsData[0];
-          var dataRows = oldCardsPresetsData.slice(1);
-          
-          headers.forEach(function(header, colIndex) {
-            if (header && String(header).trim() !== "") {
-              oldCardsPresets[header] = {
-                cards: dataRows.map(function(row) {
-                  return row[colIndex] || "";
-                }).filter(function(cell) {
-                  return cell !== null && cell !== undefined && String(cell).trim() !== "";
-                }),
-                remove: [],
-                order: colIndex + 1
-              };
-            }
-          });
-        }
-        return {
-          success: true,
-          message: `oldCardsLevels and oldCardsPresets processed successfully`,
-          oldCardSlots: oldCardSlots,
-          oldCardsLevels: oldCardsLevels,
-          oldCardsPresets: oldCardsPresets,
-        };
-      } catch (error) {
-        console.log(
-          `Error processing cards presets: ${error.toString()}`
-        );
-        return {
-          success: false,
-          message: `Error processing cards presets: ${error.message}`,
-        };
-      }
-    }
-
     function updateCardsLevels(
       newSheetID,
       sheetName,
       oldCardsLevels,
       oldCardSlots
     ) {
-      // Get sheet data using Sheets API
-      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
-      if (!sheetData) {
+      // Get sheet data using batch API
+      var sheetBatchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
         console.log(`Error getting cards master sheet data`);
         return {
           success: false,
@@ -333,6 +242,7 @@ const cards = {
         };
       }
 
+      var sheetData = sheetBatchResult[0].values;
       if (sheetData.length < 2) {
         console.log(`Master Sheet has no data or only header row`);
         return {
@@ -410,8 +320,8 @@ const cards = {
     }
 
     function updateCardsPresets(newSheetID, sheetName, oldCardsPresets, shouldRemoveUsedCards) {
-      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
-      if (!sheetData) {
+      var sheetBatchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
         console.log(`Error getting cards preset sheet data`);
         return {
           success: false,
@@ -419,6 +329,7 @@ const cards = {
         };
       }
 
+      var sheetData = sheetBatchResult[0].values;
       if (sheetData.length < 3) {
         console.log(`Card Preset sheet has no data or only header row`);
         return {
@@ -559,7 +470,6 @@ const cards = {
     }
 
     var convertVersionFunctions = {
-      "v1.7": version17,
       "v1.0": version10,
     };
 
@@ -568,7 +478,6 @@ const cards = {
 
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = [
-      "v1.7",
       "v1.0"
     ];
     

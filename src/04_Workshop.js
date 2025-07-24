@@ -70,14 +70,15 @@ const workshop = {
         }
 
         // Get header row to find WS and WS+ columns
-        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-        if (!headerValues || headerValues.length === 0) {
+        var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
+        if (!headerBatchResult || headerBatchResult.length === 0 || !headerBatchResult[0].values) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
             message: `Could not read header row from _IDS sheet™`,
           };
         }
+        var headerValues = headerBatchResult[0].values;
 
         var headerRow = headerValues[0];
         var importWorkshopColStart = headerRow.indexOf("WS") + 1;
@@ -105,17 +106,18 @@ const workshop = {
           "2:" +
           shared.columnToLetter(importWorkshopColStart + 11);
 
-        var oldWorkshopLevelsValues = SheetsAPI.getValues(
+        var workshopBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          workshopLevelsRange
+          [workshopLevelsRange]
         );
-        if (!oldWorkshopLevelsValues) {
+        if (!workshopBatchResult || workshopBatchResult.length === 0 || !workshopBatchResult[0].values) {
           console.log(`Could not read workshop levels data`);
           return {
             success: false,
             message: `Could not read workshop levels data`,
           };
         }
+        var oldWorkshopLevelsValues = workshopBatchResult[0].values;
 
         // Filter out empty rows
         var oldWorkshopLevels = oldWorkshopLevelsValues.filter((row) =>
@@ -134,17 +136,18 @@ const workshop = {
           "2:" +
           shared.columnToLetter(importWorkshopPlusColStart + 6);
 
-        var oldWorkshopPlusLevelsValues = SheetsAPI.getValues(
+        var workshopPlusBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          workshopPlusLevelsRange
+          [workshopPlusLevelsRange]
         );
-        if (!oldWorkshopPlusLevelsValues) {
+        if (!workshopPlusBatchResult || workshopPlusBatchResult.length === 0 || !workshopPlusBatchResult[0].values) {
           console.log(`Could not read workshop plus levels data`);
           return {
             success: false,
             message: `Could not read workshop plus levels data`,
           };
         }
+        var oldWorkshopPlusLevelsValues = workshopPlusBatchResult[0].values;
 
         // Filter out empty rows
         var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
@@ -194,14 +197,15 @@ const workshop = {
         }
 
         // Get header row to find WS and WS+ columns
-        var headerValues = SheetsAPI.getValues(newSheetID, "_IDS!1:1");
-        if (!headerValues || headerValues.length === 0) {
+        var updateHeaderBatchResult = SheetsAPI.batchGetValues(newSheetID, ["_IDS!1:1"]);
+        if (!updateHeaderBatchResult || updateHeaderBatchResult.length === 0 || !updateHeaderBatchResult[0].values) {
           console.log(`Could not read header row from _IDS sheet`);
           return {
             success: false,
             message: `Could not read header row from _IDS sheet`,
           };
         }
+        var headerValues = updateHeaderBatchResult[0].values;
 
         var headerRow = headerValues[0];
         var importWorkshopColStart = headerRow.indexOf("WS") + 1;
@@ -229,17 +233,18 @@ const workshop = {
           "2:" +
           shared.columnToLetter(importWorkshopColStart + 3);
 
-        var oldWorkshopLevelsValues = SheetsAPI.getValues(
+        var updateWorkshopBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          workshopLevelsRange
+          [workshopLevelsRange]
         );
-        if (!oldWorkshopLevelsValues) {
+        if (!updateWorkshopBatchResult || updateWorkshopBatchResult.length === 0 || !updateWorkshopBatchResult[0].values) {
           console.log(`Could not read workshop levels data`);
           return {
             success: false,
             message: `Could not read workshop levels data`,
           };
         }
+        var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
 
         // Filter out empty rows
         var oldWorkshopLevels = oldWorkshopLevelsValues.filter((row) =>
@@ -258,17 +263,18 @@ const workshop = {
           "2:" +
           shared.columnToLetter(importWorkshopPlusColStart + 2);
 
-        var oldWorkshopPlusLevelsValues = SheetsAPI.getValues(
+        var updateWorkshopPlusBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          workshopPlusLevelsRange
+          [workshopPlusLevelsRange]
         );
-        if (!oldWorkshopPlusLevelsValues) {
+        if (!updateWorkshopPlusBatchResult || updateWorkshopPlusBatchResult.length === 0 || !updateWorkshopPlusBatchResult[0].values) {
           console.log(`Could not read workshop plus levels data`);
           return {
             success: false,
             message: `Could not read workshop plus levels data`,
           };
         }
+        var oldWorkshopPlusLevelsValues = updateWorkshopPlusBatchResult[0].values;
 
         // Filter out empty rows
         var oldWorkshopPlusLevels = oldWorkshopPlusLevelsValues.filter(
@@ -303,7 +309,15 @@ const workshop = {
     ) {
       try {
         // Get all data from Master Sheet to determine range and find columns
-        var allData = SheetsAPI.getValues(newSheetID, "Master Sheet");
+        var masterDataBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Master Sheet"]);
+        if (!masterDataBatchResult || masterDataBatchResult.length === 0 || !masterDataBatchResult[0].values) {
+          console.log(`Could not read Master Sheet data`);
+          return {
+            success: false,
+            message: `Could not read Master Sheet data`,
+          };
+        }
+        var allData = masterDataBatchResult[0].values;
         if (!allData || allData.length < 2) {
           console.log(`Not enough data in Master Sheet`);
           return {
@@ -313,7 +327,6 @@ const workshop = {
         }
 
         var headerRow = allData[0];
-        var lastRow = allData.length;
 
         // Find header row and relevant columns
         var upgradeCol = headerRow.indexOf("Workshop Upgrade") + 1;

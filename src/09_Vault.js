@@ -183,14 +183,15 @@ const vault = {
       var tierUnlock = ["Tier x2 Unlock", "Tier x3 Unlock"];
 
       // Get sheet data using SheetsAPI
-      var sheetData = SheetsAPI.getDataRange(newSheetID, sheetName);
-      if (!sheetData) {
+      var sheetBatchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
         console.log(`Error getting sheet data`);
         return {
           success: false,
           message: `Error getting sheet data`,
         };
       }
+      var sheetData = sheetBatchResult[0].values;
 
       if (sheetData.length < skipRows + 2) return;
       if (sheetData.length < skipRows + 2) {
@@ -271,11 +272,12 @@ const vault = {
 
     function getOldVault(oldSheetID, sheetName, oldVaultPattern, skipRows) {
       // Get sheet data using SheetsAPI
-      var sheetData = SheetsAPI.getDataRange(oldSheetID, sheetName);
-      if (!sheetData) {
+      var sheetBatchResult = SheetsAPI.batchGetValues(oldSheetID, [sheetName]);
+      if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
         console.log(`Error getting old vault data`);
         return {};
       }
+      var sheetData = sheetBatchResult[0].values;
 
       if (sheetData.length < skipRows + 1) return {}; // Not enough data
 

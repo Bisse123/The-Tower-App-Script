@@ -77,7 +77,15 @@ const ultimate = {
         }
 
         // Get all data from Master Sheet to determine range and find columns
-        var sheetData = SheetsAPI.getValues(oldSheetID, "Master Sheet");
+        var sheetBatchResult = SheetsAPI.batchGetValues(oldSheetID, ["Master Sheet"]);
+        if (!sheetBatchResult || sheetBatchResult.length === 0 || !sheetBatchResult[0].values) {
+          console.log(`Could not read Master Sheet data`);
+          return {
+            success: false,
+            message: `Could not read Master Sheet data`,
+          };
+        }
+        var sheetData = sheetBatchResult[0].values;
         if (!sheetData || sheetData.length < 2) {
           console.log(`Not enough data in Master Sheet`);
           return {
@@ -104,17 +112,18 @@ const ultimate = {
           "2:" +
           shared.columnToLetter(ultimateCol + 5);
 
-        var oldUltimateDataValues = SheetsAPI.getValues(
+        var ultimateBatchResult = SheetsAPI.batchGetValues(
           oldSheetID,
-          ultimateDataRange
+          [ultimateDataRange]
         );
-        if (!oldUltimateDataValues) {
+        if (!ultimateBatchResult || ultimateBatchResult.length === 0 || !ultimateBatchResult[0].values) {
           console.log(`Could not read ultimate weapons data from Master Sheet`);
           return {
             success: false,
             message: `Could not read ultimate weapons data from Master Sheet`,
           };
         }
+        var oldUltimateDataValues = ultimateBatchResult[0].values;
 
         // Filter out empty rows
         var oldUltimateData = oldUltimateDataValues.filter((row) =>
@@ -144,7 +153,15 @@ const ultimate = {
     function updateUltimateLevels(targetWeapons, newSheetID, oldUltimate) {
       try {
         // Get all data from Master Sheet to determine range and find columns
-        var sheetData = SheetsAPI.getValues(newSheetID, "Master Sheet");
+        var newSheetBatchResult = SheetsAPI.batchGetValues(newSheetID, ["Master Sheet"]);
+        if (!newSheetBatchResult || newSheetBatchResult.length === 0 || !newSheetBatchResult[0].values) {
+          console.log(`Could not read Master Sheet data`);
+          return {
+            success: false,
+            message: `Could not read Master Sheet data`,
+          };
+        }
+        var sheetData = newSheetBatchResult[0].values;
         if (!sheetData || sheetData.length < 2) {
           console.log(`Not enough data in Master Sheet`);
           return {
@@ -171,10 +188,18 @@ const ultimate = {
           "2:" +
           shared.columnToLetter(ultimateCol + 5);
 
-        var newUltimateDataValues = SheetsAPI.getValues(
+        var newUltimateBatchResult = SheetsAPI.batchGetValues(
           newSheetID,
-          ultimateDataRange
+          [ultimateDataRange]
         );
+        if (!newUltimateBatchResult || newUltimateBatchResult.length === 0 || !newUltimateBatchResult[0].values) {
+          console.log(`Could not read ultimate weapons data from new Master Sheet`);
+          return {
+            success: false,
+            message: `Could not read ultimate weapons data from new Master Sheet`,
+          };
+        }
+        var newUltimateDataValues = newUltimateBatchResult[0].values;
         if (!newUltimateDataValues) {
           console.log(`Could not read ultimate weapons data from Master Sheet`);
           return {

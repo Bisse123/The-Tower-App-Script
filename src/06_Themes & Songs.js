@@ -1,6 +1,6 @@
 const themes = {
   importData: function (versionDifference) {
-    function importThemesData(versionDifference) {
+  function importThemesData(versionDifference) {
       try {
         var newSpreadsheet = spreadsheets("newSpreadsheet");
         if (!newSpreadsheet) {
@@ -62,14 +62,15 @@ const themes = {
           "Profile Banner",
         ];
 
-        var oldThemesData = SheetsAPI.getDataRange(
+        var themesOldBatchResult = SheetsAPI.batchGetValues(
           oldSheetID,
-          "Themes & Songs"
+          ["Themes & Songs"]
         );
-        if (!oldThemesData) {
+        if (!themesOldBatchResult || themesOldBatchResult.length === 0 || !themesOldBatchResult[0].values) {
           console.log(`Error getting old themes data`);
           return { success: false, message: "Error getting old themes data" };
         }
+        var oldThemesData = themesOldBatchResult[0].values;
         var oldThemesNames = getOldUnlockedThemesNames(
           targetThemes,
           oldThemesData
@@ -91,7 +92,12 @@ const themes = {
 
     function updateThemes(targetThemes, newSheetID, sheetName, oldThemesNames) {
       // Get sheet data using SheetsAPI
-      var newThemesData = SheetsAPI.getDataRange(newSheetID, sheetName);
+      var newThemesBatchResult = SheetsAPI.batchGetValues(newSheetID, [sheetName]);
+      if (!newThemesBatchResult || newThemesBatchResult.length === 0 || !newThemesBatchResult[0].values) {
+        console.log(`Could not read new themes data`);
+        return { success: false, message: "Could not read new themes data" };
+      }
+      var newThemesData = newThemesBatchResult[0].values;
       if (!newThemesData) {
         console.log(`Error getting new themes data`);
         return { success: false, message: "Error getting new themes data" };
