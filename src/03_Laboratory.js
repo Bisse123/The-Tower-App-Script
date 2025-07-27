@@ -31,15 +31,24 @@ const lab = {
       }
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(`Error processing lab data: ${oldDataResult.message}`);
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
       var oldLabLevels = oldDataResult.oldLabLevels || [];
+      var requiredRanges = ["Master Sheet"];
+      var labPlannerSheetName = "";
+
+      if (oldDataResult.oldLabPlanner) {
+        var labPlannerSheet = SheetsAPI.getSheetBySubstring(newSpreadsheet, "Lab Planner");
+        if (labPlannerSheet) {
+          labPlannerSheetName = labPlannerSheet.title;
+          requiredRanges.push(labPlannerSheetName);
+        }
+      }
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet"];
-      var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
+      var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
         return {
@@ -49,6 +58,7 @@ const lab = {
       }
 
       var masterSheetData = batchResults[0].values;
+      var labPlannerData = batchResults[1].values;
 
       var labResult = this.updateLabLevels(
         "Master Sheet",
@@ -62,6 +72,19 @@ const lab = {
 
       var batchUpdate = labResult.batchUpdate || [];
 
+      if (oldDataResult.oldLabPlanner && Object.keys(oldDataResult.oldLabPlanner).length !== 0 && labPlannerSheetName) {
+        console.log(oldDataResult.oldLabPlanner);
+        var labPlannerResult = this.updateLabPlanner(
+          labPlannerSheetName,
+          oldDataResult.oldLabPlanner,
+          labPlannerData
+        );
+        if (!labPlannerResult || !labPlannerResult.success) {
+          console.log(`Error updating lab planner: ${labPlannerResult.message}`);
+          return labPlannerResult;
+        }
+        batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate);
+      }
       if (batchUpdate.length > 0) {
         var updateResult = SheetsAPI.batchUpdateValues(
           newSheetID,
@@ -93,7 +116,7 @@ const lab = {
     }
   },
 
-  updateLabLevels: function (sheetName, labUpdates, masterSheetData) {
+  updateLabLevels: function (sheetName, oldLabLevels, masterSheetData) {
     try {
       var headerValues = ["Labs"];
 
@@ -124,16 +147,11 @@ const lab = {
         };
       }
 
-      // Prepare update map from labName to update values
-      var updateMap = {};
-      labUpdates.forEach(function (update) {
-        updateMap[update[0]] = [update[1], update[2]];
-      });
-
+      // oldLabLevels is now a dictionary, no need for separate updateMap
       var batchUpdate = [];
       // Iterate each "Labs" column
       columnsToCheck.forEach(function (col) {
-        var updates = [];
+        var newLabLevels = [];
         // Find labNames in each column (skip header row, ignore last row with sums)
         var numRows = lastRow - 2;
 
@@ -143,34 +161,32 @@ const lab = {
           var cellValue = masterSheetData[row][col - 1];
           if (!cellValue || cellValue.trim() === "") break;
 
-          var update = updateMap[cellValue];
-          if (update) {
-            updates.push([update[0] || 0, update[1] || ""]);
+          var oldLabLevel = oldLabLevels[cellValue];
+          if (oldLabLevel) {
+            newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || ""]);
           } else {
             // Keep existing values
             var currentLevel = masterSheetData[row][col] || 0;
             var currentTarget = masterSheetData[row][col + 1] || "";
-            updates.push([currentLevel, currentTarget]);
+            newLabLevels.push([currentLevel, currentTarget]);
           }
         }
         // Add batch update for this column's Level and Target columns
-        if (updates.length > 0) {
+        if (newLabLevels.length > 0) {
           var startCol = shared.columnToLetter(col + 1); // Level column
           var endCol = shared.columnToLetter(col + 2); // Target column
           var range = `${sheetName}!${startCol}2:${endCol}${
-            updates.length + 1
+            newLabLevels.length + 1
           }`;
 
           batchUpdate.push({
             range: range,
-            values: updates,
+            values: newLabLevels,
           });
         }
       });
 
-      // Execute batch updates
       if (batchUpdate.length > 0) {
-        // Return batch update data instead of calling API directly
         return {
           success: true,
           message: "Lab levels updated successfully",
@@ -186,6 +202,173 @@ const lab = {
       return {
         success: false,
         message: `Error updating lab levels: ${error.message}`,
+      };
+    }
+  },
+
+  updateLabPlanner: function (sheetName, oldLabPlanner, labPlannerData) {
+    try {
+      if (!labPlannerData || labPlannerData.length === 0) {
+        console.log(`No lab planner data provided`);
+        return {
+          success: true,
+          message: "No lab planner data provided",
+        };
+      }
+
+      if (!oldLabPlanner || Object.keys(oldLabPlanner).length === 0) {
+        console.log(`No lab planner updates provided`);
+        return {
+          success: true,
+          message: "No lab planner updates needed",
+        };
+      }
+
+      var batchUpdate = [];
+      var labHeaders = Object.keys(oldLabPlanner).filter(function (header) {
+        return header && header.trim() !== "" && header.toLowerCase().includes("lab") && !header.toLowerCase().includes("reminder")
+      });
+      var reminderHeaders = Object.keys(oldLabPlanner).filter(function (header) {
+        return header && header.trim() !== "" && header.toLowerCase().includes("lab") && header.toLowerCase().includes("reminder")
+      });
+      var miscHeaders = Object.keys(oldLabPlanner).filter(function (header) {
+        return header && header.trim() !== "" && !header.toLowerCase().includes("lab")
+      });
+
+      for (var rowIndex = 0; rowIndex < labPlannerData.length; rowIndex++) {
+        var row = labPlannerData[rowIndex];
+        if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
+          break;
+        }
+        labHeaders = labHeaders.filter(function(labHeader) {
+          var colIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' &&
+                   cellValue.startsWith('=') &&
+                   cellValue.includes(labHeader);
+          });
+          
+          if (colIndex !== -1) {
+            var oldLabData = oldLabPlanner[labHeader];
+            if (oldLabData && oldLabData.length !== 0) {
+              var firstColIndex = colIndex + row[colIndex].split(",").length;
+              var startCol = shared.columnToLetter(firstColIndex);
+              var endCol = shared.columnToLetter(firstColIndex + 2);
+              var startRow = rowIndex + 4;
+              var endRow = startRow + oldLabData.length - 1;
+              var range = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
+              var values = oldLabData.map(function (dataRow) {
+                return [dataRow[0] || "", dataRow[1] || "", dataRow[2] || ""];
+              });
+              batchUpdate.push({
+                range: range,
+                values: values,
+              });
+            }
+            return false;
+          }
+          return true;
+        });
+        reminderHeaders = reminderHeaders.filter(function(reminderHeader) {
+          var colIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' &&
+                   cellValue.trim().toLowerCase() === reminderHeader.toLowerCase();
+          });
+          if (colIndex !== -1) {
+            var oldReminderData = oldLabPlanner[reminderHeader];
+            if (oldReminderData && oldReminderData.length !== 0) {
+              var startCol = shared.columnToLetter(colIndex + 3);
+              var endCol = shared.columnToLetter(colIndex + 4);
+              var startRow = rowIndex + 1;
+              var endRow = startRow + oldReminderData.length - 1;
+              var range = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
+              batchUpdate.push({
+                range: range,
+                values: oldReminderData,
+              });
+            }
+            return false;
+          }
+          return true;
+        });
+        miscHeaders = miscHeaders.filter(function(miscHeader) {
+          var miscColIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' &&
+                   cellValue.trim().toLowerCase() === miscHeader.toLowerCase();
+          });
+          if (miscColIndex !== -1) {
+            var miscData = oldLabPlanner[miscHeader];
+            if (miscHeader === "Estimated Daily Coins required to Sustain:" && miscData && miscData.length !== 0) {
+              var col = shared.columnToLetter(miscColIndex + 1);
+              var startCell = `${col}${rowIndex + 2}`;
+              var endCell = `${col}${rowIndex + 6}`;
+              var range = `${sheetName}!${startCell}:${endCell}`;
+              batchUpdate.push({
+                range: range,
+                values: miscData,
+              });
+            } else if (miscHeader === "OPTIONS" && miscData && Object.keys(miscData).length !== 0) {
+              var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
+              var plannerRows = (labPlannerData[rowIndex + 1][plannerType] !== "" ? 1 : 2) * 4;
+              var showLabColIndex = miscColIndex + (4 * plannerType) - 2;
+              var optionColIndex = miscColIndex + (5 * plannerType) - 2;
+              var showLabCol = shared.columnToLetter(showLabColIndex + 1);
+              var optionCol = shared.columnToLetter(optionColIndex + 1);
+              var startCell = `${showLabCol}${rowIndex + 1}`;
+              var endCell = `${optionCol}${rowIndex + plannerRows}`;
+              var range = `${sheetName}!${startCell}:${endCell}`;
+              var values = [];
+              for (var i = 0; i < plannerRows; i++) {
+                var currentRowIndex = rowIndex + i;
+                var optionKey = labPlannerData[currentRowIndex][miscColIndex + plannerType] || "";
+                if (optionKey.startsWith("=")) {
+                  optionKey = optionKey.split(",").pop().trim().replace(/['"]/g, "").replace(/[')]/g, "");
+                }
+                if (optionKey && miscData[optionKey]) {
+                  if (plannerType === 1) {
+                    values.push([miscData[optionKey][0] || "", miscData[optionKey][1] || ""]);
+                  } else {
+                    values.push([miscData[optionKey][0] || "", "", miscData[optionKey][1] || ""]);
+                  }
+                } else {
+                  if (plannerType === 1) {
+                    values.push([labPlannerData[currentRowIndex][showLabColIndex] || "", labPlannerData[currentRowIndex][optionColIndex] || ""]);
+                  } else {
+                    values.push([labPlannerData[currentRowIndex][showLabColIndex] || "", "", labPlannerData[currentRowIndex][optionColIndex] || ""]);
+                  }
+                }
+              }
+              
+              batchUpdate.push({
+                range: range,
+                values: values,
+              });
+            }
+            return false;
+          }
+          return true;
+        });
+      }
+
+      if (batchUpdate.length > 0) {
+        return {
+          success: true,
+          message: `Lab planner updated successfully (${batchUpdate.length} cells updated)`,
+          batchUpdate: batchUpdate,
+        };
+      }
+
+      return {
+        success: true,
+        message: "No lab planner formulas found to update",
+      };
+    } catch (error) {
+      console.log(`Error in updateLabPlanner: ${error.toString()}`);
+      return {
+        success: false,
+        message: `Error updating lab planner: ${error.message}`,
       };
     }
   },
@@ -209,6 +392,9 @@ const lab = {
           message: "Master Sheet™ not found in new lab spreadsheet™",
         };
       }
+
+      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Get header row to find Labs column
       var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, [
@@ -243,7 +429,7 @@ const lab = {
         "_IDS!" +
         shared.columnToLetter(importLabColStart) +
         "2:" +
-        shared.columnToLetter(importLabColStart + 2);
+        shared.columnToLetter(importLabColStart + 3);
 
       var labBatchResult = SheetsAPI.batchGetValues(newSheetID, [
         labLevelsRange,
@@ -261,26 +447,171 @@ const lab = {
       }
       var oldLabLevelsValues = labBatchResult[0].values;
 
-      // Filter out empty rows
-      var oldLabLevels = oldLabLevelsValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
+      var oldLabLevels = {};
+      var oldLabMax = {};
+      oldLabLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return cell !== null &&
+                 cell !== undefined &&
+                 String(cell || "").trim() !== "";
+        });
+        
+        if (hasData && row[0]) {
+          oldLabLevels[row[0]] = [row[1] || 0, row[2] || ""];
+          oldLabMax[row[0]] = row[3] || "";
+        }
+      });
+
+      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
+      if (!oldLabPlannerSheet) {
+        console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
+        return {
+          success: true,
+          message: "No sheet containing 'Lab Planner' found in old spreadsheet",
+          oldLabLevels: oldLabLevels,
+        };
+      }
+      var oldLabPlannerSheetName = oldLabPlannerSheet.title;
+
+      var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
+        oldLabPlannerSheetName
+      ]);
+      if (!oldLabPlannerData || oldLabPlannerData.length === 0 || !oldLabPlannerData[0].values) {
+        console.log(`Could not read old lab planner data`);
+        return {
+          success: true,
+          message: "Could not read old lab planner data",
+          oldLabLevels: oldLabLevels,
+        };
+      }
+
+      var oldLabPlannerValues = oldLabPlannerData[0].values;
+      var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
+      var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
+      var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
+      
+      var oldLabPlanner = {};
+      for (var rowIndex = 0; rowIndex < oldLabPlannerValues.length; rowIndex++) {
+        var row = oldLabPlannerValues[rowIndex];
+        if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
+          break;
+        }
+        labHeaders = labHeaders.filter(function(labHeader) {
+          var colIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' && 
+                   cellValue.startsWith('=') && 
+                   cellValue.includes(labHeader);
+          });
+          if (colIndex !== -1) {
+            var firstColIndex = colIndex + row[colIndex].split(",").length - 2;
+            var lastNonEmptyRow = -1;
+            for (var i = rowIndex + 3; i < oldLabPlannerValues.length; i++) {
+              if (oldLabPlannerValues[i][colIndex].trim() === "") {
+                break;
+              }
+              if (!oldLabPlanner[labHeader]) {
+                oldLabPlanner[labHeader] = [];
+              }
+              
+              var labName = oldLabPlannerValues[i][firstColIndex + 3] || "";
+              if (labName.trim() === "") {
+                oldLabPlanner[labHeader].push([
+                "", "", "",
+                ]);
+                continue;
+              }
+              lastNonEmptyRow = i - (rowIndex + 3);
+              var plannerLevel = oldLabPlannerValues[i][firstColIndex + 1] || "";
+              if (plannerLevel === oldLabLevels[labName][0]) {
+                plannerLevel = "";
+              }
+              var plannerTarget = oldLabPlannerValues[i][firstColIndex + 2] || "";
+              if (plannerTarget === oldLabLevels[labName][1] || plannerTarget === oldLabMax[labName]) {
+                plannerTarget = "";
+              }
+              
+              oldLabPlanner[labHeader].push([
+                plannerLevel,
+                plannerTarget,
+                labName,
+              ]);
+            }
+            if (lastNonEmptyRow === -1) {
+              delete oldLabPlanner[labHeader];
+            } else {
+              oldLabPlanner[labHeader] = oldLabPlanner[labHeader].slice(0, lastNonEmptyRow + 1);
+            }
+            return false;
+          }
+          return true;
+        });
+        reminderHeaders = reminderHeaders.filter(function(reminderHeader) {
+          var colIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' && 
+                   cellValue.trim().toLowerCase() === reminderHeader.toLowerCase();
+          });
+          if (colIndex !== -1) {
+            console.log(`Found reminder header: ${reminderHeader} at column index ${colIndex}`);
+            var reminderRowIndex = rowIndex;
+            if (!oldLabPlanner[reminderHeader]) {
+              oldLabPlanner[reminderHeader] = [];
+            }
+            while (oldLabPlannerValues[reminderRowIndex][colIndex] === reminderHeader) {
+              var reminderData = oldLabPlannerValues[reminderRowIndex];
+              oldLabPlanner[reminderHeader].push([reminderData[colIndex + 2] || "", reminderData[colIndex + 3] || ""]);
+              reminderRowIndex++;
+            }
+            return false;
+          }
+          return true;
+        });
+        miscHeaders = miscHeaders.filter(function(miscHeader) {
+          var miscColIndex = row.findIndex(function (cellValue) {
+            return cellValue && 
+                   typeof cellValue === 'string' && 
+                   cellValue.trim().toLowerCase() === miscHeader.toLowerCase();
+          });
+          if (miscColIndex !== -1) {
+            if (miscHeader === "Estimated Daily Coins required to Sustain:") {
+              oldLabPlanner[miscHeader] = oldLabPlannerValues.slice(rowIndex + 1, rowIndex + 6).map(function (row) {
+                return [row[miscColIndex] || ""];
+              });
+            } else if (miscHeader === "OPTIONS") {
+              var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
+              var plannerRows =  (oldLabPlannerValues[rowIndex + 1][miscColIndex + plannerType] !== "" ? 1 : 2) * 4;
+              var showLabColIndex = miscColIndex + (4 * plannerType - 2);
+              var optionColIndex = miscColIndex + (5 * plannerType - 2);
+              var optionDict = {};
+              oldLabPlannerValues.slice(rowIndex, rowIndex + plannerRows).forEach(function (row) {
+                if (row[miscColIndex + 1] !== "") {
+                  var optionKey = row[miscColIndex + 1];
+                  if (optionKey.startsWith("=")) {
+                    optionKey = optionKey.split(",").pop().trim().replace(/['"]/g, "").replace(/[')]/g, "");
+                  }
+                  optionDict[optionKey] = [row[showLabColIndex] || "", row[optionColIndex] || ""];
+                }
+              });
+              oldLabPlanner[miscHeader] = optionDict;
+            }
+            return false;
+          }
+          return true;
+        });
+      }
 
       return {
         success: true,
-        message: "Lab levels processed successfully",
+        message: "Laboratory processed successfully",
         oldLabLevels: oldLabLevels,
+        oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log(`Error processing lab data: ${error.toString()}`);
+      console.log(`Error processing old lab data: ${error.toString()}`);
       return {
         success: false,
-        message: `Error processing lab data: ${error.message}`,
+        message: `Error processing old lab data: ${error.message}`,
       };
     }
   },
