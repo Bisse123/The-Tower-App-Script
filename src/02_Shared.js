@@ -26,6 +26,19 @@ const SheetsAPI = {
     }
   },
 
+  // Find sheet by substring in name from spreadsheet
+  getSheetBySubstring: function (spreadsheet, substring) {
+    try {
+      const sheet = spreadsheet.sheets.find(
+        (s) => s.properties.title.toLowerCase().includes(substring.toLowerCase())
+      );
+      return sheet ? sheet.properties : null;
+    } catch (error) {
+      console.error(`Error getting sheet by substring: ${error}`);
+      return null;
+    }
+  },
+
   // Batch get values from multiple ranges
   batchGetValues: function (spreadsheetId, ranges) {
     try {
