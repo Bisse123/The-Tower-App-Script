@@ -249,20 +249,27 @@ const lab = {
           });
           
           if (colIndex !== -1) {
-            var oldLabData = oldLabPlanner[labHeader];
+            var firstColIndex = colIndex + row[colIndex].split(",").length;
+            var oldBoost = oldLabPlanner[labHeader]["Boost"];
+            var boostRange = `${sheetName}!${shared.columnToLetter(firstColIndex + 3)}${rowIndex + 1}`;
+            batchUpdate.push({
+              range: boostRange,
+              values: [[oldBoost]],
+            });
+            
+            var oldLabData = oldLabPlanner[labHeader]["Labs"];
             if (oldLabData && oldLabData.length !== 0) {
-              var firstColIndex = colIndex + row[colIndex].split(",").length;
               var startCol = shared.columnToLetter(firstColIndex);
               var endCol = shared.columnToLetter(firstColIndex + 2);
               var startRow = rowIndex + 4;
               var endRow = startRow + oldLabData.length - 1;
-              var range = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
-              var values = oldLabData.map(function (dataRow) {
+              var labRange = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
+              var labValues = oldLabData.map(function (dataRow) {
                 return [dataRow[0] || "", dataRow[1] || "", dataRow[2] || ""];
               });
               batchUpdate.push({
-                range: range,
-                values: values,
+                range: labRange,
+                values: labValues,
               });
             }
             return false;
@@ -504,43 +511,49 @@ const lab = {
                    cellValue.includes(labHeader);
           });
           if (colIndex !== -1) {
-            var firstColIndex = colIndex + row[colIndex].split(",").length - 2;
+            var firstColIndex = colIndex + row[colIndex].split(",").length - 1;
+            if (!oldLabPlanner[labHeader]) {
+              oldLabPlanner[labHeader] = {};
+            }
+            if (!oldLabPlanner[labHeader]["Labs"]) {
+              oldLabPlanner[labHeader]["Labs"] = [];
+            }
+            
+            oldLabPlanner[labHeader]["Boost"] = oldLabPlannerValues[rowIndex][firstColIndex + 3] || "";
+
             var lastNonEmptyRow = -1;
             for (var i = rowIndex + 3; i < oldLabPlannerValues.length; i++) {
               if (oldLabPlannerValues[i][colIndex].trim() === "") {
                 break;
               }
-              if (!oldLabPlanner[labHeader]) {
-                oldLabPlanner[labHeader] = [];
-              }
               
-              var labName = oldLabPlannerValues[i][firstColIndex + 3] || "";
+              var labName = oldLabPlannerValues[i][firstColIndex + 2] || "";
               if (labName.trim() === "") {
-                oldLabPlanner[labHeader].push([
+                oldLabPlanner[labHeader]["Labs"].push([
                 "", "", "",
                 ]);
                 continue;
               }
               lastNonEmptyRow = i - (rowIndex + 3);
-              var plannerLevel = oldLabPlannerValues[i][firstColIndex + 1] || "";
+              var plannerLevel = oldLabPlannerValues[i][firstColIndex] || "";
               if (plannerLevel === oldLabLevels[labName][0]) {
                 plannerLevel = "";
               }
-              var plannerTarget = oldLabPlannerValues[i][firstColIndex + 2] || "";
+              var plannerTarget = oldLabPlannerValues[i][firstColIndex + 1] || "";
               if (plannerTarget === oldLabLevels[labName][1] || plannerTarget === oldLabMax[labName]) {
                 plannerTarget = "";
               }
               
-              oldLabPlanner[labHeader].push([
+              oldLabPlanner[labHeader]["Labs"].push([
                 plannerLevel,
                 plannerTarget,
                 labName,
               ]);
             }
             if (lastNonEmptyRow === -1) {
-              delete oldLabPlanner[labHeader];
+              delete oldLabPlanner[labHeader]["Labs"];
             } else {
-              oldLabPlanner[labHeader] = oldLabPlanner[labHeader].slice(0, lastNonEmptyRow + 1);
+              oldLabPlanner[labHeader]["Labs"] = oldLabPlanner[labHeader]["Labs"].slice(0, lastNonEmptyRow + 1);
             }
             return false;
           }
