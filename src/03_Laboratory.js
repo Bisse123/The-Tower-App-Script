@@ -382,63 +382,19 @@ const lab = {
 
   version10: function () {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-        console.log(`_IDS sheet not found in new lab spreadsheet`);
-        return {
-          success: false,
-          message: "_IDS sheet™ not found in new lab spreadsheet™",
-        };
-      }
-
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-        console.log(`Master Sheet not found in new lab spreadsheet`);
-        return {
-          success: false,
-          message: "Master Sheet™ not found in new lab spreadsheet™",
-        };
-      }
-
       var oldSpreadsheet = spreadsheets("oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      // Get header row to find Labs column
-      var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, [
-        "_IDS!1:1",
-      ]);
-      if (
-        !headerBatchResult ||
-        headerBatchResult.length === 0 ||
-        !headerBatchResult[0].values
-      ) {
-        console.log(`Could not read header row from _IDS sheet`);
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old lab spreadsheet`);
         return {
           success: false,
-          message: "Could not read header row from _IDS sheet",
+          message: "EXPORT sheet™ not found in old lab spreadsheet™",
         };
       }
-      var headerValues = headerBatchResult[0].values;
+      
+      var labLevelsRange = "EXPORT!B5:E"
 
-      var headerRow = headerValues[0];
-      var importLabColStart = headerRow.indexOf("Labs") + 1;
-
-      if (importLabColStart === 0) {
-        console.log(`Labs column not found in _IDS sheet`);
-        return {
-          success: false,
-          message: "Labs column not found in _IDS sheet",
-        };
-      }
-
-      // Get lab levels data starting from row 2
-      var labLevelsRange =
-        "_IDS!" +
-        shared.columnToLetter(importLabColStart) +
-        "2:" +
-        shared.columnToLetter(importLabColStart + 3);
-
-      var labBatchResult = SheetsAPI.batchGetValues(newSheetID, [
+      var labBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         labLevelsRange,
       ]);
       if (
@@ -621,10 +577,10 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log(`Error processing old lab data: ${error.toString()}`);
+      console.log("Error in version10: " + error.toString());
       return {
         success: false,
-        message: `Error processing old lab data: ${error.message}`,
+        message: "Error in version10: " + error.message,
       };
     }
   },

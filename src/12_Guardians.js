@@ -194,7 +194,6 @@ const guardians = {
     }
 
     var batchUpdate = [];
-    // Update the data using SheetsAPI
     if (newGuardianUnlocked.length > 0) {
       var unlockedCol = shared.columnToLetter(guardianCol + 1);
       var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
@@ -217,14 +216,12 @@ const guardians = {
       });
     }
     if (batchUpdate.length !== 0) {
-      // Return batch update data instead of calling API directly
       return {
         success: true,
         message: `Guardians updated successfully`,
         batchUpdate: batchUpdate,
       };
     }
-    // console.log(`No updates needed for guardians`);
     return {
       success: true,
       message: `No updates needed for guardians`,
@@ -233,82 +230,36 @@ const guardians = {
 
   version10: function () {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
+      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
 
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-        console.log(`_IDS sheet not found in new guardians spreadsheet`);
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
         return {
           success: false,
-          message: `_IDS sheet not found in new guardians spreadsheet™`,
+          message: "EXPORT sheet not found in old spreadsheet",
         };
       }
 
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-        console.log(`Master Sheet not found in new guardians spreadsheet`);
-        return {
-          success: false,
-          message: `Master Sheet™ not found in new guardians spreadsheet™`,
-        };
-      }
-
-      // Get header row to find Guardians column
-      var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, [
-        "_IDS!1:1",
+      var guardianLevelsRange = "EXPORT!B5:F";
+      var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        guardianLevelsRange,
       ]);
       if (
-        !headerBatchResult ||
-        headerBatchResult.length === 0 ||
-        !headerBatchResult[0].values
+        !guardianBatchResult ||
+        guardianBatchResult.length === 0 ||
+        !guardianBatchResult[0].values
       ) {
-        console.log(`Could not read header row from _IDS sheet`);
+        console.log(`Could not read guardian levels data`);
         return {
           success: false,
-          message: `Could not read header row from _IDS sheet`,
+          message: `Could not read guardian levels data`,
         };
       }
+      var oldGuardianLevelsData = guardianBatchResult[0].values;
 
-      var headerValues = headerBatchResult[0].values;
-      var headerRow = headerValues[0];
-      var importGuardianColStart = headerRow.indexOf("Guardians");
-      if (importGuardianColStart === -1) {
-        console.log(`Guardians column not found in header`);
-        return {
-          success: false,
-          message: `Guardians column not found in header`,
-        };
-      }
-
-      var oldGuardianLevelsData;
-      try {
-        var colStart = shared.columnToLetter(importGuardianColStart + 1);
-        var colEnd = shared.columnToLetter(importGuardianColStart + 5);
-        var guardianBatchResult = SheetsAPI.batchGetValues(newSheetID, [
-          `_IDS!${colStart}2:${colEnd}`,
-        ]);
-        if (
-          !guardianBatchResult ||
-          guardianBatchResult.length === 0 ||
-          !guardianBatchResult[0].values
-        ) {
-          console.log(`Could not read guardian levels data`);
-          return {
-            success: false,
-            message: `Could not read guardian levels data`,
-          };
-        }
-        oldGuardianLevelsData = guardianBatchResult[0].values;
-      } catch (error) {
-        console.log(`Error getting old guardian levels: ${error.toString()}`);
-        return {
-          success: false,
-          message: `Error getting old guardian levels: ${error.message}`,
-        };
-      }
-
-      // Filter out empty rows
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
           (cell) =>
