@@ -239,9 +239,6 @@ const bots = {
 
   version10: function () {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
       var oldSpreadsheet = spreadsheets("oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -252,77 +249,31 @@ const bots = {
         "Amplify Bot",
       ];
 
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "_IDS")) {
-        console.log(`_IDS sheet not found in new bots spreadsheet`);
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
         return {
           success: false,
-          message: `_IDS sheet not found in new bots spreadsheet™`,
+          message: "EXPORT sheet not found in old spreadsheet",
         };
       }
 
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "Master Sheet")) {
-        console.log(`Master Sheet not found in new bots spreadsheet`);
-        return {
-          success: false,
-          message: `Master Sheet™ not found in new bots spreadsheet™`,
-        };
-      }
-
-      // Get header row to find Bots column
-      var headerBatchResult = SheetsAPI.batchGetValues(newSheetID, [
-        "_IDS!1:1",
+      var botsLevelsRange = "EXPORT!C5:G";
+      var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        botsLevelsRange
       ]);
       if (
-        !headerBatchResult ||
-        headerBatchResult.length === 0 ||
-        !headerBatchResult[0].values
+        !botBatchResult ||
+        botBatchResult.length === 0 ||
+        !botBatchResult[0].values
       ) {
-        console.log(`Could not read header row from _IDS sheet`);
+        console.log(`Could not read old bot levels data`);
         return {
           success: false,
-          message: `Could not read header row from _IDS sheet`,
+          message: `Could not read old bot levels data`,
         };
       }
+      var oldBotLevelsData = botBatchResult[0].values;
 
-      var headerValues = headerBatchResult[0].values;
-      var headerRow = headerValues[0];
-      var importbotColStart = headerRow.indexOf("Bots");
-      if (importbotColStart === -1) {
-        console.log(`Bots column not found in header`);
-        return {
-          success: false,
-          message: `Bots column not found in header`,
-        };
-      }
-
-      var oldBotLevelsData;
-      try {
-        var colStart = shared.columnToLetter(importbotColStart + 1);
-        var colEnd = shared.columnToLetter(importbotColStart + 5);
-        var botBatchResult = SheetsAPI.batchGetValues(newSheetID, [
-          `_IDS!${colStart}2:${colEnd}`,
-        ]);
-        if (
-          !botBatchResult ||
-          botBatchResult.length === 0 ||
-          !botBatchResult[0].values
-        ) {
-          console.log(`Could not read old bot levels data`);
-          return {
-            success: false,
-            message: `Could not read old bot levels data`,
-          };
-        }
-        oldBotLevelsData = botBatchResult[0].values;
-      } catch (error) {
-        console.log(`Error getting old bot levels: ${error.toString()}`);
-        return {
-          success: false,
-          message: `Error getting old bot levels: ${error.message}`,
-        };
-      }
-
-      // Filter out empty rows
       var oldBotLevels = oldBotLevelsData.filter((row) =>
         row.some(
           (cell) =>
@@ -366,10 +317,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log(`Error processing bots data: ${error.toString()}`);
+      console.log("Error in version10: " + error.toString());
       return {
         success: false,
-        message: `Error processing bots data: ${error.message}`,
+        message: "Error in version10: " + error.message,
       };
     }
   },

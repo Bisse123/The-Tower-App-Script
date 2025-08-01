@@ -184,8 +184,9 @@ const themes = {
         "Profile Banner",
       ];
 
+      var themesValuesRange = "Themes & Songs"
       var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        "Themes & Songs",
+        themesValuesRange,
       ]);
       if (
         !themesOldBatchResult ||

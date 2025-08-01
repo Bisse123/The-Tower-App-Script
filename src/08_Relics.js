@@ -114,9 +114,9 @@ const relics = {
         var relicNameIndex = rowValues.indexOf("Relic Name");
         var relicUnlockedIndex = rowValues.indexOf("Unlocked");
         if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
-          newRelicHeaderRow = row + 1; // Convert to 1-based
-          newRelicNameCol = relicNameIndex + 1; // Convert to 1-based
-          newRelicUnlockedCol = relicUnlockedIndex + 1; // Convert to 1-based
+          newRelicHeaderRow = row + 1;
+          newRelicNameCol = relicNameIndex + 1;
+          newRelicUnlockedCol = relicUnlockedIndex + 1;
           break;
         }
       }
@@ -129,55 +129,36 @@ const relics = {
         };
       }
 
-      // Extract unlocked relic names from old data (skip header row)
-      var oldRelicsNames = [];
-      oldRelics.forEach(function (relic) {
-        if (
-          relic[relic.length - 1] === true ||
-          relic[relic.length - 1] === "TRUE" ||
-          relic[relic.length - 1] === "true"
-        ) {
-          oldRelicsNames.push(relic[0]);
-        }
-      });
-
-      // Extract new relic names from already fetched data (skip header row)
       var startRow = newRelicHeaderRow + 1;
-      var newRelicsNames = newRelicsData
-        .slice(startRow - 1) // Skip to data rows (convert to 0-based)
-        .map(function (row) {
-          return row[newRelicNameCol - 1] || "";
-        }) // Extract name column
-        .filter(function (name) {
-          return String(name).trim() !== "";
-        }); // Filter out empty names
-
-      // Create unlocked status array
+      
+      // Build unlocked status array directly by iterating through new relics data
       var newRelicsUnlocked = [];
-      newRelicsNames.forEach(function (relicName) {
-        if (oldRelicsNames.includes(relicName)) {
-          newRelicsUnlocked.push([true]);
-        } else {
-          newRelicsUnlocked.push([false]);
+      newRelicsData.slice(startRow - 1).forEach(function (row) {
+        var relicName = row[newRelicNameCol - 1] || "";
+        if (String(relicName).trim() !== "") {
+          if (oldRelics.includes(relicName)) {
+            newRelicsUnlocked.push([true]);
+          } else {
+            newRelicsUnlocked.push([false]);
+          }
         }
       });
-      // Update the unlocked column
       if (newRelicsUnlocked.length > 0) {
         var endRow = startRow + newRelicsUnlocked.length - 1;
         var unlockedRange = `${sheetName}!${shared.columnToLetter(
           newRelicUnlockedCol
         )}${startRow}:${shared.columnToLetter(newRelicUnlockedCol)}${endRow}`;
 
-        // Return batch update data instead of calling API directly
+        var batchUpdate = [
+          {
+            range: unlockedRange,
+            values: newRelicsUnlocked,
+          },
+        ];
         return {
           success: true,
           message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`,
-          batchUpdate: [
-            {
-              range: unlockedRange,
-              values: newRelicsUnlocked,
-            },
-          ],
+          batchUpdate: batchUpdate,
         };
       }
       // console.log(`No updates needed for relics`);
@@ -196,9 +177,6 @@ const relics = {
 
   version10: function () {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
       var oldSpreadsheet = spreadsheets("oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -227,9 +205,7 @@ const relics = {
       }
       var oldRelicsData = oldRelicsBatchResult[0].values;
 
-      var oldRelicHeaderRow = null;
-      var oldRelicNameCol = null;
-      var oldRelicUnlockedCol = null;
+      var oldRelicHeaderRow = -1;
 
       // Scan each row to find the header
       for (var row = 0; row < oldRelicsData.length; row++) {
@@ -237,14 +213,12 @@ const relics = {
         var relicNameIndex = rowValues.indexOf("Relic Name");
         var relicUnlockedIndex = rowValues.indexOf("Unlocked");
         if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
-          oldRelicHeaderRow = row + 1; // Convert to 1-based
-          oldRelicNameCol = relicNameIndex + 1; // Convert to 1-based
-          oldRelicUnlockedCol = relicUnlockedIndex + 1; // Convert to 1-based
+          oldRelicHeaderRow = row + 1;
           break;
         }
       }
 
-      if (!oldRelicHeaderRow) {
+      if (oldRelicHeaderRow === -1) {
         console.log(`Could not find header row in old Relics sheet`);
         return {
           success: false,
@@ -253,45 +227,16 @@ const relics = {
       }
 
       var startRow = oldRelicHeaderRow + 1;
-      var oldRelicsRange =
-        "Relics!" +
-        shared.columnToLetter(oldRelicNameCol) +
-        startRow +
-        ":" +
-        shared.columnToLetter(oldRelicUnlockedCol);
 
-      var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        oldRelicsRange,
-      ]);
-      if (
-        !oldRelicsBatchResult ||
-        oldRelicsBatchResult.length === 0 ||
-        !oldRelicsBatchResult[0].values
-      ) {
-        console.log(`Could not read old relics data`);
-        return {
-          success: false,
-          message: `Could not read old relics data`,
-        };
-      }
-      var oldRelicsValues = oldRelicsBatchResult[0].values;
-
-      // Filter out empty rows
-      var oldRelics = oldRelicsValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null && cell !== undefined && String(cell).trim() !== ""
-        )
-      );
-
-      // Check if Relics sheet exists in new spreadsheet
-      if (!SheetsAPI.getSheetByName(newSpreadsheet, "Relics")) {
-        console.log("Relics sheet not found in new relic spreadsheet");
-        return {
-          success: false,
-          message: `Relics sheet not found in new relic spreadsheet™`,
-        };
-      }
+      var oldRelics = [];
+      oldRelicsData.slice(startRow - 1).forEach(function(row) {
+        var relicName = row[relicNameIndex];
+        var isUnlocked = row[relicUnlockedIndex];
+        
+        if (relicName && (isUnlocked === true || isUnlocked === "TRUE" || isUnlocked === "true")) {
+          oldRelics.push(relicName);
+        }
+      });
 
       return {
         success: true,
