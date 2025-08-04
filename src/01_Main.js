@@ -10,6 +10,8 @@ const sheetVars = (sheetType) => {
     Cards: cards,
     Modules: modules,
     Guardians: guardians,
+    "IDS Collection - all IDS-Sheets on one file": collection,
+    "IDS Master": master,
   };
   return sheetTypeFunctions[sheetType];
 };
@@ -44,14 +46,38 @@ const spreadsheets = (() => {
 
 function doGet(e) {
   // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
-  var template = HtmlService.createTemplateFromFile("13_WebApp");
+  var template = HtmlService.createTemplateFromFile("14_WebApp");
   if (e.parameter.newSheetID === "<Script loading...>") {
     e.parameter.newSheetID = "";
   }
-  template.newSheetID = e.parameter.newSheetID;
-  template.oldSheetID = e.parameter.oldSheetID;
-  template.idMasterID = e.parameter.idMasterID;
-  template.sheetType = e.parameter.sheetType;
+  
+  var newSheetID = e.parameter.newSheetID || "";
+  var oldSheetID = e.parameter.oldSheetID || "";
+  var idMasterID = e.parameter.idMasterID || "";
+  var sheetType = e.parameter.sheetType || "";
+
+  // Special case for IDS Master - same logic as showImportDialog
+  if (sheetType === "IDS Master") {
+    // For IDS Master accessed via doGet, we need to determine which spreadsheet is the IDS Master
+    // This could come from a parameter or we might need to infer it
+    if (!idMasterID && newSheetID) {
+      // If no idMasterID provided but newSheetID is provided, assume newSheetID is the IDS Master
+      idMasterID = newSheetID;
+    }
+    
+    console.log("IDS Master detected in doGet, setting parameters accordingly");
+    template.newSheetID = "";  // IDS Master doesn't have predefined new/old sheets
+    template.oldSheetID = "";
+    template.idMasterID = idMasterID;  // The IDS Master spreadsheet ID
+    template.sheetType = sheetType;
+  } else {
+    // Regular processing for individual sheet types
+    template.newSheetID = newSheetID;
+    template.oldSheetID = oldSheetID;
+    template.idMasterID = idMasterID;
+    template.sheetType = sheetType;
+  }
+
   template.API_KEY =
     PropertiesService.getScriptProperties().getProperty("API_KEY");
   template.APP_ID =
@@ -93,7 +119,7 @@ function onInstall(e) {
 
 function showGetStartedDialog() {
   try {
-    var template = HtmlService.createTemplateFromFile("13_getStartedApp");
+    var template = HtmlService.createTemplateFromFile("14_getStartedApp");
     var html = template
       .evaluate()
       .setWidth(1200)
@@ -118,6 +144,32 @@ function showImportDialog() {
       console.log(`Sheet type not found in the new spreadsheet.`);
       throw new Error("Sheet type not found in the new spreadsheet.");
     }
+
+    // Special case for IDS Master
+    if (sheetType === "IDS Master") {
+      console.log("IDS Master detected, showing import dialog with limited parameters");
+      var template = HtmlService.createTemplateFromFile("14_WebApp");
+      template.newSheetID = "";  // IDS Master doesn't have predefined new/old sheets
+      template.oldSheetID = "";
+      template.idMasterID = newSheetID;  // The current spreadsheet IS the IDS Master
+      template.sheetType = sheetType;
+      template.API_KEY =
+        PropertiesService.getScriptProperties().getProperty("API_KEY");
+      template.APP_ID =
+        PropertiesService.getScriptProperties().getProperty("APP_ID");
+
+      template.viewType = "sidebar";
+      template.accessRequired = false;
+
+      var html = template
+        .evaluate()
+        .addMetaTag("viewport", "width=device-width, initial-scale=1")
+        .setTitle("Import Data - IDS Master");
+      SpreadsheetApp.getUi().showSidebar(html);
+      return;
+    }
+
+    // Regular processing for individual sheet types
     var sheet = newSpreadsheet.getSheetByName("IDS");
     if (!sheet) {
       console.log(`IDS sheet not found in the new spreadsheet.`);
@@ -199,7 +251,7 @@ function showImportDialog() {
         throw new Error("Old sheet ID not found in the _IDS subsheet.");
       }
 
-      var template = HtmlService.createTemplateFromFile("13_WebApp");
+      var template = HtmlService.createTemplateFromFile("14_WebApp");
       template.newSheetID = newSheetID;
       template.oldSheetID = oldSheetID;
       template.idMasterID = idMasterID;
@@ -219,7 +271,7 @@ function showImportDialog() {
       SpreadsheetApp.getUi().showSidebar(html);
     } catch (error) {
       console.log(`Error in showImportDialog: ${error.message}`);
-      var template = HtmlService.createTemplateFromFile("13_WebApp");
+      var template = HtmlService.createTemplateFromFile("14_WebApp");
       template.newSheetID = newSheetID;
       template.oldSheetID = "";
       template.idMasterID = "";
@@ -240,7 +292,7 @@ function showImportDialog() {
     }
   } catch (error) {
     console.log(`Error in showImportDialog: ${error.message}`);
-    var template = HtmlService.createTemplateFromFile("13_WebApp");
+    var template = HtmlService.createTemplateFromFile("14_WebApp");
     template.newSheetID = "";
     template.oldSheetID = "";
     template.idMasterID = "";
@@ -277,6 +329,7 @@ function importData(
         message: "Sheet type is not defined.",
       };
     }
+    
     if (!newSheetID || !oldSheetID || !idMasterID) {
       console.log(`One or more required IDs are missing.`);
       return {
@@ -284,8 +337,8 @@ function importData(
         message: "One or more required IDs are missing.",
       };
     }
-    // Check if new spreadsheet exists
-    var newSpreadsheet = spreadsheets("newSpreadsheet", newSheetID);
+    
+    var newSpreadsheet = spreadsheets(`${sheetType} newSpreadsheet`, newSheetID);
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
@@ -299,19 +352,6 @@ function importData(
       return {
         success: false,
         message: `IDS sheet™ not found in the new ${sheetType} spreadsheet™.`,
-      };
-    }
-
-    var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS");
-    if (
-      !newSheetInfo ||
-      !newSheetInfo.accessStatus ||
-      !["✅", "Wrong ID or Version"].includes(newSheetInfo.accessStatus.value)
-    ) {
-      console.log(`New sheet has not been granted access to IDS Master.`);
-      return {
-        success: false,
-        message: `New sheet™ has not been granted access to IDS Master.`,
       };
     }
 
@@ -331,22 +371,8 @@ function importData(
         message: `IDS sheet™ not found in the IDS Master Spreadsheet™`,
       };
     }
-    var idMasterInfo = shared.findSheetTypeID(idMasterID, "IDS", sheetType);
-    if (
-      !idMasterInfo ||
-      !idMasterInfo.accessStatus ||
-      !["✅", "Wrong ID or Version"].includes(idMasterInfo.accessStatus.value)
-    ) {
-      console.log(
-        `IDS Master has not granted access to the old ${sheetType} sheet`
-      );
-      return {
-        success: false,
-        message: `IDS Master has not granted access to the old ${sheetType} sheet™`,
-      };
-    }
 
-    var oldSpreadsheet = spreadsheets("oldSpreadsheet", oldSheetID);
+    var oldSpreadsheet = spreadsheets(`${sheetType} oldSpreadsheet`, oldSheetID);
     if (!oldSpreadsheet) {
       console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
@@ -365,8 +391,6 @@ function importData(
       };
     }
 
-    // console.log(`Importing data for sheet type: ${sheetType} with ID: ${newSheetID}`);
-
     var result = sheetTypeFunction.importData(versionDifference);
     if (!result || !result.success) {
       console.log(
@@ -379,21 +403,6 @@ function importData(
         message: `Error importing data for ${sheetType}: ${
           result && result.message ? result.message : "Unknown error"
         }`,
-      };
-    }
-
-    try {
-      SheetsAPI.batchUpdateValues(newSheetID, [
-        {
-          range: newSheetInfo.importStatus.range,
-          values: [["✅"]],
-        },
-      ]);
-    } catch (error) {
-      console.log(`Error updating imported status:  ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating imported status:  ${error.toString()}`,
       };
     }
 

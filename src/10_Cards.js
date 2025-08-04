@@ -1,7 +1,8 @@
 const cards = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Cards newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const cards = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const cards = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -40,7 +41,7 @@ const cards = {
       var oldCardsPreset = oldDataResult.oldCardsPreset || {};
       var shouldRemoveUsedCards = oldDataResult.shouldRemoveUsedCards || true;
 
-      var requiredRanges = ["Master Sheet", "Card Preset"];
+      var requiredRanges = ["Master Sheet", "Card Preset", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -52,6 +53,17 @@ const cards = {
 
       var masterSheetData = batchResults[0].values;
       var cardPresetsData = batchResults[1] ? batchResults[1].values : null;
+      var idsData = batchResults[2].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var levelsResult = this.updateCardsLevels(
         "Master Sheet",
@@ -78,27 +90,27 @@ const cards = {
       }
       batchUpdate = batchUpdate.concat(presetResult.batchUpdate || []);
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Cards data imported successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for cards data`,
+        message: `Cards data imported successfully`,
       };
     } catch (error) {
       console.log(`Error importing cards data: ${error.toString()}`);
@@ -371,21 +383,35 @@ const cards = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
   
-      var oldRanges = ["Card Preset", "EXPORT!C2", "EXPORT!B5:D"];
+      var oldRanges = ["Card Preset", "EXPORT!B5:D", "EXPORT!C2"];
       var oldBatchResult = SheetsAPI.batchGetValues(oldSheetID, oldRanges);
   
       var oldCardsPresetData = oldBatchResult[0].values;
+      var oldCardsLevelData = oldBatchResult[1].values;
+      var oldCardSlotsData = oldBatchResult[2].values;
+
+      return this.getVersion10Values(oldCardsPresetData, oldCardsLevelData, oldCardSlotsData);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldCardsPresetData, oldCardsLevelData, oldCardSlotsData) {
+    try {  
       var oldCardSlots =
-        oldBatchResult[1].values &&
-        oldBatchResult[1].values[0] &&
-        oldBatchResult[1].values[0][0]
-          ? oldBatchResult[1].values[0][0]
+        oldCardSlotsData &&
+        oldCardSlotsData[0] &&
+        oldCardSlotsData[0][0]
+          ? oldCardSlotsData[0][0]
           : null;
-      var oldCardsLevelData = oldBatchResult[2].values;
-  
+
       if (!oldCardSlots) {
         console.log(`Error getting old card slots`);
         return {
@@ -393,7 +419,7 @@ const cards = {
           message: "Error getting old card slots",
         };
       }
-  
+
       var oldCardsLevel = oldCardsLevelData.filter((row) =>
         row.some(
           (cell) =>
@@ -470,10 +496,10 @@ const cards = {
         shouldRemoveUsedCards: shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },

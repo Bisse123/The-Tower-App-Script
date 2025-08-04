@@ -14,6 +14,13 @@
   let accessibleFilesCache = [];
   let inaccessibleFilesCache = [];
   let notOwnedFilesCache = [];
+  let templateAccessibleFilesCache = [];
+  let templateInaccessibleFilesCache = [];
+  let copiedTemplateFiles = [];
+  let importedFilesSuccess = [];
+  let importedFilesFailed = [];
+  let updatedFiles = [];
+  let currentCopyMode = 'all'; // Current copy mode for template operations
 
   // Detect mobile devices with enhanced touch detection
   function detectMobile() {
@@ -180,6 +187,8 @@
         console.log("Access required for new sheet:", newSheetID);
         await findAndGrantNewSheet(newSheetID, userEmail);
       }
+      document.getElementById("statusText").innerText =
+        "Google™ Picker initialized successfully. Checking file access permissions...";
       checkValidParameters();
     } catch (error) {
       console.error("Error initializing GAPI client:", error);
@@ -191,7 +200,13 @@
 
   function checkValidParameters() {
     console.log("Checking valid parameters...");
-    if (
+    if (sheetType === "IDS Master" && idMasterID && !newSheetID && !oldSheetID) {
+      google.script.run
+        .withSuccessHandler(onSheetAccessCheckSuccess)
+        .withFailureHandler(onSheetAccessCheckFailure)
+        .checkSheetAccess([idMasterID], userEmail);
+      return;
+    } else if (
       !newSheetID ||
       !oldSheetID ||
       !idMasterID ||
@@ -214,15 +229,21 @@
         oldSheetID,
         idMasterID
       );
-      document.getElementById(
-        "statusText"
-      ).innerText = "Duplicate or invalid file IDs detected. Please check your linked IDs.";
+      if (newSheetID === oldSheetID) {
+        document.getElementById(
+          "statusText"
+        ).innerText = "New and Sheet™ IDs cannot be the same.";
+      } else {
+        document.getElementById(
+          "statusText"
+        ).innerText = "Duplicate or invalid file IDs detected. Please check your linked IDs.";
+      }
       hideAllSections();
       return;
-      }
+    }
 
-    showFileAccessSection();
     const fileIds = [newSheetID, oldSheetID, idMasterID];
+    showFileAccessSection();
     google.script.run
       .withSuccessHandler(onSheetAccessCheckSuccess)
       .withFailureHandler(onSheetAccessCheckFailure)
@@ -271,27 +292,38 @@
       return;
     }
 
+    // Collect all inaccessible files from separate caches
+    const allInaccessibleFiles = [
+      ...inaccessibleFilesCache,
+      ...templateInaccessibleFilesCache
+    ];
+
     // Check if we have inaccessible files to show
-    if (inaccessibleFilesCache.length === 0) {
+    if (allInaccessibleFiles.length === 0) {
       document.getElementById("statusText").innerText =
         "No files need access permission";
       return;
     }
 
     // Extract file IDs from inaccessible files, filter out any without a valid id
-    const inaccessibleFileIds = inaccessibleFilesCache
+    const inaccessibleFileIds = allInaccessibleFiles
       .map((file) => file.id)
       .filter((id) => typeof id === "string" && id.length > 0);
-    if (inaccessibleFileIds.length !== inaccessibleFilesCache.length) {
+    if (inaccessibleFileIds.length !== allInaccessibleFiles.length) {
       console.warn(
         "Some inaccessible files are missing an id:",
-        inaccessibleFilesCache
+        allInaccessibleFiles
       );
     }
-    console.log(
-      "Opening picker with inaccessible file IDs:",
-      inaccessibleFileIds
-    );
+    
+    const hasTemplates = templateInaccessibleFilesCache.length > 0;
+
+    console.log("Opening picker with inaccessible files:", {
+      total: inaccessibleFileIds.length,
+      templates: templateInaccessibleFilesCache.length,
+      sheets: inaccessibleFilesCache.length,
+      fileIds: inaccessibleFileIds
+    });
 
     try {
       setMobileStatus("Opening picker with files that need access...");
@@ -325,8 +357,12 @@
         .addView(view)
         .setCallback(pickerCallback)
         .setOrigin(google.script.host.origin)
-        .setSize(pickerSize.width, pickerSize.height)
-        .enableFeature(google.picker.Feature.MINE_ONLY);
+        .setSize(pickerSize.width, pickerSize.height);
+
+      // Only add MINE_ONLY if no templates need access (templates are not owned by user)
+      if (!hasTemplates) {
+        picker.enableFeature(google.picker.Feature.MINE_ONLY);
+      }
 
       if (!isMobile || !isTouchOnlyDevice()) {
         picker.enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
@@ -377,11 +413,18 @@
           `Access granted to ${documents.length} files. Rechecking access status...`
         );
 
-        const fileIds = [newSheetID, oldSheetID, idMasterID];
-        google.script.run
-          .withSuccessHandler(onSheetAccessCheckSuccess)
-          .withFailureHandler(onSheetAccessCheckFailure)
-          .checkSheetAccess(fileIds, userEmail);
+        if (sheetType === "IDS Master") {
+          google.script.run
+            .withSuccessHandler(onTemplateAndOldSheetAccessCheckSuccess)
+            .withFailureHandler(onTemplateAndOldSheetAccessCheckFailure)
+            .checkTemplateAndOldSheetAccess(idMasterID, userEmail, currentCopyMode);
+        } else {
+          const fileIds = [newSheetID, oldSheetID, idMasterID];
+          google.script.run
+            .withSuccessHandler(onSheetAccessCheckSuccess)
+            .withFailureHandler(onSheetAccessCheckFailure)
+            .checkSheetAccess(fileIds, userEmail);
+        }
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log("User cancelled the picker");
         setMobileStatus("File selection cancelled");
@@ -460,22 +503,18 @@
   function onSheetAccessCheckSuccess(result) {
     console.log("Sheet access check result:", result);
     if (result.success) {
-      // Update file caches based on the result with proper file names
       accessibleFilesCache = result.accessibleFiles || [];
       inaccessibleFilesCache = result.inaccessibleFiles || [];
       notOwnedFilesCache = result.notOwnedFiles || [];
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
 
       console.log("File caches updated:", {
         accessible: accessibleFilesCache,
         inaccessible: inaccessibleFilesCache,
         notOwned: notOwnedFilesCache,
       });
-
-      showContinueSection(
-        result.accessibleFiles || [],
-        result.inaccessibleFiles || [],
-        result.notOwnedFiles || []
-      );
+      showContinueSection();
 
       if (result.inaccessibleFiles && result.inaccessibleFiles.length > 0) {
         document.getElementById("statusText").innerText = result.message;
@@ -485,11 +524,12 @@
       document.getElementById(
         "statusText"
       ).innerText = `Could not check file access: ${result.message}`;
-      // Initialize empty caches on failure
       accessibleFilesCache = [];
       inaccessibleFilesCache = [];
       notOwnedFilesCache = [];
-      showContinueSection([], [], []);
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
+      showContinueSection();
     }
   }
 
@@ -498,10 +538,86 @@
     document.getElementById(
       "statusText"
     ).innerText = `Error checking Sheet™ access: ${error.message || error}`;
-    // Initialize empty caches on failure
     accessibleFilesCache = [];
     inaccessibleFilesCache = [];
     notOwnedFilesCache = [];
-    showContinueSection([], [], []);
+    templateAccessibleFilesCache = [];
+    templateInaccessibleFilesCache = [];
+    showContinueSection();
   }
+
+  function onTemplateAndOldSheetAccessCheckSuccess(result) {
+    console.log("Template and sheet access check result:", result);
+    
+    if (result.success) {
+      // Update all file caches with results
+      accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
+      inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
+      notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
+      templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
+      templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
+      
+      const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
+      
+      // Check if any files still need access permission
+      if (totalInaccessibleFiles > 0) {
+        // Still have inaccessible files - open picker again
+        let statusMessages = [];
+        if (templateInaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${templateInaccessibleFilesCache.length} template(s)`);
+        }
+        if (inaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
+        }
+        
+        document.getElementById("statusText").innerText = `${statusMessages.join(' and ')} still need access. Opening file picker...`;
+        
+        console.log("Still have inaccessible files, opening picker again:", {
+          templates: templateInaccessibleFilesCache,
+          oldSheets: inaccessibleFilesCache
+        });
+        
+        // Directly open the multi-file picker
+        openMultiFilePicker();
+        return;
+      }
+      
+      // All files are accessible - proceed with template copying using stored copy mode
+      document.getElementById("statusText").innerText = "All files accessible. Proceeding with template copying...";
+      console.log("All files accessible, proceeding with template copying using mode:", currentCopyMode);
+      
+      // Call the template copying function from the fileAccess scripts
+      if (typeof proceedWithTemplateCopying === 'function') {
+        proceedWithTemplateCopying(currentCopyMode);
+      } else {
+        console.error("proceedWithTemplateCopying function not available");
+        document.getElementById("statusText").innerText = "Error: Template copying function not available.";
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("copyUpdateButton").disabled = false;
+      }
+    } else {
+      console.error("Template and sheet access check failed:", result.message);
+      document.getElementById("statusText").innerText = `Could not check template/sheet access: ${result.message}`;
+      accessibleFilesCache = [];
+      inaccessibleFilesCache = [];
+      notOwnedFilesCache = [];
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
+      
+      showContinueSection();
+    }
+  }
+
+  function onTemplateAndOldSheetAccessCheckFailure(error) {
+    console.error("Template and sheet access check error:", error);
+    document.getElementById("statusText").innerText = `Error checking template/sheet access: ${error.message || error}`;
+    accessibleFilesCache = [];
+    inaccessibleFilesCache = [];
+    notOwnedFilesCache = [];
+    templateAccessibleFilesCache = [];
+    templateInaccessibleFilesCache = [];
+    
+    showContinueSection();
+  }
+
 </script>

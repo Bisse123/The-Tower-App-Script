@@ -13,6 +13,22 @@
     Grant Access to Files
   </button>
   <button
+    id="copyButton"
+    onclick="copyTemplates('all')"
+    style="display: none"
+    disabled
+  >
+    Copy All Templates
+  </button>
+  <button
+    id="copyUpdateButton"
+    onclick="copyTemplates('update')"
+    style="display: none"
+    disabled
+  >
+    Copy Templates with Update
+  </button>
+  <button
     id="importButton"
     onclick="checkCompatibility()"
     style="display: none"

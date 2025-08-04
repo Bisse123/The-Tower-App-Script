@@ -1,7 +1,8 @@
 const bots = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Bots newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const bots = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const bots = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -39,7 +40,7 @@ const bots = {
       var oldBots = oldDataResult.oldBots || {};
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet"];
+      var requiredRanges = ["Master Sheet", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -50,6 +51,17 @@ const bots = {
       }
 
       var masterSheetData = batchResults[0].values;
+      var idsData = batchResults[1].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var botsResult = this.updateBotLevels(
         targetBots,
@@ -64,27 +76,27 @@ const bots = {
 
       var batchUpdate = botsResult.batchUpdate || [];
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: botsResult.message,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for Bots`,
+        message: `Bots import completed successfully`,
       };
     } catch (error) {
       console.log(`Error importing bots data: ${error.toString()}`);
@@ -239,15 +251,8 @@ const bots = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      var targetBots = [
-        "Flame Bot",
-        "Thunder Bot",
-        "Golden Bot",
-        "Amplify Bot",
-      ];
 
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(`EXPORT sheet not found in old spreadsheet`);
@@ -273,6 +278,25 @@ const bots = {
         };
       }
       var oldBotLevelsData = botBatchResult[0].values;
+
+      return this.getVersion10Values(oldBotLevelsData);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldBotLevelsData) {
+    try {
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+      ];
 
       var oldBotLevels = oldBotLevelsData.filter((row) =>
         row.some(
@@ -317,10 +341,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },
