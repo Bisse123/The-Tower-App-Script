@@ -1,7 +1,8 @@
 const themes = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Themes & Songs newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const themes = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const themes = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -39,7 +40,7 @@ const themes = {
       var oldThemesNames = oldDataResult.oldThemesNames || {};
 
       // Batch get required data for update function only
-      var requiredRanges = ["Themes & Songs"];
+      var requiredRanges = ["Themes & Songs", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -50,6 +51,17 @@ const themes = {
       }
 
       var newThemesData = batchResults[0].values;
+      var idsData = batchResults[1].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var themesResult = this.updateThemes(
         targetThemes,
@@ -64,27 +76,27 @@ const themes = {
 
       var batchUpdate = themesResult.batchUpdate || [];
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: themesResult.message,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for Themes & Songs`,
+        message: `Themes & Songs import completed successfully`,
       };
     } catch (error) {
       console.log(`Error importing themes data: ${error.toString()}`);
@@ -172,17 +184,8 @@ const themes = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      var targetThemes = [
-        "Tower Skin",
-        "Background Skin",
-        "Songs",
-        "Guardians",
-        "Menu",
-        "Profile Banner",
-      ];
 
       var themesValuesRange = "Themes & Songs"
       var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -197,6 +200,28 @@ const themes = {
         return { success: false, message: "Error getting old themes data" };
       }
       var oldThemesData = themesOldBatchResult[0].values;
+
+      return this.getVersion10Values(oldThemesData);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldThemesData) {
+    try {
+      var targetThemes = [
+        "Tower Skin",
+        "Background Skin",
+        "Songs",
+        "Guardians",
+        "Menu",
+        "Profile Banner",
+      ];
+
       var oldThemesNames = {};
 
       targetThemes.forEach(function (header) {
@@ -233,10 +258,10 @@ const themes = {
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },

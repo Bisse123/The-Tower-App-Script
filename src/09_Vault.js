@@ -1,7 +1,8 @@
 const vault = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Vault newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const vault = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const vault = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -38,7 +39,7 @@ const vault = {
       var oldVaultHarmony = oldDataResult.oldVaultHarmony || {};
       var oldVaultPower = oldDataResult.oldVaultPower || {};
       
-      var requiredRanges = ["Harmony", "Power"];
+      var requiredRanges = ["Harmony", "Power", "IDS"];
       var newVaultBatchResult = SheetsAPI.batchGetValues(
         newSheetID,
         requiredRanges
@@ -59,6 +60,17 @@ const vault = {
         newVaultBatchResult[1] && newVaultBatchResult[1].values
           ? newVaultBatchResult[1].values
           : null;
+      var idsData = newVaultBatchResult[2].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var harmonyResult = this.updateVault(
         "Harmony",
@@ -83,29 +95,29 @@ const vault = {
       }
 
       batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
-      if (batchUpdate.length > 0) {
-        // Apply batch updates to the new spreadsheet
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
-        // console.log(`Vault data imported successfully`);
+
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      // Apply batch updates to the new spreadsheet
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Vault data imported successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
-      // console.log(`No updates needed for vault`);
+
       return {
         success: true,
-        message: `No updates needed for vault`,
+        message: `Vault data imported successfully`,
       };
     } catch (error) {
       console.log(`Error importing vault data: ${error.toString()}`);
@@ -316,7 +328,7 @@ const vault = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var oldVaultBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -338,6 +350,18 @@ const vault = {
         ? oldVaultBatchResult[1].values
         : [];
 
+      return this.getVersion10Values(harmonyData, powerData);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (harmonyData, powerData) {
+    try {
       var oldVaultHarmony = this.getOldVault(harmonyData);
       if (!oldVaultHarmony || !oldVaultHarmony.success) {
         console.log(`Error getting old vault harmony data: ${oldVaultHarmony.message}`);
@@ -356,10 +380,10 @@ const vault = {
         oldVaultPower: oldVaultPower.oldVault,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },

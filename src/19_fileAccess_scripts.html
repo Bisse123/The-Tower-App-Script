@@ -1,0 +1,875 @@
+<script>
+  // File Access section functions
+  
+  function showFileAccessSection() {
+    var selectImportSection = document.getElementById("selectImportSection");
+    var fileAccessSection = document.getElementById("fileAccessSection");
+    selectImportSection.style.display = "none";
+    fileAccessSection.style.display = "block";
+    document.getElementById("statusText").innerText =
+      "Checking which files need access permissions...";
+  }
+
+  async function addAnotherFile() {
+    document.getElementById("statusText").innerText =
+      "Checking authorization...";
+    if (!accessToken) {
+        document.getElementById("statusText").innerText =
+          "Authorization failed. Cannot open picker.";
+        return;
+    }
+    openMultiFilePicker();
+  }
+
+  function checkCompatibility() {
+    document.getElementById("importButton").disabled = true;
+    document.getElementById("updateMasterButton").disabled = true;
+    document.getElementById(
+      "statusText"
+    ).innerText = `Checking ${sheetType} version compatibility...`;
+    if (sheetType === "IDS Master") {
+      if (!copiedTemplateFiles || copiedTemplateFiles.length === 0) {
+        document.getElementById("statusText").innerText = "No copied sheets available for import. Please copy templates first.";
+        return;
+      }
+      
+      document.getElementById("importButton").disabled = true;
+      document.getElementById("statusText").innerText = `Preparing import for ${copiedTemplateFiles.length} sheets...`;
+      
+      google.script.run
+        .withSuccessHandler(onprepareImportDataSuccess)
+        .withFailureHandler(onprepareImportDataFailure)
+        .prepareImportData(idMasterID, copiedTemplateFiles);
+      
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(onCompatibilitySuccess)
+      .withFailureHandler(onCompatibilityFailure)
+      .checkCompatibility(newSheetID, oldSheetID, sheetType);
+  }
+
+  function onCompatibilitySuccess(result) {
+    if (result.success) {
+      document.getElementById("statusText").innerText = `${result.message}`;
+      console.log("Version difference:", result.versionDifference);
+      importData(result.versionDifference);
+    } else {
+      document.getElementById(
+        "statusText"
+      ).innerText = `Version check failed: ${result.message}`;
+    }
+  }
+
+  function onCompatibilityFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    document.getElementById("updateMasterButton").disabled = false;
+    console.error("Version check error:", error);
+    document.getElementById("statusText").innerText = `Version check error: ${
+      error.message || error
+    }`;
+  }
+
+  function importData(versionDifference) {
+    document.getElementById(
+      "statusText"
+    ).innerText = `Importing ${sheetType} data...`;
+
+    google.script.run
+      .withSuccessHandler(onImportSuccess)
+      .withFailureHandler(onImportFailure)
+      .importData(
+        newSheetID,
+        oldSheetID,
+        idMasterID,
+        sheetType,
+        versionDifference
+      );
+  }
+
+  function onprepareImportDataSuccess(result) {
+    console.log("Import preparation result:", result);
+    
+    if (!result.importTasks || result.importTasks.length === 0) {
+      document.getElementById("importButton").disabled = false;
+      const failureMessage = result.failedTasks && result.failedTasks.length > 0 
+        ? `Import preparation failed: ${result.failedTasks[0].message}`
+        : "No valid import tasks prepared.";
+      document.getElementById("statusText").innerText = failureMessage;
+      return;
+    }
+    
+    if (result.failedTasks && result.failedTasks.length > 0) {
+      console.warn(`${result.failedTasks.length} tasks failed during preparation:`, result.failedTasks);
+    }
+    
+    document.getElementById("statusText").innerText = `Executing ${result.importTasks.length} imports...`;
+    importAllData(result.importTasks);
+  }
+
+  function onprepareImportDataFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    document.getElementById("statusText").innerText = `Import preparation error: ${error.message || error}`;
+    console.error("Import preparation failed:", error);
+  }
+
+  async function importAllData(importTasks) {
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    const totalTasks = importTasks.length;
+
+    try {
+      console.log(`Starting ${totalTasks} imports`);
+      
+      // Create promises for all import operations
+      const importPromises = importTasks.map((task, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting import for ${task.sheetType}`);
+          
+          // Call importData directly - it will handle setting up spreadsheet references
+          google.script.run
+            .withSuccessHandler(function(result) {
+              completedCount++;
+              if (result.success) {
+                successCount++;
+                console.log(`✅ ${task.sheetType} import completed successfully`);
+                
+                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+                if (copiedFileIndex !== -1) {
+                  const importedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  importedFilesSuccess.push({
+                    ...importedFile,
+                    oldSheetID: task.oldSheetID,
+                    idMasterID: task.idMasterID
+                  });
+                }
+              } else {
+                failedCount++;
+                console.error(`❌ ${task.sheetType} import failed:`, result.message);
+                
+                // Move failed import to importedFilesFailed
+                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+                if (copiedFileIndex !== -1) {
+                  const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  importedFilesFailed.push({
+                    ...failedFile,
+                    error: result.message || 'Import failed',
+                    oldSheetID: task.oldSheetID,
+                    idMasterID: task.idMasterID
+                  });
+                }
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Imports progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                ...result,
+                sheetType: task.sheetType,
+                taskIndex: index
+              });
+            })
+            .withFailureHandler(function(error) {
+              completedCount++;
+              failedCount++;
+              console.error(`❌ ${task.sheetType} import error:`, error);
+              
+              // Move failed import to importedFilesFailed
+              const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+              if (copiedFileIndex !== -1) {
+                const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                importedFilesFailed.push({
+                  ...failedFile,
+                  error: error.message || error,
+                  oldSheetID: task.oldSheetID,
+                  idMasterID: task.idMasterID
+                });
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Imports progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetType: task.sheetType,
+                taskIndex: index
+              });
+            })
+            .importData(
+              task.newSheetID,
+              task.oldSheetID,
+              task.idMasterID,
+              task.sheetType,
+              task.versionDifference
+            );
+        });
+      });
+      
+      // Wait for all imports to complete
+      const results = await Promise.all(importPromises);
+      
+      // Final status update
+      let finalMessage;
+      let titleText;
+      
+      if (failedCount === 0) {
+        finalMessage = `🎉 All ${totalTasks} sheet imports completed successfully!`;
+        titleText = `✅ Copied Sheets Imported (${successCount}/${totalTasks})`;
+      } else if (successCount === 0) {
+        finalMessage = `❌ All ${totalTasks} sheet imports failed.`;
+        titleText = `❌ Copied Sheet Import Failed (0/${totalTasks})`;
+      } else {
+        finalMessage = `⚠️ Imports completed: ${successCount} successful, ${failedCount} failed.`;
+        titleText = `⚠️ Sheets Partial Import (${successCount}/${totalTasks})`;
+      }
+      
+      document.getElementById("updateMasterButton").disabled = false;
+      
+      // Update status text and title
+      document.getElementById("statusText").innerText = finalMessage;
+      document.getElementById("fileAccessTitle").innerHTML = titleText;
+      
+      // Use display function for file sections
+      displayOperationResults();
+      
+      console.log("Import results:", results);
+      console.log("Remaining copiedTemplateFiles:", copiedTemplateFiles);
+      console.log("Successfully importedFilesSuccess:", importedFilesSuccess);
+      console.log("Failed importedFilesFailed:", importedFilesFailed);
+      
+    } catch (error) {
+      console.error("Error in import execution:", error);
+      document.getElementById("statusText").innerText = `Error during imports: ${error.message || error}`;
+    } finally {
+      document.getElementById("importButton").disabled = false;
+    }
+  }
+
+  function onImportSuccess(result) {
+    document.getElementById("importButton").disabled = false;
+    console.log("Import result:", result);
+    if (result.success) {
+      document.getElementById("statusText").innerText = `${result.message}`;
+      document.getElementById("updateMasterButton").disabled = false;
+      document.getElementById(
+        "selectedFileSummary"
+      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
+      showAccessibleFilesSummary();
+    } else {
+      document.getElementById(
+        "statusText"
+      ).innerText = `Import failed: ${result.message}`;
+    }
+  }
+
+  function onImportFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    console.error("Import error:", error);
+    document.getElementById("statusText").innerText = `Import error: ${
+      error.message || error
+    }`;
+  }
+
+  function updateSheet() {
+    // Check if this is IDS Master with multiple imported files
+    if (sheetType === "IDS Master" && importedFilesSuccess && importedFilesSuccess.length > 0) {
+      document.getElementById("importButton").disabled = true;
+      document.getElementById("updateMasterButton").disabled = true;
+      document.getElementById("statusText").innerText = `Processing ${importedFilesSuccess.length} imported files...`;
+      
+      console.log(`Calling updateSheet for IDS Master with ${importedFilesSuccess.length} imported files`);
+      
+      updateMultipleSheets();
+      return;
+    }
+    
+    // Original logic for single sheet updates
+    if (finalSelectedFiles.length === 0) {
+      document.getElementById("statusText").innerText =
+        "No files selected. Please select files first.";
+      return;
+    }
+
+    document.getElementById("importButton").disabled = true;
+    document.getElementById("updateMasterButton").disabled = true;
+    document.getElementById(
+      "statusText"
+    ).innerText = `Processing ${finalSelectedFiles.length} selected files...`;
+
+    // Extract file IDs for the server-side function
+    const fileIds = finalSelectedFiles.map(
+      (file) => file[google.picker.Document.ID]
+    );
+
+    console.log(
+      `Calling updateSheet -> sheetType: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}, idMasterID: ${idMasterID}`
+    );
+
+    // Call the Apps Script function to process the selected files
+    google.script.run
+      .withSuccessHandler(onUpdateSheetSuccess)
+      .withFailureHandler(onUpdateSheetFailure)
+      .updateSheet(sheetType, newSheetID, oldSheetID, idMasterID);
+  }
+
+  async function updateMultipleSheets() {
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    const totalUpdates = importedFilesSuccess.length;
+
+    try {
+      console.log(`Starting ${totalUpdates} sheet updates`);
+      
+      // Create promises for all update operations
+      const updatePromises = importedFilesSuccess.map((file, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting update for ${file.sheetType}`);
+          
+          google.script.run
+            .withSuccessHandler(function(result) {
+              completedCount++;
+              if (result.success) {
+                successCount++;
+                console.log(`✅ ${file.sheetType} update completed successfully`);
+                
+                // Move successfully updated file to updatedFiles list
+                updatedFiles.push({
+                  ...file,
+                  updateResult: result
+                });
+              } else {
+                failedCount++;
+                console.error(`❌ ${file.sheetType} update failed:`, result.message);
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                ...result,
+                sheetType: file.sheetType,
+                updateIndex: index,
+                fileData: file
+              });
+            })
+            .withFailureHandler(function(error) {
+              completedCount++;
+              failedCount++;
+              console.error(`❌ ${file.sheetType} update error:`, error);
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetType: file.sheetType,
+                updateIndex: index,
+                fileData: file
+              });
+            })
+            .updateSheet(file.sheetType, file.fileId, file.oldSheetID, file.idMasterID);
+        });
+      });
+      
+      // Wait for all updates to complete
+      const results = await Promise.all(updatePromises);
+      
+      // Remove successfully updated files from importedFiles and add to updatedFiles
+      const successfulResults = results.filter(result => result.success);
+      
+      // Remove successful files from importedFilesSuccess (working backwards to avoid index issues)
+      for (let i = importedFilesSuccess.length - 1; i >= 0; i--) {
+        const file = importedFilesSuccess[i];
+        const successfulResult = successfulResults.find(result => result.sheetType === file.sheetType);
+        if (successfulResult) {
+          // Remove from importedFilesSuccess and ensure it's in updatedFiles
+          const removedFile = importedFilesSuccess.splice(i, 1)[0];
+          
+          // Check if not already in updatedFiles (defensive programming)
+          if (!updatedFiles.find(f => f.sheetType === removedFile.sheetType)) {
+            updatedFiles.push({
+              ...removedFile,
+              updateResult: successfulResult
+            });
+          }
+        }
+      }
+      
+      // Final status update
+      let finalMessage;
+      let titleText;
+      let gid = '';
+      
+      if (failedCount === 0) {
+        finalMessage = `🎉 All ${totalUpdates} sheet updates completed successfully!`;
+        titleText = `✅ IDS Master Updated (${successCount}/${totalUpdates})`;
+        gid = successfulResults[0]?.gid || '';
+        document.getElementById("importButton").style.display = "none";
+      document.getElementById("updateMasterButton").style.display = "none";
+      } else if (successCount === 0) {
+        finalMessage = `❌ All ${totalUpdates} sheet updates failed.`;
+        titleText = `❌ IDS Master Update Failed (0/${totalUpdates})`;
+      } else {
+        finalMessage = `⚠️ Updates completed: ${successCount} successful, ${failedCount} failed.`;
+        titleText = `⚠️ IDS Master Partial Update (${successCount}/${totalUpdates})`;
+        gid = successfulResults[0]?.gid || '';
+      }
+      
+      // Update status text and title
+      document.getElementById("statusText").innerText = finalMessage;
+      document.getElementById("fileAccessTitle").innerHTML = titleText;
+      
+      // Update UI state
+      document.getElementById("importButton").disabled = false;
+      document.getElementById("updateMasterButton").disabled = false;
+      
+      // Use display function for file sections
+      displayOperationResults(gid);
+      
+      console.log("Update results:", results);
+      console.log("Successfully updatedFiles:", updatedFiles);
+      console.log("Remaining importedFilesSuccess:", importedFilesSuccess);
+      
+    } catch (error) {
+      console.error("Error in update execution:", error);
+      document.getElementById("statusText").innerText = `Error during updates: ${error.message || error}`;
+      document.getElementById("importButton").disabled = false;
+      document.getElementById("updateMasterButton").disabled = false;
+    }
+  }
+
+  // Function to display file workflow status sections only
+  function displayOperationResults(gid) {
+    let summaryHtml = "";
+    
+    // Show warning message if there are successfully imported files
+    if (importedFilesSuccess && importedFilesSuccess.length > 0) {
+      summaryHtml += `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
+    }
+    
+    // Show master link if there are updated files
+    if (updatedFiles && updatedFiles.length > 0) {
+      summaryHtml += `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>`;
+      summaryHtml += `<br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+    }
+    
+    // Show comprehensive file status across all workflow stages
+    
+    // Show files that are still copied (ready for import)
+    if (copiedTemplateFiles && copiedTemplateFiles.length > 0) {
+      summaryHtml += `<br><strong>📋 Sheets (Ready for Import):</strong><br>`;
+      copiedTemplateFiles.forEach(file => {
+        summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
+      });
+    }
+    
+    // Show files that failed to import
+    if (importedFilesFailed && importedFilesFailed.length > 0) {
+      summaryHtml += `<br><strong>❌ Import Failed (Requires Retry):</strong><br>`;
+      importedFilesFailed.forEach(file => {
+        summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version} - ${file.error}<br>`;
+      });
+    }
+    
+    // Show files that imported successfully but haven't been updated yet
+    if (importedFilesSuccess && importedFilesSuccess.length > 0) {
+      summaryHtml += `<br><strong>✅ Successfully Imported Sheets (Ready for IDS Master Update):</strong><br>`;
+      importedFilesSuccess.forEach(file => {
+        summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
+      });
+    }
+    
+    // Show files that have been successfully updated (with their new names)
+    if (updatedFiles && updatedFiles.length > 0) {
+      summaryHtml += `<br><strong>🎉 Successfully Updated & Completed:</strong><br>`;
+      updatedFiles.forEach(file => {
+        // Use the new name from update result if available, otherwise fall back to original name
+        const displayName = file.updateResult && file.updateResult.newName 
+          ? file.updateResult.newName 
+          : `Updated Copy of ${file.sheetType} ${file.version}`;
+        summaryHtml += `&nbsp;&nbsp;• ${displayName}<br>`;
+      });
+    }
+    
+    document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+  }
+
+  // Handle successful processing
+  function onUpdateSheetSuccess(result) {
+    document.getElementById("importButton").disabled = false;
+    document.getElementById("updateMasterButton").disabled = false;
+    if (result.success) {
+      var gid = result.gid || "";
+      console.log("Update IDS Master result:", result);
+      document.getElementById("statusText").innerText = result.message;
+      document.getElementById("importButton").style.display = "none";
+      document.getElementById("updateMasterButton").style.display = "none";
+      document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Master updated successfully!`;
+      document.getElementById(
+        "selectedFileSummary"
+      ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+    } else {
+      document.getElementById(
+        "statusText"
+      ).innerText = `Update IDS Master failed: ${result.message}`;
+    }
+  }
+
+  function onUpdateSheetFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    document.getElementById("updateMasterButton").disabled = false;
+    console.error("Import error:", error);
+    document.getElementById(
+      "statusText"
+    ).innerText = `Update IDS Master error: ${error.message || error}`;
+  }
+
+  function showAccessibleFilesSummary() {
+    const summary = document.getElementById("selectedFileSummary");
+    if (accessibleFilesCache.length > 0) {
+      summary.innerHTML +=
+        `The app will access the following files:` +
+        "<br>" +
+        accessibleFilesCache
+          .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
+          .join("<br>");
+    }
+  }
+
+  async function copyTemplates(copyMode) {
+    copyMode = copyMode || 'all';
+    currentCopyMode = copyMode; // Store for picker callbacks
+    document.getElementById("copyButton").disabled = true;
+    document.getElementById("copyUpdateButton").disabled = true;
+    
+    const statusText = document.getElementById("statusText");
+    statusText.innerText = `Checking template access (${copyMode === 'update' ? 'with updates' : 'all templates'})...`;
+    
+    // First check which templates are available based on the copy mode
+    google.script.run
+      .withSuccessHandler(function(result) {
+        onTemplateAccessCheckSuccess(result, copyMode);
+      })
+      .withFailureHandler(function(error) {
+        console.error("Template access check failed:", error);
+        statusText.innerText = `Error checking template access: ${error.message || error}`;
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("copyUpdateButton").disabled = false;
+      })
+      .checkTemplateAndOldSheetAccess(idMasterID, userEmail, copyMode);
+  }
+
+  function onTemplateAccessCheckSuccess(result, copyMode) {
+    console.log("Template access check result:", result);
+    
+    if (!result.success) {
+      document.getElementById("statusText").innerText = `Template access check failed: ${result.message}`;
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+      return;
+    }
+    
+    // Update caches with template results
+    templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
+    templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
+    
+    // Update caches with old sheet results
+    const oldSheetResults = result.oldSheetResults || {};
+    accessibleFilesCache = oldSheetResults.accessibleFiles || [];
+    inaccessibleFilesCache = oldSheetResults.inaccessibleFiles || [];
+    notOwnedFilesCache = oldSheetResults.notOwnedFiles || [];
+    
+    const statusText = document.getElementById("statusText");
+    const totalInaccessibleFiles = templateInaccessibleFilesCache.length + inaccessibleFilesCache.length;
+    
+    // Check if any files need access permission
+    if (totalInaccessibleFiles > 0) {
+      // Files need access - directly open the multi-file picker
+      let accessMessage = [];
+      if (templateInaccessibleFilesCache.length > 0) {
+        accessMessage.push(`${templateInaccessibleFilesCache.length} template(s)`);
+      }
+      if (inaccessibleFilesCache.length > 0) {
+        accessMessage.push(`${inaccessibleFilesCache.length} old sheet(s)`);
+      }
+      statusText.innerText = `${accessMessage.join(' and ')} need access permission. Opening file picker...`;
+      
+      console.log("Opening picker for inaccessible files:", {
+        templates: templateInaccessibleFilesCache,
+        oldSheets: inaccessibleFilesCache
+      });
+      
+      // Directly open the multi-file picker
+      openMultiFilePicker();
+      return;
+    }
+    
+    if (templateAccessibleFilesCache.length === 0) {
+      const modeDescription = copyMode === 'update' ? 'templates with updates' : 'templates';
+      statusText.innerText = `No ${modeDescription} available to copy.`;
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+      return;
+    }
+    
+    // All files are accessible - proceed with copying the templates
+    proceedWithTemplateCopying(copyMode);
+  }
+
+  async function proceedWithTemplateCopying(copyMode) {
+    const totalTemplates = templateAccessibleFilesCache.length;
+    const fileAccessTitle = document.getElementById("fileAccessTitle");
+    const selectedFileSummary = document.getElementById("selectedFileSummary");
+    const statusText = document.getElementById("statusText");
+    
+    const modeDescription = copyMode === 'update' ? 'templates with updates' : 'templates';
+    
+    // Initialize the summary with header
+    let linksHtml = "<strong>📂 Go to your new sheets™ and allow access to your IDS Master Sheet™:</strong><br>";
+    selectedFileSummary.innerHTML = linksHtml;
+    
+    statusText.innerText = `Copying ${totalTemplates} ${modeDescription}...`;
+    
+    let successCount = 0;
+    let failedCount = 0;
+    let completedCount = 0;
+    
+    // Create promises for all template copying operations with immediate UI updates
+    const copyPromises = templateAccessibleFilesCache.map((template, index) => {
+      console.log(`Starting copy for ${template.sheetType} template:`, template);
+      
+      return new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            console.log(`Template ${template.sheetType} copied successfully:`, result);
+            
+            let templateResult;
+            if (result.success && result.fileId) {
+              successCount++;
+              templateResult = {
+                success: true,
+                sheetType: template.sheetType,
+                fileId: result.fileId,
+                gid: result.gid || '',
+                version: template.version
+              };
+              
+              copiedTemplateFiles.push(templateResult);
+
+              // Add the newly copied file to accessible files cache
+              accessibleFilesCache.push({
+                id: result.fileId,
+                name: `Copy of ${template.sheetType} ${template.version}`,
+                sheetType: template.sheetType
+              });
+
+              // Immediately add successful link to display
+              linksHtml += `<br><a href="https://docs.google.com/spreadsheets/d/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
+            } else {
+              failedCount++;
+              templateResult = {
+                success: false,
+                sheetType: template.sheetType,
+                error: 'Copy operation returned unsuccessful result'
+              };
+              
+              // Immediately add failure message to display
+              linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy</span>`;
+            }
+            
+            // Update UI immediately
+            completedCount++;
+            selectedFileSummary.innerHTML = linksHtml;
+            statusText.innerText = `Copying templates... (${completedCount}/${totalTemplates} completed)`;
+            
+            resolve(templateResult);
+          })
+          .withFailureHandler(function(error) {
+            console.error(`Error copying template ${template.sheetType}:`, error);
+            
+            failedCount++;
+            completedCount++;
+            
+            // Immediately add failure message to display
+            linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy</span>`;
+            selectedFileSummary.innerHTML = linksHtml;
+            statusText.innerText = `Copying templates... (${completedCount}/${totalTemplates} completed)`;
+            
+            resolve({
+              success: false,
+              sheetType: template.sheetType,
+              error: error.message || error
+            });
+          })
+          .copyFileTemplate(
+            idMasterID,
+            template.id,
+            template.sheetType,
+            template.version
+          );
+      });
+    });
+    
+    // Wait for all copying operations to complete
+    try {
+      await Promise.all(copyPromises);
+      
+      // Final status update
+      const modeDescription = copyMode === 'update' ? 'templates with updates' : 'templates';
+      let statusMessage = `All ${modeDescription} copied successfully.`;
+      if (failedCount > 0) {
+        statusMessage = `${modeDescription.charAt(0).toUpperCase() + modeDescription.slice(1)} copying completed: ${successCount} successful, ${failedCount} failed`;
+      }
+      statusText.innerText = statusMessage;
+      
+      // Update title
+      if (successCount > 0) {
+        const titleModeDescription = copyMode === 'update' ? 'Template(s) with Updates' : 'Template(s)';
+        fileAccessTitle.innerHTML = `✅ ${successCount} ${titleModeDescription} Copied Successfully!`;
+        if (failedCount > 0) {
+          fileAccessTitle.innerHTML += ` (${failedCount} failed)`;
+        }
+        
+        document.getElementById("copyButton").style.display = "none";
+        document.getElementById("copyUpdateButton").style.display = "none";
+        document.getElementById("importButton").style.display = "inline-block";
+        document.getElementById("importButton").innerText = "Import copied sheets";
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").style.display = "inline-block";
+        document.getElementById("updateMasterButton").disabled = true;
+        statusText.innerText += " Ready for import!";
+      } else {
+        const titleModeDescription = copyMode === 'update' ? 'Templates with Updates' : 'Templates';
+        fileAccessTitle.innerHTML = `❌ All ${totalTemplates} ${titleModeDescription} Failed to Copy`;
+      }
+      
+    } catch (error) {
+      console.error("Error in template copying process:", error);
+      statusText.innerText = `Error during template copying: ${error.message || error}`;
+    } finally {
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+    }
+  }
+  
+  function showContinueSection() {
+    console.log("Accessible files:", accessibleFilesCache);
+    console.log("Inaccessible files:", inaccessibleFilesCache);
+    console.log("Not owned files:", notOwnedFilesCache);
+    console.log("Template inaccessible files:", templateInaccessibleFilesCache);
+
+    const statusText = document.getElementById("statusText");
+    const fileAccessTitle = document.getElementById("fileAccessTitle");
+    const summary = document.getElementById("selectedFileSummary");
+    const addAnotherButton = document.getElementById("addAnotherButton");
+    const importButton = document.getElementById("importButton");
+    const copyButton = document.getElementById("copyButton");
+    const copyUpdateButton = document.getElementById("copyUpdateButton");
+    const updateButton = document.getElementById("updateMasterButton");
+    const instructionsSection = document.getElementById("instructionsSection");
+
+    const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
+
+    if (totalInaccessibleFiles === 0) {
+      fileAccessTitle.innerText = `✅ All Required Files Access Granted`;
+      summary.innerHTML = "";
+      showAccessibleFilesSummary();
+      addAnotherButton.style.display = "none";
+      instructionsSection.style.display = "none";
+      if (sheetType === "IDS Master") {
+        statusText.innerText = `Choose copy option:`;
+        copyButton.style.display = "inline-block";
+        copyButton.disabled = false;
+        copyUpdateButton.style.display = "inline-block";
+        copyUpdateButton.disabled = false;
+        importButton.style.display = "none";
+        updateButton.style.display = "none";
+      } else {
+        statusText.innerText = `Checking import status.`;
+        importButton.innerText = `Import ${sheetType} data`;
+        importButton.style.display = "inline-block";
+        importButton.disabled = true;
+        updateButton.style.display = "inline-block";
+        updateButton.disabled = true;
+        copyButton.style.display = "none";
+        copyUpdateButton.style.display = "none";
+        google.script.run
+          .withSuccessHandler(onImportStatusCheckSuccess)
+          .withFailureHandler(onImportStatusCheckFailure)
+          .checkImportStatus(newSheetID, sheetType);
+      }
+
+      finalSelectedFiles = accessibleFilesCache.slice();
+    } else if (notOwnedFilesCache.length > 0) {
+      fileAccessTitle.innerHTML = `⛔ ${notOwnedFilesCache.length} Files Not Owned By You`;
+
+      summary.innerHTML =
+        `<br><strong>📂 Please ensure you own the following files </strong><br>` +
+        notOwnedFilesCache
+          .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
+          .join("<br>");
+
+      addAnotherButton.style.display = "none";
+      importButton.style.display = "none";
+      updateButton.style.display = "none";
+      copyButton.style.display = "none";
+      copyUpdateButton.style.display = "none";
+      instructionsSection.style.display = "none";
+    } else {
+      let summaryParts = [];
+      if (inaccessibleFilesCache.length > 0) {
+        summaryParts.push(`${inaccessibleFilesCache.length} sheet(s)`);
+      }
+      if (templateInaccessibleFilesCache.length > 0) {
+        summaryParts.push(`${templateInaccessibleFilesCache.length} template(s)`);
+      }
+      
+      summary.innerHTML = `<strong>🔐 ${summaryParts.join(' and ')} need access permission</strong><br>`;
+
+      instructionsSection.style.display = "block";
+      addAnotherButton.style.display = "inline-block";
+      importButton.style.display = "none";
+      updateButton.style.display = "none";
+      copyButton.style.display = "none";
+      copyUpdateButton.style.display = "none";
+    }
+
+    document.getElementById("fileAccessSection").style.display = "block";
+  }
+
+  function onImportStatusCheckSuccess(result) {
+    document.getElementById("importButton").disabled = false;
+    console.log("Import status check result:", result);
+    if (result.success) {
+      document.getElementById("statusText").innerText = `${result.message}`;
+      if (result.imported) {
+        document.getElementById("updateMasterButton").disabled = false;
+        document.getElementById(
+          "selectedFileSummary"
+        ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
+        showAccessibleFilesSummary();
+      }
+    } else {
+      document.getElementById(
+        "statusText"
+      ).innerText = `Import status check failed: ${result.message}`;
+    }
+  }
+
+  function onImportStatusCheckFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    document.getElementById("updateMasterButton").disabled = true;
+    console.error("Import status check error:", error);
+    document.getElementById(
+      "statusText"
+    ).innerText = `Import status check error: ${error.message || error}`;
+  }
+</script>

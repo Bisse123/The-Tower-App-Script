@@ -1,7 +1,8 @@
 const lab = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const lab = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const lab = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -36,7 +37,7 @@ const lab = {
       }
 
       var oldLabLevels = oldDataResult.oldLabLevels || [];
-      var requiredRanges = ["Master Sheet"];
+      var requiredRanges = ["Master Sheet", "IDS"];
       var labPlannerSheetName = "";
 
       if (oldDataResult.oldLabPlanner) {
@@ -58,7 +59,18 @@ const lab = {
       }
 
       var masterSheetData = batchResults[0].values;
-      var labPlannerData = batchResults[1].values;
+      var idsData = batchResults[1].values;
+      var labPlannerData = batchResults[2] ? batchResults[2].values : null;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var labResult = this.updateLabLevels(
         "Master Sheet",
@@ -85,27 +97,28 @@ const lab = {
         }
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate);
       }
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: labResult.message,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for Laboratory`,
+        message: `Laboratory import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importLabData: ${error.toString()}`);
@@ -131,7 +144,6 @@ const lab = {
       var headerRow = masterSheetData[0];
       var lastRow = masterSheetData.length;
 
-      // Find columns where header is in headerValues
       var columnsToCheck = [];
       for (var i = 0; i < headerRow.length; i++) {
         if (headerValues.includes(headerRow[i])) {
@@ -147,12 +159,9 @@ const lab = {
         };
       }
 
-      // oldLabLevels is now a dictionary, no need for separate updateMap
       var batchUpdate = [];
-      // Iterate each "Labs" column
       columnsToCheck.forEach(function (col) {
         var newLabLevels = [];
-        // Find labNames in each column (skip header row, ignore last row with sums)
         var numRows = lastRow - 2;
 
         for (var row = 1; row < numRows + 1; row++) {
@@ -165,16 +174,14 @@ const lab = {
           if (oldLabLevel) {
             newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || ""]);
           } else {
-            // Keep existing values
             var currentLevel = masterSheetData[row][col] || 0;
             var currentTarget = masterSheetData[row][col + 1] || "";
             newLabLevels.push([currentLevel, currentTarget]);
           }
         }
-        // Add batch update for this column's Level and Target columns
         if (newLabLevels.length > 0) {
-          var startCol = shared.columnToLetter(col + 1); // Level column
-          var endCol = shared.columnToLetter(col + 2); // Target column
+          var startCol = shared.columnToLetter(col + 1);
+          var endCol = shared.columnToLetter(col + 2);
           var range = `${sheetName}!${startCol}2:${endCol}${
             newLabLevels.length + 1
           }`;
@@ -382,7 +389,7 @@ const lab = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(`EXPORT sheet not found in old lab spreadsheet`);
@@ -392,7 +399,7 @@ const lab = {
         };
       }
       
-      var labLevelsRange = "EXPORT!B5:E"
+      var labLevelsRange = "EXPORT!B5:E";
 
       var labBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         labLevelsRange,
@@ -410,6 +417,32 @@ const lab = {
       }
       var oldLabLevelsValues = labBatchResult[0].values;
 
+      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
+      var oldLabPlannerValues = null;
+      
+      if (oldLabPlannerSheet) {
+        var oldLabPlannerSheetName = oldLabPlannerSheet.title;
+        var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
+          oldLabPlannerSheetName
+        ]);
+        if (oldLabPlannerData && oldLabPlannerData.length > 0 && oldLabPlannerData[0].values) {
+          oldLabPlannerValues = oldLabPlannerData[0].values;
+        }
+      }
+
+      return this.getVersion10Values(oldLabLevelsValues, oldLabPlannerValues);
+      
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldLabLevelsValues, oldLabPlannerValues) {
+    try {
       var oldLabLevels = {};
       var oldLabMax = {};
       oldLabLevelsValues.forEach(function (row) {
@@ -425,8 +458,7 @@ const lab = {
         }
       });
 
-      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
-      if (!oldLabPlannerSheet) {
+      if (!oldLabPlannerValues) {
         console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
         return {
           success: true,
@@ -434,21 +466,7 @@ const lab = {
           oldLabLevels: oldLabLevels,
         };
       }
-      var oldLabPlannerSheetName = oldLabPlannerSheet.title;
 
-      var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
-        oldLabPlannerSheetName
-      ]);
-      if (!oldLabPlannerData || oldLabPlannerData.length === 0 || !oldLabPlannerData[0].values) {
-        console.log(`Could not read old lab planner data`);
-        return {
-          success: true,
-          message: "Could not read old lab planner data",
-          oldLabLevels: oldLabLevels,
-        };
-      }
-
-      var oldLabPlannerValues = oldLabPlannerData[0].values;
       var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
       var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
       var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
@@ -577,10 +595,10 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },

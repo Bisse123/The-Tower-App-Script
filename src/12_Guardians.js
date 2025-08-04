@@ -1,7 +1,8 @@
 const guardians = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Guardians newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const guardians = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const guardians = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -41,7 +42,7 @@ const guardians = {
       var oldGuardians = oldDataResult.oldGuardians || {};
 
       // Batch fetch required sheet data
-      var requiredRanges = ["Master Sheet"];
+      var requiredRanges = ["Master Sheet", "IDS"];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (
         !batchResult ||
@@ -56,6 +57,17 @@ const guardians = {
       }
 
       var masterSheetData = batchResult[0].values;
+      var idsData = batchResult[1].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var guardiansResult = this.updateGuardianLevels(
         targetGuardians,
@@ -70,27 +82,27 @@ const guardians = {
 
       var batchUpdate = guardiansResult.batchUpdate || [];
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: guardiansResult.message,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for Guardians`,
+        message: `Guardians import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importGuardiansData: ${error.toString()}`);
@@ -230,10 +242,8 @@ const guardians = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
 
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(`EXPORT sheet not found in old spreadsheet`);
@@ -260,6 +270,19 @@ const guardians = {
       }
       var oldGuardianLevelsData = guardianBatchResult[0].values;
 
+      return this.getVersion10Values(oldGuardianLevelsData);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldGuardianLevelsData) {
+    try {
+      var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
           (cell) =>
@@ -302,10 +325,10 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },

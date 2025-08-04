@@ -1,7 +1,8 @@
 const workshop = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Workshop newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const workshop = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const workshop = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -40,7 +41,7 @@ const workshop = {
       var oldWorkshopLevels = oldDataResult.oldWorkshopLevels || [];
       var oldWorkshopPlusLevels = oldDataResult.oldWorkshopPlusLevels || [];
 
-      var requiredRanges = ["Master Sheet"];
+      var requiredRanges = ["Master Sheet", "IDS"];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -51,6 +52,17 @@ const workshop = {
       }
 
       var masterSheetData = batchResults[0].values;
+      var idsData = batchResults[1].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var workshopResult = this.updateWorkshopLevels(
         "Master Sheet",
@@ -67,27 +79,27 @@ const workshop = {
 
       var batchUpdate = workshopResult.batchUpdate || [];
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: workshopResult.message,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
 
       return {
         success: true,
-        message: `No updates needed for Workshop`,
+        message: `Workshop import completed successfully`,
       };
     } catch (error) {
       console.log("Error in importWorkshopData: " + error.toString());
@@ -224,7 +236,7 @@ const workshop = {
 
   version10: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
@@ -257,6 +269,18 @@ const workshop = {
       var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
 
+      return this.getVersion10Values(oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues) {
+    try {
       var oldWorkshopLevels = {};
       oldWorkshopLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
@@ -284,17 +308,17 @@ const workshop = {
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in getVersion10Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in getVersion10Values: " + error.message,
       };
     }
   },
 
   version19: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
@@ -328,6 +352,18 @@ const workshop = {
       var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
 
+      return this.getVersion19Values(oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues);
+    } catch (error) {
+      console.log("Error in version19: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version19: " + error.message,
+      };
+    }
+  },
+
+  getVersion19Values: function (oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues) {
+    try {
       var oldWorkshopLevels = {};
       oldWorkshopLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
@@ -357,10 +393,10 @@ const workshop = {
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in version19: " + error.toString());
+      console.log("Error in getVersion19Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version19: " + error.message,
+        message: "Error in getVersion19Values: " + error.message,
       };
     }
   },

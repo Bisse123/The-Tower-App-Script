@@ -1,7 +1,8 @@
 const modules = {
   importData: function (versionDifference) {
     try {
-      var newSpreadsheet = spreadsheets("newSpreadsheet");
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Modules newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -11,7 +12,7 @@ const modules = {
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
         return {
@@ -23,10 +24,10 @@ const modules = {
 
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
-        console.log(`Unsupported version difference: ${versionDifference}`);
+        console.log(`Unsupported version: ${versionDifference}`);
         return {
           success: false,
-          message: `Unsupported version difference: ${versionDifference}`,
+          message: `Unsupported version: ${versionDifference}`,
         };
       }
       var oldDataResult = getVersionFunction();
@@ -47,6 +48,7 @@ const modules = {
         "Modules Inventory",
         "Modules Presets",
         "Mods Obtained",
+        "IDS"
       ];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResult || batchResult.length < 3) {
@@ -69,6 +71,17 @@ const modules = {
         batchResult[2] && batchResult[2].values
           ? batchResult[2].values
           : null;
+      var idsData = batchResult[3].values;
+
+      // Get import status range from IDS data
+      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
+      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        console.log(`Could not find import status range in IDS sheet`);
+        return {
+          success: false,
+          message: "Could not find import status range in IDS sheet",
+        };
+      }
 
       var inventoryResult = this.updateModulesInventory(
         targetModuleTypes,
@@ -117,29 +130,27 @@ const modules = {
 
       batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
 
-      if (batchUpdate.length > 0) {
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
-        // console.log(`Modules data imported successfully`);
+      // Add import status update to batch
+      batchUpdate.push({
+        range: newSheetInfo.importStatus.range,
+        values: [["✅"]],
+      });
+
+      var updateResult = SheetsAPI.batchUpdateValues(
+        newSheetID,
+        batchUpdate
+      );
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Modules data imported successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
-      // No updates needed
-      // console.log(`No updates needed for modules data`);
+
       return {
         success: true,
-        message: `No updates needed for modules data`,
+        message: `Modules data imported successfully`,
       };
     } catch (error) {
       console.log(`Error importing modules data: ${error.toString()}`);
@@ -406,12 +417,9 @@ const modules = {
 
   version40: function () {
     try {
-      var oldSpreadsheet = spreadsheets("oldSpreadsheet");
+      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
-
-      // Batch get all three module sheets at once
       var ranges = ["Modules Inventory", "Modules Presets", "Mods Obtained"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 
@@ -424,6 +432,22 @@ const modules = {
       }
 
       var oldModulesInventoryValues = batchResult[0].values;
+      var oldModulesPresetsValues = batchResult[1].values;
+      var oldModulesObtainedValues = batchResult[2].values;
+
+      return this.getVersion40Values(oldModulesInventoryValues, oldModulesPresetsValues, oldModulesObtainedValues);
+    } catch (error) {
+      console.log("Error in version40: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version40: " + error.message,
+      };
+    }
+  },
+
+  getVersion40Values: function (oldModulesInventoryValues, oldModulesPresetsValues, oldModulesObtainedValues) {
+    try {
+      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
         oldModulesInventoryValues
@@ -495,7 +519,6 @@ const modules = {
         }
       });
 
-      var oldModulesPresetsValues = batchResult[1].values;
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
         oldModulesPresetsValues
@@ -521,8 +544,6 @@ const modules = {
           }
         }
       });
-
-      var oldModulesObtainedValues = batchResult[2].values;
 
       var oldModulesObtained = {};
       for (var row = 0; row < oldModulesObtainedValues.length; row++) {
@@ -575,10 +596,10 @@ const modules = {
         oldModulesObtained: oldModulesObtained,
       };
     } catch (error) {
-      console.log("Error in version40: " + error.toString());
+      console.log("Error in getVersion40Values: " + error.toString());
       return {
         success: false,
-        message: "Error in version40: " + error.message,
+        message: "Error in getVersion40Values: " + error.message,
       };
     }
   },

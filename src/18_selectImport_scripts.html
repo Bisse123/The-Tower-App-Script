@@ -137,11 +137,18 @@
           { allowSharedFiles: true }
         );
       } else {
+        // Access is granted, proceed with copying template
         document.getElementById("statusText").innerText =
-          "Template file copied successfully.";
-        newSheetID = result.newFileId;
-        var gid = result.gid || "";
-        showFileCopiedSuccess(gid);
+          "Template access verified. Copying template...";
+        google.script.run
+          .withSuccessHandler(copyFileTemplateSuccess)
+          .withFailureHandler(copyFileTemplateFailure)
+          .copyFileTemplate(
+            idMasterID,
+            result.templateID,
+            sheetType,
+            result.templateVersion
+          );
       }
     } else {
       document.getElementById("chooseNewFileBtn").disabled = false;
@@ -191,8 +198,8 @@
       "selectImportTitle"
     ).innerText = `📂 New ${sheetType} file created`;
     document.getElementById("selectImportText").innerHTML =
-      `<strong>➡️ Go to your new ${sheetType} Sheet™ and allow access to your IDS Master Sheet™.</strong>` +
-      `<br><a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open ${sheetType} Sheet™</a>`;
+      `<strong>Go to your new ${sheetType} Sheet™ and allow access to your IDS Master Sheet™.</strong>` +
+      `<br><a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em">➡️ Open ${sheetType} Sheet™</a>`;
     document.getElementById("labelImportType").style.display = "none";
     document.getElementById("selectImportType").style.display = "none";
     document.getElementById("chooseNewFileBtn").style.display = "none";
@@ -233,7 +240,7 @@
           error.message || error
         }`;
       })
-      .checkNewSheetReference(newSheetID);
+      .checkNewSheetReference(newSheetID, sheetType);
   }
 
   function findAndGrantNewSheet(newFileID) {
