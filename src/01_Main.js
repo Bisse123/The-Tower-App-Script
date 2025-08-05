@@ -149,9 +149,9 @@ function showImportDialog() {
     if (sheetType === "IDS Master") {
       console.log("IDS Master detected, showing import dialog with limited parameters");
       var template = HtmlService.createTemplateFromFile("14_WebApp");
-      template.newSheetID = "";  // IDS Master doesn't have predefined new/old sheets
+      template.newSheetID = "";
       template.oldSheetID = "";
-      template.idMasterID = newSheetID;  // The current spreadsheet IS the IDS Master
+      template.idMasterID = newSheetID;
       template.sheetType = sheetType;
       template.API_KEY =
         PropertiesService.getScriptProperties().getProperty("API_KEY");

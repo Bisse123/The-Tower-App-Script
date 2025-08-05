@@ -733,14 +733,15 @@
               linksHtml += `<br><a href="https://docs.google.com/spreadsheets/d/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
             } else {
               failedCount++;
+              const errorMessage = result.message || 'Copy operation returned unsuccessful result';
               templateResult = {
                 success: false,
                 sheetType: template.sheetType,
-                error: 'Copy operation returned unsuccessful result'
+                error: errorMessage
               };
               
               // Immediately add failure message to display
-              linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy</span>`;
+              linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy: ${errorMessage}</span>`;
             }
             
             // Update UI immediately
@@ -756,15 +757,17 @@
             failedCount++;
             completedCount++;
             
+            const errorMessage = error.message || error;
+            
             // Immediately add failure message to display
-            linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy</span>`;
+            linksHtml += `<br><span style="margin-left: 2em; color: #d32f2f;">❌ ${template.sheetType} template failed to copy: ${errorMessage}</span>`;
             selectedFileSummary.innerHTML = linksHtml;
             statusText.innerText = `Copying templates... (${completedCount}/${totalTemplates} completed)`;
             
             resolve({
               success: false,
               sheetType: template.sheetType,
-              error: error.message || error
+              error: errorMessage
             });
           })
           .copyFileTemplate(
