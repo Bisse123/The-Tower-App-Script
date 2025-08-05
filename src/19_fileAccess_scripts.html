@@ -13,6 +13,7 @@
   async function addAnotherFile() {
     document.getElementById("statusText").innerText =
       "Checking authorization...";
+    document.getElementById("addAnotherButton").disabled = true;
     if (!accessToken) {
         document.getElementById("statusText").innerText =
           "Authorization failed. Cannot open picker.";
@@ -893,6 +894,7 @@
 
       instructionsSection.style.display = "block";
       addAnotherButton.style.display = "inline-block";
+      addAnotherButton.disabled = false;
       importButton.style.display = "none";
       updateButton.style.display = "none";
       copyButton.style.display = "none";
