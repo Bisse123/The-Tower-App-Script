@@ -21,6 +21,8 @@
   let importedFilesFailed = [];
   let updatedFiles = [];
   let currentCopyMode = 'all'; // Current copy mode for template operations
+  let cachedTemplateInfo = null; // Cached template info with metadata to minimize server calls
+  let cachedSheetIds = null; // Cached sheet IDs to minimize server calls
 
   // Detect mobile devices with enhanced touch detection
   function detectMobile() {
@@ -201,10 +203,9 @@
   function checkValidParameters() {
     console.log("Checking valid parameters...");
     if (sheetType === "IDS Master" && idMasterID && !newSheetID && !oldSheetID) {
-      google.script.run
-        .withSuccessHandler(onSheetAccessCheckSuccess)
-        .withFailureHandler(onSheetAccessCheckFailure)
-        .checkSheetAccess([idMasterID], userEmail);
+      checkMultipleSheetAccess([idMasterID], userEmail)
+        .then(onSheetAccessCheckSuccess)
+        .catch(onSheetAccessCheckFailure);
       return;
     } else if (
       !newSheetID ||
@@ -244,10 +245,9 @@
 
     const fileIds = [newSheetID, oldSheetID, idMasterID];
     showFileAccessSection();
-    google.script.run
-      .withSuccessHandler(onSheetAccessCheckSuccess)
-      .withFailureHandler(onSheetAccessCheckFailure)
-      .checkSheetAccess(fileIds, userEmail);
+    checkMultipleSheetAccess(fileIds, userEmail)
+      .then(onSheetAccessCheckSuccess)
+      .catch(onSheetAccessCheckFailure);
   }
   
   function hideAllSections() {
@@ -414,16 +414,13 @@
         );
 
         if (sheetType === "IDS Master") {
-          google.script.run
-            .withSuccessHandler(onTemplateAndOldSheetAccessCheckSuccess)
-            .withFailureHandler(onTemplateAndOldSheetAccessCheckFailure)
-            .checkTemplateAndOldSheetAccess(idMasterID, userEmail, currentCopyMode);
+          // Use copyTemplates with the current copy mode
+          copyTemplates(currentCopyMode);
         } else {
           const fileIds = [newSheetID, oldSheetID, idMasterID];
-          google.script.run
-            .withSuccessHandler(onSheetAccessCheckSuccess)
-            .withFailureHandler(onSheetAccessCheckFailure)
-            .checkSheetAccess(fileIds, userEmail);
+          checkMultipleSheetAccess(fileIds, userEmail)
+            .then(onSheetAccessCheckSuccess)
+            .catch(onSheetAccessCheckFailure);
         }
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log("User cancelled the picker");
@@ -500,6 +497,169 @@
     }
   }
   
+  // Client-side wrapper functions for parallel access checking
+  async function checkMultipleSheetAccess(fileIds, userEmail) {
+    try {
+      if (!Array.isArray(fileIds) || fileIds.length === 0) {
+        return {
+          success: true,
+          accessibleFiles: [],
+          inaccessibleFiles: [],
+          notOwnedFiles: [],
+          message: "No files to check."
+        };
+      }
+
+      console.log(`Client-side checking access to ${fileIds.length} files in parallel`);
+      
+      // Create promises for all sheet access checks
+      const promises = fileIds.map(fileId => {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve({ id: fileId, result }))
+            .withFailureHandler((error) => reject({ id: fileId, error }))
+            .checkSheetAccess(fileId, userEmail);
+        });
+      });
+      
+      // Wait for all access checks to complete
+      const results = await Promise.allSettled(promises);
+      
+      // Process results
+      const accessibleFiles = [];
+      const inaccessibleFiles = [];
+      const notOwnedFiles = [];
+      
+      results.forEach(promiseResult => {
+        if (promiseResult.status === 'fulfilled') {
+          const { id, result } = promiseResult.value;
+          
+          if (result.accessible) {
+            if (result.owned) {
+              accessibleFiles.push({ id: id, name: result.name });
+            } else {
+              notOwnedFiles.push({ id: id, name: result.name });
+            }
+          } else {
+            inaccessibleFiles.push({ id: id });
+          }
+        } else {
+          console.error('Sheet access check failed for', promiseResult.reason.id, ':', promiseResult.reason.error);
+          inaccessibleFiles.push({ id: promiseResult.reason.id });
+        }
+      });
+      
+      let message = "";
+      if (inaccessibleFiles.length > 0) {
+        message = `${inaccessibleFiles.length} file(s) need access permission.`;
+      } else if (notOwnedFiles.length > 0) {
+        message = `All files accessible. ${notOwnedFiles.length} file(s) are shared with you.`;
+      } else {
+        message = "All files are accessible and owned by you.";
+      }
+      
+      console.log(`Client-side access check complete: ${accessibleFiles.length} accessible, ${inaccessibleFiles.length} inaccessible, ${notOwnedFiles.length} not owned`);
+      
+      return {
+        success: true,
+        accessibleFiles: accessibleFiles,
+        inaccessibleFiles: inaccessibleFiles,
+        notOwnedFiles: notOwnedFiles,
+        message: message
+      };
+      
+    } catch (error) {
+      console.error("Client-side sheet access check error:", error);
+      return {
+        success: false,
+        accessibleFiles: [],
+        inaccessibleFiles: [],
+        notOwnedFiles: [],
+        message: `Error checking sheet access: ${error.message || error}`
+      };
+    }
+  }
+
+  async function checkMultipleTemplateAccess(templateInfo) {
+    try {
+      if (!Array.isArray(templateInfo) || templateInfo.length === 0) {
+        return {
+          success: true,
+          accessibleFiles: [],
+          inaccessibleFiles: [],
+          message: "No templates to check."
+        };
+      }
+
+      console.log(`Client-side checking access to ${templateInfo.length} templates in parallel`);
+      
+      // Create promises for all template access checks
+      const promises = templateInfo.map(template => {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve({ template, result }))
+            .withFailureHandler((error) => reject({ template, error }))
+            .checkTemplateAccess(template.templateID);
+        });
+      });
+      
+      // Wait for all access checks to complete
+      const results = await Promise.allSettled(promises);
+      
+      // Process results
+      const accessibleFiles = [];
+      const inaccessibleFiles = [];
+      
+      results.forEach(promiseResult => {
+        if (promiseResult.status === 'fulfilled') {
+          const { template, result } = promiseResult.value;
+          
+          if (result.accessible) {
+            accessibleFiles.push({
+              id: template.templateID,
+              version: template.templateVersion,
+              sheetType: template.sheetType,
+              name: result.name || `${template.sheetType} Template`
+            });
+          } else {
+            inaccessibleFiles.push({ 
+              id: template.templateID,
+              version: template.templateVersion,
+              sheetType: template.sheetType
+            });
+          }
+        } else {
+          console.error('Template access check failed for', promiseResult.reason.template.templateID, ':', promiseResult.reason.error);
+          inaccessibleFiles.push({ 
+            id: promiseResult.reason.template.templateID,
+            version: promiseResult.reason.template.templateVersion,
+            sheetType: promiseResult.reason.template.sheetType
+          });
+        }
+      });
+      
+      const message = `Template access check complete. ${accessibleFiles.length} of ${templateInfo.length} templates are accessible.`;
+      
+      console.log(`Client-side template access check complete: ${accessibleFiles.length} accessible, ${inaccessibleFiles.length} inaccessible`);
+      
+      return {
+        success: true,
+        accessibleFiles: accessibleFiles,
+        inaccessibleFiles: inaccessibleFiles,
+        message: message
+      };
+      
+    } catch (error) {
+      console.error("Client-side template access check error:", error);
+      return {
+        success: false,
+        accessibleFiles: [],
+        inaccessibleFiles: [],
+        message: `Error checking template access: ${error.message || error}`
+      };
+    }
+  }
+  
   function onSheetAccessCheckSuccess(result) {
     console.log("Sheet access check result:", result);
     if (result.success) {
@@ -545,79 +705,4 @@
     templateInaccessibleFilesCache = [];
     showContinueSection();
   }
-
-  function onTemplateAndOldSheetAccessCheckSuccess(result) {
-    console.log("Template and sheet access check result:", result);
-    
-    if (result.success) {
-      // Update all file caches with results
-      accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
-      inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
-      notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
-      templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
-      templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
-      
-      const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
-      
-      // Check if any files still need access permission
-      if (totalInaccessibleFiles > 0) {
-        // Still have inaccessible files - open picker again
-        let statusMessages = [];
-        if (templateInaccessibleFilesCache.length > 0) {
-          statusMessages.push(`${templateInaccessibleFilesCache.length} template(s)`);
-        }
-        if (inaccessibleFilesCache.length > 0) {
-          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
-        }
-        
-        document.getElementById("statusText").innerText = `${statusMessages.join(' and ')} still need access. Opening file picker...`;
-        
-        console.log("Still have inaccessible files, opening picker again:", {
-          templates: templateInaccessibleFilesCache,
-          oldSheets: inaccessibleFilesCache
-        });
-        
-        // Directly open the multi-file picker
-        openMultiFilePicker();
-        return;
-      }
-      
-      // All files are accessible - proceed with template copying using stored copy mode
-      document.getElementById("statusText").innerText = "All files accessible. Proceeding with template copying...";
-      console.log("All files accessible, proceeding with template copying using mode:", currentCopyMode);
-      
-      // Call the template copying function from the fileAccess scripts
-      if (typeof proceedWithTemplateCopying === 'function') {
-        proceedWithTemplateCopying(currentCopyMode);
-      } else {
-        console.error("proceedWithTemplateCopying function not available");
-        document.getElementById("statusText").innerText = "Error: Template copying function not available.";
-        document.getElementById("copyButton").disabled = false;
-        document.getElementById("copyUpdateButton").disabled = false;
-      }
-    } else {
-      console.error("Template and sheet access check failed:", result.message);
-      document.getElementById("statusText").innerText = `Could not check template/sheet access: ${result.message}`;
-      accessibleFilesCache = [];
-      inaccessibleFilesCache = [];
-      notOwnedFilesCache = [];
-      templateAccessibleFilesCache = [];
-      templateInaccessibleFilesCache = [];
-      
-      showContinueSection();
-    }
-  }
-
-  function onTemplateAndOldSheetAccessCheckFailure(error) {
-    console.error("Template and sheet access check error:", error);
-    document.getElementById("statusText").innerText = `Error checking template/sheet access: ${error.message || error}`;
-    accessibleFilesCache = [];
-    inaccessibleFilesCache = [];
-    notOwnedFilesCache = [];
-    templateAccessibleFilesCache = [];
-    templateInaccessibleFilesCache = [];
-    
-    showContinueSection();
-  }
-
 </script>

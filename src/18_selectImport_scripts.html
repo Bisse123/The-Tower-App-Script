@@ -223,10 +223,9 @@
           ).innerText = `Import ${sheetType} data`;
           showFileAccessSection();
           const fileIds = [newSheetID, oldSheetID, idMasterID];
-          google.script.run
-            .withSuccessHandler(onSheetAccessCheckSuccess)
-            .withFailureHandler(onSheetAccessCheckFailure)
-            .checkSheetAccess(fileIds, userEmail);
+          checkMultipleSheetAccess(fileIds, userEmail)
+            .then(onSheetAccessCheckSuccess)
+            .catch(onSheetAccessCheckFailure);
         } else {
           document.getElementById("selectImportContinueBtn").disabled = false;
           document.getElementById("statusText").innerText = `${result.message}`;
@@ -255,8 +254,8 @@
       document.getElementById("statusText").innerText =
         "Checking access to Sheet™...";
 
-      google.script.run
-        .withSuccessHandler(function (result) {
+      checkMultipleSheetAccess([newFileID], userEmail)
+        .then(function (result) {
           if (result.success) {
             if (result.notOwnedFiles && result.notOwnedFiles.length > 0) {
               document.getElementById(
@@ -305,13 +304,12 @@
             resolve(false);
           }
         })
-        .withFailureHandler(function (error) {
+        .catch(function (error) {
           document.getElementById(
             "statusText"
           ).innerText = `Error checking access: ${error.message || error}`;
           reject(error);
-        })
-        .checkSheetAccess([newFileID], userEmail);
+        });
     });
   }
 
@@ -323,8 +321,8 @@
             idMasterID = idMasterResult.sheetID;
             sheetType = idMasterResult.sheetType;
 
-            google.script.run
-              .withSuccessHandler(function (result) {
+            checkMultipleSheetAccess([idMasterResult.sheetID], userEmail)
+              .then(function (result) {
                 if (result.success) {
                   if (
                     result.inaccessibleFiles &&
@@ -364,7 +362,7 @@
                   reject(new Error("Access to IDS Master Sheet™ denied."));
                 }
               })
-              .withFailureHandler(function (e) {
+              .catch(function (e) {
                 document.getElementById("statusText").innerText =
                   "Error checking access to IDS Master: " + (e.message || e);
                 reject(
@@ -372,8 +370,7 @@
                     "Error checking access to IDS Master: " + (e.message || e)
                   )
                 );
-              })
-              .checkSheetAccess([idMasterResult.sheetID], userEmail);
+              });
           } else {
             document.getElementById("statusText").innerText =
               idMasterResult.message || "Could not find IDS Master in Sheet™.";
@@ -398,8 +395,8 @@
           if (oldSheetResult && oldSheetResult.success) {
             oldSheetID = oldSheetResult.sheetID;
 
-            google.script.run
-              .withSuccessHandler(function (result) {
+            checkMultipleSheetAccess([oldSheetResult.sheetID], userEmail)
+              .then(function (result) {
                 if (result.success) {
                   if (
                     result.inaccessibleFiles &&
@@ -429,7 +426,7 @@
                   reject(new Error("Access to old Sheet™ denied."));
                 }
               })
-              .withFailureHandler(function (e) {
+              .catch(function (e) {
                 document.getElementById("statusText").innerText =
                   "Error granting access to old Sheet™: " + (e.message || e);
                 reject(
@@ -437,8 +434,7 @@
                     "Error granting access to old Sheet™: " + (e.message || e)
                   )
                 );
-              })
-              .checkSheetAccess([oldSheetResult.sheetID], userEmail);
+              });
           } else {
             document.getElementById("statusText").innerText =
               oldSheetResult.message || "Could not find old Sheet™ in IDS Master.";

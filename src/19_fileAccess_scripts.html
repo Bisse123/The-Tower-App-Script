@@ -491,7 +491,6 @@
     if (updatedFiles && updatedFiles.length > 0) {
       summaryHtml += `<br><strong>🎉 Successfully Updated & Completed:</strong><br>`;
       updatedFiles.forEach(file => {
-        // Use the new name from update result if available, otherwise fall back to original name
         const displayName = file.updateResult && file.updateResult.newName 
           ? file.updateResult.newName 
           : `Updated Copy of ${file.sheetType} ${file.version}`;
@@ -543,85 +542,143 @@
           .join("<br>");
     }
   }
-
   async function copyTemplates(copyMode) {
     copyMode = copyMode || 'all';
-    currentCopyMode = copyMode; // Store for picker callbacks
+    currentCopyMode = copyMode;
     document.getElementById("copyButton").disabled = true;
     document.getElementById("copyUpdateButton").disabled = true;
     
     const statusText = document.getElementById("statusText");
-    statusText.innerText = `Checking template access (${copyMode === 'update' ? 'with updates' : 'all templates'})...`;
+    statusText.innerText = `Getting template and sheet information...`;
     
-    // First check which templates are available based on the copy mode
-    google.script.run
-      .withSuccessHandler(function(result) {
-        onTemplateAccessCheckSuccess(result, copyMode);
-      })
-      .withFailureHandler(function(error) {
-        console.error("Template access check failed:", error);
-        statusText.innerText = `Error checking template access: ${error.message || error}`;
-        document.getElementById("copyButton").disabled = false;
-        document.getElementById("copyUpdateButton").disabled = false;
-      })
-      .checkTemplateAndOldSheetAccess(idMasterID, userEmail, copyMode);
+    try {
+      let templateInfo, sheetIds;
+      
+      if (cachedTemplateInfo && cachedSheetIds) {
+        console.log("Using cached template info and sheet IDs for copy check");
+        templateInfo = cachedTemplateInfo;
+        sheetIds = cachedSheetIds;
+      } else {
+        console.log("No cached IDs found, fetching from server");
+        const idsResult = await new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getTemplateAndsheetIds(idMasterID, copyMode);
+        });
+        
+        if (!idsResult.success) {
+          throw new Error(idsResult.message);
+        }
+        
+        templateInfo = idsResult.templateInfo;
+        sheetIds = idsResult.sheetIds;
+        
+        cachedTemplateInfo = templateInfo;
+        cachedSheetIds = sheetIds;
+      }
+      
+      console.log(`Template Info:`, templateInfo);
+      console.log(`Sheet IDs: ${sheetIds}`);
+      statusText.innerText = `Checking access to ${templateInfo.length} templates and ${sheetIds.length} sheets...`;
+      
+      const [templateResults, oldSheetResults] = await Promise.all([
+        checkMultipleTemplateAccess(templateInfo),
+        checkMultipleSheetAccess(sheetIds, userEmail)
+      ]);
+      
+      const result = {
+        success: true,
+        templateResults: templateResults,
+        oldSheetResults: oldSheetResults
+      };
+      
+      onTemplateAndOldSheetAccessCheckSuccess(result);
+      
+    } catch (error) {
+      console.error("Parallel access check failed:", error);
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+      
+      cachedTemplateInfo = null;
+      cachedSheetIds = null;
+      
+      onTemplateAndOldSheetAccessCheckFailure(error);
+    }
   }
 
-  function onTemplateAccessCheckSuccess(result, copyMode) {
-    console.log("Template access check result:", result);
+  function onTemplateAndOldSheetAccessCheckSuccess(result) {
+    console.log("Template and sheet access check result:", result);
     
-    if (!result.success) {
-      document.getElementById("statusText").innerText = `Template access check failed: ${result.message}`;
+    if (result.success) {
+      // Update all file caches with results
+      accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
+      inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
+      notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
+      templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
+      templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
+      
+      const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
+      
+      // Check if any files still need access permission
+      if (totalInaccessibleFiles > 0) {
+        // Still have inaccessible files - open picker again
+        let statusMessages = [];
+        if (templateInaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${templateInaccessibleFilesCache.length} template(s)`);
+        }
+        if (inaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
+        }
+        
+        document.getElementById("statusText").innerText = `${statusMessages.join(' and ')} still need access. Opening file picker...`;
+        
+        console.log("Still have inaccessible files, opening picker again:", {
+          templates: templateInaccessibleFilesCache,
+          oldSheets: inaccessibleFilesCache
+        });
+        
+        // Directly open the multi-file picker
+        openMultiFilePicker();
+        return;
+      }
+      
+      // All files are accessible - proceed with template copying using stored copy mode
+      document.getElementById("statusText").innerText = "All files accessible. Proceeding with template copying...";
+      console.log("All files accessible, proceeding with template copying using mode:", currentCopyMode);
+      
+      // Call the template copying function from the fileAccess scripts
+      if (typeof proceedWithTemplateCopying === 'function') {
+        proceedWithTemplateCopying(currentCopyMode);
+      } else {
+        console.error("proceedWithTemplateCopying function not available");
+        document.getElementById("statusText").innerText = "Error: Template copying function not available.";
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("copyUpdateButton").disabled = false;
+      }
+    } else {
+      console.error("Template and sheet access check failed:", result.message);
+      document.getElementById("statusText").innerText = `Could not check template/sheet access: ${result.message}`;
+      accessibleFilesCache = [];
+      inaccessibleFilesCache = [];
+      notOwnedFilesCache = [];
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
       document.getElementById("copyButton").disabled = false;
       document.getElementById("copyUpdateButton").disabled = false;
-      return;
     }
-    
-    // Update caches with template results
-    templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
-    templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
-    
-    // Update caches with old sheet results
-    const oldSheetResults = result.oldSheetResults || {};
-    accessibleFilesCache = oldSheetResults.accessibleFiles || [];
-    inaccessibleFilesCache = oldSheetResults.inaccessibleFiles || [];
-    notOwnedFilesCache = oldSheetResults.notOwnedFiles || [];
-    
-    const statusText = document.getElementById("statusText");
-    const totalInaccessibleFiles = templateInaccessibleFilesCache.length + inaccessibleFilesCache.length;
-    
-    // Check if any files need access permission
-    if (totalInaccessibleFiles > 0) {
-      // Files need access - directly open the multi-file picker
-      let accessMessage = [];
-      if (templateInaccessibleFilesCache.length > 0) {
-        accessMessage.push(`${templateInaccessibleFilesCache.length} template(s)`);
-      }
-      if (inaccessibleFilesCache.length > 0) {
-        accessMessage.push(`${inaccessibleFilesCache.length} old sheet(s)`);
-      }
-      statusText.innerText = `${accessMessage.join(' and ')} need access permission. Opening file picker...`;
-      
-      console.log("Opening picker for inaccessible files:", {
-        templates: templateInaccessibleFilesCache,
-        oldSheets: inaccessibleFilesCache
-      });
-      
-      // Directly open the multi-file picker
-      openMultiFilePicker();
-      return;
-    }
-    
-    if (templateAccessibleFilesCache.length === 0) {
-      const modeDescription = copyMode === 'update' ? 'templates with updates' : 'templates';
-      statusText.innerText = `No ${modeDescription} available to copy.`;
-      document.getElementById("copyButton").disabled = false;
-      document.getElementById("copyUpdateButton").disabled = false;
-      return;
-    }
-    
-    // All files are accessible - proceed with copying the templates
-    proceedWithTemplateCopying(copyMode);
+  }
+
+  function onTemplateAndOldSheetAccessCheckFailure(error) {
+    console.error("Template and sheet access check error:", error);
+    document.getElementById("statusText").innerText = `Error checking template/sheet access: ${error.message || error}`;
+    accessibleFilesCache = [];
+    inaccessibleFilesCache = [];
+    notOwnedFilesCache = [];
+    templateAccessibleFilesCache = [];
+    templateInaccessibleFilesCache = [];
+    document.getElementById("copyButton").disabled = false;
+    document.getElementById("copyUpdateButton").disabled = false;
   }
 
   async function proceedWithTemplateCopying(copyMode) {
