@@ -623,56 +623,60 @@ function getOAuthToken() {
   }
 }
 
-function checkSheetAccess(fileIds, userEmail) {
+function checkSheetAccess(sheetID, userEmail) {
   try {
-    const accessibleFiles = [];
-    const inaccessibleFiles = [];
-    const notOwnedFiles = [];
+    if (!sheetID || !userEmail) {
+      return {
+        success: false,
+        message: "Missing sheetID or userEmail parameter",
+        accessible: false,
+        owned: false
+      };
+    }
 
-    fileIds.forEach((fileId) => {
-      try {
-        const file = Drive.Files.get(fileId, {
-          fields: "name, owners",
-        });
+    try {
+      const file = Drive.Files.get(sheetID, {
+        fields: "name, owners",
+      });
 
-        const owners = file.owners || [];
-        const isOwner = owners.some(
-          (owner) =>
-            owner.emailAddress &&
-            owner.emailAddress.toLowerCase() === userEmail.toLowerCase()
-        );
+      const owners = file.owners || [];
+      const isOwner = owners.some(
+        (owner) =>
+          owner.emailAddress &&
+          owner.emailAddress.toLowerCase() === userEmail.toLowerCase()
+      );
 
-        if (isOwner) {
-          accessibleFiles.push({ id: fileId, name: file.name });
-        } else {
-          notOwnedFiles.push({ id: fileId, name: file.name });
-          inaccessibleFiles.push({ id: fileId });
-        }
-      } catch (error) {
-        inaccessibleFiles.push({ id: fileId });
-      }
-    });
-
-    return {
-      success: true,
-      accessibleFiles: accessibleFiles,
-      inaccessibleFiles: inaccessibleFiles,
-      notOwnedFiles: notOwnedFiles,
-      message: `Access check complete. ${accessibleFiles.length} of ${fileIds.length} sheets are accessible.`,
-    };
+      return {
+        success: true,
+        message: `Sheet access verified`,
+        accessible: true,
+        owned: isOwner,
+        sheetID: sheetID,
+        name: file.name
+      };
+    } catch (error) {
+      console.log(`Sheet access denied for ${sheetID}: ${error.toString()}`);
+      
+      return {
+        success: true,
+        message: `Sheet access denied`,
+        accessible: false,
+        owned: false,
+        sheetID: sheetID
+      };
+    }
   } catch (error) {
-    console.error("Error checking sheet access:", error);
-    return {
-      success: false,
-      accessibleFiles: [],
-      inaccessibleFiles: [],
-      notOwnedFiles: [],
-      message: error.toString(),
+    console.error(`Error checking sheet access: ${error.toString()}`);
+    return { 
+      success: false, 
+      message: `Error checking sheet access: ${error.toString()}`,
+      accessible: false,
+      owned: false
     };
   }
 }
 
-function checkTemplateAndOldSheetAccess(idMasterID, userEmail, copyMode) {
+function getTemplateAndsheetIds(idMasterID, copyMode) {
   try {
     const sheetTypes = [
       "Laboratory",
@@ -687,22 +691,10 @@ function checkTemplateAndOldSheetAccess(idMasterID, userEmail, copyMode) {
       "Guardians"
     ];
 
-    // copyMode can be 'all' (copy all templates) or 'update' (copy only templates with newer versions)
     copyMode = copyMode || 'all';
-    console.log(`Checking template and old sheet access for IDS Master: ${idMasterID}, mode: ${copyMode}`);
+    console.log(`Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`);
     
-    var results = {
-      success: true,
-      templateResults: {
-        success: true,
-        accessibleFiles: [],
-        inaccessibleFiles: [],
-        message: ""
-      },
-      oldSheetResults: null
-    };
-    
-    // OPTIMIZATION: Fetch IDS Master data once instead of 10 times
+    // Fetch IDS Master data once
     var idsMasterData = fetchIdsMasterData(idMasterID);
     if (!idsMasterData.success) {
       console.log(`Error fetching IDS Master data: ${idsMasterData.message}`);
@@ -712,76 +704,202 @@ function checkTemplateAndOldSheetAccess(idMasterID, userEmail, copyMode) {
       };
     }
     
-    var templateAccessibleCount = 0;
-    var templateTotalCount = 0;
-    var oldSheetIds = [idMasterID];
+    var templateInfo = [];
+    var sheetIds = [idMasterID];
     
     // Process all sheet types using the pre-fetched data
     for (var i = 0; i < sheetTypes.length; i++) {
       var sheetType = sheetTypes[i];
       try {
-        var templateAccessResult = processTemplateAccess(idsMasterData, sheetType, copyMode);
+        var templateResult = getTemplateInfo(idsMasterData, sheetType, copyMode);
         
-        if (templateAccessResult && templateAccessResult.success) {
+        if (templateResult && templateResult.success) {
           // Skip if version filtering excluded this template
-          if (templateAccessResult.versionFiltered) {
+          if (templateResult.versionFiltered) {
             console.log(`Skipping ${sheetType} - version filtering applied`);
             continue;
           }
           
-          templateTotalCount++;
+          templateInfo.push({
+            templateID: templateResult.templateID,
+            sheetType: sheetType,
+            templateVersion: templateResult.templateVersion,
+            oldVersion: templateResult.oldVersion,
+            oldSheetID: templateResult.oldSheetID
+          });
           
-          if (templateAccessResult.accessDenied) {
-            results.templateResults.inaccessibleFiles.push({
-              id: templateAccessResult.templateID,
-            });
-          } else {
-            results.templateResults.accessibleFiles.push({
-              id: templateAccessResult.templateID,
-              version: templateAccessResult.templateVersion,
-              sheetType: sheetType,
-            });
-            templateAccessibleCount++;
-          }
-          
-          // Collect old sheet IDs for batch access check
-          if (templateAccessResult.oldFileId) {
-            var sheetID = shared.extractSheetId(templateAccessResult.oldFileId);
-            if (sheetID) {
-              oldSheetIds.push(sheetID);
-            }
+          // Collect old sheet IDs
+          if (templateResult.oldSheetID) {
+            sheetIds.push(templateResult.oldSheetID);
           }
         } else {
-          console.log(`Error checking template access for ${sheetType}: ${templateAccessResult ? templateAccessResult.message : 'Unknown error'}`);
+          console.log(`Error getting template info for ${sheetType}: ${templateResult ? templateResult.message : 'Unknown error'}`);
         }
       } catch (templateError) {
-        console.log(`Error checking template for ${sheetType}: ${templateError.toString()}`);
+        console.log(`Error processing template for ${sheetType}: ${templateError.toString()}`);
       }
     }
     
-    var modeDescription = copyMode === 'update' ? 'with updates needed' : 'all';
-    results.templateResults.message = `Template access check complete. ${templateAccessibleCount} of ${templateTotalCount} templates ${modeDescription} are accessible.`;
+    return {
+      success: true,
+      sheetIds: sheetIds,
+      templateInfo: templateInfo,
+      message: `Found ${templateInfo.length} templates and ${sheetIds.length} old sheets to check`
+    };
     
-    // Check old sheet access in batch
-    if (oldSheetIds.length > 1) {
-      results.oldSheetResults = checkSheetAccess(oldSheetIds, userEmail);
-    } else {
-      results.oldSheetResults = {
-        success: true,
-        accessibleFiles: [],
-        inaccessibleFiles: [],
-        notOwnedFiles: [],
-        message: "No old sheets found to check access."
+  } catch (error) {
+    console.log(`Error getting template and old sheet IDs: ${error.toString()}`);
+    return {
+      success: false,
+      message: `Error getting template and old sheet IDs: ${error.message}`
+    };
+  }
+}
+
+// Helper function to get template information without checking access
+function getTemplateInfo(idsMasterData, sheetType, copyMode) {
+  try {
+    var values = idsMasterData.values;
+    var formulas = idsMasterData.formulas;
+    var idMasterID = idsMasterData.idMasterID;
+    copyMode = copyMode || 'all';
+    
+    var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", sheetType, values);
+    
+    if (!spreadsheetInfo || !spreadsheetInfo.template) {
+      console.log(`Could not find sheet template for ${sheetType}`);
+      return {
+        success: false,
+        message: `Could not find sheet template for ${sheetType}`,
       };
     }
     
-    return results;
+    if (!spreadsheetInfo.id) {
+      console.log(
+        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+      );
+      return {
+        success: false,
+        message: `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
+      };
+    }
+
+    var oldSheetID = shared.extractSheetId(spreadsheetInfo.id);
+    if (!oldSheetID) {
+      console.log(`Could not extract old sheet ID from ${spreadsheetInfo.id}`);
+      return {
+        success: false,
+        message: `Could not extract old sheet™ ID from ${spreadsheetInfo.id}`,
+      };
+    }
+
+    var templateVersion = spreadsheetInfo.version.value;
+    var oldVersion = spreadsheetInfo.oldVersion.value;
     
-  } catch (error) {
-    console.log(`Error checking template and old sheet access: ${error.toString()}`);
+    // Version filtering logic - only process if 'update' mode and template is newer
+    if (copyMode === 'update') {
+      if (!templateVersion || !oldVersion) {
+        console.log(`Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`);
+        return {
+          success: true,
+          versionFiltered: true,
+          message: `Version information missing for ${sheetType}`,
+        };
+      }
+      
+      var versionComparison = shared.compareVersions(oldVersion, templateVersion);
+      if (versionComparison !== 'older') {
+        console.log(`${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`);
+        return {
+          success: true,
+          versionFiltered: true,
+          message: `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}`,
+        };
+      }
+      
+      console.log(`${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`);
+    }
+    
+    var templateRow = spreadsheetInfo.template.row - 1; // Convert to 0-based
+    var templateCol = spreadsheetInfo.template.col - 1; // Convert to 0-based
+    
+    // Get template URL from pre-fetched formulas
+    var templateUrl = "";
+    if (formulas && formulas[templateRow] && formulas[templateRow][templateCol]) {
+      templateUrl = shared.extractUrlFromHyperlink(formulas[templateRow][templateCol]);
+    }
+    
+    if (!templateUrl) {
+      console.log(`Template URL not found for ${sheetType}`);
+      return {
+        success: false,
+        message: `Template URL not found for ${sheetType}`,
+      };
+    }
+
+    var templateID = shared.extractSheetId(templateUrl);
+    if (!templateID) {
+      console.log(`Could not extract template ID from URL: ${templateUrl}`);
+      return {
+        success: false,
+        message: `Could not extract template ID from URL: ${templateUrl}`,
+      };
+    }
+
     return {
-      success: false,
-      message: `Error checking template and old sheet access: ${error.message}`
+      success: true,
+      templateID: templateID,
+      oldSheetID: oldSheetID,
+      templateVersion: templateVersion,
+      oldVersion: oldVersion,
+      sheetType: sheetType,
+      message: `Successfully got template info for ${sheetType}`
+    };
+  } catch (error) {
+    console.error(`Error getting template info for ${sheetType}: ${error.toString()}`);
+    return { success: false, message: `${error.toString()}` };
+  }
+}
+
+// Simplified function to check access for a single template
+function checkTemplateAccess(templateID) {
+  try {
+    if (!templateID) {
+      return {
+        success: false,
+        message: "Missing templateID parameter",
+        accessible: false
+      };
+    }
+
+    try {
+      var file = Drive.Files.get(templateID, {
+        fields: "id, name",
+      });
+      
+      return {
+        success: true,
+        message: `Template access verified`,
+        accessible: true,
+        templateID: templateID,
+        name: file.name
+      };
+    } catch (error) {
+      console.log(`Template access denied for ${templateID}: ${error.toString()}`);
+      
+      return {
+        success: true,
+        message: `Template access denied`,
+        accessible: false,
+        templateID: templateID
+      };
+    }
+  } catch (error) {
+    console.error(`Error checking template access: ${error.toString()}`);
+    return { 
+      success: false, 
+      message: `Error checking template access: ${error.toString()}`,
+      accessible: false
     };
   }
 }
