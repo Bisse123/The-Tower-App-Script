@@ -29,18 +29,19 @@
       "statusText"
     ).innerText = `Checking ${sheetType} version compatibility...`;
     if (sheetType === "IDS Master") {
-      if (!copiedTemplateFiles || copiedTemplateFiles.length === 0) {
+      const totalAvailableFiles = (copiedTemplateFiles || []).length + (importedFilesFailed || []).length;
+      if (totalAvailableFiles === 0) {
         document.getElementById("statusText").innerText = "No copied sheets available for import. Please copy templates first.";
         return;
       }
       
       document.getElementById("importButton").disabled = true;
-      document.getElementById("statusText").innerText = `Preparing import for ${copiedTemplateFiles.length} sheets...`;
+      document.getElementById("statusText").innerText = `Preparing import for ${totalAvailableFiles} sheets...`;
       
       google.script.run
         .withSuccessHandler(onprepareImportDataSuccess)
         .withFailureHandler(onprepareImportDataFailure)
-        .prepareImportData(idMasterID, copiedTemplateFiles);
+        .prepareImportData(idMasterID, copiedTemplateFiles || [], importedFilesFailed || []);
       
       return;
     }
@@ -136,20 +137,39 @@
                 successCount++;
                 console.log(`✅ ${task.sheetType} import completed successfully`);
                 
+                // Check both arrays for the file to move to success
+                let importedFile = null;
+                let sourceArray = null;
+                
+                // First check copiedTemplateFiles
                 const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
                 if (copiedFileIndex !== -1) {
-                  const importedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  importedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  sourceArray = 'copied';
+                } else {
+                  // Then check importedFilesFailed
+                  const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                  if (failedFileIndex !== -1) {
+                    importedFile = importedFilesFailed.splice(failedFileIndex, 1)[0];
+                    sourceArray = 'failed';
+                  }
+                }
+                
+                if (importedFile) {
                   importedFilesSuccess.push({
                     ...importedFile,
                     oldSheetID: task.oldSheetID,
                     idMasterID: task.idMasterID
                   });
+                  console.log(`Moved ${task.sheetType} from ${sourceArray} to success`);
+                } else {
+                  console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed`);
                 }
               } else {
                 failedCount++;
                 console.error(`❌ ${task.sheetType} import failed:`, result.message);
                 
-                // Move failed import to importedFilesFailed
+                // Move failed import from copiedTemplateFiles to importedFilesFailed
                 const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
                 if (copiedFileIndex !== -1) {
                   const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
@@ -159,6 +179,16 @@
                     oldSheetID: task.oldSheetID,
                     idMasterID: task.idMasterID
                   });
+                  console.log(`Moved ${task.sheetType} from copied to failed with error: ${result.message}`);
+                } else {
+                  // File was already in importedFilesFailed (retry attempt) - update error info
+                  const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                  if (failedFileIndex !== -1) {
+                    importedFilesFailed[failedFileIndex].error = result.message || 'Import failed';
+                    console.log(`Updated error for ${task.sheetType} in failed list: ${result.message}`);
+                  } else {
+                    console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed for failure handling`);
+                  }
                 }
               }
               
@@ -177,7 +207,7 @@
               failedCount++;
               console.error(`❌ ${task.sheetType} import error:`, error);
               
-              // Move failed import to importedFilesFailed
+              // Move failed import from copiedTemplateFiles to importedFilesFailed
               const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
               if (copiedFileIndex !== -1) {
                 const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
@@ -187,6 +217,16 @@
                   oldSheetID: task.oldSheetID,
                   idMasterID: task.idMasterID
                 });
+                console.log(`Moved ${task.sheetType} from copied to failed with error: ${error.message || error}`);
+              } else {
+                // File was already in importedFilesFailed (retry attempt) - update error info
+                const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                if (failedFileIndex !== -1) {
+                  importedFilesFailed[failedFileIndex].error = error.message || error;
+                  console.log(`Updated error for ${task.sheetType} in failed list: ${error.message || error}`);
+                } else {
+                  console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed for error handling`);
+                }
               }
               
               // Update status

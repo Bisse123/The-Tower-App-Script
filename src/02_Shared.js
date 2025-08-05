@@ -435,6 +435,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       success: true,
       message: "New ID Set, new sheet™ moved and renamed, old sheet™ deleted.",
       gid: idMasterIDSheet.sheetId,
+      newName: newFileName,
     };
   } catch (error) {
     console.log(`Error in updateSheet: ${error.toString()}`);
@@ -1290,9 +1291,15 @@ function checkNewSheetReference(newSheetID, sheetType) {
 }
 
 // Prepare data for IDS Master import to be executed in parallel on client side
-function prepareImportData(idMasterID, copiedTemplateFiles) {
+function prepareImportData(idMasterID, copiedTemplateFiles, importedFilesFailed) {
   try {
-    console.log(`Preparing parallel IDS Master import data for ${copiedTemplateFiles.length} template files`);
+    // Ensure both arrays exist and combine them
+    copiedTemplateFiles = copiedTemplateFiles || [];
+    importedFilesFailed = importedFilesFailed || [];
+    
+    var allTemplateFiles = copiedTemplateFiles.concat(importedFilesFailed);
+    
+    console.log(`Preparing parallel IDS Master import data for ${allTemplateFiles.length} template files (${copiedTemplateFiles.length} copied + ${importedFilesFailed.length} failed)`);
     
     // Get the IDS Master data once (single API call for values)
     var idsValues = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
@@ -1310,8 +1317,8 @@ function prepareImportData(idMasterID, copiedTemplateFiles) {
     var failedTasks = [];
     
     // Prepare all import tasks with required information
-    for (var i = 0; i < copiedTemplateFiles.length; i++) {
-      var templateFile = copiedTemplateFiles[i];
+    for (var i = 0; i < allTemplateFiles.length; i++) {
+      var templateFile = allTemplateFiles[i];
       var sheetType = templateFile.sheetType;
       var newSheetID = templateFile.fileId;
       
