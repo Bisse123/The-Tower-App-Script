@@ -425,6 +425,10 @@
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log("User cancelled the picker");
         setMobileStatus("File selection cancelled");
+        document.getElementById("addAnotherButton").disabled = false;
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("copyUpdateButton").disabled = false;
+        
       } else if (data.action === "loaded") {
         console.log("Picker loaded successfully");
         setMobileStatus("Picker loaded successfully");
