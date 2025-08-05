@@ -1,27 +1,6 @@
 const cards = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Cards newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet™ not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,16 +9,49 @@ const cards = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(`Error processing cards data: ${oldDataResult.message}`);
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var oldCardsLevel = oldDataResult.oldCardsLevel || [];
-      var oldCardSlots = oldDataResult.oldCardSlots || "";
-      var oldCardsPreset = oldDataResult.oldCardsPreset || {};
-      var shouldRemoveUsedCards = oldDataResult.shouldRemoveUsedCards || true;
+      return {
+        success: true,
+        message: "Cards export completed successfully",
+        data: {
+          oldCardsLevel: oldDataResult.oldCardsLevel || [],
+          oldCardSlots: oldDataResult.oldCardSlots || "",
+          oldCardsPreset: oldDataResult.oldCardsPreset || {},
+          shouldRemoveUsedCards: oldDataResult.shouldRemoveUsedCards || true
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting cards data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Cards newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet™ not found",
+        };
+      }
+
+      var oldCardsLevel = data.oldCardsLevel || [];
+      var oldCardSlots = data.oldCardSlots || "";
+      var oldCardsPreset = data.oldCardsPreset || {};
+      var shouldRemoveUsedCards = data.shouldRemoveUsedCards || true;
 
       var requiredRanges = ["Master Sheet", "Card Preset", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);

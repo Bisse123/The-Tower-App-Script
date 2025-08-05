@@ -1,27 +1,6 @@
 const guardians = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Guardians newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet™ not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,16 +9,45 @@ const guardians = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(
-          `Error processing guardians data: ${oldDataResult.message}`
-        );
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var targetGuardians = oldDataResult.targetGuardians || [];
-      var oldGuardians = oldDataResult.oldGuardians || {};
+      return {
+        success: true,
+        message: "Guardians export completed successfully",
+        data: {
+          targetGuardians: oldDataResult.targetGuardians || [],
+          oldGuardians: oldDataResult.oldGuardians || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting guardians data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Guardians newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet™ not found",
+        };
+      }
+
+      var targetGuardians = data.targetGuardians || [];
+      var oldGuardians = data.oldGuardians || {};
 
       // Batch fetch required sheet data
       var requiredRanges = ["Master Sheet", "IDS"];
@@ -105,10 +113,10 @@ const guardians = {
         message: `Guardians import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importGuardiansData: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
-        message: `Error in importGuardiansData: ${error.message}`,
+        message: `Error importing guardians data: ${error.message}`,
       };
     }
   },
@@ -137,14 +145,13 @@ const guardians = {
       };
     }
 
-    // Extract current guardian data from pre-fetched data
-    var startCol = guardianCol + 1; // Column after "Guardian Weapon" (1-based)
-    var endCol = guardianCol + 5; // 5 columns after "Guardian Weapon"
+    var startCol = guardianCol + 1;
+    var endCol = guardianCol + 5;
 
     var newGuardianDataValues = masterSheetData
       .slice(1) // Skip header row
       .map(function (row) {
-        return row.slice(startCol - 1, endCol); // Extract columns (convert to 0-based)
+        return row.slice(startCol - 1, endCol);
       })
       .filter(function (row) {
         return row.some(function (cell) {

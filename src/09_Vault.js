@@ -1,27 +1,6 @@
 const vault = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Vault newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet™ not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,14 +9,45 @@ const vault = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(`Error processing vault data: ${oldDataResult.message}`);
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var oldVaultHarmony = oldDataResult.oldVaultHarmony || {};
-      var oldVaultPower = oldDataResult.oldVaultPower || {};
+      return {
+        success: true,
+        message: "Vault export completed successfully",
+        data: {
+          oldVaultHarmony: oldDataResult.oldVaultHarmony || {},
+          oldVaultPower: oldDataResult.oldVaultPower || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting vault data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Vault newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet™ not found",
+        };
+      }
+
+      var oldVaultHarmony = data.oldVaultHarmony || {};
+      var oldVaultPower = data.oldVaultPower || {};
       
       var requiredRanges = ["Harmony", "Power", "IDS"];
       var newVaultBatchResult = SheetsAPI.batchGetValues(
@@ -120,7 +130,7 @@ const vault = {
         message: `Vault data imported successfully`,
       };
     } catch (error) {
-      console.log(`Error importing vault data: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: `Error importing vault data: ${error.message}`,

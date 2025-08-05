@@ -1,27 +1,6 @@
 const lab = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,17 +9,49 @@ const lab = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var oldLabLevels = oldDataResult.oldLabLevels || [];
+      return {
+        success: true,
+        message: "Laboratory export completed successfully",
+        data: {
+          oldLabLevels: oldDataResult.oldLabLevels || [],
+          oldLabPlanner: oldDataResult.oldLabPlanner || null
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting lab data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet not found",
+        };
+      }
+
+      var oldLabLevels = data.oldLabLevels || [];
+      var oldLabPlanner = data.oldLabPlanner || null;
       var requiredRanges = ["Master Sheet", "IDS"];
       var labPlannerSheetName = "";
 
-      if (oldDataResult.oldLabPlanner) {
+      if (oldLabPlanner) {
         var labPlannerSheet = SheetsAPI.getSheetBySubstring(newSpreadsheet, "Lab Planner");
         if (labPlannerSheet) {
           labPlannerSheetName = labPlannerSheet.title;
@@ -84,11 +95,11 @@ const lab = {
 
       var batchUpdate = labResult.batchUpdate || [];
 
-      if (oldDataResult.oldLabPlanner && Object.keys(oldDataResult.oldLabPlanner).length !== 0 && labPlannerSheetName) {
-        console.log(oldDataResult.oldLabPlanner);
+      if (oldLabPlanner && Object.keys(oldLabPlanner).length !== 0 && labPlannerSheetName) {
+        console.log(oldLabPlanner);
         var labPlannerResult = this.updateLabPlanner(
           labPlannerSheetName,
-          oldDataResult.oldLabPlanner,
+          oldLabPlanner,
           labPlannerData
         );
         if (!labPlannerResult || !labPlannerResult.success) {
@@ -121,7 +132,7 @@ const lab = {
         message: `Laboratory import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importLabData: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: "Error importing lab data: " + error.message,

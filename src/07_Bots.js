@@ -1,27 +1,6 @@
 const bots = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Bots newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet™ not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,14 +9,45 @@ const bots = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(`Error processing bots data: ${oldDataResult.message}`);
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var targetBots = oldDataResult.targetBots || [];
-      var oldBots = oldDataResult.oldBots || {};
+      return {
+        success: true,
+        message: "Bots export completed successfully",
+        data: {
+          targetBots: oldDataResult.targetBots || [],
+          oldBots: oldDataResult.oldBots || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting bots data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Bots newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet™ not found",
+        };
+      }
+
+      var targetBots = data.targetBots || [];
+      var oldBots = data.oldBots || {};
 
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "IDS"];
@@ -64,8 +74,8 @@ const bots = {
       }
 
       var botsResult = this.updateBotLevels(
-        targetBots,
         "Master Sheet",
+        targetBots,
         oldBots,
         masterSheetData
       );
@@ -99,7 +109,7 @@ const bots = {
         message: `Bots import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error importing bots data: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: `Error importing bots data: ${error.message}`,
@@ -107,7 +117,7 @@ const bots = {
     }
   },
 
-  updateBotLevels: function (targetBots, sheetName, oldBots, masterSheetData) {
+  updateBotLevels: function (sheetName, targetBots, oldBots, masterSheetData) {
     try {
       if (!masterSheetData) {
         console.log(`Error getting bot master sheet data`);
