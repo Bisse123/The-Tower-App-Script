@@ -10,8 +10,8 @@ const sheetVars = (sheetType) => {
     Cards: cards,
     Modules: modules,
     Guardians: guardians,
-    "IDS Collection - all IDS-Sheets on one file": collection,
-    "IDS Master": master,
+    // "IDS Collection - all IDS-Sheets on one file": collection,
+    // "IDS Master": master,
   };
   return sheetTypeFunctions[sheetType];
 };
@@ -140,10 +140,6 @@ function showImportDialog() {
       .getSheetByName("Home Page")
       .getRange("B2")
       .getValue();
-    if (!sheetVars(sheetType)) {
-      console.log(`Sheet type not found in the new spreadsheet.`);
-      throw new Error("Sheet type not found in the new spreadsheet.");
-    }
 
     // Special case for IDS Master
     if (sheetType === "IDS Master") {
@@ -167,6 +163,11 @@ function showImportDialog() {
         .setTitle("Import Data - IDS Master");
       SpreadsheetApp.getUi().showSidebar(html);
       return;
+    }
+
+    if (!sheetVars(sheetType)) {
+      console.log(`Sheet type not found in the new spreadsheet.`);
+      throw new Error("Sheet type not found in the new spreadsheet.");
     }
 
     // Regular processing for individual sheet types
@@ -391,17 +392,34 @@ function importData(
       };
     }
 
-    var result = sheetTypeFunction.importData(versionDifference);
-    if (!result || !result.success) {
+    // First export the data from the old spreadsheet
+    var exportResult = sheetTypeFunction.exportData(versionDifference);
+    if (!exportResult || !exportResult.success) {
+      console.log(
+        `Error exporting data for ${sheetType}: ${
+          exportResult ? exportResult.message : "Unknown error"
+        }`
+      );
+      return {
+        success: false,
+        message: `Error exporting data for ${sheetType}: ${
+          exportResult && exportResult.message ? exportResult.message : "Unknown error"
+        }`,
+      };
+    }
+
+    // Then import the exported data to the new spreadsheet
+    var importResult = sheetTypeFunction.importData(exportResult.data);
+    if (!importResult || !importResult.success) {
       console.log(
         `Error importing data for ${sheetType}: ${
-          result ? result.message : "Unknown error"
+          importResult ? importResult.message : "Unknown error"
         }`
       );
       return {
         success: false,
         message: `Error importing data for ${sheetType}: ${
-          result && result.message ? result.message : "Unknown error"
+          importResult && importResult.message ? importResult.message : "Unknown error"
         }`,
       };
     }

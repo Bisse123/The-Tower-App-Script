@@ -1,27 +1,6 @@
 const modules = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Modules newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet™ not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,18 +9,49 @@ const modules = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(
-          `Error processing modules data: ${oldDataResult.message}`
-        );
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var targetModuleTypes = oldDataResult.targetModuleTypes || [];
-      var oldModulesInventory = oldDataResult.oldModulesInventory || {};
-      var oldModulesPresets = oldDataResult.oldModulesPresets || {};
-      var oldModulesObtained = oldDataResult.oldModulesObtained || {};
+      return {
+        success: true,
+        message: "Modules export completed successfully",
+        data: {
+          targetModuleTypes: oldDataResult.targetModuleTypes || [],
+          oldModulesInventory: oldDataResult.oldModulesInventory || {},
+          oldModulesPresets: oldDataResult.oldModulesPresets || {},
+          oldModulesObtained: oldDataResult.oldModulesObtained || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting modules data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Modules newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet™ not found",
+        };
+      }
+
+      var targetModuleTypes = data.targetModuleTypes || [];
+      var oldModulesInventory = data.oldModulesInventory || {};
+      var oldModulesPresets = data.oldModulesPresets || {};
+      var oldModulesObtained = data.oldModulesObtained || {};
 
       // Batch fetch all required sheet data
       var requiredRanges = [
@@ -84,8 +94,8 @@ const modules = {
       }
 
       var inventoryResult = this.updateModulesInventory(
-        targetModuleTypes,
         "Modules Inventory",
+        targetModuleTypes,
         oldModulesInventory,
         newModuleInventoryValues
       );
@@ -99,8 +109,8 @@ const modules = {
       var batchUpdate = inventoryResult.batchUpdate || [];
 
       var presetsResult = this.updateModulesPresets(
-        targetModuleTypes,
         "Modules Presets",
+        targetModuleTypes,
         oldModulesPresets,
         newModulePresetsValues
       );
@@ -115,8 +125,8 @@ const modules = {
       batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
 
       var obtainedResult = this.updateModulesObtained(
-        targetModuleTypes,
         "Mods Obtained",
+        targetModuleTypes,
         oldModulesObtained,
         newModulesObtainedValues
       );
@@ -153,7 +163,7 @@ const modules = {
         message: `Modules data imported successfully`,
       };
     } catch (error) {
-      console.log(`Error importing modules data: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: `Error importing modules data: ${error.message}`,
@@ -162,8 +172,8 @@ const modules = {
   },
 
   updateModulesPresets: function (
-    targetModuleTypes,
     sheetName,
+    targetModuleTypes,
     oldModulesPresets,
     newModulePresetsValues
   ) {
@@ -223,8 +233,8 @@ const modules = {
   },
 
   updateModulesInventory: function (
-    targetModuleTypes,
     sheetName,
+    targetModuleTypes,
     oldModulesInventory,
     newModuleInventoryValues
   ) {
@@ -324,8 +334,8 @@ const modules = {
   },
 
   updateModulesObtained: function (
-    targetModuleTypes,
     sheetName,
+    targetModuleTypes,
     oldModulesObtained,
     newModulesObtainedValues
   ) {

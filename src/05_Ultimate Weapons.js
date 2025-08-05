@@ -1,27 +1,6 @@
 const ultimate = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Ultimate Weapon newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,16 +9,45 @@ const ultimate = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(
-          `Error processing ultimate weapons data: ${oldDataResult.message}`
-        );
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var targetWeapons = oldDataResult.targetWeapons || [];
-      var oldUltimate = oldDataResult.oldUltimate || {};
+      return {
+        success: true,
+        message: "Ultimate weapons export completed successfully",
+        data: {
+          targetWeapons: oldDataResult.targetWeapons || [],
+          oldUltimate: oldDataResult.oldUltimate || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting ultimate weapons data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Ultimate Weapon newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet not found",
+        };
+      }
+
+      var targetWeapons = data.targetWeapons || [];
+      var oldUltimate = data.oldUltimate || {};
 
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "IDS"];
@@ -103,7 +111,7 @@ const ultimate = {
         message: `Ultimate Weapons import completed successfully`,
       };
     } catch (error) {
-      console.log("Error in importUltimateData: " + error.toString());
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: "Error importing ultimate weapons data: " + error.message,

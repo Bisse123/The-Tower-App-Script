@@ -1,27 +1,6 @@
 const themes = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Themes & Songs newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,14 +9,45 @@ const themes = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(`Error processing themes data: ${oldDataResult.message}`);
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var targetThemes = oldDataResult.targetThemes || [];
-      var oldThemesNames = oldDataResult.oldThemesNames || {};
+      return {
+        success: true,
+        message: "Themes & Songs export completed successfully",
+        data: {
+          targetThemes: oldDataResult.targetThemes || [],
+          oldThemesNames: oldDataResult.oldThemesNames || {}
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting themes data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Themes & Songs newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet not found",
+        };
+      }
+
+      var targetThemes = data.targetThemes || [];
+      var oldThemesNames = data.oldThemesNames || {};
 
       // Batch get required data for update function only
       var requiredRanges = ["Themes & Songs", "IDS"];
@@ -99,7 +109,7 @@ const themes = {
         message: `Themes & Songs import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error importing themes data: ${error.toString()}`);
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: `Error importing themes data: ${error.message}`,

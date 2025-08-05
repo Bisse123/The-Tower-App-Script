@@ -1,27 +1,6 @@
 const workshop = {
-  importData: function (versionDifference) {
+  exportData: function (versionDifference) {
     try {
-      // Use sheet type-based naming for parallel execution support
-      var newSpreadsheet = spreadsheets("Workshop newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
-
-      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -30,16 +9,45 @@ const workshop = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
+      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
-        console.log(
-          `Error processing workshop data: ${oldDataResult.message}`
-        );
+        console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
 
-      var oldWorkshopLevels = oldDataResult.oldWorkshopLevels || [];
-      var oldWorkshopPlusLevels = oldDataResult.oldWorkshopPlusLevels || [];
+      return {
+        success: true,
+        message: "Workshop export completed successfully",
+        data: {
+          oldWorkshopLevels: oldDataResult.oldWorkshopLevels || [],
+          oldWorkshopPlusLevels: oldDataResult.oldWorkshopPlusLevels || []
+        }
+      };
+    } catch (error) {
+      console.log(`Error in exportData: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting workshop data: " + error.message,
+      };
+    }
+  },
+
+  importData: function (data) {
+    try {
+      // Use sheet type-based naming for parallel execution support
+      var newSpreadsheet = spreadsheets("Workshop newSpreadsheet");
+      var newSheetID = newSpreadsheet.spreadsheetId;
+      if (!newSpreadsheet) {
+        console.log(`New spreadsheet not found`);
+        return {
+          success: false,
+          message: "New spreadsheet not found",
+        };
+      }
+
+      var oldWorkshopLevels = data.oldWorkshopLevels || [];
+      var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels || [];
 
       var requiredRanges = ["Master Sheet", "IDS"];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
@@ -102,7 +110,7 @@ const workshop = {
         message: `Workshop import completed successfully`,
       };
     } catch (error) {
-      console.log("Error in importWorkshopData: " + error.toString());
+      console.log(`Error in importData: ${error.toString()}`);
       return {
         success: false,
         message: "Error importing workshop data: " + error.message,
