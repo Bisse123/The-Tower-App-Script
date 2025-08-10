@@ -17,12 +17,15 @@
   let templateAccessibleFilesCache = [];
   let templateInaccessibleFilesCache = [];
   let copiedTemplateFiles = [];
+  let exportedFilesSuccess = [];
+  let exportedFilesFailed = [];
   let importedFilesSuccess = [];
   let importedFilesFailed = [];
   let updatedFiles = [];
   let currentCopyMode = 'all'; // Current copy mode for template operations
   let cachedTemplateInfo = null; // Cached template info with metadata to minimize server calls
   let cachedSheetIds = null; // Cached sheet IDs to minimize server calls
+  let versionDifference = null; // Version difference from compatibility check for import operations
 
   // Detect mobile devices with enhanced touch detection
   function detectMobile() {
@@ -202,10 +205,15 @@
 
   function checkValidParameters() {
     console.log("Checking valid parameters...");
+    var fileIds = [];
     if (sheetType === "IDS Master" && idMasterID && !newSheetID && !oldSheetID) {
       checkMultipleSheetAccess([idMasterID], userEmail)
         .then(onSheetAccessCheckSuccess)
         .catch(onSheetAccessCheckFailure);
+      return;
+
+    } else if (sheetType === "IDS Collection - all IDS-Sheets on one file" && newSheetID && oldSheetID && !idMasterID) {
+      checkCollectionsAccess();
       return;
     } else if (
       !newSheetID ||
@@ -243,7 +251,7 @@
       return;
     }
 
-    const fileIds = [newSheetID, oldSheetID, idMasterID];
+    fileIds = [newSheetID, oldSheetID, idMasterID];
     showFileAccessSection();
     checkMultipleSheetAccess(fileIds, userEmail)
       .then(onSheetAccessCheckSuccess)
@@ -412,16 +420,18 @@
         setMobileStatus(
           `Access granted to ${documents.length} files. Rechecking access status...`
         );
-
+        
+        var fileIds = [newSheetID, oldSheetID, idMasterID];
         if (sheetType === "IDS Master") {
-          // Use copyTemplates with the current copy mode
           copyTemplates(currentCopyMode);
-        } else {
-          const fileIds = [newSheetID, oldSheetID, idMasterID];
-          checkMultipleSheetAccess(fileIds, userEmail)
-            .then(onSheetAccessCheckSuccess)
-            .catch(onSheetAccessCheckFailure);
+          return;
+        } else if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+          checkCollectionsAccess();
+          return;
         }
+        checkMultipleSheetAccess(fileIds, userEmail)
+          .then(onSheetAccessCheckSuccess)
+          .catch(onSheetAccessCheckFailure);
       } else if (data.action === google.picker.Action.CANCEL) {
         console.log("User cancelled the picker");
         setMobileStatus("File selection cancelled");
@@ -501,6 +511,217 @@
     }
   }
   
+  async function checkCollectionsAccess() {
+    const statusText = document.getElementById("statusText");
+    statusText.innerText = `Checking access to collections sheet...`;
+    
+    try {
+      // First check access to the oldSheetID
+      console.log("Checking access to oldSheetID:", oldSheetID);
+      const sheetAccess = await checkMultipleSheetAccess([newSheetID, oldSheetID], userEmail);
+      
+      if (!sheetAccess.success || sheetAccess.inaccessibleFiles.length > 0) {
+        onSheetAccessCheckSuccess(sheetAccess);
+        return;
+      }
+      
+      let sheetIds;
+      
+      if (cachedSheetIds) {
+        console.log("Using cached sheet IDs for collections access check");
+        sheetIds = cachedSheetIds;
+      } else {
+        console.log("No cached sheet IDs found, fetching from server");
+        statusText.innerText = `Getting sheet information from collections...`;
+        
+        // Get sheet IDs from server (we only need sheetIds, not templateInfo)
+        const idsResult = await new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getTemplateAndsheetIds(oldSheetID, "all");
+        });
+        
+        if (!idsResult.success) {
+          if (idsResult.collection) {
+            onSheetAccessCheckSuccess(sheetAccess);
+            return;
+          } else {
+            throw new Error(idsResult.message || "Failed to retrieve sheet IDs from collections.");
+          }
+        }
+        
+        // Cache the sheet IDs (we don't need template info for collections)
+        cachedSheetIds = [newSheetID, ...idsResult.sheetIds];
+        sheetIds = cachedSheetIds;
+      }
+      
+      console.log(`Using ${sheetIds.length} sheet IDs from collections:`, sheetIds);
+      
+      statusText.innerText = `Checking access to ${sheetIds.length} sheets...`;
+      
+      // Check access to all sheets using the existing success/failure handlers
+      checkMultipleSheetAccess(sheetIds, userEmail)
+        .then(onSheetAccessCheckSuccess)
+        .catch(onSheetAccessCheckFailure);
+      
+    } catch (error) {
+      console.error("Collections access check failed:", error);
+      onSheetAccessCheckFailure(error);
+    }
+  }
+  
+  async function copyTemplates(copyMode) {
+    copyMode = copyMode || 'all';
+    currentCopyMode = copyMode;
+    document.getElementById("copyButton").disabled = true;
+    document.getElementById("copyUpdateButton").disabled = true;
+    
+    const statusText = document.getElementById("statusText");
+    statusText.innerText = `Getting template and sheet information...`;
+    
+    try {
+      let templateInfo, sheetIds;
+      
+      if (cachedTemplateInfo && cachedSheetIds) {
+        console.log("Using cached template info and sheet IDs for copy check");
+        templateInfo = cachedTemplateInfo;
+        sheetIds = cachedSheetIds;
+      } else {
+        console.log("No cached IDs found, fetching from server");
+        const idsResult = await new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getTemplateAndsheetIds(idMasterID, copyMode);
+        });
+        
+        if (!idsResult.success) {
+          throw new Error(idsResult.message);
+        }
+        
+        templateInfo = idsResult.templateInfo;
+        sheetIds = idsResult.sheetIds;
+        
+        cachedTemplateInfo = templateInfo;
+        cachedSheetIds = sheetIds;
+      }
+      console.log(`Template Info:`, templateInfo);
+      console.log(`Sheet IDs: ${sheetIds}`);
+      statusText.innerText = `Checking access to ${templateInfo.length} templates and ${sheetIds.length} sheets...`;
+      
+      var templateResults = {};
+      var oldSheetResults = {};
+      var message = "No templates found to copy.";
+      if (templateInfo.length !== 0 && sheetIds.length !== 0) {
+        [templateResults, oldSheetResults] = await Promise.all([
+          checkMultipleTemplateAccess(templateInfo),
+          checkMultipleSheetAccess(sheetIds, userEmail)
+        ]);
+        if (!templateResults.success) {
+          message = `${templateResults.message}`;
+        } else if (!oldSheetResults.success) {
+          message = `${oldSheetResults.message}`;
+        } else {
+          message = `Access check completed for ${templateInfo.length} templates and ${sheetIds.length} sheets.`;
+        }
+
+      }
+      const result = {
+        success: templateResults.success && oldSheetResults.success,
+        message: message,
+        templateResults: templateResults,
+        oldSheetResults: oldSheetResults
+      };
+      
+      onTemplateAndOldSheetAccessCheckSuccess(result);
+      
+    } catch (error) {
+      console.error("Parallel access check failed:", error);
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+      
+      cachedTemplateInfo = null;
+      cachedSheetIds = null;
+      
+      onTemplateAndOldSheetAccessCheckFailure(error);
+    }
+  }
+
+  function onTemplateAndOldSheetAccessCheckSuccess(result) {
+    console.log("Template and sheet access check result:", result);
+    
+    if (result.success) {
+      // Update all file caches with results
+      accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
+      inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
+      notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
+      templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
+      templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
+      
+      const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
+      
+      // Check if any files still need access permission
+      if (totalInaccessibleFiles > 0) {
+        // Still have inaccessible files - open picker again
+        let statusMessages = [];
+        if (templateInaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${templateInaccessibleFilesCache.length} template(s)`);
+        }
+        if (inaccessibleFilesCache.length > 0) {
+          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
+        }
+        
+        document.getElementById("statusText").innerText = `${statusMessages.join(' and ')} still need access. Opening file picker...`;
+        
+        console.log("Still have inaccessible files, opening picker again:", {
+          templates: templateInaccessibleFilesCache,
+          oldSheets: inaccessibleFilesCache
+        });
+        
+        // Directly open the multi-file picker
+        openMultiFilePicker();
+        return;
+      }
+      
+      // All files are accessible - proceed with template copying using stored copy mode
+      document.getElementById("statusText").innerText = "All files accessible. Proceeding with template copying...";
+      console.log("All files accessible, proceeding with template copying using mode:", currentCopyMode);
+      
+      // Call the template copying function from the fileAccess scripts
+      if (typeof proceedWithTemplateCopying === 'function') {
+        proceedWithTemplateCopying(currentCopyMode);
+      } else {
+        console.error("proceedWithTemplateCopying function not available");
+        document.getElementById("statusText").innerText = "Error: Template copying function not available.";
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("copyUpdateButton").disabled = false;
+      }
+    } else {
+      console.error("Template and sheet access check failed:", result.message);
+      document.getElementById("statusText").innerText = `${result.message}`;
+      accessibleFilesCache = [];
+      inaccessibleFilesCache = [];
+      notOwnedFilesCache = [];
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
+      document.getElementById("copyButton").disabled = false;
+      document.getElementById("copyUpdateButton").disabled = false;
+    }
+  }
+
+  function onTemplateAndOldSheetAccessCheckFailure(error) {
+    console.error("Template and sheet access check error:", error);
+    document.getElementById("statusText").innerText = `Error checking template/sheet access: ${error.message || error}`;
+    accessibleFilesCache = [];
+    inaccessibleFilesCache = [];
+    notOwnedFilesCache = [];
+    templateAccessibleFilesCache = [];
+    templateInaccessibleFilesCache = [];
+    document.getElementById("copyButton").disabled = false;
+    document.getElementById("copyUpdateButton").disabled = false;
+  }
+
   // Client-side wrapper functions for parallel access checking
   async function checkMultipleSheetAccess(fileIds, userEmail) {
     try {
