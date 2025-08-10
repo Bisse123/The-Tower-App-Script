@@ -777,7 +777,7 @@
     // Show master link if there are updated files
     if (updatedFiles && updatedFiles.length > 0) {
       summaryHtml += `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>`;
-      summaryHtml += `<br><a href="docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+      summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
     }
     
     // Show comprehensive file status across all workflow stages
@@ -874,7 +874,7 @@
         document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Master updated successfully!`;
         document.getElementById(
           "selectedFileSummary"
-        ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+        ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
       }
     } else {
       document.getElementById(
@@ -1033,7 +1033,7 @@
               });
 
               // Immediately add successful link to display
-              linksHtml += `<br><a href="docs.google.com/spreadsheets/d/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
+              linksHtml += `<br><a href="${googleLink}/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
             } else {
               failedCount++;
               const errorMessage = result.message || 'Copy operation returned unsuccessful result';

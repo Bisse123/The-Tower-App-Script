@@ -64,6 +64,7 @@ const collection = {
         "formulas": {
           "Lab Planner": {"sheetName": "Lab Planner", "range": "Lab Planner"},
           "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"}, 
+          "UW Cost Calculator": {"sheetName": "UW Cost Calculator v3", "range": "UW Cost Calculator v3"},
           "Card Preset": {"sheetName": "Card Preset", "range": "Card Preset"}
         }
       };
@@ -195,10 +196,24 @@ const collection = {
         try {
           var ultimateData = data["Ultimate Weapon"];
           var ultimateMasterSheetData = getRangeData("UW_MS", "values");
+          var ultimateCostCalculatorData = getRangeData("UW Cost Calculator", "formulas");
           
           var ultimateResult = ultimate.updateUltimateLevels(ultimateData.targetWeapons, sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
           if (ultimateResult && ultimateResult.success) {
             batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
+            
+            // Update cost calculator if data exists
+            if (ultimateData.oldUltimateCostCalculator && ultimateCostCalculatorData) {
+              var ultimateCostCalculatorResult = ultimate.updateUltimateCostCalculator(
+                ultimateData.targetWeapons, 
+                sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName, 
+                ultimateData.oldUltimateCostCalculator, 
+                ultimateCostCalculatorData
+              );
+              if (ultimateCostCalculatorResult && ultimateCostCalculatorResult.success) {
+                batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
+              }
+            }
             
             updateResults.push({ 
               sheetType: "Ultimate Weapon", 
@@ -587,6 +602,7 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
           "Card Preset": "Card Preset"              // Cards preset data (full sheet)
         }
       };
@@ -665,9 +681,11 @@ const collection = {
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      if (ultimateResult && ultimateResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
+      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
         var ultimateValues = ultimateResult.values;
-        var ultimateData = ultimate.getVersion10Values(ultimateValues);
+        var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
+        var ultimateData = ultimate.getVersion10Values(ultimateValues, ultimateCostCalculatorValues);
         collectedData["Ultimate Weapon"] = ultimateData;
       }
 

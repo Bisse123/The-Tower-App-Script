@@ -106,7 +106,7 @@ const lab = {
           console.log(`Error updating lab planner: ${labPlannerResult.message}`);
           return labPlannerResult;
         }
-        batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate);
+        batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
       // Add import status update to batch
