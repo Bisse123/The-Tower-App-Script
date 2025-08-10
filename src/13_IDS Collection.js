@@ -593,6 +593,7 @@ const collection = {
           "Relics": "Relics",                       // Relics data (full sheet)
           "Vault Harmony": "Vault_Harmony",         // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power",             // Vault power data (full sheet)
+          "Card Preset": "Card Preset",              // Cards preset data (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D",      // Cards level data
           "Cards Slots": "EXPORT_Cards!C2",         // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -602,8 +603,7 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Card Preset": "Card Preset"              // Cards preset data (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
         }
       };
       
@@ -724,7 +724,7 @@ const collection = {
       }
 
       // Cards data
-      var cardsPresetResult = getBatchResult("Card Preset", "formulas");
+      var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
