@@ -68,12 +68,8 @@ const SheetsAPI = {
 
   batchUpdateValues: function (spreadsheetId, updates) {
     try {
-      const data = updates.map((update) => ({
-        range: update.range,
-        values: update.values,
-      }));
       const requestBody = {
-        data: data,
+        data: updates,
         valueInputOption: "USER_ENTERED",
       };
       return Sheets.Spreadsheets.Values.batchUpdate(requestBody, spreadsheetId);
@@ -112,11 +108,18 @@ const shared = {
         var latestVersionCol = values[row].findIndex(
           (cell) => typeof cell === "string" && cell.includes("Latest remote version :")
         );
+        var oldVersionCol = values[row].findIndex(
+          (cell) => typeof cell === "string" && cell.includes("Version Check")
+        );
         if (currentVersionCol !== -1) {
           var currentVersion = values[row + 1][currentVersionCol];
         }
         if (latestVersionCol !== -1) {
           var latestVersion = values[row + 1][latestVersionCol];
+        }
+        if (oldVersionCol !== -1) {
+          var currentVersion = values[row + 1][oldVersionCol];
+          break;
         }
         if (currentVersion && latestVersion) {
           break;
@@ -406,30 +409,37 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       };
     }
 
-    var idCell = null;
-    var idMasterSpreadsheetInfo = null;
+    var idData = null;
     
     // Only update ID Master reference if it's not an IDS Collection or if we need to update the master
     if (!isIDSCollection) {
-      idMasterSpreadsheetInfo = shared.findSheetTypeID(
+      var idMasterSpreadsheetInfo = shared.findSheetTypeID(
         effectiveIdMasterID,
         "IDS",
         sheetType
       );
-      if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.cell) {
-        console.log(`Could not find ID Master spreadsheet info`);
+      if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.cell || !idMasterSpreadsheetInfo.cell.range) {
+        console.log(`IDS Master cell range not found`);
         return {
           success: false,
-          message: `Could not find ID Master spreadsheet™ info`
+          message: `IDS Master cell range not found`
         };
       }
-      idCell = idMasterSpreadsheetInfo.cell;
-      if (!idCell.range) {
-        console.log(`ID Master cell range not found`);
+      idData = {
+        range: idMasterSpreadsheetInfo.cell.range,
+        values: [[newSheetID]],
+      }
+    } else {
+      if (!newSheetTypeInfo || !newSheetTypeInfo.cell || !newSheetTypeInfo.cell.range) {
+        console.log(`ID Collection cell range not found`);
         return {
           success: false,
-          message: `ID Master cell range not found`
+          message: `ID Collection cell range not found`
         };
+      }
+      idData = {
+        range: newSheetTypeInfo.cell.range,
+        values: [[""]]
       }
     }
 
@@ -500,14 +510,10 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
       };
     }
 
-    // Update ID Master sheet reference only for non-IDS Collection sheets
-    if (!isIDSCollection && idCell) {
+    if (idData) {
       try {
         SheetsAPI.batchUpdateValues(effectiveIdMasterID, [
-          {
-            range: idCell.range,
-            values: [[newSheetID]],
-          },
+          idData,
         ]);
       } catch (error) {
         console.log(`Error updating ID Master sheet: ${error.toString()}`);
@@ -693,17 +699,18 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       if (sheetTypeFunction) {
         versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
         if (!versionDifference) {
-          console.log(`Old version of ${sheetType} is incompatible for import.`);
+          console.log(`Old version of ${sheetType} is incompatible for import (${oldVersion})`);
           return {
             success: false,
-            message: `Old version of ${sheetType} is incompatible for import.`,
+            message: `Old version of ${sheetType} is incompatible for import (${oldVersion}).`,
             imported: false
           };
         }
       } else {
+        console.log(`No compatibility function found for ${sheetType}. Assuming incompatible.`);
         return {
           success: false,
-          message: `Old version of ${sheetType} is incompatible for import.`,
+          message: `No compatibility function found for ${sheetType}. Assuming incompatible.`,
           imported: false
         };
       }

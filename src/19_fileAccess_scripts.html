@@ -1215,9 +1215,9 @@
   }
 
   function onImportStatusAndCompatibilitySuccess(result) {
-    document.getElementById("importButton").disabled = false;
     console.log("Import status and compatibility result:", result);
     if (result.success) {
+      document.getElementById("importButton").disabled = false;
       document.getElementById("statusText").innerText = `${result.message}`;
       if (result.versionDifference) {
         versionDifference = result.versionDifference;
@@ -1230,14 +1230,16 @@
         showAccessibleFilesSummary();
       }
     } else {
+      document.getElementById("importButton").disabled = true;
+      document.getElementById("updateMasterButton").disabled = true;
       document.getElementById(
         "statusText"
-      ).innerText = `${result.message}`;
+      ).innerText = `Import status and compatibility failed: ${result.message}`;
     }
   }
 
   function onImportStatusAndCompatibilityFailure(error) {
-    document.getElementById("importButton").disabled = false;
+    document.getElementById("importButton").disabled = true;
     document.getElementById("updateMasterButton").disabled = true;
     console.error("Import status and compatibility error:", error);
     document.getElementById(
