@@ -106,7 +106,7 @@ const lab = {
           console.log(`Error updating lab planner: ${labPlannerResult.message}`);
           return labPlannerResult;
         }
-        batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate);
+        batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
       // Add import status update to batch
@@ -182,7 +182,7 @@ const lab = {
           if (!cellValue || cellValue.trim() === "") break;
 
           var oldLabLevel = oldLabLevels[cellValue];
-          if (oldLabLevel) {
+          if (oldLabLevel && oldLabLevel.length >= 2) {
             newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || ""]);
           } else {
             var currentLevel = masterSheetData[row][col] || 0;
@@ -454,6 +454,7 @@ const lab = {
 
   getVersion10Values: function (oldLabLevelsValues, oldLabPlannerValues) {
     try {
+      
       var oldLabLevels = {};
       var oldLabMax = {};
       oldLabLevelsValues.forEach(function (row) {
@@ -468,7 +469,7 @@ const lab = {
           oldLabMax[row[0]] = row[3] || "";
         }
       });
-
+      
       if (!oldLabPlannerValues) {
         console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
         return {
@@ -477,7 +478,7 @@ const lab = {
           oldLabLevels: oldLabLevels,
         };
       }
-
+      
       var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
       var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
       var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
@@ -521,11 +522,11 @@ const lab = {
               }
               lastNonEmptyRow = i - (rowIndex + 3);
               var plannerLevel = oldLabPlannerValues[i][firstColIndex] || "";
-              if (plannerLevel === oldLabLevels[labName][0]) {
+              if (oldLabLevels[labName] && plannerLevel === oldLabLevels[labName][0]) {
                 plannerLevel = "";
               }
               var plannerTarget = oldLabPlannerValues[i][firstColIndex + 1] || "";
-              if (plannerTarget === oldLabLevels[labName][1] || plannerTarget === oldLabMax[labName]) {
+              if (oldLabLevels[labName] && (plannerTarget === oldLabLevels[labName][1] || plannerTarget === oldLabMax[labName])) {
                 plannerTarget = "";
               }
               

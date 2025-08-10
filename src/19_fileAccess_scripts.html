@@ -1,6 +1,4 @@
-<script>
-  // File Access section functions
-  
+﻿<script>
   function showFileAccessSection() {
     var selectImportSection = document.getElementById("selectImportSection");
     var fileAccessSection = document.getElementById("fileAccessSection");
@@ -22,97 +20,378 @@
     openMultiFilePicker();
   }
 
-  function checkCompatibility() {
+  function importData() {
     document.getElementById("importButton").disabled = true;
     document.getElementById("updateMasterButton").disabled = true;
-    document.getElementById(
-      "statusText"
-    ).innerText = `Checking ${sheetType} version compatibility...`;
     if (sheetType === "IDS Master") {
-      const totalAvailableFiles = (copiedTemplateFiles || []).length + (importedFilesFailed || []).length;
+      const totalAvailableFiles = (copiedTemplateFiles || []).length + (importedFilesFailed || []).length + (exportedFilesFailed || []).length;
       if (totalAvailableFiles === 0) {
         document.getElementById("statusText").innerText = "No copied sheets available for import. Please copy templates first.";
         return;
       }
-      
-      document.getElementById("importButton").disabled = true;
+
       document.getElementById("statusText").innerText = `Preparing import for ${totalAvailableFiles} sheets...`;
       
       google.script.run
         .withSuccessHandler(onprepareImportDataSuccess)
         .withFailureHandler(onprepareImportDataFailure)
-        .prepareImportData(idMasterID, copiedTemplateFiles || [], importedFilesFailed || []);
-      
+        .prepareImportData(idMasterID, copiedTemplateFiles || [], importedFilesFailed || [], exportedFilesFailed || []);
       return;
     }
-    google.script.run
-      .withSuccessHandler(onCompatibilitySuccess)
-      .withFailureHandler(onCompatibilityFailure)
-      .checkCompatibility(newSheetID, oldSheetID, sheetType);
-  }
+    var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : sheetType;
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file" && versionDifference === "None") {
+      document.getElementById("statusText").innerText = `Preparing import for sheet...`;
+      const sheetTypes = [
+        "Laboratory",
+        "Workshop", 
+        "Ultimate Weapon",
+        "Themes & Songs",
+        "Bots",
+        "Relics",
+        "Vault",
+        "Cards",
+        "Modules",
+        "Guardians"
+      ];
+      sheetTypes.forEach(type => {
+        copiedTemplateFiles.push({
+          sheetType: type,
+          fileId: newSheetID,
+        });
+      });
+      google.script.run
+        .withSuccessHandler(async function(result) {
+              console.log("Import preparation result:", result);
+  
+              if (!result.succeededTasks || result.succeededTasks.length === 0) {
+                document.getElementById("importButton").disabled = false;
+                
+                // Show generic message in status text
+                const statusMessage = result.failedTasks && result.failedTasks.length > 0 
+                  ? "Import preparation failed for all tasks."
+                  : "No valid import tasks prepared.";
+                document.getElementById("statusText").innerText = statusMessage;
+                
+                // Show detailed error messages for each failed task in the summary
+                if (result.failedTasks && result.failedTasks.length > 0) {
+                  let summaryHtml = "<strong>❌ Import Preparation Failed:</strong><br>";
+                  result.failedTasks.forEach(task => {
+                    summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
+                  });
+                  document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+                }
+                
+                return;
+              }
+              
+              if (result.failedTasks && result.failedTasks.length > 0) {
+                console.warn(`${result.failedTasks.length} tasks failed during preparation:`, result.failedTasks);
+              }
 
-  function onCompatibilitySuccess(result) {
-    if (result.success) {
-      document.getElementById("statusText").innerText = `${result.message}`;
-      console.log("Version difference:", result.versionDifference);
-      importData(result.versionDifference);
-    } else {
-      document.getElementById(
-        "statusText"
-      ).innerText = `Version check failed: ${result.message}`;
+              try {
+                // First, export all data
+                document.getElementById("statusText").innerText = `Exporting data from ${result.succeededTasks.length} sheets...`;
+                const exportResults = await exportAllData(result.succeededTasks);
+                
+                console.log("Export results:", exportResults);
+                
+                if (exportResults.failedCount > 0) {
+                  console.warn(`${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`);
+                }
+                
+                // Check if we have any successful exports to import
+                if (exportedFilesSuccess.length === 0) {
+                  document.getElementById("importButton").disabled = false;
+                  document.getElementById("statusText").innerText = "No data was successfully exported. Cannot proceed with import.";
+                  return;
+                }
+                // Create nested dictionary structure where each sheet type has its own data dictionary
+                const exportedData = {};
+                exportedFilesSuccess.forEach(exportedFile => {
+                  if (exportedFile.exportData && exportedFile.sheetType) {
+                    exportedData[exportedFile.sheetType] = exportedFile.exportData;
+                  }
+                });
+                
+                // Now proceed with imports
+                document.getElementById("statusText").innerText = `Importing ${updateType} data...`;
+                google.script.run
+                  .withSuccessHandler(onImportSuccess)
+                  .withFailureHandler(onImportFailure)
+                  .importData(
+                    newSheetID,
+                    sheetType,
+                    exportedData
+                  );
+
+              } catch (error) {
+                console.error("Error in export/import process:", error);
+                document.getElementById("importButton").disabled = false;
+                document.getElementById("statusText").innerText = `Error during export/import process: ${error.message || error}`;
+              }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById("importButton").disabled = false;
+          console.error("Import preparation failed:", error);
+          document.getElementById("statusText").innerText = `Import preparation error: ${error.message || error}`;
+        })
+        .prepareImportData(oldSheetID, copiedTemplateFiles);
+      return;
     }
-  }
-
-  function onCompatibilityFailure(error) {
-    document.getElementById("importButton").disabled = false;
-    document.getElementById("updateMasterButton").disabled = false;
-    console.error("Version check error:", error);
-    document.getElementById("statusText").innerText = `Version check error: ${
-      error.message || error
-    }`;
-  }
-
-  function importData(versionDifference) {
+    
+    // For non-IDS Master sheets, first export data, then import it
     document.getElementById(
       "statusText"
-    ).innerText = `Importing ${sheetType} data...`;
-
+    ).innerText = `Exporting ${updateType} data...`;
+    
     google.script.run
-      .withSuccessHandler(onImportSuccess)
-      .withFailureHandler(onImportFailure)
-      .importData(
-        newSheetID,
+      .withSuccessHandler(function(exportResult) {
+        if (exportResult.success) {
+          document.getElementById(
+            "statusText"
+          ).innerText = `Importing ${updateType} data...`;
+          
+          // Now call importData with the exported data
+          google.script.run
+            .withSuccessHandler(onImportSuccess)
+            .withFailureHandler(onImportFailure)
+            .importData(
+              newSheetID,
+              sheetType,
+              exportResult.data
+            );
+        } else {
+          document.getElementById("importButton").disabled = false;
+          document.getElementById("statusText").innerText = `Export failed: ${exportResult.message}`;
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById("importButton").disabled = false;
+        console.error("Export error:", error);
+        document.getElementById("statusText").innerText = `Export error: ${error.message || error}`;
+      })
+      .exportData(
         oldSheetID,
-        idMasterID,
         sheetType,
         versionDifference
       );
   }
 
-  function onprepareImportDataSuccess(result) {
+  async function onprepareImportDataSuccess(result) {
     console.log("Import preparation result:", result);
     
-    if (!result.importTasks || result.importTasks.length === 0) {
+    if (!result.succeededTasks || result.succeededTasks.length === 0) {
       document.getElementById("importButton").disabled = false;
-      const failureMessage = result.failedTasks && result.failedTasks.length > 0 
-        ? `Import preparation failed: ${result.failedTasks[0].message}`
+      
+      // Show generic message in status text
+      const statusMessage = result.failedTasks && result.failedTasks.length > 0 
+        ? "Import preparation failed for all tasks."
         : "No valid import tasks prepared.";
-      document.getElementById("statusText").innerText = failureMessage;
+      document.getElementById("statusText").innerText = statusMessage;
+      
+      // Show detailed error messages for each failed task in the summary
+      if (result.failedTasks && result.failedTasks.length > 0) {
+        let summaryHtml = "<strong>❌ Import Preparation Failed:</strong><br>";
+        result.failedTasks.forEach(task => {
+          summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
+        });
+        document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+      }
+      
       return;
     }
     
     if (result.failedTasks && result.failedTasks.length > 0) {
       console.warn(`${result.failedTasks.length} tasks failed during preparation:`, result.failedTasks);
     }
-    
-    document.getElementById("statusText").innerText = `Executing ${result.importTasks.length} imports...`;
-    importAllData(result.importTasks);
+
+    try {
+      // First, export all data
+      document.getElementById("statusText").innerText = `Exporting data from ${result.succeededTasks.length} sheets...`;
+      const exportResults = await exportAllData(result.succeededTasks);
+      
+      console.log("Export results:", exportResults);
+      
+      if (exportResults.failedCount > 0) {
+        console.warn(`${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`);
+      }
+      
+      // Check if we have any successful exports to import
+      if (exportedFilesSuccess.length === 0) {
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("statusText").innerText = "No data was successfully exported. Cannot proceed with import.";
+        return;
+      }
+      
+      // Create import tasks based on successfully exported files
+      const importTasks = exportedFilesSuccess.map(exportedFile => ({
+        newSheetID: exportedFile.fileId,
+        sheetType: exportedFile.sheetType,
+        exportData: exportedFile.exportData,
+      }));
+      
+      // Now proceed with imports
+      document.getElementById("statusText").innerText = `Importing data into ${importTasks.length} sheets...`;
+      await importAllData(importTasks);
+      
+    } catch (error) {
+      console.error("Error in export/import process:", error);
+      document.getElementById("importButton").disabled = false;
+      document.getElementById("statusText").innerText = `Error during export/import process: ${error.message || error}`;
+    }
   }
 
   function onprepareImportDataFailure(error) {
     document.getElementById("importButton").disabled = false;
     document.getElementById("statusText").innerText = `Import preparation error: ${error.message || error}`;
     console.error("Import preparation failed:", error);
+  }
+
+  async function exportAllData(exportTasks) {
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    const totalTasks = exportTasks.length;
+
+    try {
+      console.log(`Starting ${totalTasks} exports`);
+      
+      // Create promises for all export operations
+      const exportPromises = exportTasks.map((task, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting export for ${task.sheetType}`);
+          
+          google.script.run
+            .withSuccessHandler(function(result) {
+              completedCount++;
+              if (result.success) {
+                successCount++;
+                console.log(`✅ ${task.sheetType} export completed successfully`);
+                
+                // Check both arrays for the file to move to success
+                let exportedFile = null;
+                let sourceArray = null;
+                
+                // First check copiedTemplateFiles
+                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+                if (copiedFileIndex !== -1) {
+                  exportedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  sourceArray = 'copied';
+                } else {
+                  // Then check exportedFilesFailed (for retry attempts)
+                  const failedFileIndex = exportedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                  if (failedFileIndex !== -1) {
+                    exportedFile = exportedFilesFailed.splice(failedFileIndex, 1)[0];
+                    sourceArray = 'failed';
+                  }
+                }
+                
+                if (exportedFile) {
+                  exportedFilesSuccess.push({
+                    ...exportedFile,
+                    oldSheetID: task.oldSheetID,
+                    idMasterID: task.idMasterID,
+                    exportData: result.data
+                  });
+                  console.log(`Moved ${task.sheetType} from ${sourceArray} to exported success`);
+                } else {
+                  console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or exportedFilesFailed`);
+                }
+              } else {
+                failedCount++;
+                console.error(`❌ ${task.sheetType} export failed:`, result.message);
+                
+                // Move failed export from copiedTemplateFiles to exportedFilesFailed
+                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+                if (copiedFileIndex !== -1) {
+                  const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                  exportedFilesFailed.push({
+                    ...failedFile,
+                    error: result.message || 'Export failed',
+                    oldSheetID: task.oldSheetID,
+                    idMasterID: task.idMasterID
+                  });
+                  console.log(`Moved ${task.sheetType} from copied to export failed with error: ${result.message}`);
+                } else {
+                  // File was already in exportedFilesFailed (retry attempt) - update error info
+                  const failedFileIndex = exportedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                  if (failedFileIndex !== -1) {
+                    exportedFilesFailed[failedFileIndex].error = result.message || 'Export failed';
+                    console.log(`Updated error for ${task.sheetType} in export failed list: ${result.message}`);
+                  }
+                }
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                ...result,
+                sheetType: task.sheetType,
+                taskIndex: index
+              });
+            })
+            .withFailureHandler(function(error) {
+              completedCount++;
+              failedCount++;
+              console.error(`❌ ${task.sheetType} export error:`, error);
+              
+              // Move failed export from copiedTemplateFiles to exportedFilesFailed
+              const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
+              if (copiedFileIndex !== -1) {
+                const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                exportedFilesFailed.push({
+                  ...failedFile,
+                  error: error.message || error,
+                  oldSheetID: task.oldSheetID,
+                  idMasterID: task.idMasterID
+                });
+                console.log(`Moved ${task.sheetType} from copied to export failed with error: ${error.message || error}`);
+              } else {
+                // File was already in exportedFilesFailed (retry attempt) - update error info
+                const failedFileIndex = exportedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                if (failedFileIndex !== -1) {
+                  exportedFilesFailed[failedFileIndex].error = error.message || error;
+                  console.log(`Updated error for ${task.sheetType} in export failed list: ${error.message || error}`);
+                }
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+              
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetType: task.sheetType,
+                taskIndex: index
+              });
+            })
+            .exportData(
+              task.oldSheetID,
+              task.sheetType,
+              task.versionDifference
+            );
+        });
+      });
+      
+      // Wait for all exports to complete
+      const results = await Promise.all(exportPromises);
+      
+      // Return export results summary
+      return {
+        success: failedCount === 0,
+        totalTasks,
+        successCount,
+        failedCount,
+        results
+      };
+      
+    } catch (error) {
+      console.error("Error in export execution:", error);
+      throw error;
+    }
   }
 
   async function importAllData(importTasks) {
@@ -129,7 +408,27 @@
         return new Promise((resolve) => {
           console.log(`Starting import for ${task.sheetType}`);
           
-          // Call importData directly - it will handle setting up spreadsheet references
+          // Find the corresponding exported file data
+          const exportedFile = exportedFilesSuccess.find(f => f.sheetType === task.sheetType);
+          if (!exportedFile || !exportedFile.exportData) {
+            completedCount++;
+            failedCount++;
+            const errorMessage = `No exported data found for ${task.sheetType}`;
+            console.error(`❌ ${errorMessage}`);
+            
+            // Update status
+            document.getElementById("statusText").innerText = 
+              `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+            
+            resolve({
+              success: false,
+              message: errorMessage,
+              sheetType: task.sheetType,
+              taskIndex: index
+            });
+            return;
+          }
+          
           google.script.run
             .withSuccessHandler(function(result) {
               completedCount++;
@@ -137,64 +436,40 @@
                 successCount++;
                 console.log(`✅ ${task.sheetType} import completed successfully`);
                 
-                // Check both arrays for the file to move to success
-                let importedFile = null;
-                let sourceArray = null;
-                
-                // First check copiedTemplateFiles
-                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
-                if (copiedFileIndex !== -1) {
-                  importedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
-                  sourceArray = 'copied';
+                // Move successfully imported file from exportedFilesSuccess to importedFilesSuccess
+                const exportedFileIndex = exportedFilesSuccess.findIndex(f => f.sheetType === task.sheetType);
+                if (exportedFileIndex !== -1) {
+                  const importedFile = exportedFilesSuccess.splice(exportedFileIndex, 1)[0];
+                  // Remove exportData from the imported file object as it's no longer needed
+                  const { exportData, ...fileWithoutExportData } = importedFile;
+                  importedFilesSuccess.push(fileWithoutExportData);
+                  console.log(`Moved ${task.sheetType} from exported success to imported success`);
                 } else {
-                  // Then check importedFilesFailed
-                  const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
-                  if (failedFileIndex !== -1) {
-                    importedFile = importedFilesFailed.splice(failedFileIndex, 1)[0];
-                    sourceArray = 'failed';
-                  }
-                }
-                
-                if (importedFile) {
-                  importedFilesSuccess.push({
-                    ...importedFile,
-                    oldSheetID: task.oldSheetID,
-                    idMasterID: task.idMasterID
-                  });
-                  console.log(`Moved ${task.sheetType} from ${sourceArray} to success`);
-                } else {
-                  console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed`);
+                  console.warn(`Could not find ${task.sheetType} in exportedFilesSuccess after successful import`);
                 }
               } else {
                 failedCount++;
                 console.error(`❌ ${task.sheetType} import failed:`, result.message);
                 
-                // Move failed import from copiedTemplateFiles to importedFilesFailed
-                const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
-                if (copiedFileIndex !== -1) {
-                  const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+                // Move failed import from exportedFilesSuccess to importedFilesFailed
+                const exportedFileIndex = exportedFilesSuccess.findIndex(f => f.sheetType === task.sheetType);
+                if (exportedFileIndex !== -1) {
+                  const failedFile = exportedFilesSuccess.splice(exportedFileIndex, 1)[0];
+                  // Remove exportData from the failed file object
+                  const { exportData, ...fileWithoutExportData } = failedFile;
                   importedFilesFailed.push({
-                    ...failedFile,
-                    error: result.message || 'Import failed',
-                    oldSheetID: task.oldSheetID,
-                    idMasterID: task.idMasterID
+                    ...fileWithoutExportData,
+                    error: result.message || 'Import failed'
                   });
-                  console.log(`Moved ${task.sheetType} from copied to failed with error: ${result.message}`);
+                  console.log(`Moved ${task.sheetType} from exported success to imported failed with error: ${result.message}`);
                 } else {
-                  // File was already in importedFilesFailed (retry attempt) - update error info
-                  const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
-                  if (failedFileIndex !== -1) {
-                    importedFilesFailed[failedFileIndex].error = result.message || 'Import failed';
-                    console.log(`Updated error for ${task.sheetType} in failed list: ${result.message}`);
-                  } else {
-                    console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed for failure handling`);
-                  }
+                  console.warn(`Could not find ${task.sheetType} in exportedFilesSuccess for failure handling`);
                 }
               }
               
               // Update status
               document.getElementById("statusText").innerText = 
-                `Imports progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
               
               resolve({
                 ...result,
@@ -207,31 +482,24 @@
               failedCount++;
               console.error(`❌ ${task.sheetType} import error:`, error);
               
-              // Move failed import from copiedTemplateFiles to importedFilesFailed
-              const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
-              if (copiedFileIndex !== -1) {
-                const failedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
+              // Move failed import from exportedFilesSuccess to importedFilesFailed
+              const exportedFileIndex = exportedFilesSuccess.findIndex(f => f.sheetType === task.sheetType);
+              if (exportedFileIndex !== -1) {
+                const failedFile = exportedFilesSuccess.splice(exportedFileIndex, 1)[0];
+                // Remove exportData from the failed file object
+                const { exportData, ...fileWithoutExportData } = failedFile;
                 importedFilesFailed.push({
-                  ...failedFile,
-                  error: error.message || error,
-                  oldSheetID: task.oldSheetID,
-                  idMasterID: task.idMasterID
+                  ...fileWithoutExportData,
+                  error: error.message || error
                 });
-                console.log(`Moved ${task.sheetType} from copied to failed with error: ${error.message || error}`);
+                console.log(`Moved ${task.sheetType} from exported success to imported failed with error: ${error.message || error}`);
               } else {
-                // File was already in importedFilesFailed (retry attempt) - update error info
-                const failedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
-                if (failedFileIndex !== -1) {
-                  importedFilesFailed[failedFileIndex].error = error.message || error;
-                  console.log(`Updated error for ${task.sheetType} in failed list: ${error.message || error}`);
-                } else {
-                  console.warn(`Could not find ${task.sheetType} in either copiedTemplateFiles or importedFilesFailed for error handling`);
-                }
+                console.warn(`Could not find ${task.sheetType} in exportedFilesSuccess for error handling`);
               }
               
               // Update status
               document.getElementById("statusText").innerText = 
-                `Imports progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`;
               
               resolve({
                 success: false,
@@ -242,10 +510,8 @@
             })
             .importData(
               task.newSheetID,
-              task.oldSheetID,
-              task.idMasterID,
               task.sheetType,
-              task.versionDifference
+              task.exportData
             );
         });
       });
@@ -279,8 +545,10 @@
       
       console.log("Import results:", results);
       console.log("Remaining copiedTemplateFiles:", copiedTemplateFiles);
-      console.log("Successfully importedFilesSuccess:", importedFilesSuccess);
-      console.log("Failed importedFilesFailed:", importedFilesFailed);
+      console.log("Remaining exportedFilesSuccess:", exportedFilesSuccess);
+      console.log("Remaining exportedFilesFailed:", exportedFilesFailed);
+      console.log("Remaining importedFilesSuccess:", importedFilesSuccess);
+      console.log("Remaining importedFilesFailed:", importedFilesFailed);
       
     } catch (error) {
       console.error("Error in import execution:", error);
@@ -294,13 +562,23 @@
     document.getElementById("importButton").disabled = false;
     console.log("Import result:", result);
     if (result.success) {
+      var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : "IDS Master";
       document.getElementById("statusText").innerText = `${result.message}`;
       document.getElementById("updateMasterButton").disabled = false;
       document.getElementById(
         "selectedFileSummary"
-      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
+      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${updateType}! ⚠️</strong><br>`;
       showAccessibleFilesSummary();
     } else {
+      if (result.failedUpdates && result.failedUpdates.length > 0) {
+        let summaryHtml = "<strong>❌ Import Failed:</strong><br>";
+        result.failedUpdates.forEach(update => {
+          summaryHtml += `&nbsp;&nbsp;• ${update.sheetType}: ${update.message}<br>`;
+        });
+        document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+      } else {
+        document.getElementById("selectedFileSummary").innerText = "Import failed with no specific updates.";
+      }
       document.getElementById(
         "statusText"
       ).innerText = `Import failed: ${result.message}`;
@@ -499,7 +777,7 @@
     // Show master link if there are updated files
     if (updatedFiles && updatedFiles.length > 0) {
       summaryHtml += `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>`;
-      summaryHtml += `<br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+      summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
     }
     
     // Show comprehensive file status across all workflow stages
@@ -509,6 +787,14 @@
       summaryHtml += `<br><strong>📋 Sheets (Ready for Import):</strong><br>`;
       copiedTemplateFiles.forEach(file => {
         summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
+      });
+    }
+    
+    // Show files that failed to export
+    if (exportedFilesFailed && exportedFilesFailed.length > 0) {
+      summaryHtml += `<br><strong>❌ Export Failed (Requires Retry):</strong><br>`;
+      exportedFilesFailed.forEach(file => {
+        summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version} - ${file.error}<br>`;
       });
     }
     
@@ -543,23 +829,138 @@
   }
 
   // Handle successful processing
-  function onUpdateSheetSuccess(result) {
+  async function onUpdateSheetSuccess(result) {
     document.getElementById("importButton").disabled = false;
     document.getElementById("updateMasterButton").disabled = false;
     if (result.success) {
-      var gid = result.gid || "";
-      console.log("Update IDS Master result:", result);
-      document.getElementById("statusText").innerText = result.message;
       document.getElementById("importButton").style.display = "none";
       document.getElementById("updateMasterButton").style.display = "none";
-      document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Master updated successfully!`;
-      document.getElementById(
-        "selectedFileSummary"
-      ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="https://docs.google.com/spreadsheets/d/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+      var gid = result.gid || "";
+      console.log("Update IDS Master result:", result);
+      
+      // Check if this is an IDS Collection update
+      if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+        // Check if there are cached sheet IDs that need cleanup
+        if (cachedSheetIds && cachedSheetIds.length > 0) {
+          console.log(`IDS Collection updated successfully. Checking ${cachedSheetIds.length} cached sheet IDs for cleanup...`);
+          
+          // Filter to get only sheet IDs that are not the old or new sheet IDs
+          const sheetsToDelete = cachedSheetIds.filter(sheetId => 
+            sheetId && sheetId !== oldSheetID && sheetId !== newSheetID
+          );
+          
+          if (sheetsToDelete.length > 0) {
+            // Delete all the filtered subsheets
+            await deleteImportedSubsheets(sheetsToDelete);
+            
+            document.getElementById("statusText").innerText = `${result.message} Cleaning up ${sheetsToDelete.length} old subsheets...`;
+            document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Collection updated! Cleaning up subsheets...`;
+          } else {
+            console.log("Skipping subsheet cleanup - no valid sheet IDs found for deletion");
+            document.getElementById("statusText").innerText = result.message;
+            document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Collection updated successfully!`;
+          }
+        } else {
+          console.log("Skipping subsheet cleanup - no cached sheet IDs available");
+          document.getElementById("statusText").innerText = result.message;
+          document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Collection updated successfully!`;
+        }
+        
+        document.getElementById(
+          "selectedFileSummary"
+        ).innerHTML = `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>Your data has been consolidated into your IDS Collection sheet.</strong>`;
+      } else {
+        document.getElementById("statusText").innerText = result.message;
+        document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Master updated successfully!`;
+        document.getElementById(
+          "selectedFileSummary"
+        ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+      }
     } else {
       document.getElementById(
         "statusText"
       ).innerText = `Update IDS Master failed: ${result.message}`;
+    }
+  }
+
+  async function deleteImportedSubsheets(sheetIds) {
+    let deletedCount = 0;
+    let failedDeletions = [];
+    const totalDeletions = sheetIds.length;
+
+    try {
+      console.log(`Starting deletion of ${totalDeletions} subsheets`);
+      
+      // Create promises for all deletion operations
+      const deletionPromises = sheetIds.map((sheetId, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting deletion of sheet ID: ${sheetId}`);
+          
+          google.script.run
+            .withSuccessHandler(function(result) {
+              if (result.success) {
+                deletedCount++;
+                console.log(`✅ Sheet ${sheetId} deleted successfully`);
+              } else {
+                failedDeletions.push({
+                  sheetId: sheetId,
+                  error: result.message
+                });
+                console.error(`❌ Sheet ${sheetId} deletion failed:`, result.message);
+              }
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Cleanup progress: ${deletedCount + failedDeletions.length}/${totalDeletions} processed (${deletedCount} deleted)`;
+              
+              resolve({
+                ...result,
+                sheetId: sheetId
+              });
+            })
+            .withFailureHandler(function(error) {
+              failedDeletions.push({
+                sheetId: sheetId,
+                error: error.message || error
+              });
+              console.error(`❌ Sheet ${sheetId} deletion error:`, error);
+              
+              // Update status
+              document.getElementById("statusText").innerText = 
+                `Cleanup progress: ${deletedCount + failedDeletions.length}/${totalDeletions} processed (${deletedCount} deleted)`;
+              
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetId: sheetId
+              });
+            })
+            .deleteOldSheet(sheetId);
+        });
+      });
+
+      // Wait for all deletions to complete
+      await Promise.all(deletionPromises);
+
+      // Update final status
+      if (failedDeletions.length === 0) {
+        document.getElementById("statusText").innerText = 
+          `✅ IDS Collection updated and ${deletedCount} subsheets cleaned up successfully!`;
+        document.getElementById("fileAccessTitle").innerHTML = 
+          `✅ IDS Collection updated! All subsheets cleaned up!`;
+      } else {
+        document.getElementById("statusText").innerText = 
+          `✅ IDS Collection updated! ${deletedCount} subsheets cleaned up, ${failedDeletions.length} failed to delete.`;
+        document.getElementById("fileAccessTitle").innerHTML = 
+          `✅ IDS Collection updated! Partial cleanup completed.`;
+        
+        console.warn("Some subsheets failed to delete:", failedDeletions);
+      }
+      
+    } catch (error) {
+      console.error("Error during subsheet cleanup:", error);
+      document.getElementById("statusText").innerText = 
+        `✅ IDS Collection updated, but subsheet cleanup encountered errors: ${error.message}`;
     }
   }
 
@@ -582,144 +983,6 @@
           .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
           .join("<br>");
     }
-  }
-  async function copyTemplates(copyMode) {
-    copyMode = copyMode || 'all';
-    currentCopyMode = copyMode;
-    document.getElementById("copyButton").disabled = true;
-    document.getElementById("copyUpdateButton").disabled = true;
-    
-    const statusText = document.getElementById("statusText");
-    statusText.innerText = `Getting template and sheet information...`;
-    
-    try {
-      let templateInfo, sheetIds;
-      
-      if (cachedTemplateInfo && cachedSheetIds) {
-        console.log("Using cached template info and sheet IDs for copy check");
-        templateInfo = cachedTemplateInfo;
-        sheetIds = cachedSheetIds;
-      } else {
-        console.log("No cached IDs found, fetching from server");
-        const idsResult = await new Promise((resolve, reject) => {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .getTemplateAndsheetIds(idMasterID, copyMode);
-        });
-        
-        if (!idsResult.success) {
-          throw new Error(idsResult.message);
-        }
-        
-        templateInfo = idsResult.templateInfo;
-        sheetIds = idsResult.sheetIds;
-        
-        cachedTemplateInfo = templateInfo;
-        cachedSheetIds = sheetIds;
-      }
-      
-      console.log(`Template Info:`, templateInfo);
-      console.log(`Sheet IDs: ${sheetIds}`);
-      statusText.innerText = `Checking access to ${templateInfo.length} templates and ${sheetIds.length} sheets...`;
-      
-      const [templateResults, oldSheetResults] = await Promise.all([
-        checkMultipleTemplateAccess(templateInfo),
-        checkMultipleSheetAccess(sheetIds, userEmail)
-      ]);
-      
-      const result = {
-        success: true,
-        templateResults: templateResults,
-        oldSheetResults: oldSheetResults
-      };
-      
-      onTemplateAndOldSheetAccessCheckSuccess(result);
-      
-    } catch (error) {
-      console.error("Parallel access check failed:", error);
-      document.getElementById("copyButton").disabled = false;
-      document.getElementById("copyUpdateButton").disabled = false;
-      
-      cachedTemplateInfo = null;
-      cachedSheetIds = null;
-      
-      onTemplateAndOldSheetAccessCheckFailure(error);
-    }
-  }
-
-  function onTemplateAndOldSheetAccessCheckSuccess(result) {
-    console.log("Template and sheet access check result:", result);
-    
-    if (result.success) {
-      // Update all file caches with results
-      accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
-      inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
-      notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
-      templateAccessibleFilesCache = result.templateResults.accessibleFiles || [];
-      templateInaccessibleFilesCache = result.templateResults.inaccessibleFiles || [];
-      
-      const totalInaccessibleFiles = inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
-      
-      // Check if any files still need access permission
-      if (totalInaccessibleFiles > 0) {
-        // Still have inaccessible files - open picker again
-        let statusMessages = [];
-        if (templateInaccessibleFilesCache.length > 0) {
-          statusMessages.push(`${templateInaccessibleFilesCache.length} template(s)`);
-        }
-        if (inaccessibleFilesCache.length > 0) {
-          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
-        }
-        
-        document.getElementById("statusText").innerText = `${statusMessages.join(' and ')} still need access. Opening file picker...`;
-        
-        console.log("Still have inaccessible files, opening picker again:", {
-          templates: templateInaccessibleFilesCache,
-          oldSheets: inaccessibleFilesCache
-        });
-        
-        // Directly open the multi-file picker
-        openMultiFilePicker();
-        return;
-      }
-      
-      // All files are accessible - proceed with template copying using stored copy mode
-      document.getElementById("statusText").innerText = "All files accessible. Proceeding with template copying...";
-      console.log("All files accessible, proceeding with template copying using mode:", currentCopyMode);
-      
-      // Call the template copying function from the fileAccess scripts
-      if (typeof proceedWithTemplateCopying === 'function') {
-        proceedWithTemplateCopying(currentCopyMode);
-      } else {
-        console.error("proceedWithTemplateCopying function not available");
-        document.getElementById("statusText").innerText = "Error: Template copying function not available.";
-        document.getElementById("copyButton").disabled = false;
-        document.getElementById("copyUpdateButton").disabled = false;
-      }
-    } else {
-      console.error("Template and sheet access check failed:", result.message);
-      document.getElementById("statusText").innerText = `Could not check template/sheet access: ${result.message}`;
-      accessibleFilesCache = [];
-      inaccessibleFilesCache = [];
-      notOwnedFilesCache = [];
-      templateAccessibleFilesCache = [];
-      templateInaccessibleFilesCache = [];
-      document.getElementById("copyButton").disabled = false;
-      document.getElementById("copyUpdateButton").disabled = false;
-    }
-  }
-
-  function onTemplateAndOldSheetAccessCheckFailure(error) {
-    console.error("Template and sheet access check error:", error);
-    document.getElementById("statusText").innerText = `Error checking template/sheet access: ${error.message || error}`;
-    accessibleFilesCache = [];
-    inaccessibleFilesCache = [];
-    notOwnedFilesCache = [];
-    templateAccessibleFilesCache = [];
-    templateInaccessibleFilesCache = [];
-    document.getElementById("copyButton").disabled = false;
-    document.getElementById("copyUpdateButton").disabled = false;
   }
 
   async function proceedWithTemplateCopying(copyMode) {
@@ -770,7 +1033,7 @@
               });
 
               // Immediately add successful link to display
-              linksHtml += `<br><a href="https://docs.google.com/spreadsheets/d/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
+              linksHtml += `<br><a href="${googleLink}/${result.fileId}/edit#gid=${result.gid}" target="_blank" style="margin-left: 2em">📋 Open ${template.sheetType} Sheet™</a>`;
             } else {
               failedCount++;
               const errorMessage = result.message || 'Copy operation returned unsuccessful result';
@@ -862,7 +1125,7 @@
       document.getElementById("copyUpdateButton").disabled = false;
     }
   }
-  
+
   function showContinueSection() {
     console.log("Accessible files:", accessibleFilesCache);
     console.log("Inaccessible files:", inaccessibleFilesCache);
@@ -896,18 +1159,20 @@
         importButton.style.display = "none";
         updateButton.style.display = "none";
       } else {
-        statusText.innerText = `Checking import status.`;
-        importButton.innerText = `Import ${sheetType} data`;
+        statusText.innerText = `Checking import status and compatibility.`;
+        var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : sheetType;
+        importButton.innerText = `Import ${updateType} data`;
         importButton.style.display = "inline-block";
         importButton.disabled = true;
         updateButton.style.display = "inline-block";
         updateButton.disabled = true;
+        updateButton.innerText = `Update ${updateType === "IDS Collection" ? "IDS Collection" : "IDS Master"}`;
         copyButton.style.display = "none";
         copyUpdateButton.style.display = "none";
         google.script.run
-          .withSuccessHandler(onImportStatusCheckSuccess)
-          .withFailureHandler(onImportStatusCheckFailure)
-          .checkImportStatus(newSheetID, sheetType);
+          .withSuccessHandler(onImportStatusAndCompatibilitySuccess)
+          .withFailureHandler(onImportStatusAndCompatibilityFailure)
+          .checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType);
       }
 
       finalSelectedFiles = accessibleFilesCache.slice();
@@ -949,11 +1214,14 @@
     document.getElementById("fileAccessSection").style.display = "block";
   }
 
-  function onImportStatusCheckSuccess(result) {
-    document.getElementById("importButton").disabled = false;
-    console.log("Import status check result:", result);
+  function onImportStatusAndCompatibilitySuccess(result) {
+    console.log("Import status and compatibility result:", result);
     if (result.success) {
+      document.getElementById("importButton").disabled = false;
       document.getElementById("statusText").innerText = `${result.message}`;
+      if (result.versionDifference) {
+        versionDifference = result.versionDifference;
+      }
       if (result.imported) {
         document.getElementById("updateMasterButton").disabled = false;
         document.getElementById(
@@ -962,18 +1230,20 @@
         showAccessibleFilesSummary();
       }
     } else {
+      document.getElementById("importButton").disabled = true;
+      document.getElementById("updateMasterButton").disabled = true;
       document.getElementById(
         "statusText"
-      ).innerText = `Import status check failed: ${result.message}`;
+      ).innerText = `Import status and compatibility failed: ${result.message}`;
     }
   }
 
-  function onImportStatusCheckFailure(error) {
-    document.getElementById("importButton").disabled = false;
+  function onImportStatusAndCompatibilityFailure(error) {
+    document.getElementById("importButton").disabled = true;
     document.getElementById("updateMasterButton").disabled = true;
-    console.error("Import status check error:", error);
+    console.error("Import status and compatibility error:", error);
     document.getElementById(
       "statusText"
-    ).innerText = `Import status check error: ${error.message || error}`;
+    ).innerText = `Import status and compatibility check failed: ${error.message || error}`;
   }
 </script>

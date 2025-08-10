@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <?!= include('15_shared_styles'); ?>
@@ -35,6 +36,7 @@
 
       const viewType = "<?= viewType ? viewType : 'webapp' ?>";
       const accessRequired = "<?= accessRequired ? accessRequired : '' ?>";
+      const googleLink = "https://docs.google.com/spreadsheets/d"
 
       console.log("Parameters:", {
         newSheetID,
@@ -51,8 +53,6 @@
     <?!= include('21_modal_scripts'); ?>
 
     <script
-      async
-      defer
       src="https://apis.google.com/js/api.js"
       onload="gapiLoaded()"
     ></script>

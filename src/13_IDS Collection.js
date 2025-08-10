@@ -47,8 +47,8 @@ const collection = {
       // Configuration dictionary mapping sheet types to their required ranges
       var sheetRequiredRanges = {
         "values": {
+          "Home Page": {"sheetName": "Home Page", "range": "Home Page"},
           "Lab_MS": {"sheetName": "Lab_MS", "range": "Lab_MS"},
-          "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"}, 
           "UW_MS": {"sheetName": "UW_MS", "range": "UW_MS"},
           "Themes & Songs": {"sheetName": "Themes & Songs", "range": "Themes & Songs"},
           "Bots_MS": {"sheetName": "Bots_MS", "range": "Bots_MS"},
@@ -63,6 +63,8 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": {"sheetName": "Lab Planner", "range": "Lab Planner"},
+          "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"}, 
+          "UW Cost Calculator": {"sheetName": "UW Cost Calculator v3", "range": "UW Cost Calculator v3"},
           "Card Preset": {"sheetName": "Card Preset", "range": "Card Preset"}
         }
       };
@@ -162,9 +164,9 @@ const collection = {
       if (data.Workshop) {
         try {
           var workshopData = data.Workshop;
-          var workshopMasterSheetData = getRangeData("Workshop_MS", "values");
+          var workshopMasterSheetData = getRangeData("Workshop_MS", "formulas");
           
-          var workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.values["Workshop_MS"].sheetName, workshopData.oldWorkshopValues, workshopMasterSheetData);
+          var workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.formulas["Workshop_MS"].sheetName, workshopData.oldWorkshopLevels, workshopData.oldWorkshopPlusLevels, workshopMasterSheetData);
           if (workshopResult && workshopResult.success) {
             batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
             
@@ -194,10 +196,24 @@ const collection = {
         try {
           var ultimateData = data["Ultimate Weapon"];
           var ultimateMasterSheetData = getRangeData("UW_MS", "values");
+          var ultimateCostCalculatorData = getRangeData("UW Cost Calculator", "formulas");
           
-          var ultimateResult = ultimate.updateUltimateLevels(sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimateValues, ultimateMasterSheetData);
+          var ultimateResult = ultimate.updateUltimateLevels(ultimateData.targetWeapons, sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
           if (ultimateResult && ultimateResult.success) {
             batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
+            
+            // Update cost calculator if data exists
+            if (ultimateData.oldUltimateCostCalculator && ultimateCostCalculatorData) {
+              var ultimateCostCalculatorResult = ultimate.updateUltimateCostCalculator(
+                ultimateData.targetWeapons, 
+                sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName, 
+                ultimateData.oldUltimateCostCalculator, 
+                ultimateCostCalculatorData
+              );
+              if (ultimateCostCalculatorResult && ultimateCostCalculatorResult.success) {
+                batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
+              }
+            }
             
             updateResults.push({ 
               sheetType: "Ultimate Weapon", 
@@ -226,7 +242,7 @@ const collection = {
           var themesData = data["Themes & Songs"];
           var themesMasterSheetData = getRangeData("Themes & Songs", "values");
           
-          var themesResult = themes.updateThemes("Themes & Songs", themesData.oldThemesValues, themesMasterSheetData);
+          var themesResult = themes.updateThemes(themesData.targetThemes, "Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
           if (themesResult && themesResult.success) {
             batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
             
@@ -257,7 +273,7 @@ const collection = {
           var botsData = data.Bots;
           var botsMasterSheetData = getRangeData("Bots_MS", "values");
           
-          var botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.targetBots, botsData.oldBotsValues, botsMasterSheetData);
+          var botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.targetBots, botsData.oldBots, botsMasterSheetData);
           if (botsResult && botsResult.success) {
             batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
             
@@ -288,7 +304,7 @@ const collection = {
           var relicsData = data.Relics;
           var relicsMasterSheetData = getRangeData("Relics", "values");
           
-          var relicsResult = relics.updateRelics(sheetRequiredRanges.values["Relics"].sheetName, relicsData.oldRelicsValues, relicsMasterSheetData);
+          var relicsResult = relics.updateRelics(sheetRequiredRanges.values["Relics"].sheetName, relicsData.oldRelics, relicsMasterSheetData);
           if (relicsResult && relicsResult.success) {
             batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
             
@@ -420,7 +436,7 @@ const collection = {
           var modulesObtainedData = getRangeData("Mods Obtained", "values");
           
           var inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesInventory, modulesInventoryData);
-          var presetsResult = modules.updateModulesPresets(sheetRequiredRanges.formulas["Modules Presets"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesPresets, modulesPresetsData);
+          var presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesPresets, modulesPresetsData);
           var obtainedResult = modules.updateModulesObtained(sheetRequiredRanges.values["Mods Obtained"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesObtained, modulesObtainedData);
           
           var modulesSuccess = true;
@@ -475,7 +491,7 @@ const collection = {
           var guardiansData = data.Guardians;
           var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
           
-          var guardiansResult = guardians.updateGuardianLevels(sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardiansValues, guardiansMasterSheetData);
+          var guardiansResult = guardians.updateGuardianLevels(guardiansData.targetGuardians, sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData);
           if (guardiansResult && guardiansResult.success) {
             batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
             
@@ -500,6 +516,27 @@ const collection = {
         }
       }
 
+      // Check if any updates failed
+      var failedUpdates = updateResults.filter(function(result) {
+        return !result.success;
+      });
+
+      if (failedUpdates.length === 0) {
+        var homePageData = getRangeData("Home Page", "values");
+        var newSheetInfo = shared.findSheetTypeID(newSheetID, "Home Page", "Load your file here", homePageData);
+        if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+          console.log(`Could not find import status range in IDS sheet`);
+          return {
+            success: false,
+            message: "Could not find import status range in IDS sheet",
+          };
+        }
+        // Add import status update to batch
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
+      }
       // Apply all batch updates at once if we have any
       if (batchUpdate.length > 0) {
         var finalUpdateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -508,15 +545,9 @@ const collection = {
           return {
             success: false,
             message: "Error applying batch updates to IDS Collection spreadsheet",
-            updateResults: updateResults
           };
         }
       }
-
-      // Check if any updates failed
-      var failedUpdates = updateResults.filter(function(result) {
-        return !result.success;
-      });
 
       if (failedUpdates.length > 0) {
         var failedSheets = failedUpdates.map(function(result) {
@@ -526,14 +557,13 @@ const collection = {
         return {
           success: false,
           message: `Failed to update sheets: ${failedSheets}`,
-          updateResults: updateResults
+          failedUpdates: failedUpdates
         };
       }
 
       return {
         success: true,
         message: "IDS Collection import completed successfully",
-        updateResults: updateResults
       };
       
     } catch (error) {
@@ -568,10 +598,11 @@ const collection = {
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets",     // Modules presets (full sheet)
           "Mods Obtained": "Mods Obtained",         // Modules obtained (full sheet)
-          "Guardians": "EXPORT_Guardians!B5:F"      // Guardians data
+          "Guardians": "EXPORT_Guardian!B5:F"      // Guardians data
         },
         "formulas": {
           "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
           "Card Preset": "Card Preset"              // Cards preset data (full sheet)
         }
       };
@@ -650,9 +681,11 @@ const collection = {
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      if (ultimateResult && ultimateResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
+      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
         var ultimateValues = ultimateResult.values;
-        var ultimateData = ultimate.getVersion10Values(ultimateValues);
+        var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
+        var ultimateData = ultimate.getVersion10Values(ultimateValues, ultimateCostCalculatorValues);
         collectedData["Ultimate Weapon"] = ultimateData;
       }
 
