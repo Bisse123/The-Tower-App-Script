@@ -585,6 +585,7 @@ const collection = {
       var rangeMap = {
         "values": {
           "Lab Levels": "EXPORT_Lab!B5:E",           // Laboratory levels
+          "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet) - for values
           "Workshop Levels": "EXPORT_WS!B3:F",      // Workshop levels  
           "Workshop Plus": "EXPORT_WS!H3:K",        // Workshop plus levels
           "Ultimate Weapon": "EXPORT_UW!C5:G",      // Ultimate weapons data
@@ -661,11 +662,13 @@ const collection = {
 
       // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
-      var labPlannerResult = getBatchResult("Lab Planner", "formulas");
+      var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
+      var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerResult && labPlannerResult.values ? labPlannerResult.values : null;
-        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues);
+        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
+        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
+        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
         collectedData.Laboratory = labData;
       }
 
