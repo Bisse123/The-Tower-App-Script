@@ -585,6 +585,7 @@ const collection = {
       var rangeMap = {
         "values": {
           "Lab Levels": "EXPORT_Lab!B5:E",           // Laboratory levels
+          "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet) - for values
           "Workshop Levels": "EXPORT_WS!B3:F",      // Workshop levels  
           "Workshop Plus": "EXPORT_WS!H3:K",        // Workshop plus levels
           "Ultimate Weapon": "EXPORT_UW!C5:G",      // Ultimate weapons data
@@ -593,6 +594,7 @@ const collection = {
           "Relics": "Relics",                       // Relics data (full sheet)
           "Vault Harmony": "Vault_Harmony",         // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power",             // Vault power data (full sheet)
+          "Card Preset": "Card Preset",              // Cards preset data (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D",      // Cards level data
           "Cards Slots": "EXPORT_Cards!C2",         // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -602,8 +604,7 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Card Preset": "Card Preset"              // Cards preset data (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
         }
       };
       
@@ -661,11 +662,13 @@ const collection = {
 
       // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
-      var labPlannerResult = getBatchResult("Lab Planner", "formulas");
+      var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
+      var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerResult && labPlannerResult.values ? labPlannerResult.values : null;
-        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues);
+        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
+        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
+        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
         collectedData.Laboratory = labData;
       }
 
@@ -724,7 +727,7 @@ const collection = {
       }
 
       // Cards data
-      var cardsPresetResult = getBatchResult("Card Preset", "formulas");
+      var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {

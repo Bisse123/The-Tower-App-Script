@@ -411,10 +411,26 @@ const lab = {
       }
       
       var labLevelsRange = "EXPORT!B5:E";
+      var rangesToFetch = [labLevelsRange];
+      
+      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
 
-      var labBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        labLevelsRange,
-      ]);
+      var oldLabPlannerValues = null;
+      var oldLabPlannerFormulas = null;
+      if (oldLabPlannerSheet) {
+        var oldLabPlannerSheetName = oldLabPlannerSheet.title;
+        if (oldLabPlannerSheetName) {
+          rangesToFetch.push(oldLabPlannerSheetName);
+          var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
+            oldLabPlannerSheetName
+          ]);
+          if (oldLabPlannerData && oldLabPlannerData.length > 0 && oldLabPlannerData[0].values) {
+            oldLabPlannerFormulas = oldLabPlannerData[0].values;
+          }
+        }
+      }
+
+      var labBatchResult = SheetsAPI.batchGetValues(oldSheetID, rangesToFetch);
       if (
         !labBatchResult ||
         labBatchResult.length === 0 ||
@@ -428,20 +444,11 @@ const lab = {
       }
       var oldLabLevelsValues = labBatchResult[0].values;
 
-      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
-      var oldLabPlannerValues = null;
-      
-      if (oldLabPlannerSheet) {
-        var oldLabPlannerSheetName = oldLabPlannerSheet.title;
-        var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
-          oldLabPlannerSheetName
-        ]);
-        if (oldLabPlannerData && oldLabPlannerData.length > 0 && oldLabPlannerData[0].values) {
-          oldLabPlannerValues = oldLabPlannerData[0].values;
-        }
+      if (labBatchResult[1] && labBatchResult[1].values) {
+        oldLabPlannerValues = labBatchResult[1].values;
       }
 
-      return this.getVersion10Values(oldLabLevelsValues, oldLabPlannerValues);
+      return this.getVersion10Values(oldLabLevelsValues, oldLabPlannerValues, oldLabPlannerFormulas);
       
     } catch (error) {
       console.log("Error in version10: " + error.toString());
@@ -452,7 +459,7 @@ const lab = {
     }
   },
 
-  getVersion10Values: function (oldLabLevelsValues, oldLabPlannerValues) {
+  getVersion10Values: function (oldLabLevelsValues, oldLabPlannerValues, oldLabPlannerFormulas) {
     try {
       
       var oldLabLevels = {};
@@ -470,7 +477,7 @@ const lab = {
         }
       });
       
-      if (!oldLabPlannerValues) {
+      if (!oldLabPlannerFormulas || !oldLabPlannerValues) {
         console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
         return {
           success: true,
@@ -484,8 +491,8 @@ const lab = {
       var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
       
       var oldLabPlanner = {};
-      for (var rowIndex = 0; rowIndex < oldLabPlannerValues.length; rowIndex++) {
-        var row = oldLabPlannerValues[rowIndex];
+      for (var rowIndex = 0; rowIndex < oldLabPlannerFormulas.length; rowIndex++) {
+        var row = oldLabPlannerFormulas[rowIndex];
         if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
           break;
         }
@@ -508,8 +515,8 @@ const lab = {
             oldLabPlanner[labHeader]["Boost"] = oldLabPlannerValues[rowIndex][firstColIndex + 3] || "";
 
             var lastNonEmptyRow = -1;
-            for (var i = rowIndex + 3; i < oldLabPlannerValues.length; i++) {
-              if (oldLabPlannerValues[i][colIndex].trim() === "") {
+            for (var i = rowIndex + 3; i < oldLabPlannerFormulas.length; i++) {
+              if (oldLabPlannerFormulas[i][colIndex].trim() === "") {
                 break;
               }
               
@@ -579,11 +586,11 @@ const lab = {
               });
             } else if (miscHeader === "OPTIONS") {
               var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
-              var plannerRows =  (oldLabPlannerValues[rowIndex + 1][miscColIndex + plannerType] !== "" ? 1 : 2) * 4;
+              var plannerRows =  (oldLabPlannerFormulas[rowIndex + 1][miscColIndex + plannerType] !== "" ? 1 : 2) * 4;
               var showLabColIndex = miscColIndex + (4 * plannerType - 2);
               var optionColIndex = miscColIndex + (5 * plannerType - 2);
               var optionDict = {};
-              oldLabPlannerValues.slice(rowIndex, rowIndex + plannerRows).forEach(function (row) {
+              oldLabPlannerFormulas.slice(rowIndex, rowIndex + plannerRows).forEach(function (row) {
                 if (row[miscColIndex + 1] !== "") {
                   var optionKey = row[miscColIndex + 1];
                   if (optionKey.startsWith("=")) {
