@@ -636,10 +636,10 @@ const modules = {
         oldModulesObtained: oldModulesObtained,
       };
     } catch (error) {
-      console.log("Error in getVersion40Values: " + error.toString());
+      console.log("Error in getVersion50Values: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion40Values: " + error.message,
+        message: "Error in getVersion50Values: " + error.message,
       };
     }
   },
