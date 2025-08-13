@@ -418,7 +418,7 @@ const ultimate = {
     }
   },
 
-  version10: function () {
+  version20: function () {
     try {
       var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -464,17 +464,17 @@ const ultimate = {
         };
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
-      return this.getVersion10Values(oldUltimateDataValues, oldUltimateCostCalculatorValues);
+      return this.getVersion20Values(oldUltimateDataValues, oldUltimateCostCalculatorValues);
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version20: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version20: " + error.message,
       };
     }
   },
 
-  getVersion10Values: function (oldUltimateDataValues, oldUltimateCostCalculatorValues) {
+  getVersion20Values: function (oldUltimateDataValues, oldUltimateCostCalculatorValues) {
     try {
       var targetWeapons = [
         "Chain Lightning",
@@ -607,9 +607,209 @@ const ultimate = {
     }
   },
 
+    version10: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old ultimate weapons spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old ultimate weapons spreadsheet",
+        };
+      }
+
+      var ultimateLevelsRange = "EXPORT!C5:G";
+      var ultimateBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        ultimateLevelsRange
+      ]);
+      if (
+        !ultimateBatchResult ||
+        ultimateBatchResult.length === 0 ||
+        !ultimateBatchResult[0].values
+      ) {
+        console.log(`Could not read old ultimate weapons data`);
+        return {
+          success: false,
+          message: `Could not read old ultimate weapons data`,
+        };
+      }
+      var oldUltimateDataValues = ultimateBatchResult[0].values;
+
+      var ultimateCostCalculatorRange = "UW Cost Calculator v3";
+      var costCalculatorBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, [
+        ultimateCostCalculatorRange
+      ]);
+      if (
+        !costCalculatorBatchResult ||
+        costCalculatorBatchResult.length === 0 ||
+        !costCalculatorBatchResult[0].values
+      ) {
+        console.log(`Could not read old ultimate weapons cost calculator data`);
+        return {
+          success: false,
+          message: `Could not read old ultimate weapons cost calculator data`,
+        };
+      }
+      var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
+      return this.getVersion10Values(oldUltimateDataValues, oldUltimateCostCalculatorValues);
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Values: function (oldUltimateDataValues, oldUltimateCostCalculatorValues) {
+    try {
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
+      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldUltimate = {};
+      for (var row = 0; row < oldUltimateLevels.length; row++) {
+        var weaponName = oldUltimateLevels[row][0];
+        // Only proceed if weaponName is in targetWeapons
+        if (weaponName && targetWeapons.includes(weaponName)) {
+          var unlocked = oldUltimateLevels[row + 2][0];
+          var weapon = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
+            var nextRowData = oldUltimateLevels[nextRow];
+            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+
+            if (key && value) {
+              var valueStr = value.toString();
+              if (valueStr.indexOf("Locked") !== -1) {
+                value = "Lo | Locked";
+              } else if (valueStr.length >= 2 && /^\d{2}/.test(valueStr)) {
+                var firstTwoDigits = parseInt(valueStr.substring(0, 2));
+                var subtractAmount = (nextRow === row + 3) ? 2 : 1;
+                var modifiedFirstTwo = (firstTwoDigits - subtractAmount).toString().padStart(2, '0');
+                value = modifiedFirstTwo + valueStr.substring(2);
+              }
+              weapon.props[key] = value;
+            }
+          }
+          oldUltimate[weaponName] = weapon;
+        }
+      }
+      var missingWeapons = [...targetWeapons]; // Copy of targetWeapons array
+      var oldUltimateCostCalculator = {};
+      for (var row = 0; row < oldUltimateCostCalculatorValues.length; row++) {
+        // If we've found all weapons, no need to continue
+        if (missingWeapons.length === 0) {
+          break;
+        }
+        
+        var rowData = oldUltimateCostCalculatorValues[row];
+        
+        // Check each missing weapon to see if it's in this row
+        for (var weaponIndex = 0; weaponIndex < missingWeapons.length; weaponIndex++) {
+          var weapon = missingWeapons[weaponIndex];
+          
+          if (rowData.includes(weapon)) {
+            if (!oldUltimateCostCalculator.hasOwnProperty(weapon)) {
+              oldUltimateCostCalculator[weapon] = {};
+            }
+            var weaponColIndex = rowData.indexOf(weapon);
+            var unlockedValue = rowData[weaponColIndex + 3];
+            var unlocked = (typeof unlockedValue === 'string' && unlockedValue.startsWith("=")) ? null : unlockedValue;
+            if (unlocked) {
+              oldUltimateCostCalculator[weapon].unlocked = unlocked;
+            }
+            var subData = oldUltimateCostCalculatorValues[row + 1];
+            var currentValueIndex = subData.indexOf("Current Value");
+            var subNameIndex = currentValueIndex - 1;
+            var targetValueIndex = subData.indexOf("Target Value");
+            var modSubvalue = subData.indexOf("Sub");
+            var weaponValues = {}
+            for (var subRow = row + 2; subRow < oldUltimateCostCalculatorValues.length; subRow++) {
+              var subRowData = oldUltimateCostCalculatorValues[subRow];
+              var subName = subRowData[subNameIndex] ? subRowData[subNameIndex].toString().trim() : "";
+              if (subName === "" || targetWeapons.includes(subRowData[weaponColIndex].trim())) {
+                break;
+              }
+              if (!weaponValues.hasOwnProperty(subName)) {
+                weaponValues[subName] = {};
+              }
+              var currentValue = subRowData[currentValueIndex];
+              var targetValue = subRowData[targetValueIndex];
+              var modSub = subRowData[modSubvalue];
+              if (currentValue && (typeof currentValue !== 'string' || !currentValue.startsWith("="))) {
+                weaponValues[subName].currentValue = currentValue;
+              }
+              if (targetValue && (typeof targetValue !== 'string' || !targetValue.startsWith("="))) {
+                weaponValues[subName].targetValue = targetValue;
+              }
+              if (modSub && (typeof modSub !== 'string' || !modSub.startsWith("="))) {
+                weaponValues[subName].modSub = modSub;
+              }
+              if (weaponValues[subName] && Object.keys(weaponValues[subName]).length === 0) {
+                delete weaponValues[subName]; // Remove empty sub entry
+              }
+              row = subRow;
+            }
+            if (weaponValues && Object.keys(weaponValues).length !== 0) {
+              oldUltimateCostCalculator[weapon].values = weaponValues;
+            }
+            if (oldUltimateCostCalculator[weapon] && Object.keys(oldUltimateCostCalculator[weapon]).length === 0) {
+              delete oldUltimateCostCalculator[weapon]; // Remove empty weapon entry
+            }
+            missingWeapons.splice(weaponIndex, 1); // Remove found weapon
+            
+            // Break out of the weapon loop since we found the weapon in this row
+            break;
+          }
+        }
+      }
+      return {
+        success: true,
+        targetWeapons: targetWeapons,
+        oldUltimate: oldUltimate,
+        oldUltimateCostCalculator: oldUltimateCostCalculator,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10Values: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10Values: " + error.message,
+      };
+    }
+  },
+
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
+      "v2.0": this.version20.bind(this),
     };
   },
 

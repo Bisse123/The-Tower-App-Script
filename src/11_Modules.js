@@ -469,10 +469,10 @@ const modules = {
 
       return this.getVersion50Values(oldModulesInventoryValues, oldModulesPresetsValues, oldModulesObtainedValues);
     } catch (error) {
-      console.log("Error in version40: " + error.toString());
+      console.log("Error in version50: " + error.toString());
       return {
         success: false,
-        message: "Error in version40: " + error.message,
+        message: "Error in version50: " + error.message,
       };
     }
   },
