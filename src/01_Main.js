@@ -10,7 +10,8 @@ const sheetVars = (sheetType) => {
     Cards: cards,
     Modules: modules,
     Guardians: guardians,
-    "IDS Collection - all IDS-Sheets on one file": collection,
+    "Player & Stuff": playerStuff,
+    "IDS Collection": collection,
     // "IDS Master": master,
   };
   return sheetTypeFunctions[sheetType];
@@ -46,7 +47,7 @@ const spreadsheets = (() => {
 
 function doGet(e) {
   // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
-  var template = HtmlService.createTemplateFromFile("14_WebApp");
+  var template = HtmlService.createTemplateFromFile("20_WebApp");
   if (e.parameter.newSheetID === "<Script loading...>") {
     e.parameter.newSheetID = "";
   }
@@ -120,7 +121,7 @@ function onInstall(e) {
 
 function showGetStartedDialog() {
   try {
-    var template = HtmlService.createTemplateFromFile("14_getStartedApp");
+    var template = HtmlService.createTemplateFromFile("20_getStartedApp");
     var html = template
       .evaluate()
       .setWidth(1200)
@@ -134,7 +135,7 @@ function showGetStartedDialog() {
 }
 
 function showImportDialog() {
-    function findSheetIDs(sheet, sheetType, searchValue) {
+  function findSheetIDs(sheet, sheetType, searchValue) {
     try {
       var values = sheet.getDataRange().getValues();
       if (!values || values.length === 0) {
@@ -197,6 +198,7 @@ function showImportDialog() {
             Cards: "Cards",
             Modules: "Modules",
             Guardians: "Guardians",
+            "Player & Stuff": "Player & Stuff",
           };
           var foundIndex = firstRowValues.indexOf(sheetTypeMapping[sheetType]);
           if (foundIndex !== -1 && foundIndex < firstRowValues.length - 1) {
@@ -235,7 +237,7 @@ function showImportDialog() {
     // Special case for IDS Master
     if (sheetType === "IDS Master") {
       console.log("IDS Master detected, showing import dialog with limited parameters");
-      var template = HtmlService.createTemplateFromFile("14_WebApp");
+      var template = HtmlService.createTemplateFromFile("20_WebApp");
       template.newSheetID = "";
       template.oldSheetID = "";
       template.idMasterID = newSheetID;
@@ -255,14 +257,18 @@ function showImportDialog() {
       SpreadsheetApp.getUi().showSidebar(html);
       return;
     }
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      sheetType = "IDS Collection";
+    }
 
     if (!sheetVars(sheetType)) {
       console.log(`Sheet type not found in the new spreadsheet.`);
       throw new Error("Sheet type not found in the new spreadsheet.");
     }
+    
     var sheetName = "IDS";
     var searchValue = "IDS Master's ID";
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+    if (sheetType === "IDS Collection") {
       sheetName = "Home Page";
       searchValue = "Load your file here";
     }
@@ -278,7 +284,7 @@ function showImportDialog() {
       var oldSheetID = sheetIDs.oldSheetID;
       var idMasterID = sheetIDs.idMasterID;
 
-      var template = HtmlService.createTemplateFromFile("14_WebApp");
+      var template = HtmlService.createTemplateFromFile("20_WebApp");
       template.newSheetID = newSheetID;
       template.oldSheetID = oldSheetID;
       template.idMasterID = idMasterID;
@@ -298,7 +304,7 @@ function showImportDialog() {
       SpreadsheetApp.getUi().showSidebar(html);
     } catch (error) {
       console.log(`Error in showImportDialog: ${error.message}`);
-      var template = HtmlService.createTemplateFromFile("14_WebApp");
+      var template = HtmlService.createTemplateFromFile("20_WebApp");
       template.newSheetID = newSheetID;
       template.oldSheetID = "";
       template.idMasterID = "";
@@ -319,7 +325,7 @@ function showImportDialog() {
     }
   } catch (error) {
     console.log(`Error in showImportDialog: ${error.message}`);
-    var template = HtmlService.createTemplateFromFile("14_WebApp");
+    var template = HtmlService.createTemplateFromFile("20_WebApp");
     template.newSheetID = "";
     template.oldSheetID = "";
     template.idMasterID = "";

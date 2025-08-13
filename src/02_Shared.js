@@ -332,7 +332,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
     }
 
     // For IDS Collection, we need to check different sheets and handle idMasterID differently
-    var isIDSCollection = sheetType === "IDS Collection - all IDS-Sheets on one file";
+    var isIDSCollection = sheetType === "IDS Collection";
     var requiredSheetName = isIDSCollection ? "Home Page" : "IDS";
     var searchName = isIDSCollection ? "Load your file here" : "IDS Master's";
     
@@ -558,7 +558,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
     var searchName = "IDS Master's";
     var requiresIDSSheet = true;
     
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+    if (sheetType === "IDS Collection") {
       sheetName = "Home Page";
       searchName = "Load your file here";
       requiresIDSSheet = false;
@@ -839,7 +839,8 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       "Vault",
       "Cards",
       "Modules",
-      "Guardians"
+      "Guardians",
+      "Player & Stuff",
     ];
 
     copyMode = copyMode || 'all';

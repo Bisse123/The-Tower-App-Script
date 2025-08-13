@@ -212,7 +212,7 @@
         .catch(onSheetAccessCheckFailure);
       return;
 
-    } else if (sheetType === "IDS Collection - all IDS-Sheets on one file" && newSheetID && oldSheetID && !idMasterID) {
+    } else if (sheetType === "IDS Collection" && newSheetID && oldSheetID && !idMasterID) {
       checkCollectionsAccess();
       return;
     } else if (
@@ -425,7 +425,7 @@
         if (sheetType === "IDS Master") {
           copyTemplates(currentCopyMode);
           return;
-        } else if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+        } else if (sheetType === "IDS Collection") {
           checkCollectionsAccess();
           return;
         }

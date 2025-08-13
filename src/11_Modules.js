@@ -57,7 +57,7 @@ const modules = {
       var requiredRanges = [
         "Modules Inventory",
         "Modules Presets",
-        "Mods Obtained",
+        "Modules Tracker",
         "IDS"
       ];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
@@ -125,7 +125,7 @@ const modules = {
       batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
 
       var obtainedResult = this.updateModulesObtained(
-        "Mods Obtained",
+        "Modules Tracker",
         targetModuleTypes,
         oldModulesObtained,
         newModulesObtainedValues
@@ -376,8 +376,9 @@ const modules = {
         var cellValue = String(newModulesObtainedValues[row][col]).trim();
         if (cellValue) {
           var moduleType = targetModuleTypes.find(function (type) {
-            return cellValue.toLowerCase().includes(type);
+            return cellValue.toLowerCase().includes(`${type} summary`);
           });
+          moduleType = moduleType ? `${moduleType} summary` : null;
           if (moduleType && oldModulesObtained.hasOwnProperty(moduleType)) {
             var valuesArray = [];
             var startRow = row + 3;
@@ -452,7 +453,7 @@ const modules = {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var ranges = ["Modules Inventory", "Modules Presets", "Mods Obtained"];
+      var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 
       if (!batchResult || batchResult.length < 3) {
@@ -546,6 +547,7 @@ const modules = {
           }
         }
       });
+      
       // Presets
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
@@ -585,14 +587,17 @@ const modules = {
         }
       });
 
+
+      // Obtained
       var oldModulesObtained = {};
       for (var row = 0; row < oldModulesObtainedValues.length; row++) {
         for (var col = 0; col < oldModulesObtainedValues[row].length; col++) {
           var cellValue = String(oldModulesObtainedValues[row][col]).trim();
           if (cellValue) {
             var moduleType = targetModuleTypes.find(function (type) {
-              return cellValue.toLowerCase().includes(type);
+              return cellValue.toLowerCase().includes(`${type} summary`);
             });
+            moduleType = moduleType ? `${moduleType} summary` : null;
             if (moduleType) {
               if (!oldModulesObtained[moduleType]) {
                 oldModulesObtained[moduleType] = {};
@@ -644,6 +649,193 @@ const modules = {
     }
   },
 
+  version47: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+
+      if (!batchResult || batchResult.length < 3) {
+        console.log("Could not read module data from old spreadsheet");
+        return {
+          success: false,
+          message: "Could not read module data from old spreadsheet",
+        };
+      }
+
+      var oldModulesInventoryValues = batchResult[0].values;
+      var oldModulesPresetsValues = batchResult[1].values;
+      var oldModulesObtainedValues = batchResult[2].values;
+
+      return this.getVersion40Values(oldModulesInventoryValues, oldModulesPresetsValues, oldModulesObtainedValues);
+    } catch (error) {
+      console.log("Error in version47: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version47: " + error.message,
+      };
+    }
+  },
+
+  getVersion47Values: function (oldModulesInventoryValues, oldModulesPresetsValues, oldModulesObtainedValues) {
+    try {
+      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+      var oldModuleTypeIndex = this.findModuleTypesRowIndex(
+        targetModuleTypes,
+        oldModulesInventoryValues
+      );
+
+      // Inventory
+      var oldModulesInventory = {};
+      targetModuleTypes.forEach(function (moduleType) {
+        var rowIdx = oldModuleTypeIndex[moduleType];
+        if (typeof rowIdx === "undefined") return;
+        oldModulesInventory[moduleType] = {};
+        var row = oldModulesInventoryValues[rowIdx];
+        var highestLevelCol =
+          oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
+        if (highestLevelCol !== -1) {
+          oldModulesInventory[moduleType]["Highest Level"] =
+            oldModulesInventoryValues[rowIdx + 2][highestLevelCol];
+        }
+        for (var col = 1; col < row.length; col++) {
+          var cellValue = row[col] != null ? String(row[col]) : "";
+          if (cellValue.trim() !== "") {
+            var moduleName = cellValue;
+            if (moduleName) {
+              var removedRarity = ["Common", "Rare", "Rare+"];
+              var moduleRarity =
+                oldModulesInventoryValues[rowIdx + 2][col] != null
+                  ? String(oldModulesInventoryValues[rowIdx + 2][col]).trim()
+                  : "";
+              if (removedRarity.includes(moduleRarity)) {
+                moduleRarity = "Epic";
+              }
+              oldModulesInventory[moduleType][moduleName] = {
+                rarity: moduleRarity,
+                substats: [],
+              };
+              for (
+                var substat = rowIdx + 4;
+                substat < oldModulesInventoryValues.length;
+                substat++
+              ) {
+                var substatRow = oldModulesInventoryValues[substat];
+                var substatName =
+                  substatRow && substatRow[col] != null
+                    ? String(substatRow[col]).trim()
+                    : "";
+                var substatRarity =
+                  substatRow && substatRow[col + 1] != null
+                    ? String(substatRow[col + 1]).trim()
+                    : "";
+                if (substatName === "" && substatRarity === "") {
+                  break;
+                }
+                var substats = [
+                  substatRow ? substatRow[col] : "",
+                  substatRow ? substatRow[col + 1] : "",
+                ];
+                oldModulesInventory[moduleType][moduleName]["substats"].push(
+                  substats
+                );
+              }
+            }
+          }
+        }
+      });
+
+      // Presets
+      var oldModuleTypeIndex = this.findModuleTypesRowIndex(
+        targetModuleTypes,
+        oldModulesPresetsValues
+      );
+
+      var oldModulesPresets = {};
+      targetModuleTypes.forEach(function (moduleType) {
+        var rowIdx = oldModuleTypeIndex[moduleType] + 1;
+        if (typeof rowIdx === "undefined") return;
+        oldModulesPresets[moduleType] = {};
+        var row = oldModulesPresetsValues[rowIdx];
+        for (var col = 0; col < row.length; col++) {
+          if (String(row[col]).trim() === "Module Name") {
+            var presetName = String(
+              oldModulesPresetsValues[rowIdx - 1][col]
+            ).trim();
+            var moduleName = String(
+              oldModulesPresetsValues[rowIdx + 1][col]
+            ).trim();
+            if (presetName && moduleName) {
+              oldModulesPresets[moduleType][presetName] = {"primary": moduleName, "secondary": ""};
+            }
+          }
+        }
+      });
+
+      // Obtained
+      var oldModulesObtained = {};
+      for (var row = 0; row < oldModulesObtainedValues.length; row++) {
+        for (var col = 0; col < oldModulesObtainedValues[row].length; col++) {
+          var cellValue = String(oldModulesObtainedValues[row][col]).trim();
+          if (cellValue) {
+            var moduleType = targetModuleTypes.find(function (type) {
+              return cellValue.toLowerCase().includes(`${type} summary`);
+            });
+            moduleType = moduleType ? `${moduleType} summary` : null;
+            if (moduleType) {
+              if (!oldModulesObtained[moduleType]) {
+                oldModulesObtained[moduleType] = {};
+              }
+              for (
+                var modIdx = row + 2;
+                modIdx < oldModulesObtainedValues.length;
+                modIdx++
+              ) {
+                var moduleName = String(
+                  oldModulesObtainedValues[modIdx][col]
+                ).trim();
+                if (!moduleName || moduleName === "Total") {
+                  break;
+                } else {
+                  oldModulesObtained[moduleType][moduleName] =
+                    oldModulesObtainedValues[modIdx][col + 1];
+                }
+              }
+              if (
+                Object.keys(oldModulesObtained).length ===
+                targetModuleTypes.length
+              ) {
+                break;
+              }
+            }
+          }
+        }
+        if (
+          Object.keys(oldModulesObtained).length === targetModuleTypes.length
+        ) {
+          break;
+        }
+      }
+
+      return {
+        success: true,
+        targetModuleTypes: targetModuleTypes,
+        oldModulesInventory: oldModulesInventory,
+        oldModulesPresets: oldModulesPresets,
+        oldModulesObtained: oldModulesObtained,
+      };
+    } catch (error) {
+      console.log("Error in getVersion47Values: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion47Values: " + error.message,
+      };
+    }
+  },
+
+  
   version40: function () {
     try {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
@@ -708,12 +900,6 @@ const modules = {
               if (removedRarity.includes(moduleRarity)) {
                 moduleRarity = "Epic";
               }
-              var moduleLevel =
-                oldModulesInventoryValues[rowIdx + 2][col + 1] != null
-                  ? String(
-                      oldModulesInventoryValues[rowIdx + 2][col + 1]
-                    ).trim()
-                  : "";
               oldModulesInventory[moduleType][moduleName] = {
                 rarity: moduleRarity,
                 substats: [],
@@ -784,6 +970,7 @@ const modules = {
             var moduleType = targetModuleTypes.find(function (type) {
               return cellValue.toLowerCase().includes(type);
             });
+            moduleType = moduleType ? `${moduleType} summary` : null;
             if (moduleType) {
               if (!oldModulesObtained[moduleType]) {
                 oldModulesObtained[moduleType] = {};
@@ -838,6 +1025,7 @@ const modules = {
   get convertVersionFunctions() {
     return {
       "v4.0": this.version40.bind(this),
+      "v4.7": this.version47.bind(this),
       "v5.0": this.version50.bind(this),
     };
   },
