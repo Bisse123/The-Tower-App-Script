@@ -259,6 +259,106 @@ const bots = {
     }
   },
 
+  version20: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+
+      var botsLevelsRange = "EXPORT!C5:G";
+      var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        botsLevelsRange
+      ]);
+      if (
+        !botBatchResult ||
+        botBatchResult.length === 0 ||
+        !botBatchResult[0].values
+      ) {
+        console.log(`Could not read old bot levels data`);
+        return {
+          success: false,
+          message: `Could not read old bot levels data`,
+        };
+      }
+      var oldBotLevelsData = botBatchResult[0].values;
+
+      return this.getVersion20Values(oldBotLevelsData);
+    } catch (error) {
+      console.log("Error in version20: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version20: " + error.message,
+      };
+    }
+  },
+
+  getVersion20Values: function (oldBotLevelsData) {
+    try {
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+      ];
+
+      var oldBotLevels = oldBotLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldBots = {};
+      for (var row = 0; row < oldBotLevels.length; row++) {
+        var botName = oldBotLevels[row][0];
+        // Only proceed if botName is in targetBots
+        if (botName && targetBots.includes(botName)) {
+          var unlocked = oldBotLevels[row + 3][0];
+          var bot = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
+            var nextRowData = oldBotLevels[nextRow];
+            if (nextRow !== row && targetBots.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              bot.props[key] = value;
+            }
+          }
+          oldBots[botName] = bot;
+        }
+      }
+
+      return {
+        success: true,
+        message: "Bots processed successfully",
+        targetBots: targetBots,
+        oldBots: oldBots,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20Values: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20Values: " + error.message,
+      };
+    }
+  },
+
   version10: function () {
     try {
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
@@ -337,6 +437,12 @@ const bots = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
+              var valueStr = value.toString();
+              if (valueStr.length >= 2 && /^\d{2}/.test(valueStr)) {
+                var firstTwoDigits = parseInt(valueStr.substring(0, 2));
+                var modifiedFirstTwo = (firstTwoDigits - 1).toString().padStart(2, '0');
+                value = modifiedFirstTwo + valueStr.substring(2);
+              }
               bot.props[key] = value;
             }
           }
@@ -362,6 +468,7 @@ const bots = {
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
+      "v2.0": this.version20.bind(this),
     };
   },
 

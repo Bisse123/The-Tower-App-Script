@@ -38,8 +38,7 @@
         .prepareImportData(idMasterID, copiedTemplateFiles || [], importedFilesFailed || [], exportedFilesFailed || []);
       return;
     }
-    var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : sheetType;
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file" && versionDifference === "None") {
+    if (sheetType === "IDS Collection" && versionDifference === "None") {
       document.getElementById("statusText").innerText = `Preparing import for sheet...`;
       const sheetTypes = [
         "Laboratory",
@@ -51,7 +50,8 @@
         "Vault",
         "Cards",
         "Modules",
-        "Guardians"
+        "Guardians",
+        "Player & Stuff",
       ];
       sheetTypes.forEach(type => {
         copiedTemplateFiles.push({
@@ -114,7 +114,7 @@
                 });
                 
                 // Now proceed with imports
-                document.getElementById("statusText").innerText = `Importing ${updateType} data...`;
+                document.getElementById("statusText").innerText = `Importing ${sheetType} data...`;
                 google.script.run
                   .withSuccessHandler(onImportSuccess)
                   .withFailureHandler(onImportFailure)
@@ -142,14 +142,14 @@
     // For non-IDS Master sheets, first export data, then import it
     document.getElementById(
       "statusText"
-    ).innerText = `Exporting ${updateType} data...`;
+    ).innerText = `Exporting ${sheetType} data...`;
     
     google.script.run
       .withSuccessHandler(function(exportResult) {
         if (exportResult.success) {
           document.getElementById(
             "statusText"
-          ).innerText = `Importing ${updateType} data...`;
+          ).innerText = `Importing ${sheetType} data...`;
           
           // Now call importData with the exported data
           google.script.run
@@ -562,12 +562,11 @@
     document.getElementById("importButton").disabled = false;
     console.log("Import result:", result);
     if (result.success) {
-      var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : "IDS Master";
       document.getElementById("statusText").innerText = `${result.message}`;
       document.getElementById("updateMasterButton").disabled = false;
       document.getElementById(
         "selectedFileSummary"
-      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${updateType}! ⚠️</strong><br>`;
+      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${sheetType}! ⚠️</strong><br>`;
       showAccessibleFilesSummary();
     } else {
       if (result.failedUpdates && result.failedUpdates.length > 0) {
@@ -839,7 +838,7 @@
       console.log("Update IDS Master result:", result);
       
       // Check if this is an IDS Collection update
-      if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      if (sheetType === "IDS Collection") {
         // Check if there are cached sheet IDs that need cleanup
         if (cachedSheetIds && cachedSheetIds.length > 0) {
           console.log(`IDS Collection updated successfully. Checking ${cachedSheetIds.length} cached sheet IDs for cleanup...`);
@@ -1160,13 +1159,12 @@
         updateButton.style.display = "none";
       } else {
         statusText.innerText = `Checking import status and compatibility.`;
-        var updateType = sheetType === "IDS Collection - all IDS-Sheets on one file" ? "IDS Collection" : sheetType;
-        importButton.innerText = `Import ${updateType} data`;
+        importButton.innerText = `Import ${sheetType} data`;
         importButton.style.display = "inline-block";
         importButton.disabled = true;
         updateButton.style.display = "inline-block";
         updateButton.disabled = true;
-        updateButton.innerText = `Update ${updateType === "IDS Collection" ? "IDS Collection" : "IDS Master"}`;
+        updateButton.innerText = `${sheetType === "IDS Collection" ? "Move IDS Collection" : "Update IDS Master"}`;
         copyButton.style.display = "none";
         copyUpdateButton.style.display = "none";
         google.script.run
