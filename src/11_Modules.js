@@ -196,6 +196,10 @@ const modules = {
           var presetCol = row.indexOf(presetName);
           if (presetCol !== -1) {
             if (presetName === "Assist Slot") {
+              var lockedRange = `${sheetName}!${shared.columnToLetter(presetCol + 3)}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 1}`;
+              var lockedValues = [
+                [oldModulesPresets[moduleType][presetName].locked || ""],
+              ];
               var rarityRange = `${sheetName}!${shared.columnToLetter(presetCol + 2)}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${rowIdx + 2}`;
               var rarityValues = [
                 [oldModulesPresets[moduleType][presetName].rarity || ""],
@@ -205,6 +209,10 @@ const modules = {
                 [oldModulesPresets[moduleType][presetName].multiplier || ""],
                 [oldModulesPresets[moduleType][presetName].substat || ""],
               ];
+              batchUpdate.push({
+                range: lockedRange,
+                values: lockedValues,
+              });
               batchUpdate.push({
                 range: rarityRange,
                 values: rarityValues,
@@ -443,7 +451,7 @@ const modules = {
 
     return moduleTypeIndex;
   },
-  
+
   version50: function () {
     try {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
@@ -920,6 +928,8 @@ const modules = {
         }
         var assistSlotCol = oldModulesPresetsValues[rowIdx].indexOf("Assist Slot");
         if (assistSlotCol !== -1) {
+          var assistLocked = oldModulesPresetsValues[rowIdx][assistSlotCol + 2]
+          
           var assistRarity = String(
             oldModulesPresetsValues[rowIdx + 1][assistSlotCol + 1])
             .trim();
@@ -930,6 +940,7 @@ const modules = {
             oldModulesPresetsValues[rowIdx + 3][assistSlotCol + 2])
             .trim();
           oldModulesPresets[moduleType]["Assist Slot"] = {
+            "locked": assistLocked,
             "rarity": assistRarity,
             "multiplier": assistMultiplier,
             "substat": assistSubstat
