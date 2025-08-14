@@ -606,6 +606,214 @@ const collection = {
     }
   },
 
+  version20: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+      
+      // Define all the ranges for different sheet types in the IDS Collection
+      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
+      var rangeMap = {
+        "values": {
+          "Lab Levels": "EXPORT_Lab!B5:E",              // Laboratory levels
+          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet) - for values
+          "Workshop Levels": "EXPORT_WS!B2:M",          // Workshop levels  
+          "Workshop Plus": "EXPORT_WS!P2:V",            // Workshop plus levels
+          "Ultimate Weapon": "EXPORT_UW!C5:G",          // Ultimate weapons data
+          "Themes & Songs": "Themes & Songs",           // Themes & songs data (full sheet)
+          "Bots": "EXPORT_Bots!C5:G",                   // Bots data
+          "Relics": "Relics",                           // Relics data (full sheet)
+          "Vault Harmony": "Vault_Harmony",             // Vault harmony data (full sheet)
+          "Vault Power": "Vault_Power",                 // Vault power data (full sheet)
+          "Card Preset": "Card Preset",                 // Cards preset data (full sheet)
+          "Cards Levels": "EXPORT_Cards!B5:D",          // Cards level data
+          "Cards Slots": "EXPORT_Cards!C2",             // Cards slot data
+          "Modules Inventory": "Modules Inventory",     // Modules inventory (full sheet)
+          "Modules Presets": "Modules Presets",         // Modules presets (full sheet)
+          "Modules Tracker": "Modules Tracker",         // Modules obtained (full sheet)
+          "Guardians": "EXPORT_Guardian!B5:F",          // Guardians data
+          "Player": "EXPORT_Player!B2:D",               // Player data
+        },
+        "formulas": {
+          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet)
+          "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
+        }
+      };
+      
+      // Create separate ranges arrays and index maps for values and formulas
+      var valuesRanges = Object.keys(rangeMap.values).map(function(key) {
+        return rangeMap.values[key];
+      });
+      
+      var formulasRanges = Object.keys(rangeMap.formulas).map(function(key) {
+        return rangeMap.formulas[key];
+      });
+
+      // Batch fetch all required data
+      var batchValuesResults = [];
+      var batchFormulasResults = [];
+      
+      if (valuesRanges.length > 0) {
+        batchValuesResults = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
+        if (!batchValuesResults) {
+          console.log(`Could not read IDS Collection values data`);
+          return {
+            success: false,
+            message: "Could not read IDS Collection values data",
+          };
+        }
+      }
+      
+      if (formulasRanges.length > 0) {
+        batchFormulasResults = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+        if (!batchFormulasResults) {
+          console.log(`Could not read IDS Collection formulas data`);
+          return {
+            success: false,
+            message: "Could not read IDS Collection formulas data",
+          };
+        }
+      }
+      
+      // Helper function to get batch result by key and type
+      var getBatchResult = function(key, type) {
+        type = type || "values"; // Default to values if not specified
+        
+        if (type === "values") {
+          var index = Object.keys(rangeMap.values).indexOf(key);
+          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index] : null;
+        } else if (type === "formulas") {
+          var index = Object.keys(rangeMap.formulas).indexOf(key);
+          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index] : null;
+        }
+        return null;
+      };
+
+      // Process the data using the individual modules' getVersionXXValues functions
+      var collectedData = {};
+      // Player data
+      var playerResult = getBatchResult("Player", "values");
+      if (playerResult && playerResult.values) {
+        var playerValues = playerResult.values;
+        var playerData = player.getVersion20Values(playerValues);
+        collectedData.Player = playerData;
+      }
+      // Laboratory data
+      var labLevelsResult = getBatchResult("Lab Levels", "values");
+      var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
+      var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
+      if (labLevelsResult && labLevelsResult.values) {
+        var labLevelsValues = labLevelsResult.values;
+        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
+        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
+        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
+        collectedData.Laboratory = labData;
+      }
+
+      // Workshop data
+      var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
+      var workshopPlusResult = getBatchResult("Workshop Plus", "values");
+      var workshopRatioResult = getBatchResult("Workshop Ratio", "formulas");
+      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopRatioResult && workshopRatioResult.values) {
+        var workshopLevelsValues = workshopLevelsResult.values;
+        var workshopPlusLevelsValues = workshopPlusResult.values;
+        var workshopRatioValues = workshopRatioResult.values;
+        var workshopData = workshop.getVersion20Values(workshopLevelsValues, workshopPlusLevelsValues, workshopRatioValues);
+        collectedData.Workshop = workshopData;
+      }
+
+      // Ultimate Weapon data
+      var ultimateResult = getBatchResult("Ultimate Weapon", "values");
+      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
+      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
+        var ultimateValues = ultimateResult.values;
+        var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
+        var ultimateData = ultimate.getVersion20Values(ultimateValues, ultimateCostCalculatorValues);
+        collectedData["Ultimate Weapon"] = ultimateData;
+      }
+
+      // Themes & Songs data
+      var themesResult = getBatchResult("Themes & Songs", "values");
+      if (themesResult && themesResult.values) {
+        var themesValues = themesResult.values;
+        var themesData = themes.getVersion10Values(themesValues);
+        collectedData["Themes & Songs"] = themesData;
+      }
+
+      // Bots data
+      var botsResult = getBatchResult("Bots", "values");
+      if (botsResult && botsResult.values) {
+        var botsValues = botsResult.values;
+        var botsData = bots.getVersion20Values(botsValues);
+        collectedData.Bots = botsData;
+      }
+
+      // Relics data
+      var relicsResult = getBatchResult("Relics", "values");
+      if (relicsResult && relicsResult.values) {
+        var relicsValues = relicsResult.values;
+        var relicsData = relics.getVersion10Values(relicsValues);
+        collectedData.Relics = relicsData;
+      }
+
+      // Vault data
+      var harmonyResult = getBatchResult("Vault Harmony", "values");
+      var powerResult = getBatchResult("Vault Power", "values");
+      if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
+        var harmonyValues = harmonyResult.values;
+        var powerValues = powerResult.values;
+        var vaultData = vault.getVersion10Values(harmonyValues, powerValues);
+        collectedData.Vault = vaultData;
+      }
+
+      // Cards data
+      var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsLevelsResult = getBatchResult("Cards Levels", "values");
+      var cardsSlotsResult = getBatchResult("Cards Slots", "values");
+      if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
+        var cardsPresetValues = cardsPresetResult.values;
+        var cardsLevelValues = cardsLevelsResult.values;
+        var cardsSlotsValues = cardsSlotsResult.values;
+        var cardsData = cards.getVersion10Values(cardsPresetValues, cardsLevelValues, cardsSlotsValues);
+        collectedData.Cards = cardsData;
+      }
+
+      // Modules data
+      var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
+      var modulesPresetsResult = getBatchResult("Modules Presets", "values");
+      var modulesObtainedResult = getBatchResult("Modules Tracker", "values");
+      if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values && modulesObtainedResult && modulesObtainedResult.values) {
+        var modulesInventoryValues = modulesInventoryResult.values;
+        var modulesPresetsValues = modulesPresetsResult.values;
+        var modulesObtainedValues = modulesObtainedResult.values;
+        var modulesData = modules.getVersion50Values(modulesInventoryValues, modulesPresetsValues, modulesObtainedValues);
+        collectedData.Modules = modulesData;
+      }
+
+      // Guardians data
+      var guardiansResult = getBatchResult("Guardians", "values");
+      if (guardiansResult && guardiansResult.values) {
+        var guardiansValues = guardiansResult.values;
+        var guardiansData = guardians.getVersion10Values(guardiansValues);
+        collectedData.Guardians = guardiansData;
+      }
+
+      return {
+        success: true,
+        message: "IDS Collection data retrieved successfully",
+        data: collectedData
+      };
+      
+    } catch (error) {
+      console.log(`Error in IDS Collection version1417: ${error.message}`);
+      return {
+        success: false,
+        message: `Error in IDS Collection version1417: ${error.message}`,
+      };
+    }
+  },
+
   version1417: function () {
     try {
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
@@ -810,7 +1018,6 @@ const collection = {
       };
     }
   },
-
   
   version135: function () {
     try {
@@ -1014,6 +1221,7 @@ const collection = {
     return {
       "v1.3.5": this.version135.bind(this),
       "v1.4.17": this.version1417.bind(this),
+      "v2.0": this.version20.bind(this),
     };
   },
 
