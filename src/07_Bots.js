@@ -304,65 +304,6 @@ const bots = {
     }
   },
 
-  getVersion20Bots: function (oldBotLevelsData) {
-    try {
-      var targetBots = [
-        "Flame Bot",
-        "Thunder Bot",
-        "Golden Bot",
-        "Amplify Bot",
-      ];
-
-      var oldBotLevels = oldBotLevelsData.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-
-      var oldBots = {};
-      for (var row = 0; row < oldBotLevels.length; row++) {
-        var botName = oldBotLevels[row][0];
-        // Only proceed if botName is in targetBots
-        if (botName && targetBots.includes(botName)) {
-          var unlocked = oldBotLevels[row + 3][0];
-          var bot = {
-            unlocked: unlocked,
-            props: {},
-          };
-
-          for (nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
-            var nextRowData = oldBotLevels[nextRow];
-            if (nextRow !== row && targetBots.includes(nextRowData[0])) {
-              row = nextRow - 1;
-              break;
-            }
-            var key = nextRowData[2];
-            var value = nextRowData[4];
-            if (key && value) {
-              bot.props[key] = value;
-            }
-          }
-          oldBots[botName] = bot;
-        }
-      }
-
-      return {
-        success: true,
-        message: "Bots processed successfully",
-        oldBots: oldBots,
-      };
-    } catch (error) {
-      console.log("Error in getVersion20Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion20Bots: " + error.message,
-      };
-    }
-  },
-
   version10: function () {
     try {
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
@@ -465,6 +406,65 @@ const bots = {
       return {
         success: false,
         message: "Error in getVersion10Bots: " + error.message,
+      };
+    }
+  },
+
+  getVersion20Bots: function (oldBotLevelsData) {
+    try {
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+      ];
+
+      var oldBotLevels = oldBotLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldBots = {};
+      for (var row = 0; row < oldBotLevels.length; row++) {
+        var botName = oldBotLevels[row][0];
+        // Only proceed if botName is in targetBots
+        if (botName && targetBots.includes(botName)) {
+          var unlocked = oldBotLevels[row + 3][0];
+          var bot = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
+            var nextRowData = oldBotLevels[nextRow];
+            if (nextRow !== row && targetBots.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              bot.props[key] = value;
+            }
+          }
+          oldBots[botName] = bot;
+        }
+      }
+
+      return {
+        success: true,
+        message: "Bots processed successfully",
+        oldBots: oldBots,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20Bots: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20Bots: " + error.message,
       };
     }
   },
