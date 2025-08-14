@@ -22,7 +22,7 @@ const modules = {
         data: {
           oldModulesInventory: oldDataResult.oldModulesInventory || {},
           oldModulesPresets: oldDataResult.oldModulesPresets || {},
-          oldModulesObtained: oldDataResult.oldModulesObtained || {}
+          // oldModulesObtained: oldDataResult.oldModulesObtained || {}
         }
       };
     } catch (error) {
@@ -49,17 +49,17 @@ const modules = {
 
       var oldModulesInventory = data.oldModulesInventory || {};
       var oldModulesPresets = data.oldModulesPresets || {};
-      var oldModulesObtained = data.oldModulesObtained || {};
+      // var oldModulesObtained = data.oldModulesObtained || {};
 
       // Batch fetch all required sheet data
       var requiredRanges = [
         "Modules Inventory",
         "Modules Presets",
-        "Modules Tracker",
+        // "Modules Tracker",
         "IDS"
       ];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
-      if (!batchResult || batchResult.length < 3) {
+      if (!batchResult || batchResult.length < 2) {
         console.log("Error getting modules sheet data");
         return {
           success: false,
@@ -75,11 +75,11 @@ const modules = {
         batchResult[1] && batchResult[1].values
           ? batchResult[1].values
           : null;
-      var newModulesObtainedValues =
-        batchResult[2] && batchResult[2].values
-          ? batchResult[2].values
-          : null;
-      var idsData = batchResult[3].values;
+      // var newModulesObtainedValues =
+      //   batchResult[2] && batchResult[2].values
+      //     ? batchResult[2].values
+      //     : null;
+      var idsData = batchResult[2].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
@@ -457,10 +457,14 @@ const modules = {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
+      var ranges = [
+        "Modules Inventory",
+        "Modules Presets",
+        // "Modules Tracker"
+      ];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 
-      if (!batchResult || batchResult.length < 3) {
+      if (!batchResult || batchResult.length < 2) {
         console.log("Could not read module data from old spreadsheet");
         return {
           success: false,
@@ -470,7 +474,7 @@ const modules = {
 
       var oldModulesInventoryValues = batchResult[0].values;
       var oldModulesPresetsValues = batchResult[1].values;
-      var oldModulesObtainedValues = batchResult[2].values;
+      // var oldModulesObtainedValues = batchResult[2].values;
 
       var inventoryData = this.getVersion50ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion50ModulesPresets(oldModulesPresetsValues);
@@ -500,10 +504,14 @@ const modules = {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
+      var ranges = [
+        "Modules Inventory",
+        "Modules Presets",
+        // "Modules Tracker"
+      ];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 
-      if (!batchResult || batchResult.length < 3) {
+      if (!batchResult || batchResult.length < 2) {
         console.log("Could not read module data from old spreadsheet");
         return {
           success: false,
@@ -513,7 +521,7 @@ const modules = {
 
       var oldModulesInventoryValues = batchResult[0].values;
       var oldModulesPresetsValues = batchResult[1].values;
-      var oldModulesObtainedValues = batchResult[2].values;
+      // var oldModulesObtainedValues = batchResult[2].values;
 
       var inventoryData = this.getVersion40ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion40ModulesPresets(oldModulesPresetsValues);
@@ -543,10 +551,14 @@ const modules = {
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var ranges = ["Modules Inventory", "Modules Presets", "Mods Obtained"];
+      var ranges = [
+        "Modules Inventory",
+        "Modules Presets",
+        // "Mods Obtained"
+      ];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 
-      if (!batchResult || batchResult.length < 3) {
+      if (!batchResult || batchResult.length < 2) {
         console.log("Could not read module data from old spreadsheet");
         return {
           success: false,
@@ -556,7 +568,7 @@ const modules = {
 
       var oldModulesInventoryValues = batchResult[0].values;
       var oldModulesPresetsValues = batchResult[1].values;
-      var oldModulesObtainedValues = batchResult[2].values;
+      // var oldModulesObtainedValues = batchResult[2].values;
 
       var inventoryData = this.getVersion40ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion40ModulesPresets(oldModulesPresetsValues);
