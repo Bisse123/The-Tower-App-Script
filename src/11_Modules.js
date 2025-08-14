@@ -120,20 +120,20 @@ const modules = {
 
       batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
 
-      var obtainedResult = this.updateModulesObtained(
-        "Modules Tracker",
-        oldModulesObtained,
-        newModulesObtainedValues
-      );
+      // var obtainedResult = this.updateModulesObtained(
+      //   "Modules Tracker",
+      //   oldModulesObtained,
+      //   newModulesObtainedValues
+      // );
 
-      if (!obtainedResult || !obtainedResult.success) {
-        return {
-          success: false,
-          message: obtainedResult.message,
-        };
-      }
+      // if (!obtainedResult || !obtainedResult.success) {
+      //   return {
+      //     success: false,
+      //     message: obtainedResult.message,
+      //   };
+      // }
 
-      batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
+      // batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
 
       // Add import status update to batch
       batchUpdate.push({
@@ -474,16 +474,17 @@ const modules = {
 
       var inventoryData = this.getVersion50ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion50ModulesPresets(oldModulesPresetsValues);
-      var obtainedData = this.getVersion47ModulesObtained(oldModulesObtainedValues);
+      // var obtainedData = this.getVersion47ModulesObtained(oldModulesObtainedValues);
 
-      var success = inventoryData.success && presetsData.success && obtainedData.success;
+      // var success = inventoryData.success && presetsData.success && obtainedData.success;
+      var success = inventoryData.success && presetsData.success;
       
       return {
         success: success,
         message: success ? "Modules data retrieved successfully" : "Error retrieving Modules data",
         oldModulesInventory: inventoryData.oldModulesInventory || {},
         oldModulesPresets: presetsData.oldModulesPresets || {},
-        oldModulesObtained: obtainedData.oldModulesObtained || {}
+        // oldModulesObtained: obtainedData.oldModulesObtained || {}
       };
     } catch (error) {
       console.log("Error in version50: " + error.toString());
@@ -516,16 +517,17 @@ const modules = {
 
       var inventoryData = this.getVersion40ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion40ModulesPresets(oldModulesPresetsValues);
-      var obtainedData = this.getVersion47ModulesObtained(oldModulesObtainedValues);
+      // var obtainedData = this.getVersion47ModulesObtained(oldModulesObtainedValues);
 
-      var success = inventoryData.success && presetsData.success && obtainedData.success;
+      // var success = inventoryData.success && presetsData.success && obtainedData.success;
+      var success = inventoryData.success && presetsData.success;
       
       return {
         success: success,
         message: success ? "Modules data retrieved successfully" : "Error retrieving Modules data",
         oldModulesInventory: inventoryData.oldModulesInventory || {},
         oldModulesPresets: presetsData.oldModulesPresets || {},
-        oldModulesObtained: obtainedData.oldModulesObtained || {}
+        // oldModulesObtained: obtainedData.oldModulesObtained || {}
       };
     } catch (error) {
       console.log("Error in version47: " + error.toString());
@@ -558,16 +560,17 @@ const modules = {
 
       var inventoryData = this.getVersion40ModulesInventory(oldModulesInventoryValues);
       var presetsData = this.getVersion40ModulesPresets(oldModulesPresetsValues);
-      var obtainedData = this.getVersion40ModulesObtained(oldModulesObtainedValues);
+      // var obtainedData = this.getVersion40ModulesObtained(oldModulesObtainedValues);
 
-      var success = inventoryData.success && presetsData.success && obtainedData.success;
+      // var success = inventoryData.success && presetsData.success && obtainedData.success;
+      var success = inventoryData.success && presetsData.success;
       
       return {
         success: success,
         message: success ? "Modules data retrieved successfully" : "Error retrieving Modules data",
         oldModulesInventory: inventoryData.oldModulesInventory || {},
         oldModulesPresets: presetsData.oldModulesPresets || {},
-        oldModulesObtained: obtainedData.oldModulesObtained || {}
+        // oldModulesObtained: obtainedData.oldModulesObtained || {}
       };
     } catch (error) {
       console.log("Error in version40: " + error.toString());
