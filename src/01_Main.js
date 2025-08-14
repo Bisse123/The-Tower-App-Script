@@ -51,7 +51,6 @@ function doGet(e) {
   if (e.parameter.newSheetID === "<Script loading...>") {
     e.parameter.newSheetID = "";
   }
-  
   var newSheetID = e.parameter.newSheetID || "";
   var oldSheetID = e.parameter.oldSheetID || "";
   var idMasterID = e.parameter.idMasterID || "";
@@ -72,6 +71,9 @@ function doGet(e) {
     template.idMasterID = idMasterID;  // The IDS Master spreadsheet ID
     template.sheetType = sheetType;
   } else {
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      sheetType = "IDS Collection";
+    }
     // Regular processing for individual sheet types
     template.newSheetID = newSheetID;
     template.oldSheetID = oldSheetID;
