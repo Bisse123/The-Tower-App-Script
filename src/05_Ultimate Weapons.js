@@ -510,70 +510,7 @@ const ultimate = {
     }
   },
 
-  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
-    try {
-      var targetWeapons = [
-        "Chain Lightning",
-        "Smart Missiles",
-        "Death Wave",
-        "Chrono Field",
-        "Inner Land Mines",
-        "Golden Tower",
-        "Poison Swamp",
-        "Black Hole",
-        "Spotlight",
-      ];
-
-      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-
-      var oldUltimate = {};
-      for (var row = 0; row < oldUltimateLevels.length; row++) {
-        var weaponName = oldUltimateLevels[row][0];
-        // Process only weapons that are in our targetWeapons list
-        if (weaponName && targetWeapons.includes(weaponName)) {
-          var unlocked = oldUltimateLevels[row + 2][0];
-          var weapon = {
-            unlocked: unlocked,
-            props: {},
-          };
-
-          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
-            var nextRowData = oldUltimateLevels[nextRow];
-            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
-              row = nextRow - 1;
-              break;
-            }
-            var key = nextRowData[2];
-            var value = nextRowData[4];
-            if (key && value) {
-              weapon.props[key] = value;
-            }
-          }
-          oldUltimate[weaponName] = weapon;
-        }
-      }
-
-      return {
-        success: true,
-        "Ultimate Weapon": oldUltimate,
-      };
-    } catch (error) {
-      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion20UltimateWeapons: " + error.message,
-      };
-    }
-  },
-
-    version10: function () {
+  version10: function () {
     try {
       var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
@@ -825,6 +762,69 @@ const ultimate = {
       return {
         success: false,
         message: "Error in getVersion10CostCalculator: " + error.message,
+      };
+    }
+  },
+
+  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
+    try {
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
+      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldUltimate = {};
+      for (var row = 0; row < oldUltimateLevels.length; row++) {
+        var weaponName = oldUltimateLevels[row][0];
+        // Process only weapons that are in our targetWeapons list
+        if (weaponName && targetWeapons.includes(weaponName)) {
+          var unlocked = oldUltimateLevels[row + 2][0];
+          var weapon = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
+            var nextRowData = oldUltimateLevels[nextRow];
+            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              weapon.props[key] = value;
+            }
+          }
+          oldUltimate[weaponName] = weapon;
+        }
+      }
+
+      return {
+        success: true,
+        "Ultimate Weapon": oldUltimate,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20UltimateWeapons: " + error.message,
       };
     }
   },
