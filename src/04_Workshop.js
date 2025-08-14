@@ -436,91 +436,36 @@ const workshop = {
       }
       var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
 
-      return this.getVersion20Values(oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues, oldWorkshopPlusRatiosValues);
+      // Process workshop levels
+      var workshopLevelsResult = this.getVersion20WorkshopLevels(oldWorkshopLevelsValues);
+      if (!workshopLevelsResult || !workshopLevelsResult.success) {
+        return workshopLevelsResult;
+      }
+
+      // Process workshop plus levels
+      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(oldWorkshopPlusLevelsValues);
+      if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
+        return workshopPlusLevelsResult;
+      }
+
+      // Process workshop plus ratios
+      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(oldWorkshopPlusRatiosValues);
+      if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
+        return workshopPlusRatiosResult;
+      }
+
+      return {
+        success: true,
+        message: "Workshop levels processed successfully",
+        oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
+        oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
+        oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
+      };
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
         success: false,
         message: "Error in version20: " + error.message,
-      };
-    }
-  },
-
-  getVersion20Values: function (oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues, oldWorkshopPlusRatiosValues) {
-    try {
-      var oldWorkshopLevels = {};
-      var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
-      oldWorkshopLevelsValues.splice(0, 2);
-      oldWorkshopLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
-        });
-        if (hasData && row[1]) {
-          oldWorkshopLevels[row[1]] = {"unlocked": row[0] || "", "levels": {}};
-          row.forEach(function(cell, index) {
-            if (oldWorkshopLevelsHeaders[index] && oldWorkshopLevelsHeaders[index].startsWith("Preset")) {
-              var presetName = oldWorkshopLevelsHeaders[index];
-              oldWorkshopLevels[row[1]].levels[presetName] = [row[index] || "", row[index + 1] || ""];
-            }
-          });
-        }
-      });
-
-      var oldWorkshopPlusLevels = {};
-      var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
-      oldWorkshopPlusLevelsValues.splice(0, 2);
-      oldWorkshopPlusLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
-        });
-        if (hasData && row[0]) {
-          oldWorkshopPlusLevels[row[0]] = {};
-          row.forEach(function(cell, index) {
-            var presetName = oldWorkshopPlusLevelsHeaders[index];
-            if (presetName && presetName.startsWith("Preset")) {
-              oldWorkshopPlusLevels[row[0]][presetName] = row[index] || "";
-            };
-          });
-        }
-      });
-      var oldWorkshopPlusRatios = {};
-      var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
-      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf("Workshop Enhancement");
-      oldWorkshopPlusRatiosValues.splice(0, 1);
-      for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
-        var row = oldWorkshopPlusRatiosValues[i];
-        var enhancementName = row[workshopEnhancementNameCol];
-        if (enhancementName.includes("Order in between")) {
-          enhancementName = "Order in between";
-        }
-        if (enhancementName && enhancementName.startsWith("=")) {
-          var parts = enhancementName.split(",");
-          if (parts.length === 4) {
-            enhancementName = parts[2].trim();
-          } else {
-            enhancementName = parts[parts.length - 1].trim();
-          }
-          enhancementName = enhancementName.replace(/['"()]/g, '');
-        }
-        if (enhancementName) {
-          oldWorkshopPlusRatios[enhancementName] = {"Order": row[workshopEnhancementNameCol + 1] || "", "Ratio": row[workshopEnhancementNameCol + 2] || ""};
-        }
-        if (enhancementName ==="Order in between") {
-          break;
-        }
-      };
-      return {
-        success: true,
-        message: "Workshop levels processed successfully",
-        oldWorkshopLevels: oldWorkshopLevels,
-        oldWorkshopPlusLevels: oldWorkshopPlusLevels,
-        oldWorkshopPlusRatios: oldWorkshopPlusRatios,
-      };
-    } catch (error) {
-      console.log("Error in getVersion20Values: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion20Values: " + error.message,
       };
     }
   },
@@ -559,7 +504,25 @@ const workshop = {
       }
       var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
-      return this.getVersion10Values(oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues);
+      
+      // Process workshop levels
+      var workshopLevelsResult = this.getVersion10WorkshopLevels(oldWorkshopLevelsValues);
+      if (!workshopLevelsResult || !workshopLevelsResult.success) {
+        return workshopLevelsResult;
+      }
+
+      // Process workshop plus levels
+      var workshopPlusLevelsResult = this.getVersion10WorkshopPlusLevels(oldWorkshopPlusLevelsValues);
+      if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
+        return workshopPlusLevelsResult;
+      }
+
+      return {
+        success: true,
+        message: "Workshop levels processed successfully",
+        oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
+        oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
+      };
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -569,7 +532,7 @@ const workshop = {
     }
   },
 
-  getVersion10Values: function (oldWorkshopLevelsValues, oldWorkshopPlusLevelsValues) {
+  getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
       var oldWorkshopLevels = {};
       oldWorkshopLevelsValues.forEach(function(row) {
@@ -581,6 +544,22 @@ const workshop = {
         }
       });
 
+      return {
+        success: true,
+        message: "Workshop levels processed successfully",
+        oldWorkshopLevels: oldWorkshopLevels,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10WorkshopLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10WorkshopLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
+    try {
       var oldWorkshopPlusLevels = {};
       oldWorkshopPlusLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
@@ -590,18 +569,128 @@ const workshop = {
           oldWorkshopPlusLevels[row[0]] = {"Preset 1": row[2] || ""};
         }
       });
-      console.log("Old Workshop Levels: ", JSON.stringify(oldWorkshopLevels, null, 2));
+
+      return {
+        success: true,
+        message: "Workshop plus levels processed successfully",
+        oldWorkshopPlusLevels: oldWorkshopPlusLevels,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10WorkshopPlusLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10WorkshopPlusLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion20WorkshopLevels: function (oldWorkshopLevelsValues) {
+    try {
+      var oldWorkshopLevels = {};
+      var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
+      oldWorkshopLevelsValues.splice(0, 2);
+      oldWorkshopLevelsValues.forEach(function(row) {
+        var hasData = row.some(function(cell) {
+          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+        });
+        if (hasData && row[1]) {
+          oldWorkshopLevels[row[1]] = {"unlocked": row[0] || "", "levels": {}};
+          row.forEach(function(cell, index) {
+            if (oldWorkshopLevelsHeaders[index] && oldWorkshopLevelsHeaders[index].startsWith("Preset")) {
+              var presetName = oldWorkshopLevelsHeaders[index];
+              oldWorkshopLevels[row[1]].levels[presetName] = [row[index] || "", row[index + 1] || ""];
+            }
+          });
+        }
+      });
+
       return {
         success: true,
         message: "Workshop levels processed successfully",
         oldWorkshopLevels: oldWorkshopLevels,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20WorkshopLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20WorkshopLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion20WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
+    try {
+      var oldWorkshopPlusLevels = {};
+      var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
+      oldWorkshopPlusLevelsValues.splice(0, 2);
+      oldWorkshopPlusLevelsValues.forEach(function(row) {
+        var hasData = row.some(function(cell) {
+          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+        });
+        if (hasData && row[0]) {
+          oldWorkshopPlusLevels[row[0]] = {};
+          row.forEach(function(cell, index) {
+            var presetName = oldWorkshopPlusLevelsHeaders[index];
+            if (presetName && presetName.startsWith("Preset")) {
+              oldWorkshopPlusLevels[row[0]][presetName] = row[index] || "";
+            };
+          });
+        }
+      });
+
+      return {
+        success: true,
+        message: "Workshop plus levels processed successfully",
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion20WorkshopPlusLevels: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion20WorkshopPlusLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion20WorkshopPlusRatios: function (oldWorkshopPlusRatiosValues) {
+    try {
+      var oldWorkshopPlusRatios = {};
+      var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
+      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf("Workshop Enhancement");
+      oldWorkshopPlusRatiosValues.splice(0, 1);
+      for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
+        var row = oldWorkshopPlusRatiosValues[i];
+        var enhancementName = row[workshopEnhancementNameCol];
+        if (enhancementName.includes("Order in between")) {
+          enhancementName = "Order in between";
+        }
+        if (enhancementName && enhancementName.startsWith("=")) {
+          var parts = enhancementName.split(",");
+          if (parts.length === 4) {
+            enhancementName = parts[2].trim();
+          } else {
+            enhancementName = parts[parts.length - 1].trim();
+          }
+          enhancementName = enhancementName.replace(/['"()]/g, '');
+        }
+        if (enhancementName) {
+          oldWorkshopPlusRatios[enhancementName] = {"Order": row[workshopEnhancementNameCol + 1] || "", "Ratio": row[workshopEnhancementNameCol + 2] || ""};
+        }
+        if (enhancementName ==="Order in between") {
+          break;
+        }
+      };
+
+      return {
+        success: true,
+        message: "Workshop plus ratios processed successfully",
+        oldWorkshopPlusRatios: oldWorkshopPlusRatios,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20WorkshopPlusRatios: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20WorkshopPlusRatios: " + error.message,
       };
     }
   },

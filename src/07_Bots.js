@@ -20,7 +20,6 @@ const bots = {
         success: true,
         message: "Bots export completed successfully",
         data: {
-          targetBots: oldDataResult.targetBots || [],
           oldBots: oldDataResult.oldBots || {}
         }
       };
@@ -46,7 +45,6 @@ const bots = {
         };
       }
 
-      var targetBots = data.targetBots || [];
       var oldBots = data.oldBots || {};
 
       // Batch get required data for update function only
@@ -75,7 +73,6 @@ const bots = {
 
       var botsResult = this.updateBotLevels(
         "Master Sheet",
-        targetBots,
         oldBots,
         masterSheetData
       );
@@ -117,8 +114,15 @@ const bots = {
     }
   },
 
-  updateBotLevels: function (sheetName, targetBots, oldBots, masterSheetData) {
+  updateBotLevels: function (sheetName, oldBots, masterSheetData) {
     try {
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+      ];
+
       if (!masterSheetData) {
         console.log(`Error getting bot master sheet data`);
         return {
@@ -289,7 +293,8 @@ const bots = {
       }
       var oldBotLevelsData = botBatchResult[0].values;
 
-      return this.getVersion20Values(oldBotLevelsData);
+      var botsData = this.getVersion20Bots(oldBotLevelsData);
+      return botsData;
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
@@ -299,7 +304,7 @@ const bots = {
     }
   },
 
-  getVersion20Values: function (oldBotLevelsData) {
+  getVersion20Bots: function (oldBotLevelsData) {
     try {
       var targetBots = [
         "Flame Bot",
@@ -347,14 +352,13 @@ const bots = {
       return {
         success: true,
         message: "Bots processed successfully",
-        targetBots: targetBots,
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion20Values: " + error.toString());
+      console.log("Error in getVersion20Bots: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20Values: " + error.message,
+        message: "Error in getVersion20Bots: " + error.message,
       };
     }
   },
@@ -389,7 +393,8 @@ const bots = {
       }
       var oldBotLevelsData = botBatchResult[0].values;
 
-      return this.getVersion10Values(oldBotLevelsData);
+      var botsData = this.getVersion10Bots(oldBotLevelsData);
+      return botsData;
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -399,7 +404,7 @@ const bots = {
     }
   },
 
-  getVersion10Values: function (oldBotLevelsData) {
+  getVersion10Bots: function (oldBotLevelsData) {
     try {
       var targetBots = [
         "Flame Bot",
@@ -453,14 +458,13 @@ const bots = {
       return {
         success: true,
         message: "Bots processed successfully",
-        targetBots: targetBots,
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10Bots: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10Bots: " + error.message,
       };
     }
   },

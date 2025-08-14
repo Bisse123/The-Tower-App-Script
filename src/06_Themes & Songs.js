@@ -20,7 +20,6 @@ const themes = {
         success: true,
         message: "Themes & Songs export completed successfully",
         data: {
-          targetThemes: oldDataResult.targetThemes || [],
           oldThemesNames: oldDataResult.oldThemesNames || {}
         }
       };
@@ -46,7 +45,6 @@ const themes = {
         };
       }
 
-      var targetThemes = data.targetThemes || [];
       var oldThemesNames = data.oldThemesNames || {};
 
       // Batch get required data for update function only
@@ -74,7 +72,6 @@ const themes = {
       }
 
       var themesResult = this.updateThemes(
-        targetThemes,
         "Themes & Songs",
         oldThemesNames,
         newThemesData
@@ -118,11 +115,18 @@ const themes = {
   },
 
   updateThemes: function (
-    targetThemes,
     sheetName,
     oldThemesNames,
     newThemesData
   ) {
+    var targetThemes = [
+      "Tower Skin",
+      "Background Skin",
+      "Songs",
+      "Guardians",
+      "Menu",
+      "Profile Banner",
+    ];
     if (!newThemesData) {
       console.log(`Error getting new themes data`);
       return { success: false, message: "Error getting new themes data" };
@@ -211,7 +215,8 @@ const themes = {
       }
       var oldThemesData = themesOldBatchResult[0].values;
 
-      return this.getVersion10Values(oldThemesData);
+      var themesData = this.getVersion10Themes(oldThemesData);
+      return themesData;
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -221,7 +226,7 @@ const themes = {
     }
   },
 
-  getVersion10Values: function (oldThemesData) {
+  getVersion10Themes: function (oldThemesData) {
     try {
       var targetThemes = [
         "Tower Skin",
@@ -264,14 +269,13 @@ const themes = {
 
       return {
         success: true,
-        targetThemes: targetThemes,
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10Themes: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10Themes: " + error.message,
       };
     }
   },

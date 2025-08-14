@@ -238,7 +238,7 @@ const shared = {
     var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
-        if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1) {
+        if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1 && values[i][j].indexOf("More IDs are available") === -1) {
           var versionA1 = shared.columnToLetter(j + 6) + (i + 1);
           var templateA1 = shared.columnToLetter(j + 1) + (i + 2);
           var oldVersionA1 = shared.columnToLetter(j + 7) + (i + 1);

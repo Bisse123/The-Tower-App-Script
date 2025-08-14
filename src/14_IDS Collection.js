@@ -692,13 +692,7 @@ const collection = {
 
       // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
-      // Player data
-      var playerResult = getBatchResult("Player", "values");
-      if (playerResult && playerResult.values) {
-        var playerValues = playerResult.values;
-        var playerData = player.getVersion20Values(playerValues);
-        collectedData.Player = playerData;
-      }
+
       // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
@@ -707,8 +701,17 @@ const collection = {
         var labLevelsValues = labLevelsResult.values;
         var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
         var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
-        collectedData.Laboratory = labData;
+        
+        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
+        
+        var labSuccess = labLevelsData.success && labPlannerData.success;
+        collectedData.Laboratory = {
+          success: labSuccess,
+          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          oldLabLevels: labLevelsData.oldLabLevels,
+          oldLabPlanner: labPlannerData.oldLabPlanner
+        };
       }
 
       // Workshop data
@@ -719,8 +722,19 @@ const collection = {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
         var workshopRatioValues = workshopRatioResult.values;
-        var workshopData = workshop.getVersion20Values(workshopLevelsValues, workshopPlusLevelsValues, workshopRatioValues);
-        collectedData.Workshop = workshopData;
+        
+        var workshopLevelsData = workshop.getVersion20WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(workshopPlusLevelsValues);
+        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopRatioValues);
+        
+        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
+        collectedData.Workshop = {
+          success: workshopSuccess,
+          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
+          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
+          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
+        };
       }
 
       // Ultimate Weapon data
@@ -729,15 +743,24 @@ const collection = {
       if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        var ultimateData = ultimate.getVersion20Values(ultimateValues, ultimateCostCalculatorValues);
-        collectedData["Ultimate Weapon"] = ultimateData;
+        
+        var ultimateWeaponsData = ultimate.getVersion20UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
+        
+        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+        collectedData["Ultimate Weapon"] = {
+          success: ultimateSuccess,
+          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+        };
       }
 
       // Themes & Songs data
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Values(themesValues);
+        var themesData = themes.getVersion10Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -745,7 +768,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Values(botsValues);
+        var botsData = bots.getVersion20Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -753,7 +776,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Values(relicsValues);
+        var relicsData = relics.getVersion10Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -763,8 +786,17 @@ const collection = {
       if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        var vaultData = vault.getVersion10Values(harmonyValues, powerValues);
-        collectedData.Vault = vaultData;
+        
+        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
+        var powerVaultData = vault.getVersion10Vault(powerValues);
+        
+        var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
+        collectedData.Vault = {
+          success: vaultSuccess,
+          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          oldVaultHarmony: harmonyVaultData.oldVault,
+          oldVaultPower: powerVaultData.oldVault,
+        };
       }
 
       // Cards data
@@ -775,8 +807,19 @@ const collection = {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        var cardsData = cards.getVersion10Values(cardsPresetValues, cardsLevelValues, cardsSlotsValues);
-        collectedData.Cards = cardsData;
+        
+        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
+        
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        collectedData.Cards = {
+          success: cardsSuccess,
+          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          oldCardsPreset: cardsPresetData.oldCardsPreset,
+          shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
+          oldCardsLevel: cardsLevelData.oldCardsLevel,
+          oldCardSlots: cardsLevelData.oldCardSlots
+        };
       }
 
       // Modules data
@@ -787,16 +830,33 @@ const collection = {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesObtainedValues = modulesObtainedResult.values;
-        var modulesData = modules.getVersion50Values(modulesInventoryValues, modulesPresetsValues, modulesObtainedValues);
-        collectedData.Modules = modulesData;
+        var modulesInventoryData = modules.getVersion50ModulesInventory(modulesInventoryValues);
+        var modulesPresetsData = modules.getVersion50ModulesPresets(modulesPresetsValues);
+        var modulesObtainedData = modules.getVersion47ModulesObtained(modulesObtainedValues);
+        var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
+        collectedData.Modules = {
+          success: modules,
+          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          oldModulesInventory: modulesInventoryData.oldModulesInventory,
+          oldModulesPresets: modulesPresetsData.oldModulesPresets,
+          oldModulesObtained: modulesObtainedData.oldModulesObtained
+        };
       }
 
       // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Values(guardiansValues);
+        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
+      }
+      
+      // Player data
+      var playerResult = getBatchResult("Player", "values");
+      if (playerResult && playerResult.values) {
+        var playerValues = playerResult.values;
+        var playerData = player.getVersion20PlayerStuff(playerValues);
+        collectedData.Player = playerData;
       }
 
       return {
@@ -899,13 +959,6 @@ const collection = {
 
       // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
-      // Player data
-      var playerResult = getBatchResult("Player", "values");
-      if (playerResult && playerResult.values) {
-        var playerValues = playerResult.values;
-        var playerData = player.getVersion20Values(playerValues);
-        collectedData.Player = playerData;
-      }
       // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
@@ -914,8 +967,17 @@ const collection = {
         var labLevelsValues = labLevelsResult.values;
         var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
         var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
-        collectedData.Laboratory = labData;
+        
+        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
+        
+        var labSuccess = labLevelsData.success && labPlannerData.success;
+        collectedData.Laboratory = {
+          success: labSuccess,
+          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          oldLabLevels: labLevelsData.oldLabLevels,
+          oldLabPlanner: labPlannerData.oldLabPlanner
+        };
       }
 
       // Workshop data
@@ -924,8 +986,17 @@ const collection = {
       if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        var workshopData = workshop.getVersion10Values(workshopLevelsValues, workshopPlusLevelsValues);
-        collectedData.Workshop = workshopData;
+        
+        var workshopLevelsData = workshop.getVersion10WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(workshopPlusLevelsValues);
+        
+        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
+        collectedData.Workshop = {
+          success: workshopSuccess,
+          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
+          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels
+        };
       }
 
       // Ultimate Weapon data
@@ -934,15 +1005,24 @@ const collection = {
       if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        var ultimateData = ultimate.getVersion20Values(ultimateValues, ultimateCostCalculatorValues);
-        collectedData["Ultimate Weapon"] = ultimateData;
+        
+        var ultimateWeaponsData = ultimate.getVersion10UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
+        
+        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+        collectedData["Ultimate Weapon"] = {
+          success: ultimateSuccess,
+          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+        };
       }
 
       // Themes & Songs data
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Values(themesValues);
+        var themesData = themes.getVersion10Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -950,7 +1030,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Values(botsValues);
+        var botsData = bots.getVersion10Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -958,7 +1038,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Values(relicsValues);
+        var relicsData = relics.getVersion10Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -968,8 +1048,17 @@ const collection = {
       if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        var vaultData = vault.getVersion10Values(harmonyValues, powerValues);
-        collectedData.Vault = vaultData;
+        
+        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
+        var powerVaultData = vault.getVersion10Vault(powerValues);
+        
+        var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
+        collectedData.Vault = {
+          success: vaultSuccess,
+          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          oldVaultHarmony: harmonyVaultData.oldVault,
+          oldVaultPower: powerVaultData.oldVault,
+        };
       }
 
       // Cards data
@@ -980,8 +1069,19 @@ const collection = {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        var cardsData = cards.getVersion10Values(cardsPresetValues, cardsLevelValues, cardsSlotsValues);
-        collectedData.Cards = cardsData;
+        
+        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
+        
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        collectedData.Cards = {
+          success: cardsSuccess,
+          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          oldCardsPreset: cardsPresetData.oldCardsPreset,
+          shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
+          oldCardsLevel: cardsLevelData.oldCardsLevel,
+          oldCardSlots: cardsLevelData.oldCardSlots
+        };
       }
 
       // Modules data
@@ -992,16 +1092,33 @@ const collection = {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesObtainedValues = modulesObtainedResult.values;
-        var modulesData = modules.getVersion50Values(modulesInventoryValues, modulesPresetsValues, modulesObtainedValues);
-        collectedData.Modules = modulesData;
+        var modulesInventoryData = modules.getVersion40ModulesInventory(modulesInventoryValues);
+        var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
+        var modulesObtainedData = modules.getVersion47ModulesObtained(modulesObtainedValues);
+        var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
+        collectedData.Modules = {
+          success: modules,
+          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          oldModulesInventory: modulesInventoryData.oldModulesInventory,
+          oldModulesPresets: modulesPresetsData.oldModulesPresets,
+          oldModulesObtained: modulesObtainedData.oldModulesObtained
+        };
       }
 
       // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Values(guardiansValues);
+        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
+      }
+
+      // Player data
+      var playerResult = getBatchResult("Player", "values");
+      if (playerResult && playerResult.values) {
+        var playerValues = playerResult.values;
+        var playerData = player.getVersion20PlayerStuff(playerValues);
+        collectedData.Player = playerData;
       }
 
       return {
@@ -1112,8 +1229,17 @@ const collection = {
         var labLevelsValues = labLevelsResult.values;
         var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
         var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        var labData = lab.getVersion10Values(labLevelsValues, labPlannerValues, labPlannerFormulas);
-        collectedData.Laboratory = labData;
+        
+        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
+        
+        var labSuccess = labLevelsData.success && labPlannerData.success;
+        collectedData.Laboratory = {
+          success: labSuccess,
+          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          oldLabLevels: labLevelsData.oldLabLevels,
+          oldLabPlanner: labPlannerData.oldLabPlanner
+        };
       }
 
       // Workshop data
@@ -1122,8 +1248,17 @@ const collection = {
       if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        var workshopData = workshop.getVersion10Values(workshopLevelsValues, workshopPlusLevelsValues);
-        collectedData.Workshop = workshopData;
+        
+        var workshopLevelsData = workshop.getVersion10WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(workshopPlusLevelsValues);
+        
+        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
+        collectedData.Workshop = {
+          success: workshopSuccess,
+          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
+          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels
+        };
       }
 
       // Ultimate Weapon data
@@ -1132,15 +1267,24 @@ const collection = {
       if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        var ultimateData = ultimate.getVersion10Values(ultimateValues, ultimateCostCalculatorValues);
-        collectedData["Ultimate Weapon"] = ultimateData;
+        
+        var ultimateWeaponsData = ultimate.getVersion10UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
+        
+        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+        collectedData["Ultimate Weapon"] = {
+          success: ultimateSuccess,
+          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+        };
       }
 
       // Themes & Songs data
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Values(themesValues);
+        var themesData = themes.getVersion10Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -1148,7 +1292,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion10Values(botsValues);
+        var botsData = bots.getVersion10Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -1156,7 +1300,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Values(relicsValues);
+        var relicsData = relics.getVersion10Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -1166,8 +1310,17 @@ const collection = {
       if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        var vaultData = vault.getVersion10Values(harmonyValues, powerValues);
-        collectedData.Vault = vaultData;
+        
+        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
+        var powerVaultData = vault.getVersion10Vault(powerValues);
+        
+        var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
+        collectedData.Vault = {
+          success: vaultSuccess,
+          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          oldVaultHarmony: harmonyVaultData.oldVault,
+          oldVaultPower: powerVaultData.oldVault,
+        };
       }
 
       // Cards data
@@ -1178,27 +1331,47 @@ const collection = {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        var cardsData = cards.getVersion10Values(cardsPresetValues, cardsLevelValues, cardsSlotsValues);
-        collectedData.Cards = cardsData;
+        
+        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
+        
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        collectedData.Cards = {
+          success: cardsSuccess,
+          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          oldCardsPreset: cardsPresetData.oldCardsPreset,
+          shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
+          oldCardsLevel: cardsLevelData.oldCardsLevel,
+          oldCardSlots: cardsLevelData.oldCardSlots
+        };
       }
 
       // Modules data
       var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
-      var modulesObtainedResult = getBatchResult("Mods Obtained", "values");
+      var modulesObtainedResult = getBatchResult("Modules Tracker", "values");
       if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values && modulesObtainedResult && modulesObtainedResult.values) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesObtainedValues = modulesObtainedResult.values;
-        var modulesData = modules.getVersion40Values(modulesInventoryValues, modulesPresetsValues, modulesObtainedValues);
-        collectedData.Modules = modulesData;
+        var modulesInventoryData = modules.getVersion40ModulesInventory(modulesInventoryValues);
+        var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
+        var modulesObtainedData = modules.getVersion40ModulesObtained(modulesObtainedValues);
+        var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
+        collectedData.Modules = {
+          success: modules,
+          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          oldModulesInventory: modulesInventoryData.oldModulesInventory,
+          oldModulesPresets: modulesPresetsData.oldModulesPresets,
+          oldModulesObtained: modulesObtainedData.oldModulesObtained
+        };
       }
 
       // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Values(guardiansValues);
+        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 

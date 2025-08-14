@@ -20,7 +20,6 @@ const guardians = {
         success: true,
         message: "Guardians export completed successfully",
         data: {
-          targetGuardians: oldDataResult.targetGuardians || [],
           oldGuardians: oldDataResult.oldGuardians || {}
         }
       };
@@ -46,7 +45,6 @@ const guardians = {
         };
       }
 
-      var targetGuardians = data.targetGuardians || [];
       var oldGuardians = data.oldGuardians || {};
 
       // Batch fetch required sheet data
@@ -78,7 +76,6 @@ const guardians = {
       }
 
       var guardiansResult = this.updateGuardianLevels(
-        targetGuardians,
         "Master Sheet",
         oldGuardians,
         masterSheetData
@@ -122,11 +119,11 @@ const guardians = {
   },
 
   updateGuardianLevels: function (
-    targetGuardians,
     sheetName,
     oldGuardians,
     masterSheetData
   ) {
+    var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
     if (!masterSheetData || masterSheetData.length < 2) {
       return {
         success: false,
@@ -277,7 +274,8 @@ const guardians = {
       }
       var oldGuardianLevelsData = guardianBatchResult[0].values;
 
-      return this.getVersion10Values(oldGuardianLevelsData);
+      var guardiansData = this.getVersion10Guardians(oldGuardianLevelsData);
+      return guardiansData;
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -287,7 +285,7 @@ const guardians = {
     }
   },
 
-  getVersion10Values: function (oldGuardianLevelsData) {
+  getVersion10Guardians: function (oldGuardianLevelsData) {
     try {
       var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
@@ -328,14 +326,13 @@ const guardians = {
 
       return {
         success: true,
-        targetGuardians: targetGuardians,
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10Guardians: " + error.message,
       };
     }
   },
