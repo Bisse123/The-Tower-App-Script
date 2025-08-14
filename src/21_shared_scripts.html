@@ -539,7 +539,7 @@
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
-            .getTemplateAndsheetIds(oldSheetID, "all");
+            .getTemplateAndsheetIds(oldSheetID, currentCopyMode || "all");
         });
         
         if (!idsResult.success) {

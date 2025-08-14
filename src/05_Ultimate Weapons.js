@@ -20,7 +20,6 @@ const ultimate = {
         success: true,
         message: "Ultimate weapons export completed successfully",
         data: {
-          targetWeapons: oldDataResult.targetWeapons || [],
           oldUltimate: oldDataResult.oldUltimate || {},
           oldUltimateCostCalculator: oldDataResult.oldUltimateCostCalculator || {},
         }
@@ -47,7 +46,6 @@ const ultimate = {
         };
       }
 
-      var targetWeapons = data.targetWeapons || [];
       var oldUltimate = data.oldUltimate || {};
       var oldUltimateCostCalculator = data.oldUltimateCostCalculator || {};
 
@@ -77,7 +75,6 @@ const ultimate = {
       }
 
       var ultimateResult = this.updateUltimateLevels(
-        targetWeapons,
         "Master Sheet",
         oldUltimate,
         masterSheetData
@@ -92,7 +89,6 @@ const ultimate = {
       var batchUpdate = ultimateResult.batchUpdate || [];
 
       var ultimateCostCalculatorResult = this.updateUltimateCostCalculator(
-        targetWeapons,
         "UW Cost Calculator v3",
         oldUltimateCostCalculator,
         ultimateCostCalculatorData
@@ -138,12 +134,23 @@ const ultimate = {
   },
 
   updateUltimateLevels: function (
-    targetWeapons,
     sheetName,
     oldUltimate,
     masterSheetData
   ) {
     try {
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
       if (!masterSheetData || masterSheetData.length < 2) {
         console.log(`Not enough data in Master Sheet`);
         return {
@@ -284,12 +291,23 @@ const ultimate = {
   },
 
   updateUltimateCostCalculator: function (
-    targetWeapons,
     sheetName,
     oldUltimateCostCalculator,
     ultimateCostCalculatorData
   ) {
     try {
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
       if (!ultimateCostCalculatorData || ultimateCostCalculatorData.length === 0) {
         console.log(`No data in UW Cost Calculator sheet`);
         return {
@@ -464,7 +482,25 @@ const ultimate = {
         };
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
-      return this.getVersion20Values(oldUltimateDataValues, oldUltimateCostCalculatorValues);
+
+      // Process ultimate weapons data
+      var ultimateWeaponsData = this.getVersion20UltimateWeapons(oldUltimateDataValues);
+      if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
+        return ultimateWeaponsData;
+      }
+
+      // Process cost calculator data
+      var costCalculatorData = this.getVersion10CostCalculator(oldUltimateCostCalculatorValues);
+      if (!costCalculatorData || !costCalculatorData.success) {
+        return costCalculatorData;
+      }
+
+      return {
+        success: true,
+        message: "Ultimate weapons processed successfully",
+        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
+      };
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
@@ -474,7 +510,7 @@ const ultimate = {
     }
   },
 
-  getVersion20Values: function (oldUltimateDataValues, oldUltimateCostCalculatorValues) {
+  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
     try {
       var targetWeapons = [
         "Chain Lightning",
@@ -500,7 +536,7 @@ const ultimate = {
       var oldUltimate = {};
       for (var row = 0; row < oldUltimateLevels.length; row++) {
         var weaponName = oldUltimateLevels[row][0];
-        // Only proceed if weaponName is in targetWeapons
+        // Process only weapons that are in our targetWeapons list
         if (weaponName && targetWeapons.includes(weaponName)) {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
@@ -523,86 +559,16 @@ const ultimate = {
           oldUltimate[weaponName] = weapon;
         }
       }
-      var missingWeapons = [...targetWeapons]; // Copy of targetWeapons array
-      var oldUltimateCostCalculator = {};
-      for (var row = 0; row < oldUltimateCostCalculatorValues.length; row++) {
-        // If we've found all weapons, no need to continue
-        if (missingWeapons.length === 0) {
-          break;
-        }
-        
-        var rowData = oldUltimateCostCalculatorValues[row];
-        
-        // Check each missing weapon to see if it's in this row
-        for (var weaponIndex = 0; weaponIndex < missingWeapons.length; weaponIndex++) {
-          var weapon = missingWeapons[weaponIndex];
-          
-          if (rowData.includes(weapon)) {
-            if (!oldUltimateCostCalculator.hasOwnProperty(weapon)) {
-              oldUltimateCostCalculator[weapon] = {};
-            }
-            var weaponColIndex = rowData.indexOf(weapon);
-            var unlockedValue = rowData[weaponColIndex + 3];
-            var unlocked = (typeof unlockedValue === 'string' && unlockedValue.startsWith("=")) ? null : unlockedValue;
-            if (unlocked) {
-              oldUltimateCostCalculator[weapon].unlocked = unlocked;
-            }
-            var subData = oldUltimateCostCalculatorValues[row + 1];
-            var currentValueIndex = subData.indexOf("Current Value");
-            var subNameIndex = currentValueIndex - 1;
-            var targetValueIndex = subData.indexOf("Target Value");
-            var modSubvalue = subData.indexOf("Sub");
-            var weaponValues = {}
-            for (var subRow = row + 2; subRow < oldUltimateCostCalculatorValues.length; subRow++) {
-              var subRowData = oldUltimateCostCalculatorValues[subRow];
-              var subName = subRowData[subNameIndex] ? subRowData[subNameIndex].toString().trim() : "";
-              if (subName === "" || targetWeapons.includes(subRowData[weaponColIndex].trim())) {
-                break;
-              }
-              if (!weaponValues.hasOwnProperty(subName)) {
-                weaponValues[subName] = {};
-              }
-              var currentValue = subRowData[currentValueIndex];
-              var targetValue = subRowData[targetValueIndex];
-              var modSub = subRowData[modSubvalue];
-              if (currentValue && (typeof currentValue !== 'string' || !currentValue.startsWith("="))) {
-                weaponValues[subName].currentValue = currentValue;
-              }
-              if (targetValue && (typeof targetValue !== 'string' || !targetValue.startsWith("="))) {
-                weaponValues[subName].targetValue = targetValue;
-              }
-              if (modSub && (typeof modSub !== 'string' || !modSub.startsWith("="))) {
-                weaponValues[subName].modSub = modSub;
-              }
-              if (weaponValues[subName] && Object.keys(weaponValues[subName]).length === 0) {
-                delete weaponValues[subName]; // Remove empty sub entry
-              }
-              row = subRow;
-            }
-            if (weaponValues && Object.keys(weaponValues).length !== 0) {
-              oldUltimateCostCalculator[weapon].values = weaponValues;
-            }
-            if (oldUltimateCostCalculator[weapon] && Object.keys(oldUltimateCostCalculator[weapon]).length === 0) {
-              delete oldUltimateCostCalculator[weapon]; // Remove empty weapon entry
-            }
-            missingWeapons.splice(weaponIndex, 1); // Remove found weapon
-            
-            // Break out of the weapon loop since we found the weapon in this row
-            break;
-          }
-        }
-      }
+
       return {
         success: true,
-        targetWeapons: targetWeapons,
-        oldUltimate: oldUltimate,
-        oldUltimateCostCalculator: oldUltimateCostCalculator,
+        "Ultimate Weapon": oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion20UltimateWeapons: " + error.message,
       };
     }
   },
@@ -653,7 +619,25 @@ const ultimate = {
         };
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
-      return this.getVersion10Values(oldUltimateDataValues, oldUltimateCostCalculatorValues);
+
+      // Process ultimate weapons data
+      var ultimateWeaponsData = this.getVersion10UltimateWeapons(oldUltimateDataValues);
+      if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
+        return ultimateWeaponsData;
+      }
+
+      // Process cost calculator data
+      var costCalculatorData = this.getVersion10CostCalculator(oldUltimateCostCalculatorValues);
+      if (!costCalculatorData || !costCalculatorData.success) {
+        return costCalculatorData;
+      }
+
+      return {
+        success: true,
+        message: "Ultimate weapons processed successfully",
+        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
+      };
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -663,7 +647,7 @@ const ultimate = {
     }
   },
 
-  getVersion10Values: function (oldUltimateDataValues, oldUltimateCostCalculatorValues) {
+  getVersion10UltimateWeapons: function (oldUltimateDataValues) {
     try {
       var targetWeapons = [
         "Chain Lightning",
@@ -689,7 +673,7 @@ const ultimate = {
       var oldUltimate = {};
       for (var row = 0; row < oldUltimateLevels.length; row++) {
         var weaponName = oldUltimateLevels[row][0];
-        // Only proceed if weaponName is in targetWeapons
+        // Process only weapons that are in our targetWeapons list
         if (weaponName && targetWeapons.includes(weaponName)) {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
@@ -722,86 +706,125 @@ const ultimate = {
           oldUltimate[weaponName] = weapon;
         }
       }
-      var missingWeapons = [...targetWeapons]; // Copy of targetWeapons array
+
+      return {
+        success: true,
+        "Ultimate Weapon": oldUltimate,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10UltimateWeapons: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10UltimateWeapons: " + error.message,
+      };
+    }
+  },
+
+  getVersion10CostCalculator: function (oldUltimateCostCalculatorValues) {
+    try {
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
       var oldUltimateCostCalculator = {};
+      var processedWeapons = {};
+      
       for (var row = 0; row < oldUltimateCostCalculatorValues.length; row++) {
-        // If we've found all weapons, no need to continue
-        if (missingWeapons.length === 0) {
-          break;
-        }
-        
         var rowData = oldUltimateCostCalculatorValues[row];
         
-        // Check each missing weapon to see if it's in this row
-        for (var weaponIndex = 0; weaponIndex < missingWeapons.length; weaponIndex++) {
-          var weapon = missingWeapons[weaponIndex];
-          
-          if (rowData.includes(weapon)) {
-            if (!oldUltimateCostCalculator.hasOwnProperty(weapon)) {
-              oldUltimateCostCalculator[weapon] = {};
+        // Check each cell in the row to find weapon names
+        for (var colIndex = 0; colIndex < rowData.length; colIndex++) {
+          var cellValue = rowData[colIndex];
+          if (cellValue && typeof cellValue === 'string' && cellValue.trim() !== "") {
+            var weapon = cellValue.trim();
+            
+            // Skip if this weapon was already processed or if it's a header/metadata
+            if (processedWeapons[weapon] || 
+                weapon === "Current Value" || weapon === "Target Value" || weapon === "Sub") {
+              continue;
             }
-            var weaponColIndex = rowData.indexOf(weapon);
+            
+            // Only process if this weapon is in our targetWeapons list
+            if (!targetWeapons.includes(weapon)) {
+              continue;
+            }
+            
+            // Mark as processed and initialize
+            processedWeapons[weapon] = true;
+            oldUltimateCostCalculator[weapon] = {};
+            var weaponColIndex = colIndex;
             var unlockedValue = rowData[weaponColIndex + 3];
             var unlocked = (typeof unlockedValue === 'string' && unlockedValue.startsWith("=")) ? null : unlockedValue;
             if (unlocked) {
               oldUltimateCostCalculator[weapon].unlocked = unlocked;
             }
-            var subData = oldUltimateCostCalculatorValues[row + 1];
-            var currentValueIndex = subData.indexOf("Current Value");
-            var subNameIndex = currentValueIndex - 1;
-            var targetValueIndex = subData.indexOf("Target Value");
-            var modSubvalue = subData.indexOf("Sub");
-            var weaponValues = {}
-            for (var subRow = row + 2; subRow < oldUltimateCostCalculatorValues.length; subRow++) {
-              var subRowData = oldUltimateCostCalculatorValues[subRow];
-              var subName = subRowData[subNameIndex] ? subRowData[subNameIndex].toString().trim() : "";
-              if (subName === "" || targetWeapons.includes(subRowData[weaponColIndex].trim())) {
-                break;
+            
+            if (row + 1 < oldUltimateCostCalculatorValues.length) {
+              var subData = oldUltimateCostCalculatorValues[row + 1];
+              var currentValueIndex = subData.indexOf("Current Value");
+              var subNameIndex = currentValueIndex - 1;
+              var targetValueIndex = subData.indexOf("Target Value");
+              var modSubvalue = subData.indexOf("Sub");
+              var weaponValues = {}
+              
+              for (var subRow = row + 2; subRow < oldUltimateCostCalculatorValues.length; subRow++) {
+                var subRowData = oldUltimateCostCalculatorValues[subRow];
+                var subName = subRowData[subNameIndex] ? subRowData[subNameIndex].toString().trim() : "";
+                if (subName === "" || (subRowData[weaponColIndex] && targetWeapons.includes(subRowData[weaponColIndex].toString().trim()))) {
+                  break;
+                }
+                if (!weaponValues.hasOwnProperty(subName)) {
+                  weaponValues[subName] = {};
+                }
+                var currentValue = subRowData[currentValueIndex];
+                var targetValue = subRowData[targetValueIndex];
+                var modSub = subRowData[modSubvalue];
+                if (currentValue && (typeof currentValue !== 'string' || !currentValue.startsWith("="))) {
+                  weaponValues[subName].currentValue = currentValue;
+                }
+                if (targetValue && (typeof targetValue !== 'string' || !targetValue.startsWith("="))) {
+                  weaponValues[subName].targetValue = targetValue;
+                }
+                if (modSub && (typeof modSub !== 'string' || !modSub.startsWith("="))) {
+                  weaponValues[subName].modSub = modSub;
+                }
+                if (weaponValues[subName] && Object.keys(weaponValues[subName]).length === 0) {
+                  delete weaponValues[subName]; // Remove empty sub entry
+                }
+                row = subRow;
               }
-              if (!weaponValues.hasOwnProperty(subName)) {
-                weaponValues[subName] = {};
+              if (weaponValues && Object.keys(weaponValues).length !== 0) {
+                oldUltimateCostCalculator[weapon].values = weaponValues;
               }
-              var currentValue = subRowData[currentValueIndex];
-              var targetValue = subRowData[targetValueIndex];
-              var modSub = subRowData[modSubvalue];
-              if (currentValue && (typeof currentValue !== 'string' || !currentValue.startsWith("="))) {
-                weaponValues[subName].currentValue = currentValue;
-              }
-              if (targetValue && (typeof targetValue !== 'string' || !targetValue.startsWith("="))) {
-                weaponValues[subName].targetValue = targetValue;
-              }
-              if (modSub && (typeof modSub !== 'string' || !modSub.startsWith("="))) {
-                weaponValues[subName].modSub = modSub;
-              }
-              if (weaponValues[subName] && Object.keys(weaponValues[subName]).length === 0) {
-                delete weaponValues[subName]; // Remove empty sub entry
-              }
-              row = subRow;
             }
-            if (weaponValues && Object.keys(weaponValues).length !== 0) {
-              oldUltimateCostCalculator[weapon].values = weaponValues;
-            }
+            
             if (oldUltimateCostCalculator[weapon] && Object.keys(oldUltimateCostCalculator[weapon]).length === 0) {
               delete oldUltimateCostCalculator[weapon]; // Remove empty weapon entry
             }
-            missingWeapons.splice(weaponIndex, 1); // Remove found weapon
             
-            // Break out of the weapon loop since we found the weapon in this row
+            // Break out of the column loop since we found a weapon in this row
             break;
           }
         }
       }
+
       return {
         success: true,
-        targetWeapons: targetWeapons,
-        oldUltimate: oldUltimate,
-        oldUltimateCostCalculator: oldUltimateCostCalculator,
+        "UW Cost Calculator": oldUltimateCostCalculator,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10CostCalculator: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10CostCalculator: " + error.message,
       };
     }
   },

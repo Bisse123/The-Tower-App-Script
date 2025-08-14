@@ -262,7 +262,58 @@ const vault = {
     };
   },
 
-  getOldVault: function (oldSheetData) {
+  version10: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      var oldVaultBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        "Harmony",
+        "Power"
+      ]);
+      if (!oldVaultBatchResult || oldVaultBatchResult.length < 2) {
+        console.log(`Error getting old vault sheet data`);
+        return {
+          success: false,
+          message: `Error getting old vault sheet data`,
+        };
+      }
+
+      var harmonyData = oldVaultBatchResult[0] && oldVaultBatchResult[0].values
+        ? oldVaultBatchResult[0].values
+        : [];
+      var powerData = oldVaultBatchResult[1] && oldVaultBatchResult[1].values
+        ? oldVaultBatchResult[1].values
+        : [];
+
+      var harmonyResult = this.getVersion10Vault(harmonyData);
+      if (!harmonyResult || !harmonyResult.success) {
+        console.log(`Error getting harmony vault data: ${harmonyResult.message}`);
+        return harmonyResult;
+      }
+
+      var powerResult = this.getVersion10Vault(powerData);
+      if (!powerResult || !powerResult.success) {
+        console.log(`Error getting power vault data: ${powerResult.message}`);
+        return powerResult;
+      }
+
+      return {
+        success: true,
+        message: "Vault processed successfully",
+        oldVaultHarmony: harmonyResult.oldVault,
+        oldVaultPower: powerResult.oldVault,
+      };
+    } catch (error) {
+      console.log("Error in version10: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10Vault: function (oldSheetData) {
     if (!oldSheetData || oldSheetData.length === 0) {
       console.log(`No sheet data provided for vault`);
       return {success: false, message: `No sheet data provided for vault`};
@@ -334,68 +385,6 @@ const vault = {
       }
     }
     return {success: true, oldVault: oldVault};
-  },
-
-  version10: function () {
-    try {
-      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      var oldVaultBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        "Harmony",
-        "Power"
-      ]);
-      if (!oldVaultBatchResult || oldVaultBatchResult.length < 2) {
-        console.log(`Error getting old vault sheet data`);
-        return {
-          success: false,
-          message: `Error getting old vault sheet data`,
-        };
-      }
-
-      var harmonyData = oldVaultBatchResult[0] && oldVaultBatchResult[0].values
-        ? oldVaultBatchResult[0].values
-        : [];
-      var powerData = oldVaultBatchResult[1] && oldVaultBatchResult[1].values
-        ? oldVaultBatchResult[1].values
-        : [];
-
-      return this.getVersion10Values(harmonyData, powerData);
-    } catch (error) {
-      console.log("Error in version10: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version10: " + error.message,
-      };
-    }
-  },
-
-  getVersion10Values: function (harmonyData, powerData) {
-    try {
-      var oldVaultHarmony = this.getOldVault(harmonyData);
-      if (!oldVaultHarmony || !oldVaultHarmony.success) {
-        console.log(`Error getting old vault harmony data: ${oldVaultHarmony.message}`);
-        return oldVaultHarmony;
-      }
-
-      var oldVaultPower = this.getOldVault(powerData);
-      if (!oldVaultPower || !oldVaultPower.success) {
-        console.log(`Error getting old vault power data: ${oldVaultPower.message}`);
-        return oldVaultPower;
-      }
-
-      return {
-        success: true,
-        oldVaultHarmony: oldVaultHarmony.oldVault,
-        oldVaultPower: oldVaultPower.oldVault,
-      };
-    } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion10Values: " + error.message,
-      };
-    }
   },
 
   get convertVersionFunctions() {

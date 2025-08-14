@@ -242,7 +242,8 @@ const playerStuff = {
       }
       var oldPlayerStuffValues = batchResult[0].values;
 
-      return this.getVersion20Values(oldPlayerStuffValues);
+      var playerStuffData = this.getVersion20PlayerStuff(oldPlayerStuffValues);
+      return playerStuffData;
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
@@ -252,7 +253,7 @@ const playerStuff = {
     }
   },
 
-  getVersion20Values: function (oldPlayerStuffValues) {
+  getVersion20PlayerStuff: function (oldPlayerStuffValues) {
     try {
       var headers = ["Stat", "Premium Perk", "Tier"]
       
@@ -294,10 +295,10 @@ const playerStuff = {
       };
     }
      catch (error) {
-      console.log("Error in getVersion20Values: " + error.toString());
+      console.log("Error in getVersion20PlayerStuff: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20Values: " + error.message,
+        message: "Error in getVersion20PlayerStuff: " + error.message,
       };
     }
   },

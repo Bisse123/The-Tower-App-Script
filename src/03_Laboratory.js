@@ -448,7 +448,37 @@ const lab = {
         oldLabPlannerValues = labBatchResult[1].values;
       }
 
-      return this.getVersion10Values(oldLabLevelsValues, oldLabPlannerValues, oldLabPlannerFormulas);
+      // Process lab levels first
+      var labLevelsResult = this.getVersion10LabLevels(oldLabLevelsValues);
+      if (!labLevelsResult || !labLevelsResult.success) {
+        return labLevelsResult;
+      }
+
+      var oldLabLevels = labLevelsResult.oldLabLevels;
+      var oldLabMax = labLevelsResult.oldLabMax;
+
+      // Process lab planner if data exists
+      var labPlannerResult = this.getVersion10LabPlanner(oldLabPlannerValues, oldLabPlannerFormulas, oldLabLevels, oldLabMax);
+      if (!labPlannerResult || !labPlannerResult.success) {
+        return labPlannerResult;
+      }
+
+      if (!labPlannerResult.oldLabPlanner) {
+        console.log(`No lab planner data found in old spreadsheet`);
+        return {
+          success: true,
+          message: "No sheet containing 'Lab Planner' found in old spreadsheet",
+          oldLabLevels: oldLabLevels,
+        };
+      }
+      var oldLabPlanner = labPlannerResult.oldLabPlanner;
+
+      return {
+        success: true,
+        message: "Laboratory processed successfully",
+        oldLabLevels: oldLabLevels,
+        oldLabPlanner: oldLabPlanner,
+      };
       
     } catch (error) {
       console.log("Error in version10: " + error.toString());
@@ -459,9 +489,8 @@ const lab = {
     }
   },
 
-  getVersion10Values: function (oldLabLevelsValues, oldLabPlannerValues, oldLabPlannerFormulas) {
+  getVersion10LabLevels: function (oldLabLevelsValues) {
     try {
-      
       var oldLabLevels = {};
       var oldLabMax = {};
       oldLabLevelsValues.forEach(function (row) {
@@ -477,12 +506,28 @@ const lab = {
         }
       });
       
+      return {
+        success: true,
+        message: "Lab levels processed successfully",
+        oldLabLevels: oldLabLevels,
+        oldLabMax: oldLabMax,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10LabLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10LabLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion10LabPlanner: function (oldLabPlannerValues, oldLabPlannerFormulas, oldLabLevels, oldLabMax) {
+    try {
       if (!oldLabPlannerFormulas || !oldLabPlannerValues) {
         console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
         return {
           success: true,
           message: "No sheet containing 'Lab Planner' found in old spreadsheet",
-          oldLabLevels: oldLabLevels,
         };
       }
       
@@ -609,15 +654,14 @@ const lab = {
 
       return {
         success: true,
-        message: "Laboratory processed successfully",
-        oldLabLevels: oldLabLevels,
+        message: "Lab planner processed successfully",
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10LabPlanner: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10LabPlanner: " + error.message,
       };
     }
   },

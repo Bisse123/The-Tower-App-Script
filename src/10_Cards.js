@@ -405,7 +405,24 @@ const cards = {
       var oldCardsLevelData = oldBatchResult[1].values;
       var oldCardSlotsData = oldBatchResult[2].values;
 
-      return this.getVersion10Values(oldCardsPresetData, oldCardsLevelData, oldCardSlotsData);
+      var cardsPresetData = this.getVersion10CardsPreset(oldCardsPresetData);
+      if (!cardsPresetData || !cardsPresetData.success) {
+        return cardsPresetData;
+      }
+
+      var cardsLevelData = this.getVersion10CardsLevel(oldCardsLevelData, oldCardSlotsData);
+      if (!cardsLevelData || !cardsLevelData.success) {
+        return cardsLevelData;
+      }
+
+      return {
+        success: true,
+        message: "Cards processed successfully",
+        oldCardsLevel: cardsLevelData.oldCardsLevel,
+        oldCardSlots: cardsLevelData.oldCardSlots,
+        oldCardsPreset: cardsPresetData.oldCardsPreset,
+        shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
+      };
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -415,32 +432,8 @@ const cards = {
     }
   },
 
-  getVersion10Values: function (oldCardsPresetData, oldCardsLevelData, oldCardSlotsData) {
-    try {  
-      var oldCardSlots =
-        oldCardSlotsData &&
-        oldCardSlotsData[0] &&
-        oldCardSlotsData[0][0]
-          ? oldCardSlotsData[0][0]
-          : null;
-
-      if (!oldCardSlots) {
-        console.log(`Error getting old card slots`);
-        return {
-          success: false,
-          message: "Error getting old card slots",
-        };
-      }
-
-      var oldCardsLevel = oldCardsLevelData.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-  
+  getVersion10CardsPreset: function (oldCardsPresetData) {
+    try {
       var shouldRemoveUsedCards;
       var oldCardsPreset = {};
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
@@ -501,17 +494,56 @@ const cards = {
       }
       return {
         success: true,
-        message: `cards preset processed successfully`,
-        oldCardsLevel: oldCardsLevel,
-        oldCardSlots: oldCardSlots,
+        message: "Cards preset processed successfully",
         oldCardsPreset: oldCardsPreset,
         shouldRemoveUsedCards: shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10CardsPreset: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10CardsPreset: " + error.message,
+      };
+    }
+  },
+
+  getVersion10CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
+    try {
+      var oldCardSlots =
+        oldCardSlotsData &&
+        oldCardSlotsData[0] &&
+        oldCardSlotsData[0][0]
+          ? oldCardSlotsData[0][0]
+          : null;
+
+      if (!oldCardSlots) {
+        console.log(`Error getting old card slots`);
+        return {
+          success: false,
+          message: "Error getting old card slots",
+        };
+      }
+
+      var oldCardsLevel = oldCardsLevelData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      return {
+        success: true,
+        message: "Cards level processed successfully",
+        oldCardsLevel: oldCardsLevel,
+        oldCardSlots: oldCardSlots,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10CardsLevel: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10CardsLevel: " + error.message,
       };
     }
   },

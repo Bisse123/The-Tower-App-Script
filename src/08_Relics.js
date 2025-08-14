@@ -226,7 +226,8 @@ const relics = {
       }
       var oldRelicsData = oldRelicsBatchResult[0].values;
 
-      return this.getVersion10Values(oldRelicsData);
+      var relicsData = this.getVersion10Relics(oldRelicsData);
+      return relicsData;
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -236,7 +237,7 @@ const relics = {
     }
   },
 
-  getVersion10Values: function (oldRelicsData) {
+  getVersion10Relics: function (oldRelicsData) {
     try {
       var oldRelicHeaderRow = -1;
       var relicNameIndex = -1;
@@ -278,10 +279,10 @@ const relics = {
         oldRelics: oldRelics,
       };
     } catch (error) {
-      console.log("Error in getVersion10Values: " + error.toString());
+      console.log("Error in getVersion10Relics: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Values: " + error.message,
+        message: "Error in getVersion10Relics: " + error.message,
       };
     }
   },
