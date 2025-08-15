@@ -22,7 +22,7 @@ const workshop = {
         data: {
           oldWorkshopLevels: oldDataResult.oldWorkshopLevels || [],
           oldWorkshopPlusLevels: oldDataResult.oldWorkshopPlusLevels || [],
-          oldWorkshopPlusRatios: oldDataResult.oldWorkshopPlusRatios || [],
+          // oldWorkshopPlusRatios: oldDataResult.oldWorkshopPlusRatios || [],
         }
       };
     } catch (error) {
@@ -49,9 +49,13 @@ const workshop = {
 
       var oldWorkshopLevels = data.oldWorkshopLevels || {};
       var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels || {};
-      var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios || {};
+      // var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios || {};
 
-      var requiredRanges = ["Master Sheet", "Desired Ratios", "IDS"];
+      var requiredRanges = [
+        "Master Sheet",
+        // "Desired Ratios",
+        "IDS"
+      ];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -62,7 +66,7 @@ const workshop = {
       }
 
       var masterSheetData = batchResults[0].values;
-      var desiredRatiosData = batchResults[1].values;
+      // var desiredRatiosData = batchResults[1].values;
       var idsData = batchResults[2].values;
 
       // Get import status range from IDS data
@@ -90,19 +94,19 @@ const workshop = {
 
       var batchUpdate = workshopResult.batchUpdate || [];
       
-      var ratioResult = this.updateWorkshopPlusRatios(
-        "Desired Ratios",
-        oldWorkshopPlusRatios,
-        desiredRatiosData
-      );
-      if (!ratioResult || !ratioResult.success) {
-        console.log(
-          `Error updating workshop plus ratios: ${ratioResult.message}`
-        );
-        return ratioResult;
-      }
+      // var ratioResult = this.updateWorkshopPlusRatios(
+      //   "Desired Ratios",
+      //   oldWorkshopPlusRatios,
+      //   desiredRatiosData
+      // );
+      // if (!ratioResult || !ratioResult.success) {
+      //   console.log(
+      //     `Error updating workshop plus ratios: ${ratioResult.message}`
+      //   );
+      //   return ratioResult;
+      // }
 
-      batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
+      // batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
 
       // Add import status update to batch
       batchUpdate.push({
@@ -420,21 +424,21 @@ const workshop = {
       var oldWorkshopLevelsValues = updateWorkshopValuesBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopValuesBatchResult[1].values;
 
-      var workshopPlusRatioRange = "Desired Ratios"
-      var formulasRanges = [workshopPlusRatioRange];
-      var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
-      if (
-        !updateWorkshopFormulasBatchResult ||
-        updateWorkshopFormulasBatchResult.length < 1 ||
-        !updateWorkshopFormulasBatchResult[0].values
-      ) {
-        console.log(`Could not read workshop plus ratios data`);
-        return {
-          success: false,
-          message: `Could not read workshop plus ratios data`,
-        };
-      }
-      var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
+      // var workshopPlusRatioRange = "Desired Ratios"
+      // var formulasRanges = [workshopPlusRatioRange];
+      // var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+      // if (
+      //   !updateWorkshopFormulasBatchResult ||
+      //   updateWorkshopFormulasBatchResult.length < 1 ||
+      //   !updateWorkshopFormulasBatchResult[0].values
+      // ) {
+      //   console.log(`Could not read workshop plus ratios data`);
+      //   return {
+      //     success: false,
+      //     message: `Could not read workshop plus ratios data`,
+      //   };
+      // }
+      // var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion20WorkshopLevels(oldWorkshopLevelsValues);
@@ -449,17 +453,17 @@ const workshop = {
       }
 
       // Process workshop plus ratios
-      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(oldWorkshopPlusRatiosValues);
-      if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
-        return workshopPlusRatiosResult;
-      }
+      // var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(oldWorkshopPlusRatiosValues);
+      // if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
+      //   return workshopPlusRatiosResult;
+      // }
 
       return {
         success: true,
         message: "Workshop levels processed successfully",
         oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
         oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
-        oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
+        // oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
       };
     } catch (error) {
       console.log("Error in version20: " + error.toString());
