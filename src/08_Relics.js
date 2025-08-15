@@ -182,7 +182,6 @@ const relics = {
           batchUpdate: batchUpdate,
         };
       }
-      // console.log(`No updates needed for relics`);
       return {
         success: true,
         message: `No updates needed for relics`,

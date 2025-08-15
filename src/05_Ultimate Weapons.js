@@ -276,7 +276,6 @@ const ultimate = {
           batchUpdate: batchUpdate,
         };
       }
-      // console.log(`No updates needed for ultimate weapons levels`);
       return {
         success: true,
         message: `No updates needed for ultimate weapons levels`,

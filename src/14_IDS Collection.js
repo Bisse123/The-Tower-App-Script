@@ -201,7 +201,7 @@ const collection = {
           var ultimateMasterSheetData = getRangeData("UW_MS", "values");
           var ultimateCostCalculatorData = getRangeData("UW Cost Calculator", "formulas");
           
-          var ultimateResult = ultimate.updateUltimateLevels(ultimateData.targetWeapons, sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
+          var ultimateResult = ultimate.updateUltimateLevels(sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
           if (ultimateResult && ultimateResult.success) {
             batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
             
@@ -276,7 +276,7 @@ const collection = {
           var botsData = data.Bots;
           var botsMasterSheetData = getRangeData("Bots_MS", "values");
           
-          var botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.targetBots, botsData.oldBots, botsMasterSheetData);
+          var botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.oldBots, botsMasterSheetData);
           if (botsResult && botsResult.success) {
             batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
             
@@ -438,9 +438,9 @@ const collection = {
           var modulesPresetsData = getRangeData("Modules Presets", "values");
           // var modulesObtainedData = getRangeData("Modules Tracker", "values");
           
-          var inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesInventory, modulesInventoryData);
-          var presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesPresets, modulesPresetsData);
-          // var obtainedResult = modules.updateModulesObtained(sheetRequiredRanges.values["Modules Tracker"].sheetName, modulesData.targetModuleTypes, modulesData.oldModulesObtained, modulesObtainedData);
+          var inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.oldModulesInventory, modulesInventoryData);
+          var presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.oldModulesPresets, modulesPresetsData);
+          // var obtainedResult = modules.updateModulesObtained(sheetRequiredRanges.values["Modules Tracker"].sheetName, modulesData.oldModulesObtained, modulesObtainedData);
           
           var modulesSuccess = true;
           var modulesMessages = [];
@@ -494,7 +494,7 @@ const collection = {
           var guardiansData = data.Guardians;
           var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
           
-          var guardiansResult = guardians.updateGuardianLevels(guardiansData.targetGuardians, sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData);
+          var guardiansResult = guardians.updateGuardianLevels(sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData);
           if (guardiansResult && guardiansResult.success) {
             batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
             
@@ -525,18 +525,18 @@ const collection = {
           var playerData = data.Player;
           var playerMasterSheetData = getRangeData("player_MS", "values");
           
-          var playerResult = player.updatePlayer(playerData, sheetRequiredRanges.values["player_MS"].sheetName, playerMasterSheetData);
+          var playerResult = playerStuff.updatePlayerStuffData(sheetRequiredRanges.values["player_MS"].sheetName, playerData.oldPlayerStuffData, playerMasterSheetData);
           if (playerResult && playerResult.success) {
             batchUpdate = batchUpdate.concat(playerResult.batchUpdate || []);
             
             updateResults.push({ 
-              sheetType: "Player", 
+              sheetType: "Player & Stuff", 
               success: true, 
               message: "Player updated successfully" 
             });
           } else {
             updateResults.push({ 
-              sheetType: "Player", 
+              sheetType: "Player & Stuff", 
               success: false, 
               message: playerResult ? playerResult.message : "Unknown error in Player update" 
             });
@@ -839,10 +839,10 @@ const collection = {
         var modulesPresetsData = modules.getVersion50ModulesPresets(modulesPresetsValues);
         // var modulesObtainedData = modules.getVersion47ModulesObtained(modulesObtainedValues);
         // var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
-        var modules = modulesInventoryData.success && modulesPresetsData.success;
+        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
-          success: modules,
-          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          success: modulesSuccess,
+          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
           // oldModulesObtained: modulesObtainedData.oldModulesObtained
@@ -861,7 +861,7 @@ const collection = {
       var playerResult = getBatchResult("Player", "values");
       if (playerResult && playerResult.values) {
         var playerValues = playerResult.values;
-        var playerData = player.getVersion20PlayerStuff(playerValues);
+        var playerData = playerStuff.getVersion20PlayerStuff(playerValues);
         collectedData.Player = playerData;
       }
 
@@ -1103,10 +1103,10 @@ const collection = {
         var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
         // var modulesObtainedData = modules.getVersion47ModulesObtained(modulesObtainedValues);
         // var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
-        var modules = modulesInventoryData.success && modulesPresetsData.success;
+        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
-          success: modules,
-          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          success: modulesSuccess,
+          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
           // oldModulesObtained: modulesObtainedData.oldModulesObtained
@@ -1125,7 +1125,7 @@ const collection = {
       var playerResult = getBatchResult("Player", "values");
       if (playerResult && playerResult.values) {
         var playerValues = playerResult.values;
-        var playerData = player.getVersion20PlayerStuff(playerValues);
+        var playerData = playerStuff.getVersion20PlayerStuff(playerValues);
         collectedData.Player = playerData;
       }
 
@@ -1367,10 +1367,10 @@ const collection = {
         var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
         // var modulesObtainedData = modules.getVersion40ModulesObtained(modulesObtainedValues);
         // var modules = modulesInventoryData.success && modulesPresetsData.success && modulesObtainedData.success;
-        var modules = modulesInventoryData.success && modulesPresetsData.success;
+        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
-          success: modules,
-          message: modules ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          success: modulesSuccess,
+          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
           // oldModulesObtained: modulesObtainedData.oldModulesObtained

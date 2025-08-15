@@ -15,7 +15,7 @@ const playerStuff = {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
-      console.log(oldDataResult.oldPlayerStuffData);
+      
       return {
         success: true,
         message: "Player & Stuff export completed successfully",
@@ -137,15 +137,14 @@ const playerStuff = {
       var header = headerRow[statCol] || "";
       var perkRow = -1;
       var values = {
-        Stat: [],
-        Tier: [],
+        "Stat": [],
+        "Tier": [],
         "Premium Perk": [],
       };
       for (var row = 1; row < masterSheetData.length; row++) {
         var rowData = masterSheetData[row];
         var statName = rowData[statCol] || "";
         var tierValue = rowData[tierCol] || "";
-
         if (!tierValue) {
           break;
         }

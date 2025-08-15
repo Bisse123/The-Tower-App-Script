@@ -103,13 +103,13 @@ const shared = {
       var latestVersion = null;
       for (var row = 0; row < values.length; row++) {
         var currentVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && cell.includes("Version Change")
+          (cell) => typeof cell === "string" && ["version change", "this version"].some(w => cell.toLowerCase().includes(w))
         );
         var latestVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && cell.includes("Latest remote version :")
+          (cell) => typeof cell === "string" && ["latest remote version", "latest version"].some(w => cell.toLowerCase().includes(w))
         );
         var oldVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && cell.includes("Version Check")
+          (cell) => typeof cell === "string" && ["version check"].some(w => cell.toLowerCase().includes(w))
         );
         if (currentVersionCol !== -1) {
           var currentVersion = values[row + 1][currentVersionCol];

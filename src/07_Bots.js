@@ -249,7 +249,6 @@ const bots = {
           batchUpdate: batchUpdate,
         };
       }
-      // console.log(`No updates needed for bot levels`);
       return {
         success: true,
         message: `No updates needed for bot levels`,

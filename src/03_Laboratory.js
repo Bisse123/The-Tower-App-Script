@@ -96,7 +96,6 @@ const lab = {
       var batchUpdate = labResult.batchUpdate || [];
 
       if (oldLabPlanner && Object.keys(oldLabPlanner).length !== 0 && labPlannerSheetName) {
-        console.log(oldLabPlanner);
         var labPlannerResult = this.updateLabPlanner(
           labPlannerSheetName,
           oldLabPlanner,
@@ -604,7 +603,6 @@ const lab = {
                    cellValue.trim().toLowerCase() === reminderHeader.toLowerCase();
           });
           if (colIndex !== -1) {
-            console.log(`Found reminder header: ${reminderHeader} at column index ${colIndex}`);
             var reminderRowIndex = rowIndex;
             if (!oldLabPlanner[reminderHeader]) {
               oldLabPlanner[reminderHeader] = [];

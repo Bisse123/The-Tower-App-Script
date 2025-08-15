@@ -566,7 +566,7 @@
       document.getElementById("updateMasterButton").disabled = false;
       document.getElementById(
         "selectedFileSummary"
-      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${sheetType}! ⚠️</strong><br>`;
+      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${sheetType === "IDS Collection" ? sheetType : "IDS Master"}! ⚠️</strong><br>`;
       showAccessibleFilesSummary();
     } else {
       if (result.failedUpdates && result.failedUpdates.length > 0) {

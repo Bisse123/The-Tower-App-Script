@@ -15,7 +15,6 @@ const modules = {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
-      console.log(oldDataResult.oldModulesPresets);
       return {
         success: true,
         message: "Modules export completed successfully",
@@ -238,14 +237,12 @@ const modules = {
     });
 
     if (batchUpdate.length > 0) {
-      // console.log(`Modules presets updated successfully`);
       return {
         success: true,
         message: `Modules presets updated successfully`,
         batchUpdate: batchUpdate,
       };
     }
-    // console.log(`No updates needed for modules presets`);
     return {
       success: true,
       message: `No updates needed for modules presets`,
@@ -351,7 +348,6 @@ const modules = {
       }
     });
 
-    // console.log(`Modules inventory updated successfully`);
     return {
       success: true,
       message: `Modules inventory updated successfully`,
