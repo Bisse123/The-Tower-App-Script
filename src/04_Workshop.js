@@ -67,7 +67,7 @@ const workshop = {
 
       var masterSheetData = batchResults[0].values;
       // var desiredRatiosData = batchResults[1].values;
-      var idsData = batchResults[2].values;
+      var idsData = batchResults[1].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
