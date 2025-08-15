@@ -342,7 +342,7 @@ const modules = {
         }
         if (assistLevelCol !== -1) {
           var assistLevelCell =
-            shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 5);
+            shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
           batchUpdate.push({
             range: `${sheetName}!${assistLevelCell}`,
             values: [[assistLevel]],
