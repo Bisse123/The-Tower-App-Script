@@ -64,7 +64,8 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": {"sheetName": "Lab Planner", "range": "Lab Planner"},
-          "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"}, 
+          "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"},
+          // "Workshop Ratio": {"sheetName": "Workshop Ratio", "range": "Workshop Ratio"},
           "UW Cost Calculator": {"sheetName": "UW Cost Calculator v3", "range": "UW Cost Calculator v3"},
           "Card Preset": {"sheetName": "Card Preset", "range": "Card Preset"}
         }
@@ -166,6 +167,7 @@ const collection = {
         try {
           var workshopData = data.Workshop;
           var workshopMasterSheetData = getRangeData("Workshop_MS", "formulas");
+          // var workshopRatioData = getRangeData("Workshop Ratio", "formulas");
           
           var workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.formulas["Workshop_MS"].sheetName, workshopData.oldWorkshopLevels, workshopData.oldWorkshopPlusLevels, workshopMasterSheetData);
           if (workshopResult && workshopResult.success) {
@@ -637,7 +639,7 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
+          // "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
         }
       };
@@ -718,17 +720,18 @@ const collection = {
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      var workshopRatioResult = getBatchResult("Workshop Ratio", "formulas");
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopRatioResult && workshopRatioResult.values) {
+      // var workshopRatioResult = getBatchResult("Workshop Ratio", "formulas");
+      // if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopRatioResult && workshopRatioResult.values) {
+      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        var workshopRatioValues = workshopRatioResult.values;
+        // var workshopRatioValues = workshopRatioResult.values;
         
         var workshopLevelsData = workshop.getVersion20WorkshopLevels(workshopLevelsValues);
         var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(workshopPlusLevelsValues);
-        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopRatioValues);
-        
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
+        // var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopRatioValues);
+        // var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
+        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
           message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
