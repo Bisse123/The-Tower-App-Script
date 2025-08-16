@@ -46,11 +46,9 @@ const ultimate = {
         };
       }
 
-      var oldUltimate = data.oldUltimate || {};
-      var oldUltimateCostCalculator = data.oldUltimateCostCalculator || {};
-
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS"];
+      var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -74,55 +72,67 @@ const ultimate = {
         };
       }
 
-      var ultimateResult = this.updateUltimateLevels(
-        "Master Sheet",
-        oldUltimate,
-        masterSheetData
-      );
-      if (!ultimateResult || !ultimateResult.success) {
-        console.log(
-          `Error updating ultimate weapon levels: ${ultimateResult.message}`
+      // Only update ultimate levels if key exists
+      if (data.hasOwnProperty('oldUltimate')) {
+        var oldUltimate = data.oldUltimate;
+        var ultimateResult = this.updateUltimateLevels(
+          "Master Sheet",
+          oldUltimate,
+          masterSheetData
         );
-        return ultimateResult;
+        if (!ultimateResult || !ultimateResult.success) {
+          console.log(
+            `Error updating ultimate weapon levels: ${ultimateResult.message}`
+          );
+          return ultimateResult;
+        }
+        batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
       }
 
-      var batchUpdate = ultimateResult.batchUpdate || [];
-
-      var ultimateCostCalculatorResult = this.updateUltimateCostCalculator(
-        "UW Cost Calculator v3",
-        oldUltimateCostCalculator,
-        ultimateCostCalculatorData
-      );
-      if (!ultimateCostCalculatorResult || !ultimateCostCalculatorResult.success) {
-        console.log(
-          `Error updating ultimate cost calculator: ${ultimateCostCalculatorResult.message}`
+      // Only update ultimate cost calculator if key exists
+      if (data.hasOwnProperty('oldUltimateCostCalculator')) {
+        var oldUltimateCostCalculator = data.oldUltimateCostCalculator;
+        var ultimateCostCalculatorResult = this.updateUltimateCostCalculator(
+          "UW Cost Calculator v3",
+          oldUltimateCostCalculator,
+          ultimateCostCalculatorData
         );
-        return ultimateCostCalculatorResult;
+        if (!ultimateCostCalculatorResult || !ultimateCostCalculatorResult.success) {
+          console.log(
+            `Error updating ultimate cost calculator: ${ultimateCostCalculatorResult.message}`
+          );
+          return ultimateCostCalculatorResult;
+        }
+        batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
       }
 
-      batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Ultimate Weapons import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Ultimate Weapons import completed successfully`,
+        message: `No ultimate weapons to update`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

@@ -48,11 +48,6 @@ const cards = {
         };
       }
 
-      var oldCardsLevel = data.oldCardsLevel || [];
-      var oldCardSlots = data.oldCardSlots || "";
-      var oldCardsPreset = data.oldCardsPreset || {};
-      var shouldRemoveUsedCards = data.shouldRemoveUsedCards || true;
-
       var requiredRanges = ["Master Sheet", "Card Preset", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -77,52 +72,69 @@ const cards = {
         };
       }
 
-      var levelsResult = this.updateCardsLevels(
-        "Master Sheet",
-        oldCardsLevel,
-        oldCardSlots,
-        masterSheetData
-      );
-      if (!levelsResult || !levelsResult.success) {
-        console.log(`Error updating cards levels: ${levelsResult.message}`);
-        return levelsResult;
+      var batchUpdate = [];
+
+      // Only update cards levels if key exists
+      if (data.hasOwnProperty('oldCardsLevel') && data.hasOwnProperty('oldCardSlots')) {
+        var oldCardsLevel = data.oldCardsLevel;
+        var oldCardSlots = data.oldCardSlots || "";
+        var levelsResult = this.updateCardsLevels(
+          "Master Sheet",
+          oldCardsLevel,
+          oldCardSlots,
+          masterSheetData
+        );
+        if (!levelsResult || !levelsResult.success) {
+          console.log(`Error updating cards levels: ${levelsResult.message}`);
+          return levelsResult;
+        }
+        batchUpdate = batchUpdate.concat(levelsResult.batchUpdate || []);
       }
 
-      var batchUpdate = levelsResult.batchUpdate || [];
-
-      var presetResult = this.updateCardsPreset(
-        "Card Preset",
-        oldCardsPreset,
-        shouldRemoveUsedCards,
-        cardPresetsData
-      );
-      if (!presetResult || !presetResult.success) {
-        console.log(`Error updating cards preset: ${presetResult.message}`);
-        return presetResult;
+      // Only update cards preset if key exists
+      if (data.hasOwnProperty('oldCardsPreset')) {
+        var oldCardsPreset = data.oldCardsPreset;
+        var shouldRemoveUsedCards = data.shouldRemoveUsedCards || true;
+        var presetResult = this.updateCardsPreset(
+          "Card Preset",
+          oldCardsPreset,
+          shouldRemoveUsedCards,
+          cardPresetsData
+        );
+        if (!presetResult || !presetResult.success) {
+          console.log(`Error updating cards preset: ${presetResult.message}`);
+          return presetResult;
+        }
+        batchUpdate = batchUpdate.concat(presetResult.batchUpdate || []);
       }
-      batchUpdate = batchUpdate.concat(presetResult.batchUpdate || []);
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
+
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Cards data imported successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Cards data imported successfully`,
+        message: "No cards data to update",
       };
     } catch (error) {
       console.log(`Error importing cards data: ${error.toString()}`);

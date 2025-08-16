@@ -103,31 +103,33 @@ const shared = {
       var latestVersion = null;
       for (var row = 0; row < values.length; row++) {
         var currentVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && ["version change", "this version"].some(w => cell.toLowerCase().includes(w))
+          (cell) => typeof cell === "string" &&
+          [
+            "version change",
+            "this version",
+            "version check"
+          ].some(w => cell.toLowerCase().includes(w))
         );
         var latestVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && ["latest remote version", "latest version"].some(w => cell.toLowerCase().includes(w))
+          (cell) => typeof cell === "string" &&
+          [
+            "latest remote version",
+            "latest version"
+          ].some(w => cell.toLowerCase().includes(w))
         );
-        var oldVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" && ["version check"].some(w => cell.toLowerCase().includes(w))
-        );
-        if (currentVersionCol !== -1) {
-          var currentVersion = values[row + 1][currentVersionCol];
+        if (currentVersionCol !== -1 && !currentVersion) {
+          currentVersion = values[row + 1][currentVersionCol];
         }
-        if (latestVersionCol !== -1) {
-          var latestVersion = values[row + 1][latestVersionCol];
-        }
-        if (oldVersionCol !== -1) {
-          var currentVersion = values[row + 1][oldVersionCol];
-          break;
+        if (latestVersionCol !== -1 && !latestVersion) {
+          latestVersion = values[row + 1][latestVersionCol];
         }
         if (currentVersion && latestVersion) {
           break;
         }
       }
       return {
-        currentVersion: currentVersion || null,
-        latestVersion: latestVersion || null,
+        currentVersion: currentVersion,
+        latestVersion: latestVersion,
       };
     } catch (error) {
       console.error(`Error finding sheet version: ${error}`);

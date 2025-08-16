@@ -46,9 +46,6 @@ const vault = {
         };
       }
 
-      var oldVaultHarmony = data.oldVaultHarmony || {};
-      var oldVaultPower = data.oldVaultPower || {};
-      
       var requiredRanges = ["Harmony", "Power", "IDS"];
       var newVaultBatchResult = SheetsAPI.batchGetValues(
         newSheetID,
@@ -82,52 +79,66 @@ const vault = {
         };
       }
 
-      var harmonyResult = this.updateVault(
-        "Harmony",
-        harmonyData,
-        oldVaultHarmony
-      );
-      if (!harmonyResult || !harmonyResult.success) {
-        console.log(`Error updating Harmony vault: ${harmonyResult.message}`);
-        return harmonyResult;
+      var batchUpdate = [];
+
+      // Only update Harmony if key exists
+      if (data.hasOwnProperty('oldVaultHarmony')) {
+        var oldVaultHarmony = data.oldVaultHarmony;
+        var harmonyResult = this.updateVault(
+          "Harmony",
+          harmonyData,
+          oldVaultHarmony
+        );
+        if (!harmonyResult || !harmonyResult.success) {
+          console.log(`Error updating Harmony vault: ${harmonyResult.message}`);
+          return harmonyResult;
+        }
+        batchUpdate = batchUpdate.concat(harmonyResult.batchUpdate || []);
       }
 
-      var batchUpdate = harmonyResult.batchUpdate || [];
-
-      var powerResult = this.updateVault(
-        "Power",
-        powerData,
-        oldVaultPower
-      );
-      if (!powerResult || !powerResult.success) {
-        console.log(`Error updating Power vault: ${powerResult.message}`);
-        return powerResult;
+      // Only update Power if key exists
+      if (data.hasOwnProperty('oldVaultPower')) {
+        var oldVaultPower = data.oldVaultPower;
+        var powerResult = this.updateVault(
+          "Power",
+          powerData,
+          oldVaultPower
+        );
+        if (!powerResult || !powerResult.success) {
+          console.log(`Error updating Power vault: ${powerResult.message}`);
+          return powerResult;
+        }
+        batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
       }
 
-      batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        // Apply batch updates to the new spreadsheet
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
 
-      // Apply batch updates to the new spreadsheet
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Vault data imported successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Vault data imported successfully`,
+        message: "No vault data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

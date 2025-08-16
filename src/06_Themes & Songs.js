@@ -45,8 +45,6 @@ const themes = {
         };
       }
 
-      var oldThemesNames = data.oldThemesNames || {};
-
       // Batch get required data for update function only
       var requiredRanges = ["Themes & Songs", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
@@ -71,39 +69,50 @@ const themes = {
         };
       }
 
-      var themesResult = this.updateThemes(
-        "Themes & Songs",
-        oldThemesNames,
-        newThemesData
-      );
-      if (!themesResult || !themesResult.success) {
-        console.log(`Error updating themes: ${themesResult.message}`);
-        return themesResult;
+      var batchUpdate = [];
+
+      // Only update themes if key exists
+      if (data.hasOwnProperty('oldThemesNames')) {
+        var oldThemesNames = data.oldThemesNames;
+        var themesResult = this.updateThemes(
+          "Themes & Songs",
+          oldThemesNames,
+          newThemesData
+        );
+        if (!themesResult || !themesResult.success) {
+          console.log(`Error updating themes: ${themesResult.message}`);
+          return themesResult;
+        }
+        batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
       }
 
-      var batchUpdate = themesResult.batchUpdate || [];
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Themes & Songs import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Themes & Songs import completed successfully`,
+        message: "No themes data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

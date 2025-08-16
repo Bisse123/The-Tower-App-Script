@@ -46,17 +46,14 @@ const lab = {
         };
       }
 
-      var oldLabLevels = data.oldLabLevels || [];
-      var oldLabPlanner = data.oldLabPlanner || null;
       var requiredRanges = ["Master Sheet", "IDS"];
       var labPlannerSheetName = "";
+      var batchUpdate = [];
 
-      if (oldLabPlanner) {
-        var labPlannerSheet = SheetsAPI.getSheetBySubstring(newSpreadsheet, "Lab Planner");
-        if (labPlannerSheet) {
-          labPlannerSheetName = labPlannerSheet.title;
-          requiredRanges.push(labPlannerSheetName);
-        }
+      var labPlannerSheet = SheetsAPI.getSheetBySubstring(newSpreadsheet, "Lab Planner");
+      if (labPlannerSheet) {
+        labPlannerSheetName = labPlannerSheet.title;
+        requiredRanges.push(labPlannerSheetName);
       }
 
       // Batch get required data for update function only
@@ -83,19 +80,24 @@ const lab = {
         };
       }
 
-      var labResult = this.updateLabLevels(
-        "Master Sheet",
-        oldLabLevels,
-        masterSheetData
-      );
-      if (!labResult || !labResult.success) {
-        console.log(`Error updating lab levels: ${labResult.message}`);
-        return labResult;
+      // Only update lab levels if key exists
+      if (data.hasOwnProperty('oldLabLevels')) {
+        var oldLabLevels = data.oldLabLevels;
+        var labResult = this.updateLabLevels(
+          "Master Sheet",
+          oldLabLevels,
+          masterSheetData
+        );
+        if (!labResult || !labResult.success) {
+          console.log(`Error updating lab levels: ${labResult.message}`);
+          return labResult;
+        }
+        batchUpdate = batchUpdate.concat(labResult.batchUpdate || []);
       }
 
-      var batchUpdate = labResult.batchUpdate || [];
-
-      if (oldLabPlanner && Object.keys(oldLabPlanner).length !== 0 && labPlannerSheetName) {
+      // Only update lab planner if key exists
+      if (data.hasOwnProperty('oldLabPlanner')) {
+        var oldLabPlanner = data.oldLabPlanner;
         var labPlannerResult = this.updateLabPlanner(
           labPlannerSheetName,
           oldLabPlanner,
@@ -108,28 +110,33 @@ const lab = {
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Laboratory import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Laboratory import completed successfully`,
-      };
+        message: "No laboratory data to update",
+      }
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
       return {

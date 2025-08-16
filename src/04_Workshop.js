@@ -47,15 +47,12 @@ const workshop = {
         };
       }
 
-      var oldWorkshopLevels = data.oldWorkshopLevels || {};
-      var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels || {};
-      // var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios || {};
-
       var requiredRanges = [
         "Master Sheet",
-        // "Desired Ratios",
+        "Desired Ratios",
         "IDS"
       ];
+      var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -66,8 +63,8 @@ const workshop = {
       }
 
       var masterSheetData = batchResults[0].values;
-      // var desiredRatiosData = batchResults[1].values;
-      var idsData = batchResults[1].values;
+      var desiredRatiosData = batchResults[1].values;
+      var idsData = batchResults[2].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
@@ -79,57 +76,70 @@ const workshop = {
         };
       }
 
-      var workshopResult = this.updateWorkshopLevels(
-        "Master Sheet",
-        oldWorkshopLevels,
-        oldWorkshopPlusLevels,
-        masterSheetData
-      );
-      if (!workshopResult || !workshopResult.success) {
-        console.log(
-          `Error updating workshop levels: ${workshopResult.message}`
+      // Only update workshop levels if key exists
+      if (data.hasOwnProperty('oldWorkshopLevels') && data.hasOwnProperty('oldWorkshopPlusLevels')) {
+        var oldWorkshopLevels = data.oldWorkshopLevels;
+        var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels;
+        var workshopResult = this.updateWorkshopLevels(
+          "Master Sheet",
+          oldWorkshopLevels,
+          oldWorkshopPlusLevels,
+          masterSheetData
         );
-        return workshopResult;
+        if (!workshopResult || !workshopResult.success) {
+          console.log(
+            `Error updating workshop levels: ${workshopResult.message}`
+          );
+          return workshopResult;
+        }
+        batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
       }
 
-      var batchUpdate = workshopResult.batchUpdate || [];
-      
-      // var ratioResult = this.updateWorkshopPlusRatios(
-      //   "Desired Ratios",
-      //   oldWorkshopPlusRatios,
-      //   desiredRatiosData
-      // );
-      // if (!ratioResult || !ratioResult.success) {
-      //   console.log(
-      //     `Error updating workshop plus ratios: ${ratioResult.message}`
-      //   );
-      //   return ratioResult;
-      // }
+      // Only update workshop plus ratios if key exists
+      if (data.hasOwnProperty('oldWorkshopPlusRatios')) {
+        var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios;
+        var ratioResult = this.updateWorkshopPlusRatios(
+          "Desired Ratios",
+          oldWorkshopPlusRatios,
+          desiredRatiosData
+        );
+        if (!ratioResult || !ratioResult.success) {
+          console.log(
+            `Error updating workshop plus ratios: ${ratioResult.message}`
+          );
+          return ratioResult;
+        }
+        batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
+      }
 
-      // batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
-
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Workshop import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Workshop import completed successfully`,
-      };
+        message: `No workshop data to update`,
+      }
+
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
       return {

@@ -22,7 +22,7 @@
   let importedFilesSuccess = [];
   let importedFilesFailed = [];
   let updatedFiles = [];
-  let currentCopyMode = 'all'; // Current copy mode for template operations
+  let currentCopyMode = null; // Current copy mode for template operations
   let cachedTemplateInfo = null; // Cached template info with metadata to minimize server calls
   let cachedSheetIds = null; // Cached sheet IDs to minimize server calls
   let versionDifference = null; // Version difference from compatibility check for import operations
@@ -423,7 +423,13 @@
         
         var fileIds = [newSheetID, oldSheetID, idMasterID];
         if (sheetType === "IDS Master") {
-          copyTemplates(currentCopyMode);
+          if (currentCopyMode) {
+            copyTemplates(currentCopyMode);
+          } else {
+            checkMultipleSheetAccess([idMasterID], userEmail)
+              .then(onSheetAccessCheckSuccess)
+              .catch(onSheetAccessCheckFailure);
+          }
           return;
         } else if (sheetType === "IDS Collection") {
           checkCollectionsAccess();
