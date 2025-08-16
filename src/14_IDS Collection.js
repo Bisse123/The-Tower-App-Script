@@ -245,7 +245,7 @@ const collection = {
           var themesData = data["Themes & Songs"];
           var themesMasterSheetData = getRangeData("Themes & Songs", "values");
           
-          var themesResult = themes.updateThemes(themesData.targetThemes, "Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
+          var themesResult = themes.updateThemes("Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
           if (themesResult && themesResult.success) {
             batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
             
