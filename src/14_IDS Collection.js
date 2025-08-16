@@ -737,7 +737,7 @@ const collection = {
           message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
           oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
-          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
+          // oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
         };
       }
 
@@ -872,10 +872,10 @@ const collection = {
       };
       
     } catch (error) {
-      console.log(`Error in IDS Collection version1417: ${error.message}`);
+      console.log(`Error in IDS Collection version20: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version1417: ${error.message}`,
+        message: `Error in IDS Collection version20: ${error.message}`,
       };
     }
   },
