@@ -46,7 +46,7 @@ const bots = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet", "IDS"];
+      var requiredRanges = ["Master Sheet", "IDS", "Data_Val_Tables"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -58,6 +58,7 @@ const bots = {
 
       var masterSheetData = batchResults[0].values;
       var idsData = batchResults[1].values;
+      var dataValTablesData = batchResults[2].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
@@ -77,7 +78,8 @@ const bots = {
         var botsResult = this.updateBotLevels(
           "Master Sheet",
           oldBots,
-          masterSheetData
+          masterSheetData,
+          dataValTablesData
         );
         if (!botsResult || !botsResult.success) {
           console.log(`Error updating bots: ${botsResult.message}`);
@@ -123,7 +125,12 @@ const bots = {
     }
   },
 
-  updateBotLevels: function (sheetName, oldBots, masterSheetData) {
+  updateBotLevels: function (
+    sheetName,
+    oldBotsData,
+    masterSheetData,
+    dataValTablesData
+  ) {
     try {
       var targetBots = [
         "Flame Bot",
@@ -197,6 +204,8 @@ const bots = {
 
       var newBotUnlocked = [];
       var newBotLevel = [];
+      
+      var oldBots = shared.getNewDataValidationValues(dataValTablesData, "Bots", oldBotsData);
 
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];

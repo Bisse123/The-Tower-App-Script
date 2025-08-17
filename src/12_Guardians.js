@@ -46,7 +46,7 @@ const guardians = {
       }
 
       // Batch fetch required sheet data
-      var requiredRanges = ["Master Sheet", "IDS"];
+      var requiredRanges = ["Master Sheet", "IDS", "Data_Val_Tables"];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (
         !batchResult ||
@@ -62,6 +62,7 @@ const guardians = {
 
       var masterSheetData = batchResult[0].values;
       var idsData = batchResult[1].values;
+      var dataValTablesData = batchResult[2].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
@@ -81,7 +82,8 @@ const guardians = {
         var guardiansResult = this.updateGuardianLevels(
           "Master Sheet",
           oldGuardians,
-          masterSheetData
+          masterSheetData,
+          dataValTablesData
         );
         if (!guardiansResult || !guardiansResult.success) {
           console.log(`Error updating guardians: ${guardiansResult.message}`);
@@ -129,128 +131,180 @@ const guardians = {
 
   updateGuardianLevels: function (
     sheetName,
-    oldGuardians,
-    masterSheetData
+    oldGuardiansData,
+    masterSheetData,
+    dataValTablesData
   ) {
-    // var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
-    var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
-    if (!masterSheetData || masterSheetData.length < 2) {
-      return {
-        success: false,
-        message: "Not enough data in Master Sheet™",
-      };
-    }
+    try {
 
-    var headerRow = masterSheetData[0];
-    var guardianCol = headerRow.indexOf("Guardians") + 1;
-
-    if (guardianCol === 0) {
-      console.log(`Guardian Weapon column not found`);
-      return {
-        success: false,
-        message: `Guardian Weapon column not found`,
-      };
-    }
-
-    var startCol = guardianCol + 1;
-    var endCol = guardianCol + 5;
-
-    var newGuardianDataValues = masterSheetData
-      .slice(1)
-      .map(function (row) {
-        return row.slice(startCol - 1, endCol);
-      })
-      .filter(function (row) {
-        return row.some(function (cell) {
-          return (
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
+      if (!masterSheetData || masterSheetData.length < 2) {
+        return {
+          success: false,
+          message: "Not enough data in Master Sheet™",
+        };
+      }
+  
+      var headerRow = masterSheetData[0];
+      var guardianCol = headerRow.indexOf("Guardians") + 1;
+  
+      if (guardianCol === 0) {
+        console.log(`Guardian Weapon column not found`);
+        return {
+          success: false,
+          message: `Guardian Weapon column not found`,
+        };
+      }
+  
+      var startCol = guardianCol + 1;
+      var endCol = guardianCol + 5;
+  
+      var newGuardianDataValues = masterSheetData
+        .slice(1)
+        .map(function (row) {
+          return row.slice(startCol - 1, endCol);
+        })
+        .filter(function (row) {
+          return row.some(function (cell) {
+            return (
+              cell !== null &&
+              cell !== undefined &&
+              String(cell || "").trim() !== ""
+            );
+          });
+        });
+  
+      if (!newGuardianDataValues || newGuardianDataValues.length === 0) {
+        return {
+          success: false,
+          message: "Could not read guardian data",
+        };
+      }
+  
+      var newGuardianData = newGuardianDataValues.filter((row) =>
+        row.some(
+          (cell) =>
             cell !== null &&
             cell !== undefined &&
             String(cell || "").trim() !== ""
-          );
-        });
-      });
-
-    if (!newGuardianDataValues || newGuardianDataValues.length === 0) {
-      return {
-        success: false,
-        message: "Could not read guardian data",
-      };
-    }
-
-    var newGuardianData = newGuardianDataValues.filter((row) =>
-      row.some(
-        (cell) =>
-          cell !== null &&
-          cell !== undefined &&
-          String(cell || "").trim() !== ""
-      )
-    );
-    
-    var newGuardianUnlocked = [];
-    var newGuardianLevel = [];
-
-    for (var row = 0; row < newGuardianData.length; row++) {
-      var rowData = newGuardianData[row];
-      if (oldGuardians.hasOwnProperty(rowData[0])) {
-        var oldGuardian = oldGuardians[rowData[0]];
-        newGuardianUnlocked.push([rowData[0]]);
-        newGuardianUnlocked.push([""]);
-        newGuardianUnlocked.push([oldGuardian.unlocked]);
-
-        for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
-          var nextRowData = newGuardianData[nextRow];
-          if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
-            row = nextRow - 1;
-            break;
+        )
+      );
+      
+      var newGuardianUnlocked = [];
+      var newGuardianLevel = [];
+  
+      var oldGuardians = shared.getNewDataValidationValues(dataValTablesData, "Guardians", oldGuardiansData);
+      
+      for (var row = 0; row < newGuardianData.length; row++) {
+        var rowData = newGuardianData[row];
+        if (oldGuardians.hasOwnProperty(rowData[0])) {
+          var oldGuardian = oldGuardians[rowData[0]];
+          newGuardianUnlocked.push([rowData[0]]);
+          newGuardianUnlocked.push([""]);
+          newGuardianUnlocked.push([oldGuardian.unlocked]);
+  
+          for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
+            var nextRowData = newGuardianData[nextRow];
+            if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var newGuardianProp = nextRowData[2];
+            if (oldGuardian.props.hasOwnProperty(newGuardianProp)) {
+              newGuardianLevel.push([oldGuardian.props[newGuardianProp]]);
+            } else {
+              newGuardianLevel.push([nextRowData[4]]);
+            }
+            if (nextRow == newGuardianData.length - 1) {
+              row = nextRow;
+            }
           }
-          var newGuardianProp = nextRowData[2];
-          if (oldGuardian.props.hasOwnProperty(newGuardianProp)) {
-            newGuardianLevel.push([oldGuardian.props[newGuardianProp]]);
-          } else {
-            newGuardianLevel.push([nextRowData[4]]);
-          }
-          if (nextRow == newGuardianData.length - 1) {
-            row = nextRow;
-          }
+        } else {
+          newGuardianUnlocked.push([rowData[0]]);
         }
-      } else {
-        newGuardianUnlocked.push([rowData[0]]);
       }
-    }
-
-    var batchUpdate = [];
-    if (newGuardianUnlocked.length > 0) {
-      var unlockedCol = shared.columnToLetter(guardianCol + 1);
-      var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
-        newGuardianUnlocked.length + 1
-      }`;
-      batchUpdate.push({
-        range: unlockedRange,
-        values: newGuardianUnlocked,
-      });
-    }
-
-    if (newGuardianLevel.length > 0) {
-      var levelCol = shared.columnToLetter(guardianCol + 5);
-      var levelRange = `${sheetName}!${levelCol}2:${levelCol}${
-        newGuardianLevel.length + 1
-      }`;
-      batchUpdate.push({
-        range: levelRange,
-        values: newGuardianLevel,
-      });
-    }
-    if (batchUpdate.length !== 0) {
+  
+      var batchUpdate = [];
+      if (newGuardianUnlocked.length > 0) {
+        var unlockedCol = shared.columnToLetter(guardianCol + 1);
+        var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
+          newGuardianUnlocked.length + 1
+        }`;
+        batchUpdate.push({
+          range: unlockedRange,
+          values: newGuardianUnlocked,
+        });
+      }
+  
+      if (newGuardianLevel.length > 0) {
+        var levelCol = shared.columnToLetter(guardianCol + 5);
+        var levelRange = `${sheetName}!${levelCol}2:${levelCol}${
+          newGuardianLevel.length + 1
+        }`;
+        batchUpdate.push({
+          range: levelRange,
+          values: newGuardianLevel,
+        });
+      }
+      if (batchUpdate.length !== 0) {
+        return {
+          success: true,
+          message: `Guardians updated successfully`,
+          batchUpdate: batchUpdate,
+        };
+      }
       return {
         success: true,
-        message: `Guardians updated successfully`,
-        batchUpdate: batchUpdate,
+        message: `No updates needed for guardians`,
+      };
+    } catch (error) {
+      console.log("Error in updateGuardianLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error updating guardian levels: " + error.message,
       };
     }
-    return {
-      success: true,
-      message: `No updates needed for guardians`,
-    };
+  },
+
+  version21: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+
+      var guardianLevelsRange = "EXPORT!B5:F";
+      var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        guardianLevelsRange,
+      ]);
+      if (
+        !guardianBatchResult ||
+        guardianBatchResult.length === 0 ||
+        !guardianBatchResult[0].values
+      ) {
+        console.log(`Could not read guardian levels data`);
+        return {
+          success: false,
+          message: `Could not read guardian levels data`,
+        };
+      }
+      var oldGuardianLevelsData = guardianBatchResult[0].values;
+
+      var guardiansData = this.getVersion21Guardians(oldGuardianLevelsData);
+      return guardiansData;
+    } catch (error) {
+      console.log("Error in version21: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version21: " + error.message,
+      };
+    }
   },
 
   version10: function () {
@@ -326,28 +380,15 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              guardian.props[key] = value;
+                value = (value - 1).toString().padStart(2, '0');
+                guardian.props[key] = value;
             }
           }
-          // if (guardianName === "Steal") {
-          //   guardianName = "Bounty";
-          // }
-          // if (guardianName === "Ally") {
-          //   var propRenamer = {
-          //     "Targets": "Recovery Amount",
-          //     "Duration": "Max Recovery",
-          //   };
-          //   for (prop in guardian.props) {
-          //     if (propRenamer.hasOwnProperty(prop)) {
-          //       guardian.props[propRenamer[prop]] = guardian.props[prop];
-          //       delete guardian.props[prop];
-          //     }
-          //   }
-          // }
+          guardianName = guardianName === "Steal" ? "Bounty" : guardianName;
           oldGuardians[guardianName] = guardian;
         }
       }
-
+      console.log(JSON.stringify(oldGuardians, null, 2));
       return {
         success: true,
         oldGuardians: oldGuardians,
@@ -361,9 +402,65 @@ const guardians = {
     }
   },
 
+  getVersion21Guardians: function (oldGuardianLevelsData) {
+    try {
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
+      var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldGuardians = {};
+      for (var row = 0; row < oldGuardianLevels.length; row++) {
+        var guardianName = oldGuardianLevels[row][0];
+        // Only proceed if guardianName is in targetGuardians
+        if (guardianName && targetGuardians.includes(guardianName)) {
+          var unlocked = oldGuardianLevels[row + 2][0];
+          var guardian = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
+            var nextRowData = oldGuardianLevels[nextRow];
+            if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+                guardian.props[key] = value;
+            }
+          }
+          if (guardianName === "Steal") {
+            guardianName = "Bounty";
+          }
+          oldGuardians[guardianName] = guardian;
+        }
+      }
+
+      return {
+        success: true,
+        oldGuardians: oldGuardians,
+      };
+    } catch (error) {
+      console.log("Error in getVersion21Guardians: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion21Guardians: " + error.message,
+      };
+    }
+  },
+  
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
+      "v2.1": this.version21.bind(this),
     };
   },
 
