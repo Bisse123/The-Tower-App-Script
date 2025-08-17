@@ -388,7 +388,6 @@ const guardians = {
           oldGuardians[guardianName] = guardian;
         }
       }
-      console.log(JSON.stringify(oldGuardians, null, 2));
       return {
         success: true,
         oldGuardians: oldGuardians,
