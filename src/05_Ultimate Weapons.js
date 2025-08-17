@@ -47,7 +47,7 @@ const ultimate = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS"];
+      var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS", "Data_Val_Tables"];
       var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -61,6 +61,7 @@ const ultimate = {
       var masterSheetData = batchResults[0].values;
       var ultimateCostCalculatorData = batchResults[1].values;
       var idsData = batchResults[2].values;
+      var dataValTablesData = batchResults[3].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
@@ -78,7 +79,8 @@ const ultimate = {
         var ultimateResult = this.updateUltimateLevels(
           "Master Sheet",
           oldUltimate,
-          masterSheetData
+          masterSheetData,
+          dataValTablesData
         );
         if (!ultimateResult || !ultimateResult.success) {
           console.log(
@@ -145,8 +147,9 @@ const ultimate = {
 
   updateUltimateLevels: function (
     sheetName,
-    oldUltimate,
-    masterSheetData
+    oldUltimateData,
+    masterSheetData,
+    dataValTablesData
   ) {
     try {
       var targetWeapons = [
@@ -219,6 +222,8 @@ const ultimate = {
 
       var newUltimateUnlocked = [];
       var newUltimateLevel = [];
+      
+      var oldUltimate = shared.getNewDataValidationValues(dataValTablesData, "Ultimate Weapons", oldUltimateData);
 
       for (var row = 0; row < newUltimateData.length; row++) {
         var rowData = newUltimateData[row];

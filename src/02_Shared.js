@@ -320,6 +320,40 @@ const shared = {
     
     return null;
   },
+
+  getNewDataValidationValues: function (dataValTablesData, dataValType, oldValues) {
+    console.log(`Updating data validation values for type: ${dataValType}`);
+    if (!dataValTablesData || !Array.isArray(dataValTablesData)) {
+      console.error("Invalid data validation tables data");
+      return null;
+    }
+    var newValues = {};
+    Object.keys(oldValues).forEach(oldName => {
+      newValues[oldName] = { "unlocked": oldValues[oldName].unlocked, "props": {} };
+      var colIndex = dataValTablesData[0].indexOf(oldName);
+      if (colIndex !== -1) {
+        var offset = dataValType === "Guardians" ? 4 : 5;
+        var firstColIndex = colIndex;
+        var lastColIndex = colIndex + (offset - 1) * 2;
+        for (var col = firstColIndex; col < lastColIndex; col++) {
+          var propName = dataValTablesData[1][col];
+          if (oldValues[oldName].hasOwnProperty("props") && oldValues[oldName].props.hasOwnProperty(propName)) {
+            var oldPropValue = oldValues[oldName].props[propName];
+            var lookUpCol = (firstColIndex - offset) + (col - firstColIndex) / 2;
+            for (var row = 3; row < dataValTablesData.length; row++) {
+              var rowData = dataValTablesData[row];
+              var lookUpValue = rowData[lookUpCol];
+              if (lookUpValue && lookUpValue.trim() !== "" && lookUpValue.substring(0, 2) === oldPropValue.substring(0, 2)) {
+                newValues[oldName].props[propName] = lookUpValue;
+                break;
+              }
+            }
+          }
+        }
+      }
+    });
+    return newValues;
+  }
 };
 
 function updateSheet(sheetType, newSheetID, oldSheetID, idMasterID) {
