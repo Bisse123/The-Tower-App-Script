@@ -43,14 +43,13 @@ jobs:
       - name: Push to Google Apps Script
         run: clasp push --force
 
-      - name: Redeploy to production
-        run: clasp deploy -i ${{secrets.DEPLOYMENT_ID}} --description "Public Link"
-
-      - name: Get latest script version
-        id: get_version
-        run: |
-          VERSION=$(clasp versions | head -1 | awk '{print $1}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      # - name: Redeploy to production and get version
+      #   id: deploy
+      #   run: |
+      #     OUTPUT=$(clasp deploy -i ${{secrets.DEPLOYMENT_ID}} --description "Public Link")
+      #     echo "$OUTPUT"
+      #     VERSION=$(echo "$OUTPUT" | grep -o '@[0-9]\+' | sed 's/@//')
+      #     echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Write Google credentials
         run: echo "${{ secrets.GOOGLE_ADDON_CREDENTIALS }}" > /tmp/credentials.json
@@ -69,7 +68,8 @@ jobs:
         env:
           ACCESS_TOKEN: ${{ steps.get_token.outputs.token }}
           PROJECT_ID: "the-tower-import-data"
-          VERSION: ${{ steps.get_version.outputs.version }}
+          VERSION: "54"
+          # VERSION: ${{ steps.deploy.outputs.version }}
         run: |
           curl -s -X PATCH \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
