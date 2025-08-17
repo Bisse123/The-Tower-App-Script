@@ -68,7 +68,7 @@ jobs:
       - name: Update Google Workspace Add-on version
         env:
           ACCESS_TOKEN: ${{ steps.get_token.outputs.token }}
-          PROJECT_ID: "1031925368251"
+          PROJECT_ID: "the-tower-import-data"
           VERSION: ${{ steps.get_version.outputs.version }}
         run: |
           curl -s -X PATCH \
