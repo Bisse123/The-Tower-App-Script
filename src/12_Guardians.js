@@ -436,9 +436,6 @@ const guardians = {
                 guardian.props[key] = value;
             }
           }
-          if (guardianName === "Steal") {
-            guardianName = "Bounty";
-          }
           oldGuardians[guardianName] = guardian;
         }
       }
