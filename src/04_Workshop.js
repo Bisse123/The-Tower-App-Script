@@ -199,10 +199,10 @@ const workshop = {
       var workshopUnlocked = [];
       var workshopLevels = [];
       var workshopPlusLevels = [];
-      var workshopLevelsStartCol = "";
-      var workshopLevelsEndCol = "";
-      var workshopPlusLevelsStartCol = "";
-      var workshopPlusLevelsEndCol = "";
+      var workshopLevelsStartCol = upgradeCol + 1;
+      var workshopLevelsEndCol = workshopLevelsStartCol + (oldWorkshopLevels.presetNames.length * 2) - 1;
+      var workshopPlusLevelsStartCol = enhancementCol + 2;
+      var workshopPlusLevelsEndCol = workshopPlusLevelsStartCol + oldWorkshopPlusLevels.presetNames.length - 1;
       for (var i = 2; i < masterSheetData.length; i++) {
         var row = masterSheetData[i];
         
@@ -210,30 +210,10 @@ const workshop = {
         if (workshopName && workshopName.startsWith("=")) {
           workshopName = workshopName.split(",")[1].trim().replace(/['"()]/g, '');
         }
-        if (workshopName && oldWorkshopLevels[workshopName]) {
-          var upgradeData = oldWorkshopLevels[workshopName];
-          var upgradeOldLevels = []
-          for (var j = upgradeCol; j < row.length; j++) {
-            var presetName = headerRow[j] || "";
-            if (presetName && presetName.startsWith("Preset")) {
-              if (!workshopLevelsStartCol) {
-                workshopLevelsStartCol = j + 1;
-              }
-              if (upgradeData.levels[presetName]) {
-                upgradeOldLevels = upgradeOldLevels.concat(upgradeData.levels[presetName]);
-              } else {
-                upgradeOldLevels.push(row[j] || "", row[j + 1] || "");
-              }
-              if (presetName === "Preset 5") {
-                if (!workshopLevelsEndCol) {
-                  workshopLevelsEndCol = j + 2;
-                }
-                break;
-              }
-            }
-          }
-          workshopUnlocked.push([upgradeData["unlocked"] || ""]);
-          workshopLevels.push(upgradeOldLevels);
+        if (workshopName && oldWorkshopLevels.data[workshopName]) {
+          var oldWorkshopRowData = oldWorkshopLevels.data[workshopName];
+          workshopUnlocked.push([oldWorkshopRowData.unlocked || ""]);
+          workshopLevels.push(oldWorkshopRowData.levels || []);
         }
         var enhancementName = row[enhancementCol - 1];
         if (enhancementName && enhancementName.startsWith("=")) {
@@ -245,33 +225,15 @@ const workshop = {
           }
           enhancementName = enhancementName.replace(/['"()]/g, '');
         }
-        if (enhancementName && oldWorkshopPlusLevels[enhancementName]) {
-          var enhancementData = oldWorkshopPlusLevels[enhancementName];
-          var enhancementOldLevels = [];
-          for (var j = enhancementCol; j < row.length; j++) {
-            var presetName = headerRow[j] || "";
-            if (presetName && presetName.startsWith("Preset")) {
-              if (!workshopPlusLevelsStartCol) {
-                workshopPlusLevelsStartCol = j + 1;
-              }
-              if (presetName && enhancementData[presetName]) {
-                enhancementOldLevels.push(enhancementData[presetName]);
-              } else {
-                enhancementOldLevels.push(row[j] || "");
-              }
-              if (presetName === "Preset 5") {
-                workshopPlusLevelsEndCol = j + 1;
-                break;
-              }
-            }
-          }
-          workshopPlusLevels.push(enhancementOldLevels);
+        if (enhancementName && oldWorkshopPlusLevels.data[enhancementName]) {
+          var enhancementData = oldWorkshopPlusLevels.data[enhancementName];
+          workshopPlusLevels.push(enhancementData || []);
         }
       }
 
       var batchUpdate = [];
       var startRow = 3;
-      if (upgradeCol > 1 && workshopUnlocked.length) {
+      if (upgradeCol > 1 && workshopUnlocked.length > 0) {
         var unlockedCol = shared.columnToLetter(upgradeCol - 1);
         var unlockedRange = `${sheetName}!${unlockedCol}${startRow}:${unlockedCol}${
           workshopUnlocked.length + startRow - 1
@@ -282,24 +244,46 @@ const workshop = {
         });
       }
 
-      if (upgradeCol > 0 && workshopLevels.length) {
+      if (upgradeCol > 0 && workshopLevels.length > 0) {
+        var upgradeHeaders = []
+        oldWorkshopLevels.presetNames.forEach(function (presetName) {
+          upgradeHeaders.push(presetName, "");
+        });
+        console.log(`upgradeHeaders: ${JSON.stringify(upgradeHeaders)}`);
+        console.log(oldWorkshopLevels.presetNames);
         var levelsStartCol = shared.columnToLetter(workshopLevelsStartCol);
         var levelsEndCol = shared.columnToLetter(workshopLevelsEndCol);
+        var levelsHeaderRange = `${sheetName}!${levelsStartCol}1:${levelsEndCol}1`;
         var levelsRange = `${sheetName}!${levelsStartCol}${startRow}:${levelsEndCol}${
           workshopLevels.length + startRow - 1
         }`;
+        batchUpdate.push({
+          range: levelsHeaderRange,
+          values: [upgradeHeaders],
+        });
         batchUpdate.push({
           range: levelsRange,
           values: workshopLevels,
         });
       }
 
-      if (enhancementCol > 0 && workshopPlusLevels.length) {
+      if (enhancementCol > 0 && workshopPlusLevels.length > 0) {
+        var plusHeaders = [];
+        oldWorkshopPlusLevels.presetNames.forEach(function (presetName) {
+          plusHeaders.push(presetName);
+        });
+        console.log(`plusHeaders: ${JSON.stringify(plusHeaders)}`);
+        console.log(oldWorkshopPlusLevels.presetNames);
         var plusStartCol = shared.columnToLetter(workshopPlusLevelsStartCol);
         var plusEndCol = shared.columnToLetter(workshopPlusLevelsEndCol);
+        var plusHeaderRange = `${sheetName}!${plusStartCol}1:${plusEndCol}1`;
         var plusRange = `${sheetName}!${plusStartCol}${startRow}:${plusEndCol}${
           workshopPlusLevels.length + startRow - 1
         }`;
+        batchUpdate.push({
+          range: plusHeaderRange,
+          values: [plusHeaders],
+        });
         batchUpdate.push({
           range: plusRange,
           values: workshopPlusLevels,
@@ -548,13 +532,13 @@ const workshop = {
 
   getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
-      var oldWorkshopLevels = {};
+      var oldWorkshopLevels = {"presetNames": [null], "data": {}};
       oldWorkshopLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
           return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
         });
         if (hasData && row[1]) {
-          oldWorkshopLevels[row[1]] = {"unlocked": row[0] || "", "levels": {"Preset 1": [row[2] || "", row[3] || ""]}};
+          oldWorkshopLevels.data[row[1]] = {"unlocked": row[0] || null, "levels": [row[2] || "", row[3] || null]};
         }
       });
 
@@ -574,13 +558,13 @@ const workshop = {
 
   getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
-      var oldWorkshopPlusLevels = {};
+      var oldWorkshopPlusLevels = {"presetNames": [null], "data": {}};
       oldWorkshopPlusLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
           return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
         });
         if (hasData && row[0]) {
-          oldWorkshopPlusLevels[row[0]] = {"Preset 1": row[2] || ""};
+          oldWorkshopPlusLevels.data[row[0]] = [row[2] || null];
         }
       });
 
@@ -600,24 +584,32 @@ const workshop = {
 
   getVersion20WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
-      var oldWorkshopLevels = {};
       var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
-      oldWorkshopLevelsValues.splice(0, 2);
+      var oldWorkshopLevelsPresetNames = []
+      oldWorkshopLevelsHeaders.forEach(function(name, index) {
+        var presetName = name && name.trim() !== "" ? name.trim() : null;
+        if (presetName && presetName.startsWith("Preset")) {
+          oldWorkshopLevelsPresetNames.push(null);
+        } else if (presetName && index > 1) {
+          oldWorkshopLevelsPresetNames.push(presetName);
+        }
+      });
+      var oldWorkshopLevels = {"presetNames": oldWorkshopLevelsPresetNames, "data": {}};
+      oldWorkshopLevelsValues.splice(0, 2)
       oldWorkshopLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
           return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
         });
         if (hasData && row[1]) {
-          oldWorkshopLevels[row[1]] = {"unlocked": row[0] || "", "levels": {}};
+          oldWorkshopLevels.data[row[1]] = {"unlocked": row[0] || "", "levels": []};
           row.forEach(function(cell, index) {
-            if (oldWorkshopLevelsHeaders[index] && oldWorkshopLevelsHeaders[index].startsWith("Preset")) {
-              var presetName = oldWorkshopLevelsHeaders[index];
-              oldWorkshopLevels[row[1]].levels[presetName] = [row[index] || "", row[index + 1] || ""];
+            var presetName = oldWorkshopLevelsHeaders[index];
+            if (presetName.trim() !== "" && (oldWorkshopLevelsPresetNames.includes(presetName) || presetName.includes("Preset"))) {
+              oldWorkshopLevels.data[row[1]].levels.push(row[index] || null, row[index + 1] || null);
             }
           });
         }
       });
-
       return {
         success: true,
         message: "Workshop levels processed successfully",
@@ -634,24 +626,32 @@ const workshop = {
 
   getVersion20WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
-      var oldWorkshopPlusLevels = {};
       var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
-      oldWorkshopPlusLevelsValues.splice(0, 2);
+      var oldWorkshopPlusPresetNames = []
+      oldWorkshopPlusLevelsHeaders.forEach(function(name, index) {
+        var presetName = name && name.trim() !== "" ? name.trim() : null;
+        if (presetName && presetName.startsWith("Preset")) {
+          oldWorkshopPlusPresetNames.push(null);
+        } else if (presetName && index > 1) {
+          oldWorkshopPlusPresetNames.push(presetName);
+        }
+      });
+      var oldWorkshopPlusLevels = {"presetNames": oldWorkshopPlusPresetNames, data: {}};
+      oldWorkshopPlusLevelsValues.splice(0, 2)
       oldWorkshopPlusLevelsValues.forEach(function(row) {
         var hasData = row.some(function(cell) {
           return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
         });
         if (hasData && row[0]) {
-          oldWorkshopPlusLevels[row[0]] = {};
+          oldWorkshopPlusLevels.data[row[0]] = [];
           row.forEach(function(cell, index) {
             var presetName = oldWorkshopPlusLevelsHeaders[index];
-            if (presetName && presetName.startsWith("Preset")) {
-              oldWorkshopPlusLevels[row[0]][presetName] = row[index] || "";
+            if (presetName.trim() !== "" && (oldWorkshopPlusPresetNames.includes(presetName) || presetName.includes("Preset"))) {
+              oldWorkshopPlusLevels.data[row[0]].push(row[index] || null);
             };
           });
         }
       });
-
       return {
         success: true,
         message: "Workshop plus levels processed successfully",
