@@ -46,10 +46,6 @@ const modules = {
         };
       }
 
-      var oldModulesInventory = data.oldModulesInventory || {};
-      var oldModulesPresets = data.oldModulesPresets || {};
-      // var oldModulesObtained = data.oldModulesObtained || {};
-
       // Batch fetch all required sheet data
       var requiredRanges = [
         "Modules Inventory",
@@ -90,71 +86,86 @@ const modules = {
         };
       }
 
-      var inventoryResult = this.updateModulesInventory(
-        "Modules Inventory",
-        oldModulesInventory,
-        newModuleInventoryValues
-      );
-      if (!inventoryResult || !inventoryResult.success) {
-        return {
-          success: false,
-          message: inventoryResult.message,
-        };
+      var batchUpdate = [];
+
+      // Only update modules inventory if key exists
+      if (data.hasOwnProperty('oldModulesInventory')) {
+        var oldModulesInventory = data.oldModulesInventory;
+        var inventoryResult = this.updateModulesInventory(
+          "Modules Inventory",
+          oldModulesInventory,
+          newModuleInventoryValues
+        );
+        if (!inventoryResult || !inventoryResult.success) {
+          return {
+            success: false,
+            message: inventoryResult.message,
+          };
+        }
+        batchUpdate = batchUpdate.concat(inventoryResult.batchUpdate || []);
       }
 
-      var batchUpdate = inventoryResult.batchUpdate || [];
-
-      var presetsResult = this.updateModulesPresets(
-        "Modules Presets",
-        oldModulesPresets,
-        newModulePresetsValues
-      );
-
-      if (!presetsResult || !presetsResult.success) {
-        return {
-          success: false,
-          message: presetsResult.message,
-        };
+      // Only update modules presets if key exists
+      if (data.hasOwnProperty('oldModulesPresets')) {
+        var oldModulesPresets = data.oldModulesPresets;
+        var presetsResult = this.updateModulesPresets(
+          "Modules Presets",
+          oldModulesPresets,
+          newModulePresetsValues
+        );
+        if (!presetsResult || !presetsResult.success) {
+          return {
+            success: false,
+            message: presetsResult.message,
+          };
+        }
+        batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
       }
 
-      batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
-
-      // var obtainedResult = this.updateModulesObtained(
-      //   "Modules Tracker",
-      //   oldModulesObtained,
-      //   newModulesObtainedValues
-      // );
-
-      // if (!obtainedResult || !obtainedResult.success) {
-      //   return {
-      //     success: false,
-      //     message: obtainedResult.message,
-      //   };
+      // Only update modules obtained if key exists (uncomment if needed)
+      // if (data.hasOwnProperty('oldModulesObtained')) {
+      //   var oldModulesObtained = data.oldModulesObtained;
+      //   var obtainedResult = this.updateModulesObtained(
+      //     "Modules Tracker",
+      //     oldModulesObtained,
+      //     newModulesObtainedValues
+      //   );
+      //   if (!obtainedResult || !obtainedResult.success) {
+      //     return {
+      //       success: false,
+      //       message: obtainedResult.message,
+      //     };
+      //   }
+      //   batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
       // }
 
-      // batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
-      
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
+
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Modules data imported successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Modules data imported successfully`,
+        message: "No modules data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

@@ -45,8 +45,6 @@ const playerStuff = {
         };
       }
 
-      var oldPlayerStuffData = data.oldPlayerStuffData || {};
-
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
@@ -71,39 +69,50 @@ const playerStuff = {
         };
       }
 
-      var playerResult = this.updatePlayerStuffData(
-        "Master Sheet",
-        oldPlayerStuffData,
-        masterSheetData
-      );
-      if (!playerResult || !playerResult.success) {
-        console.log(`Error updating player data: ${playerResult.message}`);
-        return playerResult;
+      var batchUpdate = [];
+
+      // Only update player & stuff data if key exists
+      if (data.hasOwnProperty('oldPlayerStuffData')) {
+        var oldPlayerStuffData = data.oldPlayerStuffData;
+        var playerResult = this.updatePlayerStuffData(
+          "Master Sheet",
+          oldPlayerStuffData,
+          masterSheetData
+        );
+        if (!playerResult || !playerResult.success) {
+          console.log(`Error updating player data: ${playerResult.message}`);
+          return playerResult;
+        }
+        batchUpdate = batchUpdate.concat(playerResult.batchUpdate || []);
       }
 
-      var batchUpdate = playerResult.batchUpdate || [];
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet",
+          };
+        }
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet",
+          success: true,
+          message: `Player & Stuff import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Player & Stuff import completed successfully`,
+        message: "No player & stuff data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

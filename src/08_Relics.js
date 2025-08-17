@@ -45,8 +45,6 @@ const relics = {
         };
       }
 
-      var oldRelics = data.oldRelics || [];
-
       var requiredRanges = ["Relics", "IDS"];
       var newRelicsBatchResult = SheetsAPI.batchGetValues(
         newSheetID,
@@ -76,35 +74,46 @@ const relics = {
         };
       }
 
-      var relicsResult = this.updateRelics("Relics", oldRelics, newRelicsData);
-      if (!relicsResult || !relicsResult.success) {
-        console.log(`Error updating relics: ${relicsResult.message}`);
-        return relicsResult;
+      var batchUpdate = [];
+
+      // Only update relics if key exists
+      if (data.hasOwnProperty('oldRelics')) {
+        var oldRelics = data.oldRelics;
+        var relicsResult = this.updateRelics("Relics", oldRelics, newRelicsData);
+        if (!relicsResult || !relicsResult.success) {
+          console.log(`Error updating relics: ${relicsResult.message}`);
+          return relicsResult;
+        }
+        batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
       }
 
-      var batchUpdate = relicsResult.batchUpdate || [];
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Relics import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Relics import completed successfully`,
+        message: "No relics data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

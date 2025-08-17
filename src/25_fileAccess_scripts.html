@@ -219,7 +219,7 @@
       // Check if we have any successful exports to import
       if (exportedFilesSuccess.length === 0) {
         document.getElementById("importButton").disabled = false;
-        document.getElementById("statusText").innerText = "No data was successfully exported. Cannot proceed with import.";
+        document.getElementById("statusText").innerText = "No data was exported. Cannot proceed with import.";
         return;
       }
       
@@ -276,13 +276,20 @@
                 const copiedFileIndex = copiedTemplateFiles.findIndex(f => f.sheetType === task.sheetType);
                 if (copiedFileIndex !== -1) {
                   exportedFile = copiedTemplateFiles.splice(copiedFileIndex, 1)[0];
-                  sourceArray = 'copied';
+                  sourceArray = 'copy failed';
                 } else {
                   // Then check exportedFilesFailed (for retry attempts)
                   const failedFileIndex = exportedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
                   if (failedFileIndex !== -1) {
                     exportedFile = exportedFilesFailed.splice(failedFileIndex, 1)[0];
-                    sourceArray = 'failed';
+                    sourceArray = 'export failed';
+                  } else {
+                    // Then check importedFilesFailed (for retry attempts)
+                    const importedFileIndex = importedFilesFailed.findIndex(f => f.sheetType === task.sheetType);
+                    if (importedFileIndex !== -1) {
+                      exportedFile = importedFilesFailed.splice(importedFileIndex, 1)[0];
+                      sourceArray = 'import failed';
+                    }  
                   }
                 }
                 
@@ -1110,7 +1117,6 @@
         document.getElementById("importButton").disabled = false;
         document.getElementById("updateMasterButton").style.display = "inline-block";
         document.getElementById("updateMasterButton").disabled = true;
-        statusText.innerText += " Ready for import!";
       } else {
         const titleModeDescription = copyMode === 'update' ? 'Templates with Updates' : 'Templates';
         fileAccessTitle.innerHTML = `❌ All ${totalTemplates} ${titleModeDescription} Failed to Copy`;

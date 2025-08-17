@@ -65,7 +65,7 @@ const collection = {
         "formulas": {
           "Lab Planner": {"sheetName": "Lab Planner", "range": "Lab Planner"},
           "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"},
-          // "Workshop Ratio": {"sheetName": "Workshop Ratio", "range": "Workshop Ratio"},
+          "Workshop Ratio": {"sheetName": "Workshop Ratio", "range": "Workshop Ratio"},
           "UW Cost Calculator": {"sheetName": "UW Cost Calculator v3", "range": "UW Cost Calculator v3"},
           "Card Preset": {"sheetName": "Card Preset", "range": "Card Preset"}
         }
@@ -129,35 +129,37 @@ const collection = {
           var labData = data.Laboratory;
           var labMasterSheetData = getRangeData("Lab_MS", "values");
           var labPlannerData = getRangeData("Lab Planner", "formulas");
-          
-          var labResult = lab.updateLabLevels(sheetRequiredRanges.values["Lab_MS"].sheetName, labData.oldLabLevels, labMasterSheetData);
-          if (labResult && labResult.success) {
-            batchUpdate = batchUpdate.concat(labResult.batchUpdate || []);
-            
-            if (labData.oldLabPlanner && labPlannerData) {
-              var labPlannerResult = lab.updateLabPlanner(sheetRequiredRanges.formulas["Lab Planner"].sheetName, labData.oldLabPlanner, labPlannerData);
-              if (labPlannerResult && labPlannerResult.success) {
-                batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
-              }
+          var labSuccess = true;
+          var labMessages = [];
+          var labResult, labPlannerResult;
+          if (labData.hasOwnProperty('oldLabLevels') && labMasterSheetData) {
+            labResult = lab.updateLabLevels(sheetRequiredRanges.values["Lab_MS"].sheetName, labData.oldLabLevels, labMasterSheetData);
+            if (labResult && labResult.success) {
+              batchUpdate = batchUpdate.concat(labResult.batchUpdate || []);
+            } else {
+              labSuccess = false;
+              labMessages.push(labResult ? labResult.message : "Unknown error in LabLevels");
             }
-            
-            updateResults.push({ 
-              sheetType: "Laboratory", 
-              success: true, 
-              message: "Laboratory updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Laboratory", 
-              success: false, 
-              message: labResult ? labResult.message : "Unknown error in Laboratory update" 
-            });
           }
+          if (labData.hasOwnProperty('oldLabPlanner') && labPlannerData) {
+            labPlannerResult = lab.updateLabPlanner(sheetRequiredRanges.formulas["Lab Planner"].sheetName, labData.oldLabPlanner, labPlannerData);
+            if (labPlannerResult && labPlannerResult.success) {
+              batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
+            } else {
+              labSuccess = false;
+              labMessages.push(labPlannerResult ? labPlannerResult.message : "Unknown error in LabPlanner");
+            }
+          }
+          updateResults.push({
+            sheetType: "Laboratory",
+            success: labSuccess,
+            message: labSuccess ? "Laboratory updated successfully" : "Laboratory update failed: " + labMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Laboratory", 
-            success: false, 
-            message: "Error in Laboratory update: " + error.message 
+          updateResults.push({
+            sheetType: "Laboratory",
+            success: false,
+            message: "Error in Laboratory update: " + error.message
           });
         }
       }
@@ -167,29 +169,38 @@ const collection = {
         try {
           var workshopData = data.Workshop;
           var workshopMasterSheetData = getRangeData("Workshop_MS", "formulas");
-          // var workshopRatioData = getRangeData("Workshop Ratio", "formulas");
-          
-          var workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.formulas["Workshop_MS"].sheetName, workshopData.oldWorkshopLevels, workshopData.oldWorkshopPlusLevels, workshopMasterSheetData);
-          if (workshopResult && workshopResult.success) {
-            batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Workshop", 
-              success: true, 
-              message: "Workshop updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Workshop", 
-              success: false, 
-              message: workshopResult ? workshopResult.message : "Unknown error in Workshop update" 
-            });
+          var workshopPlusRatioData = getRangeData("Workshop Ratio", "formulas");
+          var workshopSuccess = true;
+          var workshopMessages = [];
+          var workshopResult, workshopPlusRatioResult;
+          if (workshopData.hasOwnProperty('oldWorkshopLevels') && workshopData.hasOwnProperty('oldWorkshopPlusLevels') && workshopMasterSheetData) {
+            workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.formulas["Workshop_MS"].sheetName, workshopData.oldWorkshopLevels, workshopData.oldWorkshopPlusLevels, workshopMasterSheetData);
+            if (workshopResult && workshopResult.success) {
+              batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
+            } else {
+              workshopSuccess = false;
+              workshopMessages.push(workshopResult ? workshopResult.message : "Unknown error in WorkshopLevels");
+            }
           }
+          if (workshopData.hasOwnProperty('oldWorkshopPlusRatios')) {
+            workshopPlusRatioResult = workshop.updateWorkshopPlusRatios(sheetRequiredRanges.formulas["Workshop Ratio"].sheetName, workshopData.oldWorkshopPlusRatios, workshopPlusRatioData);
+            if (workshopPlusRatioResult && workshopPlusRatioResult.success) {
+              batchUpdate = batchUpdate.concat(workshopPlusRatioResult.batchUpdate || []);
+            } else {
+              workshopSuccess = false;
+              workshopMessages.push(workshopPlusRatioResult ? workshopPlusRatioResult.message : "Unknown error in WorkshopPlusRatios");
+            }
+          }
+          updateResults.push({
+            sheetType: "Workshop",
+            success: workshopSuccess,
+            message: workshopSuccess ? "Workshop updated successfully" : "Workshop update failed: " + workshopMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Workshop", 
-            success: false, 
-            message: "Error in Workshop update: " + error.message 
+          updateResults.push({
+            sheetType: "Workshop",
+            success: false,
+            message: "Error in Workshop update: " + error.message
           });
         }
       }
@@ -200,41 +211,42 @@ const collection = {
           var ultimateData = data["Ultimate Weapon"];
           var ultimateMasterSheetData = getRangeData("UW_MS", "values");
           var ultimateCostCalculatorData = getRangeData("UW Cost Calculator", "formulas");
-          
-          var ultimateResult = ultimate.updateUltimateLevels(sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
-          if (ultimateResult && ultimateResult.success) {
-            batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
-            
-            // Update cost calculator if data exists
-            if (ultimateData.oldUltimateCostCalculator && ultimateCostCalculatorData) {
-              var ultimateCostCalculatorResult = ultimate.updateUltimateCostCalculator(
-                ultimateData.targetWeapons, 
-                sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName, 
-                ultimateData.oldUltimateCostCalculator, 
-                ultimateCostCalculatorData
-              );
-              if (ultimateCostCalculatorResult && ultimateCostCalculatorResult.success) {
-                batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
-              }
+          var ultimateSuccess = true;
+          var ultimateMessages = [];
+          var ultimateResult, ultimateCostCalculatorResult;
+          if (ultimateData.hasOwnProperty('oldUltimate') && ultimateMasterSheetData) {
+            ultimateResult = ultimate.updateUltimateLevels(sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData);
+            if (ultimateResult && ultimateResult.success) {
+              batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
+            } else {
+              ultimateSuccess = false;
+              ultimateMessages.push(ultimateResult ? ultimateResult.message : "Unknown error in UltimateLevels");
             }
-            
-            updateResults.push({ 
-              sheetType: "Ultimate Weapon", 
-              success: true, 
-              message: "Ultimate Weapon updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Ultimate Weapon", 
-              success: false, 
-              message: ultimateResult ? ultimateResult.message : "Unknown error in Ultimate Weapon update" 
-            });
           }
+          if (ultimateData.hasOwnProperty('oldUltimateCostCalculator') && ultimateCostCalculatorData) {
+            ultimateCostCalculatorResult = ultimate.updateUltimateCostCalculator(
+              ultimateData.targetWeapons,
+              sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName,
+              ultimateData.oldUltimateCostCalculator,
+              ultimateCostCalculatorData
+            );
+            if (ultimateCostCalculatorResult && ultimateCostCalculatorResult.success) {
+              batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
+            } else {
+              ultimateSuccess = false;
+              ultimateMessages.push(ultimateCostCalculatorResult ? ultimateCostCalculatorResult.message : "Unknown error in UltimateCostCalculator");
+            }
+          }
+          updateResults.push({
+            sheetType: "Ultimate Weapon",
+            success: ultimateSuccess,
+            message: ultimateSuccess ? "Ultimate Weapon updated successfully" : "Ultimate Weapon update failed: " + ultimateMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Ultimate Weapon", 
-            success: false, 
-            message: "Error in Ultimate Weapon update: " + error.message 
+          updateResults.push({
+            sheetType: "Ultimate Weapon",
+            success: false,
+            message: "Error in Ultimate Weapon update: " + error.message
           });
         }
       }
@@ -244,28 +256,28 @@ const collection = {
         try {
           var themesData = data["Themes & Songs"];
           var themesMasterSheetData = getRangeData("Themes & Songs", "values");
-          
-          var themesResult = themes.updateThemes("Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
-          if (themesResult && themesResult.success) {
-            batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Themes & Songs", 
-              success: true, 
-              message: "Themes & Songs updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Themes & Songs", 
-              success: false, 
-              message: themesResult ? themesResult.message : "Unknown error in Themes & Songs update" 
-            });
+          var themesSuccess = true;
+          var themesMessages = [];
+          var themesResult;
+          if (themesData.hasOwnProperty('oldThemesNames') && themesMasterSheetData) {
+            themesResult = themes.updateThemes("Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
+            if (themesResult && themesResult.success) {
+              batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
+            } else {
+              themesSuccess = false;
+              themesMessages.push(themesResult ? themesResult.message : "Unknown error in Themes");
+            }
           }
+          updateResults.push({
+            sheetType: "Themes & Songs",
+            success: themesSuccess,
+            message: themesSuccess ? "Themes & Songs updated successfully" : "Themes & Songs update failed: " + themesMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Themes & Songs", 
-            success: false, 
-            message: "Error in Themes & Songs update: " + error.message 
+          updateResults.push({
+            sheetType: "Themes & Songs",
+            success: false,
+            message: "Error in Themes & Songs update: " + error.message
           });
         }
       }
@@ -275,28 +287,28 @@ const collection = {
         try {
           var botsData = data.Bots;
           var botsMasterSheetData = getRangeData("Bots_MS", "values");
-          
-          var botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.oldBots, botsMasterSheetData);
-          if (botsResult && botsResult.success) {
-            batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Bots", 
-              success: true, 
-              message: "Bots updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Bots", 
-              success: false, 
-              message: botsResult ? botsResult.message : "Unknown error in Bots update" 
-            });
+          var botsSuccess = true;
+          var botsMessages = [];
+          var botsResult;
+          if (botsData.hasOwnProperty('oldBots') && botsMasterSheetData) {
+            botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.oldBots, botsMasterSheetData);
+            if (botsResult && botsResult.success) {
+              batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
+            } else {
+              botsSuccess = false;
+              botsMessages.push(botsResult ? botsResult.message : "Unknown error in Bots");
+            }
           }
+          updateResults.push({
+            sheetType: "Bots",
+            success: botsSuccess,
+            message: botsSuccess ? "Bots updated successfully" : "Bots update failed: " + botsMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Bots", 
-            success: false, 
-            message: "Error in Bots update: " + error.message 
+          updateResults.push({
+            sheetType: "Bots",
+            success: false,
+            message: "Error in Bots update: " + error.message
           });
         }
       }
@@ -306,28 +318,28 @@ const collection = {
         try {
           var relicsData = data.Relics;
           var relicsMasterSheetData = getRangeData("Relics", "values");
-          
-          var relicsResult = relics.updateRelics(sheetRequiredRanges.values["Relics"].sheetName, relicsData.oldRelics, relicsMasterSheetData);
-          if (relicsResult && relicsResult.success) {
-            batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Relics", 
-              success: true, 
-              message: "Relics updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Relics", 
-              success: false, 
-              message: relicsResult ? relicsResult.message : "Unknown error in Relics update" 
-            });
+          var relicsSuccess = true;
+          var relicsMessages = [];
+          var relicsResult;
+          if (relicsData.hasOwnProperty('oldRelics') && relicsMasterSheetData) {
+            relicsResult = relics.updateRelics(sheetRequiredRanges.values["Relics"].sheetName, relicsData.oldRelics, relicsMasterSheetData);
+            if (relicsResult && relicsResult.success) {
+              batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
+            } else {
+              relicsSuccess = false;
+              relicsMessages.push(relicsResult ? relicsResult.message : "Unknown error in Relics");
+            }
           }
+          updateResults.push({
+            sheetType: "Relics",
+            success: relicsSuccess,
+            message: relicsSuccess ? "Relics updated successfully" : "Relics update failed: " + relicsMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Relics", 
-            success: false, 
-            message: "Error in Relics update: " + error.message 
+          updateResults.push({
+            sheetType: "Relics",
+            success: false,
+            message: "Error in Relics update: " + error.message
           });
         }
       }
@@ -338,45 +350,45 @@ const collection = {
           var vaultData = data.Vault;
           var harmonyData = getRangeData("Vault_Harmony", "values");
           var powerData = getRangeData("Vault_Power", "values");
-          
-          var harmonyResult = vault.updateVault(sheetRequiredRanges.values["Vault_Harmony"].sheetName, harmonyData, vaultData.oldVaultHarmony);
-          var powerResult = vault.updateVault(sheetRequiredRanges.values["Vault_Power"].sheetName, powerData, vaultData.oldVaultPower);
-          
           var vaultSuccess = true;
           var vaultMessages = [];
-          
-          if (harmonyResult && harmonyResult.success) {
-            batchUpdate = batchUpdate.concat(harmonyResult.batchUpdate || []);
-          } else {
-            vaultSuccess = false;
-            vaultMessages.push("Harmony: " + (harmonyResult ? harmonyResult.message : "Unknown error"));
+          var harmonyResult, powerResult;
+          if (vaultData.hasOwnProperty('oldVaultHarmony') && harmonyData) {
+            harmonyResult = vault.updateVault(sheetRequiredRanges.values["Vault_Harmony"].sheetName, harmonyData, vaultData.oldVaultHarmony);
+            if (harmonyResult && harmonyResult.success) {
+              batchUpdate = batchUpdate.concat(harmonyResult.batchUpdate || []);
+            } else {
+              vaultSuccess = false;
+              vaultMessages.push("Harmony: " + (harmonyResult ? harmonyResult.message : "Unknown error"));
+            }
           }
-          
-          if (powerResult && powerResult.success) {
-            batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
-          } else {
-            vaultSuccess = false;
-            vaultMessages.push("Power: " + (powerResult ? powerResult.message : "Unknown error"));
+          if (vaultData.hasOwnProperty('oldVaultPower') && powerData) {
+            powerResult = vault.updateVault(sheetRequiredRanges.values["Vault_Power"].sheetName, powerData, vaultData.oldVaultPower);
+            if (powerResult && powerResult.success) {
+              batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
+            } else {
+              vaultSuccess = false;
+              vaultMessages.push("Power: " + (powerResult ? powerResult.message : "Unknown error"));
+            }
           }
-          
           if (vaultSuccess) {
-            updateResults.push({ 
-              sheetType: "Vault", 
-              success: true, 
-              message: "Vault updated successfully" 
+            updateResults.push({
+              sheetType: "Vault",
+              success: true,
+              message: "Vault updated successfully"
             });
           } else {
-            updateResults.push({ 
-              sheetType: "Vault", 
-              success: false, 
-              message: "Vault update failed: " + vaultMessages.join(", ") 
+            updateResults.push({
+              sheetType: "Vault",
+              success: false,
+              message: "Vault update failed: " + vaultMessages.join(", ")
             });
           }
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Vault", 
-            success: false, 
-            message: "Error in Vault update: " + error.message 
+          updateResults.push({
+            sheetType: "Vault",
+            success: false,
+            message: "Error in Vault update: " + error.message
           });
         }
       }
@@ -387,45 +399,45 @@ const collection = {
           var cardsData = data.Cards;
           var cardsMasterSheetData = getRangeData("Cards_MS", "values");
           var cardsPresetData = getRangeData("Card Preset", "formulas");
-          
-          var cardsLevelsResult = cards.updateCardsLevels(sheetRequiredRanges.values["Cards_MS"].sheetName, cardsData.oldCardsLevel, cardsData.oldCardSlots, cardsMasterSheetData);
-          var cardsPresetResult = cards.updateCardsPreset("Card Preset", cardsData.oldCardsPreset, cardsData.shouldRemoveUsedCards, cardsPresetData);
-          
           var cardsSuccess = true;
           var cardsMessages = [];
-          
-          if (cardsLevelsResult && cardsLevelsResult.success) {
-            batchUpdate = batchUpdate.concat(cardsLevelsResult.batchUpdate || []);
-          } else {
-            cardsSuccess = false;
-            cardsMessages.push("Levels: " + (cardsLevelsResult ? cardsLevelsResult.message : "Unknown error"));
+          var cardsLevelsResult, cardsPresetResult;
+          if (cardsData.hasOwnProperty('oldCardsLevel') && cardsData.hasOwnProperty('oldCardSlots') && cardsMasterSheetData) {
+            cardsLevelsResult = cards.updateCardsLevels(sheetRequiredRanges.values["Cards_MS"].sheetName, cardsData.oldCardsLevel, cardsData.oldCardSlots, cardsMasterSheetData);
+            if (cardsLevelsResult && cardsLevelsResult.success) {
+              batchUpdate = batchUpdate.concat(cardsLevelsResult.batchUpdate || []);
+            } else {
+              cardsSuccess = false;
+              cardsMessages.push("Levels: " + (cardsLevelsResult ? cardsLevelsResult.message : "Unknown error"));
+            }
           }
-          
-          if (cardsPresetResult && cardsPresetResult.success) {
-            batchUpdate = batchUpdate.concat(cardsPresetResult.batchUpdate || []);
-          } else {
-            cardsSuccess = false;
-            cardsMessages.push("Preset: " + (cardsPresetResult ? cardsPresetResult.message : "Unknown error"));
+          if (cardsData.hasOwnProperty('oldCardsPreset') && cardsPresetData) {
+            cardsPresetResult = cards.updateCardsPreset("Card Preset", cardsData.oldCardsPreset, cardsData.shouldRemoveUsedCards, cardsPresetData);
+            if (cardsPresetResult && cardsPresetResult.success) {
+              batchUpdate = batchUpdate.concat(cardsPresetResult.batchUpdate || []);
+            } else {
+              cardsSuccess = false;
+              cardsMessages.push("Preset: " + (cardsPresetResult ? cardsPresetResult.message : "Unknown error"));
+            }
           }
-          
           if (cardsSuccess) {
-            updateResults.push({ 
-              sheetType: "Cards", 
-              success: true, 
-              message: "Cards updated successfully" 
+            updateResults.push({
+              sheetType: "Cards",
+              success: true,
+              message: "Cards updated successfully"
             });
           } else {
-            updateResults.push({ 
-              sheetType: "Cards", 
-              success: false, 
-              message: "Cards update failed: " + cardsMessages.join(", ") 
+            updateResults.push({
+              sheetType: "Cards",
+              success: false,
+              message: "Cards update failed: " + cardsMessages.join(", ")
             });
           }
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Cards", 
-            success: false, 
-            message: "Error in Cards update: " + error.message 
+          updateResults.push({
+            sheetType: "Cards",
+            success: false,
+            message: "Error in Cards update: " + error.message
           });
         }
       }
@@ -436,54 +448,45 @@ const collection = {
           var modulesData = data.Modules;
           var modulesInventoryData = getRangeData("Modules Inventory", "values");
           var modulesPresetsData = getRangeData("Modules Presets", "values");
-          // var modulesObtainedData = getRangeData("Modules Tracker", "values");
-          
-          var inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.oldModulesInventory, modulesInventoryData);
-          var presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.oldModulesPresets, modulesPresetsData);
-          // var obtainedResult = modules.updateModulesObtained(sheetRequiredRanges.values["Modules Tracker"].sheetName, modulesData.oldModulesObtained, modulesObtainedData);
-          
           var modulesSuccess = true;
           var modulesMessages = [];
-          
-          if (inventoryResult && inventoryResult.success) {
-            batchUpdate = batchUpdate.concat(inventoryResult.batchUpdate || []);
-          } else {
-            modulesSuccess = false;
-            modulesMessages.push("Inventory: " + (inventoryResult ? inventoryResult.message : "Unknown error"));
+          var inventoryResult, presetsResult;
+          if (modulesData.hasOwnProperty('oldModulesInventory') && modulesInventoryData) {
+            inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.oldModulesInventory, modulesInventoryData);
+            if (inventoryResult && inventoryResult.success) {
+              batchUpdate = batchUpdate.concat(inventoryResult.batchUpdate || []);
+            } else {
+              modulesSuccess = false;
+              modulesMessages.push("Inventory: " + (inventoryResult ? inventoryResult.message : "Unknown error"));
+            }
           }
-          
-          if (presetsResult && presetsResult.success) {
-            batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
-          } else {
-            modulesSuccess = false;
-            modulesMessages.push("Presets: " + (presetsResult ? presetsResult.message : "Unknown error"));
+          if (modulesData.hasOwnProperty('oldModulesPresets') && modulesPresetsData) {
+            presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.oldModulesPresets, modulesPresetsData);
+            if (presetsResult && presetsResult.success) {
+              batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
+            } else {
+              modulesSuccess = false;
+              modulesMessages.push("Presets: " + (presetsResult ? presetsResult.message : "Unknown error"));
+            }
           }
-          
-          // if (obtainedResult && obtainedResult.success) {
-          //   batchUpdate = batchUpdate.concat(obtainedResult.batchUpdate || []);
-          // } else {
-          //   modulesSuccess = false;
-          //   modulesMessages.push("Obtained: " + (obtainedResult ? obtainedResult.message : "Unknown error"));
-          // }
-          
           if (modulesSuccess) {
-            updateResults.push({ 
-              sheetType: "Modules", 
-              success: true, 
-              message: "Modules updated successfully" 
+            updateResults.push({
+              sheetType: "Modules",
+              success: true,
+              message: "Modules updated successfully"
             });
           } else {
-            updateResults.push({ 
-              sheetType: "Modules", 
-              success: false, 
-              message: "Modules update failed: " + modulesMessages.join(", ") 
+            updateResults.push({
+              sheetType: "Modules",
+              success: false,
+              message: "Modules update failed: " + modulesMessages.join(", ")
             });
           }
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Modules", 
-            success: false, 
-            message: "Error in Modules update: " + error.message 
+          updateResults.push({
+            sheetType: "Modules",
+            success: false,
+            message: "Error in Modules update: " + error.message
           });
         }
       }
@@ -493,28 +496,28 @@ const collection = {
         try {
           var guardiansData = data.Guardians;
           var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
-          
-          var guardiansResult = guardians.updateGuardianLevels(sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData);
-          if (guardiansResult && guardiansResult.success) {
-            batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Guardians", 
-              success: true, 
-              message: "Guardians updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Guardians", 
-              success: false, 
-              message: guardiansResult ? guardiansResult.message : "Unknown error in Guardians update" 
-            });
+          var guardiansSuccess = true;
+          var guardiansMessages = [];
+          var guardiansResult;
+          if (guardiansData.hasOwnProperty('oldGuardians') && guardiansMasterSheetData) {
+            guardiansResult = guardians.updateGuardianLevels(sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData);
+            if (guardiansResult && guardiansResult.success) {
+              batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
+            } else {
+              guardiansSuccess = false;
+              guardiansMessages.push(guardiansResult ? guardiansResult.message : "Unknown error in Guardians");
+            }
           }
+          updateResults.push({
+            sheetType: "Guardians",
+            success: guardiansSuccess,
+            message: guardiansSuccess ? "Guardians updated successfully" : "Guardians update failed: " + guardiansMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Guardians", 
-            success: false, 
-            message: "Error in Guardians update: " + error.message 
+          updateResults.push({
+            sheetType: "Guardians",
+            success: false,
+            message: "Error in Guardians update: " + error.message
           });
         }
       }
@@ -524,28 +527,28 @@ const collection = {
         try {
           var playerData = data.Player;
           var playerMasterSheetData = getRangeData("player_MS", "values");
-          
-          var playerResult = playerStuff.updatePlayerStuffData(sheetRequiredRanges.values["player_MS"].sheetName, playerData.oldPlayerStuffData, playerMasterSheetData);
-          if (playerResult && playerResult.success) {
-            batchUpdate = batchUpdate.concat(playerResult.batchUpdate || []);
-            
-            updateResults.push({ 
-              sheetType: "Player & Stuff", 
-              success: true, 
-              message: "Player updated successfully" 
-            });
-          } else {
-            updateResults.push({ 
-              sheetType: "Player & Stuff", 
-              success: false, 
-              message: playerResult ? playerResult.message : "Unknown error in Player update" 
-            });
+          var playerSuccess = true;
+          var playerMessages = [];
+          var playerResult;
+          if (playerData.hasOwnProperty('oldPlayerStuffData') && playerMasterSheetData) {
+            playerResult = playerStuff.updatePlayerStuffData(sheetRequiredRanges.values["player_MS"].sheetName, playerData.oldPlayerStuffData, playerMasterSheetData);
+            if (playerResult && playerResult.success) {
+              batchUpdate = batchUpdate.concat(playerResult.batchUpdate || []);
+            } else {
+              playerSuccess = false;
+              playerMessages.push(playerResult ? playerResult.message : "Unknown error in Player");
+            }
           }
+          updateResults.push({
+            sheetType: "Player & Stuff",
+            success: playerSuccess,
+            message: playerSuccess ? "Player & Stuff updated successfully" : "Player & Stuff update failed: " + playerMessages.join(", ")
+          });
         } catch (error) {
-          updateResults.push({ 
-            sheetType: "Player", 
-            success: false, 
-            message: "Error in Player update: " + error.message 
+          updateResults.push({
+            sheetType: "Player & Stuff",
+            success: false,
+            message: "Error in Player & Stuff update: " + error.message
           });
         }
       }
@@ -639,7 +642,7 @@ const collection = {
         },
         "formulas": {
           "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet)
-          // "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
+          "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
         }
       };
@@ -720,24 +723,22 @@ const collection = {
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      // var workshopRatioResult = getBatchResult("Workshop Ratio", "formulas");
-      // if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopRatioResult && workshopRatioResult.values) {
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
+      var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "formulas");
+      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopPlusRatioResult && workshopPlusRatioResult.values) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        // var workshopRatioValues = workshopRatioResult.values;
+        var workshopPlusRatioValues = workshopPlusRatioResult.values;
         
         var workshopLevelsData = workshop.getVersion20WorkshopLevels(workshopLevelsValues);
         var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(workshopPlusLevelsValues);
-        // var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopRatioValues);
-        // var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
+        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopPlusRatioValues);
+        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
           message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
           oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
-          // oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
+          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
         };
       }
 

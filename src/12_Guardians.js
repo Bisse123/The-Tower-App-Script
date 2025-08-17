@@ -45,8 +45,6 @@ const guardians = {
         };
       }
 
-      var oldGuardians = data.oldGuardians || {};
-
       // Batch fetch required sheet data
       var requiredRanges = ["Master Sheet", "IDS"];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
@@ -75,39 +73,50 @@ const guardians = {
         };
       }
 
-      var guardiansResult = this.updateGuardianLevels(
-        "Master Sheet",
-        oldGuardians,
-        masterSheetData
-      );
-      if (!guardiansResult || !guardiansResult.success) {
-        console.log(`Error updating guardians: ${guardiansResult.message}`);
-        return guardiansResult;
+      var batchUpdate = [];
+
+      // Only update guardians if key exists
+      if (data.hasOwnProperty('oldGuardians')) {
+        var oldGuardians = data.oldGuardians;
+        var guardiansResult = this.updateGuardianLevels(
+          "Master Sheet",
+          oldGuardians,
+          masterSheetData
+        );
+        if (!guardiansResult || !guardiansResult.success) {
+          console.log(`Error updating guardians: ${guardiansResult.message}`);
+          return guardiansResult;
+        }
+        batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
       }
 
-      var batchUpdate = guardiansResult.batchUpdate || [];
+      // Add import status update to batch if any update was made
+      if (batchUpdate.length > 0) {
+        batchUpdate.push({
+          range: newSheetInfo.importStatus.range,
+          values: [["✅"]],
+        });
 
-      // Add import status update to batch
-      batchUpdate.push({
-        range: newSheetInfo.importStatus.range,
-        values: [["✅"]],
-      });
+        var updateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
+        if (!updateResult) {
+          console.log(`Error applying batch updates to new spreadsheet`);
+          return {
+            success: false,
+            message: "Error applying batch updates to new spreadsheet™",
+          };
+        }
 
-      var updateResult = SheetsAPI.batchUpdateValues(
-        newSheetID,
-        batchUpdate
-      );
-      if (!updateResult) {
-        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: false,
-          message: "Error applying batch updates to new spreadsheet™",
+          success: true,
+          message: `Guardians import completed successfully`,
         };
       }
-
       return {
         success: true,
-        message: `Guardians import completed successfully`,
+        message: "No guardians data to update",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
@@ -123,6 +132,7 @@ const guardians = {
     oldGuardians,
     masterSheetData
   ) {
+    // var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
     var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
     if (!masterSheetData || masterSheetData.length < 2) {
       return {
@@ -146,7 +156,7 @@ const guardians = {
     var endCol = guardianCol + 5;
 
     var newGuardianDataValues = masterSheetData
-      .slice(1) // Skip header row
+      .slice(1)
       .map(function (row) {
         return row.slice(startCol - 1, endCol);
       })
@@ -167,7 +177,6 @@ const guardians = {
       };
     }
 
-    // Filter out empty rows
     var newGuardianData = newGuardianDataValues.filter((row) =>
       row.some(
         (cell) =>
@@ -176,7 +185,7 @@ const guardians = {
           String(cell || "").trim() !== ""
       )
     );
-
+    
     var newGuardianUnlocked = [];
     var newGuardianLevel = [];
 
@@ -320,6 +329,21 @@ const guardians = {
               guardian.props[key] = value;
             }
           }
+          // if (guardianName === "Steal") {
+          //   guardianName = "Bounty";
+          // }
+          // if (guardianName === "Ally") {
+          //   var propRenamer = {
+          //     "Targets": "Recovery Amount",
+          //     "Duration": "Max Recovery",
+          //   };
+          //   for (prop in guardian.props) {
+          //     if (propRenamer.hasOwnProperty(prop)) {
+          //       guardian.props[propRenamer[prop]] = guardian.props[prop];
+          //       delete guardian.props[prop];
+          //     }
+          //   }
+          // }
           oldGuardians[guardianName] = guardian;
         }
       }
