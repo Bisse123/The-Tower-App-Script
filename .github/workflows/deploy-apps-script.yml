@@ -43,36 +43,5 @@ jobs:
       - name: Push to Google Apps Script
         run: clasp push --force
 
-      # - name: Redeploy to production and get version
-      #   id: deploy
-      #   run: |
-      #     OUTPUT=$(clasp deploy -i ${{secrets.DEPLOYMENT_ID}} --description "Public Link")
-      #     echo "$OUTPUT"
-      #     VERSION=$(echo "$OUTPUT" | grep -o '@[0-9]\+' | sed 's/@//')
-      #     echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Write Google credentials
-        run: echo "${{ secrets.GOOGLE_ADDON_CREDENTIALS }}" > /tmp/credentials.json
-
-      - name: Get access token
-        id: get_token
-        run: |
-          ACCESS_TOKEN=$(curl -s \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d @/tmp/credentials.json \
-            "https://oauth2.googleapis.com/token" | jq -r .access_token)
-          echo "token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Update Google Workspace Add-on version
-        env:
-          ACCESS_TOKEN: ${{ steps.get_token.outputs.token }}
-          PROJECT_ID: "the-tower-import-data"
-          VERSION: "54"
-          # VERSION: ${{ steps.deploy.outputs.version }}
-        run: |
-          curl -s -X PATCH \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"sheetsAddon\":{\"scriptVersion\":$VERSION}}" \
-            "https://workspace.googleapis.com/v1/projects/$PROJECT_ID/addOns"
+      - name: Redeploy to production
+        run: clasp deploy -i ${{secrets.DEPLOYMENT_ID}} --description "Public Link"
