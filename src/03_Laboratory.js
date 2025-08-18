@@ -247,17 +247,14 @@ const lab = {
           message: "No lab planner updates needed",
         };
       }
-
+      
+      var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
+      var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
+      var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
+      
       var batchUpdate = [];
-      var labHeaders = Object.keys(oldLabPlanner).filter(function (header) {
-        return header && header.trim() !== "" && header.toLowerCase().includes("lab") && !header.toLowerCase().includes("reminder")
-      });
-      var reminderHeaders = Object.keys(oldLabPlanner).filter(function (header) {
-        return header && header.trim() !== "" && header.toLowerCase().includes("lab") && header.toLowerCase().includes("reminder")
-      });
-      var miscHeaders = Object.keys(oldLabPlanner).filter(function (header) {
-        return header && header.trim() !== "" && !header.toLowerCase().includes("lab")
-      });
+
+      var estimatedCoinsHeader = [...labHeaders];
 
       for (var rowIndex = 0; rowIndex < labPlannerData.length; rowIndex++) {
         var row = labPlannerData[rowIndex];
@@ -332,6 +329,30 @@ const lab = {
           if (miscColIndex !== -1) {
             var miscData = oldLabPlanner[miscHeader];
             if (miscHeader === "Estimated Daily Coins required to Sustain:" && miscData && miscData.length !== 0) {
+              var labStartOption = oldLabPlanner["OPTIONS"]["I plan my labs starting at the: →"];
+              if (labStartOption || labStartOption.length > 1) {
+                for (var index = 0; index < miscData.length; index++) {
+                  var dataRow = miscData[index];
+                  if (dataRow && dataRow.length > 0) {
+                    // var headers = Object.keys(oldLabPlanner);
+                    var oldLabHeader = oldLabPlanner[estimatedCoinsHeader[index]];
+                    if (!oldLabHeader) {
+                      console.log(`No old lab header found for ${estimatedCoinsHeader[index]}`);
+                      continue;
+                    }
+                    var oldLabData =oldLabHeader["Labs"];
+                    if (!oldLabData || oldLabData.length === 0) {
+                      console.log(`No old lab data found for ${estimatedCoinsHeader[index]}`);
+                      continue;
+                    }
+                    var miscIndex = labStartOption[1] === "Top" ? 0 : oldLabData.length - 1;
+                    var labLevel = oldLabData[miscIndex] ? oldLabData[miscIndex][2] : null;
+                    if (labLevel && labLevel !== "" && labLevel === dataRow[0]) {
+                      dataRow[0] = null;
+                    }
+                  }
+                };
+              }
               var col = shared.columnToLetter(miscColIndex + 1);
               var startCell = `${col}${rowIndex + 2}`;
               var endCell = `${col}${rowIndex + 6}`;
@@ -632,7 +653,7 @@ const lab = {
           if (miscColIndex !== -1) {
             if (miscHeader === "Estimated Daily Coins required to Sustain:") {
               oldLabPlanner[miscHeader] = oldLabPlannerValues.slice(rowIndex + 1, rowIndex + 6).map(function (row) {
-                return [row[miscColIndex] || ""];
+                return [row[miscColIndex] || null];
               });
             } else if (miscHeader === "OPTIONS") {
               var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
