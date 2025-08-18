@@ -239,7 +239,6 @@ const lab = {
           message: "No lab planner data provided",
         };
       }
-
       if (!oldLabPlanner || Object.keys(oldLabPlanner).length === 0) {
         console.log(`No lab planner updates provided`);
         return {
@@ -255,7 +254,6 @@ const lab = {
       var batchUpdate = [];
 
       var estimatedCoinsHeader = [...labHeaders];
-
       for (var rowIndex = 0; rowIndex < labPlannerData.length; rowIndex++) {
         var row = labPlannerData[rowIndex];
         if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
@@ -330,7 +328,7 @@ const lab = {
             var miscData = oldLabPlanner[miscHeader];
             if (miscHeader === "Estimated Daily Coins required to Sustain:" && miscData && miscData.length !== 0) {
               var labStartOption = oldLabPlanner["OPTIONS"]["I plan my labs starting at the: →"];
-              if (labStartOption || labStartOption.length > 1) {
+              if (labStartOption && labStartOption.length > 1) {
                 for (var index = 0; index < miscData.length; index++) {
                   var dataRow = miscData[index];
                   if (dataRow && dataRow.length > 0) {
@@ -340,7 +338,7 @@ const lab = {
                       console.log(`No old lab header found for ${estimatedCoinsHeader[index]}`);
                       continue;
                     }
-                    var oldLabData =oldLabHeader["Labs"];
+                    var oldLabData = oldLabHeader["Labs"];
                     if (!oldLabData || oldLabData.length === 0) {
                       console.log(`No old lab data found for ${estimatedCoinsHeader[index]}`);
                       continue;
