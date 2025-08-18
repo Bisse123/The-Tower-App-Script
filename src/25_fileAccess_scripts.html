@@ -601,10 +601,9 @@
 
   function updateSheet() {
     // Check if this is IDS Master with multiple imported files
-    if (sheetType === "IDS Master" && importedFilesSuccess && importedFilesSuccess.length > 0) {
+    if (sheetType === "IDS Master") {
       document.getElementById("importButton").disabled = true;
       document.getElementById("updateMasterButton").disabled = true;
-      document.getElementById("statusText").innerText = `Processing ${importedFilesSuccess.length} imported files...`;
       
       console.log(`Calling updateSheet for IDS Master with ${importedFilesSuccess.length} imported files`);
       
@@ -638,7 +637,7 @@
     google.script.run
       .withSuccessHandler(onUpdateSheetSuccess)
       .withFailureHandler(onUpdateSheetFailure)
-      .updateSheet(sheetType, newSheetID, oldSheetID, idMasterID);
+      .updateSheet(sheetType, newSheetID, oldSheetID);
   }
 
   async function updateMultipleSheets() {
@@ -648,104 +647,147 @@
     const totalUpdates = importedFilesSuccess.length;
 
     try {
-      console.log(`Starting ${totalUpdates} sheet updates`);
-      
-      // Create promises for all update operations
-      const updatePromises = importedFilesSuccess.map((file, index) => {
-        return new Promise((resolve) => {
-          console.log(`Starting update for ${file.sheetType}`);
-          
-          google.script.run
-            .withSuccessHandler(function(result) {
-              completedCount++;
-              if (result.success) {
-                successCount++;
-                console.log(`✅ ${file.sheetType} update completed successfully`);
+      if (totalUpdates > 0 ) {
+        console.log(`Starting ${totalUpdates} sheet updates`);
+
+        document.getElementById("statusText").innerText = `Processing ${importedFilesSuccess.length} imported files...`;
+        
+        const movePromises = importedFilesSuccess.map((file, index) => {
+          return new Promise((resolve) => {
+            console.log(`Starting update for ${file.sheetType}`);
+            
+            google.script.run
+              .withSuccessHandler(function(result) {
+                completedCount++;
+                if (result.success) {
+                  successCount++;
+                  console.log(`✅ ${file.sheetType} update completed successfully`);
+                  
+                  // Move successfully updated file to movedFiles list
+                  movedFiles.push({
+                    ...file,
+                    updateResult: result
+                  });
+                } else {
+                  failedCount++;
+                  console.error(`❌ ${file.sheetType} update failed:`, result.message);
+                }
                 
-                // Move successfully updated file to updatedFiles list
-                updatedFiles.push({
-                  ...file,
-                  updateResult: result
+                // Update status
+                document.getElementById("statusText").innerText = 
+                  `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
+                
+                resolve({
+                  ...result,
+                  sheetType: file.sheetType,
+                  newSheetID: file.fileId,
+                  updateIndex: index,
+                  fileData: file
                 });
-              } else {
+              })
+              .withFailureHandler(function(error) {
+                completedCount++;
                 failedCount++;
-                console.error(`❌ ${file.sheetType} update failed:`, result.message);
-              }
-              
-              // Update status
-              document.getElementById("statusText").innerText = 
-                `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
-              
-              resolve({
-                ...result,
-                sheetType: file.sheetType,
-                updateIndex: index,
-                fileData: file
-              });
-            })
-            .withFailureHandler(function(error) {
-              completedCount++;
-              failedCount++;
-              console.error(`❌ ${file.sheetType} update error:`, error);
-              
-              // Update status
-              document.getElementById("statusText").innerText = 
-                `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
-              
-              resolve({
-                success: false,
-                message: error.message || error,
-                sheetType: file.sheetType,
-                updateIndex: index,
-                fileData: file
-              });
-            })
-            .updateSheet(file.sheetType, file.fileId, file.oldSheetID, file.idMasterID);
+                console.error(`❌ ${file.sheetType} update error:`, error);
+                
+                // Update status
+                document.getElementById("statusText").innerText = 
+                  `Updates progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`;
+                
+                resolve({
+                  success: false,
+                  message: error.message || error,
+                  sheetType: file.sheetType,
+                  newSheetID: file.fileId,
+                  updateIndex: index,
+                  fileData: file
+                });
+              })
+              .updateSheet(file.sheetType, file.fileId, file.oldSheetID);
+          });
         });
-      });
-      
-      // Wait for all updates to complete
-      const results = await Promise.all(updatePromises);
-      
-      // Remove successfully updated files from importedFiles and add to updatedFiles
-      const successfulResults = results.filter(result => result.success);
-      
-      // Remove successful files from importedFilesSuccess (working backwards to avoid index issues)
-      for (let i = importedFilesSuccess.length - 1; i >= 0; i--) {
-        const file = importedFilesSuccess[i];
-        const successfulResult = successfulResults.find(result => result.sheetType === file.sheetType);
-        if (successfulResult) {
-          // Remove from importedFilesSuccess and ensure it's in updatedFiles
-          const removedFile = importedFilesSuccess.splice(i, 1)[0];
-          
-          // Check if not already in updatedFiles (defensive programming)
-          if (!updatedFiles.find(f => f.sheetType === removedFile.sheetType)) {
-            updatedFiles.push({
-              ...removedFile,
-              updateResult: successfulResult
-            });
+        
+        // Wait for all updates to complete
+        const moveResults = await Promise.all(movePromises);
+        
+        // Remove successfully updated files from importedFiles and add to movedFiles
+        const successfulResults = moveResults.filter(result => result.success);
+        
+        // Remove successful files from importedFilesSuccess (working backwards to avoid index issues)
+        for (let i = importedFilesSuccess.length - 1; i >= 0; i--) {
+          const file = importedFilesSuccess[i];
+          const successfulResult = successfulResults.find(result => result.sheetType === file.sheetType);
+          if (successfulResult) {
+            // Remove from importedFilesSuccess and ensure it's in movedFiles
+            const removedFile = importedFilesSuccess.splice(i, 1)[0];
+            
+            // Check if not already in movedFiles (defensive programming)
+            if (!movedFiles.find(f => f.sheetType === removedFile.sheetType)) {
+              movedFiles.push({
+                ...removedFile,
+                updateResult: successfulResult
+              });
+            }
           }
         }
+        console.log("Move results:", moveResults);
       }
-      
       // Final status update
       let finalMessage;
       let titleText;
-      let gid = '';
-      
+      const totalSuccessCount = movedFiles.length;
+      const totalAllCount = importedFilesSuccess.length + movedFiles.length;
       if (failedCount === 0) {
-        finalMessage = `🎉 All ${totalUpdates} sheet updates completed successfully!`;
-        titleText = `✅ IDS Master Updated (${successCount}/${totalUpdates})`;
-        gid = successfulResults[0]?.gid || '';
-        document.getElementById("importButton").style.display = "none";
-      document.getElementById("updateMasterButton").style.display = "none";
-      } else if (successCount === 0) {
-        finalMessage = `❌ All ${totalUpdates} sheet updates failed.`;
-        titleText = `❌ IDS Master Update Failed (0/${totalUpdates})`;
+        titleText = `✅ Moved & renamed sheets (${totalSuccessCount}/${totalAllCount})`;
+      } else if (totalSuccessCount === 0) {
+        titleText = `❌ Failed to move & rename sheets (0/${totalAllCount})`;
       } else {
-        finalMessage = `⚠️ Updates completed: ${successCount} successful, ${failedCount} failed.`;
-        titleText = `⚠️ IDS Master Partial Update (${successCount}/${totalUpdates})`;
-        gid = successfulResults[0]?.gid || '';
+        titleText = `⚠️ Partially moved & renamed sheets (${totalSuccessCount}/${totalAllCount})`;
+      }
+      
+      // Update status text and title
+      document.getElementById("statusText").innerText = `Updating IDS Master with ${movedFiles.length} moved files...`;
+      document.getElementById("fileAccessTitle").innerHTML = titleText;
+      
+      var idDataEntries = movedFiles.map(file => ({
+        sheetType: file.sheetType,
+        newSheetID: file.fileId,
+      }));
+
+
+      const updateIdsMasterResult = await new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            resolve(result);
+          })
+          .withFailureHandler(function(error) {
+            resolve(error);
+          })
+          .updateIdsMaster(idMasterID, idDataEntries);
+      });
+      
+      if (!updateIdsMasterResult) {
+        document.getElementById("statusText").innerText = `Error updating IDS Master: No result returned`;
+        document.getElementById("fileAccessTitle").innerHTML = `❌ IDS Master Update Failed`;
+        document.getElementById("importButton").disabled = false;
+        document.getElementById("updateMasterButton").disabled = false;
+        return;
+      }
+      let gid = updateIdsMasterResult.gid || '';
+      if (!updateIdsMasterResult.success) {
+        finalMessage = `Error updating IDS Master: ${updateIdsMasterResult.message || 'Unknown error'}`;
+        titleText = `❌ IDS Master Update Failed (${totalSuccessCount}/${totalAllCount} files moved)`;
+      } else {
+        if (failedCount === 0) {
+          finalMessage = `🎉 All ${totalAllCount} sheet updates completed successfully!`;
+          document.getElementById("importButton").style.display = "none";
+          document.getElementById("updateMasterButton").style.display = "none";
+        } else if (totalSuccessCount === 0) {
+          finalMessage = `❌ All ${totalAllCount} sheet updates failed.`;
+        } else {
+          finalMessage = `⚠️ Updates completed: ${totalSuccessCount} successful, ${failedCount} failed.`;
+        }
+        titleText = `✅ IDS Master Updated (${totalSuccessCount}/${totalAllCount})`;
       }
       
       // Update status text and title
@@ -757,10 +799,9 @@
       document.getElementById("updateMasterButton").disabled = false;
       
       // Use display function for file sections
-      displayOperationResults(gid);
+      displayOperationResults(gid, updateIdsMasterResult.success);
       
-      console.log("Update results:", results);
-      console.log("Successfully updatedFiles:", updatedFiles);
+      console.log("Successfully movedFiles:", movedFiles);
       console.log("Remaining importedFilesSuccess:", importedFilesSuccess);
       
     } catch (error) {
@@ -772,7 +813,7 @@
   }
 
   // Function to display file workflow status sections only
-  function displayOperationResults(gid) {
+  function displayOperationResults(gid, idsMasterUpdated = false) {
     let summaryHtml = "";
     
     // Show warning message if there are successfully imported files
@@ -781,7 +822,7 @@
     }
     
     // Show master link if there are updated files
-    if (updatedFiles && updatedFiles.length > 0) {
+    if (idsMasterUpdated) {
       summaryHtml += `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>`;
       summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
     }
@@ -821,9 +862,9 @@
     }
     
     // Show files that have been successfully updated (with their new names)
-    if (updatedFiles && updatedFiles.length > 0) {
-      summaryHtml += `<br><strong>🎉 Successfully Updated & Completed:</strong><br>`;
-      updatedFiles.forEach(file => {
+    if (movedFiles && movedFiles.length > 0) {
+      summaryHtml += `<br><strong>🎉 Successfully moved & renamed:</strong><br>`;
+      movedFiles.forEach(file => {
         const displayName = file.updateResult && file.updateResult.newName 
           ? file.updateResult.newName 
           : `Updated Copy of ${file.sheetType} ${file.version}`;
@@ -836,14 +877,7 @@
 
   // Handle successful processing
   async function onUpdateSheetSuccess(result) {
-    document.getElementById("importButton").disabled = false;
-    document.getElementById("updateMasterButton").disabled = false;
     if (result.success) {
-      document.getElementById("importButton").style.display = "none";
-      document.getElementById("updateMasterButton").style.display = "none";
-      var gid = result.gid || "";
-      console.log("Update IDS Master result:", result);
-      
       // Check if this is an IDS Collection update
       if (sheetType === "IDS Collection") {
         // Check if there are cached sheet IDs that need cleanup
@@ -856,11 +890,10 @@
           );
           
           if (sheetsToDelete.length > 0) {
-            // Delete all the filtered subsheets
-            await deleteImportedSubsheets(sheetsToDelete);
-            
             document.getElementById("statusText").innerText = `${result.message} Cleaning up ${sheetsToDelete.length} old subsheets...`;
             document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Collection updated! Cleaning up subsheets...`;
+            // Delete all the filtered subsheets
+            await deleteImportedSubsheets(sheetsToDelete);
           } else {
             console.log("Skipping subsheet cleanup - no valid sheet IDs found for deletion");
             document.getElementById("statusText").innerText = result.message;
@@ -876,13 +909,51 @@
           "selectedFileSummary"
         ).innerHTML = `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>Your data has been consolidated into your IDS Collection sheet.</strong>`;
       } else {
-        document.getElementById("statusText").innerText = result.message;
-        document.getElementById("fileAccessTitle").innerHTML = `✅ IDS Master updated successfully!`;
+        const updateIdsMasterResult = await new Promise((resolve) => {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              resolve(result);
+            })
+            .withFailureHandler(function(error) {
+              resolve(error);
+            })
+            .updateIdsMaster(idMasterID, [{
+              sheetType: sheetType,
+              newSheetID: newSheetID,
+            }]);
+        });
+        
+        if (!updateIdsMasterResult) {
+          document.getElementById("statusText").innerText = `Error updating IDS Master: No result returned`;
+          document.getElementById("fileAccessTitle").innerHTML = `❌ IDS Master Update Failed`;
+          document.getElementById("importButton").disabled = false;
+          document.getElementById("updateMasterButton").disabled = false;
+          return;
+        }
+        var finalMessage = "";
+        var titleText = "";
+        var gid = updateIdsMasterResult.gid || "";
+        if (!updateIdsMasterResult.success) {
+          document.getElementById("statusText").innerText = `Error updating IDS Master: ${updateIdsMasterResult.message || 'Unknown error'}`;
+          document.getElementById("fileAccessTitle").innerHTML = `❌ IDS Master Update Failed`;
+          document.getElementById("importButton").disabled = false;
+          document.getElementById("updateMasterButton").disabled = false;
+          return;
+        }
+        
+        document.getElementById("statusText").innerText = `IDS Master updated!`;
+        document.getElementById("fileAccessTitle").innerHTML = `🎉 IDS Master Updated Successfully!`;
         document.getElementById(
           "selectedFileSummary"
         ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
       }
+      document.getElementById("importButton").disabled = false;
+      document.getElementById("updateMasterButton").disabled = false;
+      document.getElementById("importButton").style.display = "none";
+      document.getElementById("updateMasterButton").style.display = "none";
     } else {
+      document.getElementById("importButton").disabled = false;
+      document.getElementById("updateMasterButton").disabled = false;
       document.getElementById(
         "statusText"
       ).innerText = `Update IDS Master failed: ${result.message}`;
