@@ -249,8 +249,6 @@ const workshop = {
         oldWorkshopLevels.presetNames.forEach(function (presetName) {
           upgradeHeaders.push(presetName, "");
         });
-        console.log(`upgradeHeaders: ${JSON.stringify(upgradeHeaders)}`);
-        console.log(oldWorkshopLevels.presetNames);
         var levelsStartCol = shared.columnToLetter(workshopLevelsStartCol);
         var levelsEndCol = shared.columnToLetter(workshopLevelsEndCol);
         var levelsHeaderRange = `${sheetName}!${levelsStartCol}1:${levelsEndCol}1`;
@@ -272,8 +270,6 @@ const workshop = {
         oldWorkshopPlusLevels.presetNames.forEach(function (presetName) {
           plusHeaders.push(presetName);
         });
-        console.log(`plusHeaders: ${JSON.stringify(plusHeaders)}`);
-        console.log(oldWorkshopPlusLevels.presetNames);
         var plusStartCol = shared.columnToLetter(workshopPlusLevelsStartCol);
         var plusEndCol = shared.columnToLetter(workshopPlusLevelsEndCol);
         var plusHeaderRange = `${sheetName}!${plusStartCol}1:${plusEndCol}1`;
@@ -605,7 +601,11 @@ const workshop = {
           row.forEach(function(cell, index) {
             var presetName = oldWorkshopLevelsHeaders[index];
             if (presetName.trim() !== "" && (oldWorkshopLevelsPresetNames.includes(presetName) || presetName.includes("Preset"))) {
-              oldWorkshopLevels.data[row[1]].levels.push(row[index] || null, row[index + 1] || null);
+              if (presetName === "Tourney" && row[index] === row[index - 2] && (!row[index + 1] || row[index + 1] === row[index - 1])) {
+                oldWorkshopLevels.data[row[1]].levels.push(null, null);
+              } else {
+                oldWorkshopLevels.data[row[1]].levels.push(row[index] || null, row[index + 1] || null);
+              }
             }
           });
         }
@@ -647,7 +647,11 @@ const workshop = {
           row.forEach(function(cell, index) {
             var presetName = oldWorkshopPlusLevelsHeaders[index];
             if (presetName.trim() !== "" && (oldWorkshopPlusPresetNames.includes(presetName) || presetName.includes("Preset"))) {
-              oldWorkshopPlusLevels.data[row[0]].push(row[index] || null);
+              if (presetName === "Tourney" && row[index] === row[index - 1]) {
+                oldWorkshopPlusLevels.data[row[0]].push(null);
+              } else {
+                oldWorkshopPlusLevels.data[row[0]].push(row[index] || null);
+              }
             };
           });
         }
