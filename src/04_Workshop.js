@@ -22,7 +22,7 @@ const workshop = {
         data: {
           oldWorkshopLevels: oldDataResult.oldWorkshopLevels || [],
           oldWorkshopPlusLevels: oldDataResult.oldWorkshopPlusLevels || [],
-          // oldWorkshopPlusRatios: oldDataResult.oldWorkshopPlusRatios || [],
+          oldWorkshopPlusRatios: oldDataResult.oldWorkshopPlusRatios || [],
         }
       };
     } catch (error) {
@@ -352,7 +352,7 @@ const workshop = {
           break;
         }
       }
-
+      console.log("Ratios to update: ", ratiosToUpdate);
       if (ratiosToUpdate.length > 0) {
         var startRow = 2;
         var startCol = shared.columnToLetter(workshopEnhancementNameCol + 2);
@@ -414,21 +414,21 @@ const workshop = {
       var oldWorkshopLevelsValues = updateWorkshopValuesBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopValuesBatchResult[1].values;
 
-      // var workshopPlusRatioRange = "Desired Ratios"
-      // var formulasRanges = [workshopPlusRatioRange];
-      // var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
-      // if (
-      //   !updateWorkshopFormulasBatchResult ||
-      //   updateWorkshopFormulasBatchResult.length < 1 ||
-      //   !updateWorkshopFormulasBatchResult[0].values
-      // ) {
-      //   console.log(`Could not read workshop plus ratios data`);
-      //   return {
-      //     success: false,
-      //     message: `Could not read workshop plus ratios data`,
-      //   };
-      // }
-      // var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
+      var workshopPlusRatioRange = "Desired Ratios"
+      var formulasRanges = [workshopPlusRatioRange];
+      var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+      if (
+        !updateWorkshopFormulasBatchResult ||
+        updateWorkshopFormulasBatchResult.length < 1 ||
+        !updateWorkshopFormulasBatchResult[0].values
+      ) {
+        console.log(`Could not read workshop plus ratios data`);
+        return {
+          success: false,
+          message: `Could not read workshop plus ratios data`,
+        };
+      }
+      var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion20WorkshopLevels(oldWorkshopLevelsValues);
@@ -443,17 +443,17 @@ const workshop = {
       }
 
       // Process workshop plus ratios
-      // var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(oldWorkshopPlusRatiosValues);
-      // if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
-      //   return workshopPlusRatiosResult;
-      // }
+      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames, oldWorkshopPlusRatiosValues);
+      if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
+        return workshopPlusRatiosResult;
+      }
 
       return {
         success: true,
         message: "Workshop levels processed successfully",
         oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
         oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
-        // oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
+        oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
       };
     } catch (error) {
       console.log("Error in version20: " + error.toString());
@@ -670,7 +670,7 @@ const workshop = {
     }
   },
 
-  getVersion20WorkshopPlusRatios: function (oldWorkshopPlusRatiosValues) {
+  getVersion20WorkshopPlusRatios: function (presetNames, oldWorkshopPlusRatiosValues) {
     try {
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
@@ -692,13 +692,20 @@ const workshop = {
           enhancementName = enhancementName.replace(/['"()]/g, '');
         }
         if (enhancementName) {
-          oldWorkshopPlusRatios[enhancementName] = {"Order": row[workshopEnhancementNameCol + 1] || "", "Ratio": row[workshopEnhancementNameCol + 2] || ""};
+          enhancementName = enhancementName.replace(/\+/g, '').trim();
+          var ratioValue = row[workshopEnhancementNameCol + 2];
+          if (enhancementName === "Workshop preset" && !presetNames.includes(ratioValue) && /^\d+$/.test(ratioValue)) {
+            ratioValue = presetNames[Number(ratioValue) - 1] || "Preset " + ratioValue;
+          } else if (enhancementName === "Base ratio") {
+            ratioValue = ratioValue.replace(/\+/g, '').trim();
+          }
+          oldWorkshopPlusRatios[enhancementName] = {"Order": row[workshopEnhancementNameCol + 1] || "", "Ratio": ratioValue || ""};
         }
-        if (enhancementName ==="Order in between") {
+        if (enhancementName === "Order in between") {
           break;
         }
       };
-
+      console.log("Processed old workshop plus ratios: ", oldWorkshopPlusRatios);
       return {
         success: true,
         message: "Workshop plus ratios processed successfully",
