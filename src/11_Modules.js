@@ -374,6 +374,31 @@ const modules = {
     var batchUpdate = [];
     for (var row = 0; row < newModulesTrackerValues.length; row++) {
       var rowData = newModulesTrackerValues[row];
+      var inputColIdx = rowData.indexOf("Input values");
+      if (inputColIdx !== -1) {
+        var inputValues = [];
+        for (var inputRow = row + 1; inputRow < newModulesTrackerValues.length; inputRow++) {
+          var inputRowData = newModulesTrackerValues[inputRow];
+          var inputKey = inputRowData[inputColIdx] || null;
+          if (!inputKey) {
+            break;
+          }
+          if (oldModulesTracker["Input values"].hasOwnProperty(inputKey)) {
+            var inputValue = oldModulesTracker["Input values"][inputKey] || null;
+            inputValues.push([inputValue]);
+          }
+        }
+        if (inputValues.length > 0) {
+          var inputColLetter = shared.columnToLetter(inputColIdx + 5);
+          var inputRowStart = row + 2;
+          var inputRowEnd = inputRowStart + inputValues.length - 1;
+          var inputRange = `${sheetName}!${inputColLetter}${inputRowStart}:${inputColLetter}${inputRowEnd}`;
+          batchUpdate.push({
+            range: inputRange,
+            values: inputValues,
+          });
+        }
+      }
       var colIdx = rowData.findIndex(cell =>
           targetModuleTypes.some(type => String(cell).toLowerCase().includes(type)) &&
           !String(cell).toLowerCase().includes("summary") &&
@@ -705,6 +730,20 @@ const modules = {
       
       for (var row = 0; row < oldModulesTrackerValues.length; row++) {
         var rowData = oldModulesTrackerValues[row];
+        var inputColIdx = rowData.indexOf("Input values");
+        if (inputColIdx !== -1) {
+          oldModulesTracker["Input values"] = {};
+          for (var inputRow = row + 1; inputRow < oldModulesTrackerValues.length; inputRow++) {
+            var inputRowData = oldModulesTrackerValues[inputRow];
+            var inputKey = inputRowData[inputColIdx] || null;
+            var inputValue = inputRowData[inputColIdx + 4] || null;
+            if (inputKey) {
+              oldModulesTracker["Input values"][inputKey] = inputValue;
+            } else {
+              break;
+            }
+          }
+        }
         var colIdx = rowData.findIndex(cell =>
             targetModuleTypes.some(type => String(cell).toLowerCase().includes(type)) &&
             !String(cell).toLowerCase().includes("summary") &&
