@@ -59,14 +59,8 @@ const vault = {
         };
       }
 
-      var harmonyData =
-        newVaultBatchResult[0] && newVaultBatchResult[0].values
-          ? newVaultBatchResult[0].values
-          : null;
-      var powerData =
-        newVaultBatchResult[1] && newVaultBatchResult[1].values
-          ? newVaultBatchResult[1].values
-          : null;
+      var harmonyData = newVaultBatchResult[0].values;
+      var powerData = newVaultBatchResult[1].values;
       var idsData = newVaultBatchResult[2].values;
 
       // Get import status range from IDS data
