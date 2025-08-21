@@ -59,7 +59,7 @@ const cards = {
       }
 
       var masterSheetData = batchResults[0].values;
-      var cardPresetsData = batchResults[1] ? batchResults[1].values : null;
+      var cardPresetsData = batchResults[1].values;
       var idsData = batchResults[2].values;
 
       // Get import status range from IDS data

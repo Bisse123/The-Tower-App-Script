@@ -58,10 +58,7 @@ const relics = {
         };
       }
 
-      var newRelicsData =
-        newRelicsBatchResult[0] && newRelicsBatchResult[0].values
-          ? newRelicsBatchResult[0].values
-          : null;
+      var newRelicsData = newRelicsBatchResult[0].values;
       var idsData = newRelicsBatchResult[1].values;
 
       // Get import status range from IDS data
