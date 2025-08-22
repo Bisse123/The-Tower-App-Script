@@ -352,7 +352,6 @@ const workshop = {
           break;
         }
       }
-      console.log("Ratios to update: ", ratiosToUpdate);
       if (ratiosToUpdate.length > 0) {
         var startRow = 2;
         var startCol = shared.columnToLetter(workshopEnhancementNameCol + 2);
@@ -705,7 +704,6 @@ const workshop = {
           break;
         }
       };
-      console.log("Processed old workshop plus ratios: ", oldWorkshopPlusRatios);
       return {
         success: true,
         message: "Workshop plus ratios processed successfully",

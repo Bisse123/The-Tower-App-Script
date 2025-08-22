@@ -343,8 +343,11 @@ const lab = {
                       console.log(`No old lab data found for ${estimatedCoinsHeader[index]}`);
                       continue;
                     }
-                    var miscIndex = labStartOption[1] === "Top" ? 0 : oldLabData.length - 1;
-                    var labLevel = oldLabData[miscIndex] ? oldLabData[miscIndex][2] : null;
+                    var oldLabDataFiltered = oldLabData.filter(function (dataRow) {
+                      return dataRow && dataRow.length > 2 && dataRow[2] && dataRow[2].trim() !== "";
+                    });
+                    var miscIndex = labStartOption[1] === "Top" ? 0 : oldLabDataFiltered.length - 1;
+                    var labLevel = oldLabDataFiltered[miscIndex] ? oldLabDataFiltered[miscIndex][2] : null;
                     if (labLevel && labLevel !== "" && labLevel === dataRow[0]) {
                       dataRow[0] = null;
                     }
