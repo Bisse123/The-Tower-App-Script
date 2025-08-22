@@ -19,9 +19,7 @@ const themes = {
       return {
         success: true,
         message: "Themes & Songs export completed successfully",
-        data: {
-          oldThemesNames: oldDataResult.oldThemesNames || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

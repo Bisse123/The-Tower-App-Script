@@ -18,11 +18,7 @@ const modules = {
       return {
         success: true,
         message: "Modules export completed successfully",
-        data: {
-          oldModulesInventory: oldDataResult.oldModulesInventory || {},
-          oldModulesPresets: oldDataResult.oldModulesPresets || {},
-          oldModulesTracker: oldDataResult.oldModulesTracker || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -78,7 +74,6 @@ const modules = {
       }
 
       var batchUpdate = [];
-
       // Only update modules inventory if key exists
       if (data.hasOwnProperty('oldModulesInventory')) {
         var oldModulesInventory = data.oldModulesInventory;
@@ -468,6 +463,7 @@ const modules = {
 
   version521: function () {
     try {
+      console.log("Running modules version521 migration...");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -514,6 +510,7 @@ const modules = {
 
   version50: function () {
     try {
+      console.log("Running modules version50 migration...");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -560,6 +557,7 @@ const modules = {
 
   version47: function () {
     try {
+      console.log("Running modules version47 migration...");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -606,13 +604,13 @@ const modules = {
 
   version40: function () {
     try {
+      console.log("Running modules version40 migration...");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var ranges = [
         "Modules Inventory",
         "Modules Presets",
-        // "Mods Obtained"
       ];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
 

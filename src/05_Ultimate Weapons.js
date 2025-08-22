@@ -19,10 +19,7 @@ const ultimate = {
       return {
         success: true,
         message: "Ultimate weapons export completed successfully",
-        data: {
-          oldUltimate: oldDataResult.oldUltimate || {},
-          oldUltimateCostCalculator: oldDataResult.oldUltimateCostCalculator || {},
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

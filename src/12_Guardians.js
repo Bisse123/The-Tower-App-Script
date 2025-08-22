@@ -19,9 +19,7 @@ const guardians = {
       return {
         success: true,
         message: "Guardians export completed successfully",
-        data: {
-          oldGuardians: oldDataResult.oldGuardians || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

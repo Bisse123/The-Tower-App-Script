@@ -19,9 +19,7 @@ const relics = {
       return {
         success: true,
         message: "Relics export completed successfully",
-        data: {
-          oldRelics: oldDataResult.oldRelics || []
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

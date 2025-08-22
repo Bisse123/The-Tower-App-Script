@@ -19,9 +19,7 @@ const bots = {
       return {
         success: true,
         message: "Bots export completed successfully",
-        data: {
-          oldBots: oldDataResult.oldBots || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

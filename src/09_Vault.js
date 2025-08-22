@@ -19,10 +19,7 @@ const vault = {
       return {
         success: true,
         message: "Vault export completed successfully",
-        data: {
-          oldVaultHarmony: oldDataResult.oldVaultHarmony || {},
-          oldVaultPower: oldDataResult.oldVaultPower || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
