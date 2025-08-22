@@ -48,9 +48,9 @@ const modules = {
 
       // Batch fetch all required sheet data
       var requiredRanges = [
-        "Modules Inventory",
-        "Modules Presets",
-        "Modules Tracker",
+        "Inventory",
+        "Presets",
+        "Tracker",
         "IDS"
       ];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
@@ -83,7 +83,7 @@ const modules = {
       if (data.hasOwnProperty('oldModulesInventory')) {
         var oldModulesInventory = data.oldModulesInventory;
         var inventoryResult = this.updateModulesInventory(
-          "Modules Inventory",
+          "Inventory",
           oldModulesInventory,
           newModuleInventoryValues
         );
@@ -100,7 +100,7 @@ const modules = {
       if (data.hasOwnProperty('oldModulesPresets')) {
         var oldModulesPresets = data.oldModulesPresets;
         var presetsResult = this.updateModulesPresets(
-          "Modules Presets",
+          "Presets",
           oldModulesPresets,
           newModulePresetsValues
         );
@@ -117,7 +117,7 @@ const modules = {
       if (data.hasOwnProperty('oldModulesTracker')) {
         var oldModulesTracker = data.oldModulesTracker
         var trackerResult = this.updateModulesTracker(
-          "Modules Tracker",
+          "Tracker",
           oldModulesTracker,
           newModulesTrackerValues
         );
@@ -464,6 +464,52 @@ const modules = {
     }
 
     return moduleTypeIndex;
+  },
+
+  version521: function () {
+    try {
+      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      var ranges = [
+        "Inventory",
+        "Presets",
+        "Tracker"
+      ];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+
+      if (!batchResult || batchResult.length === 0) {
+        console.log("Could not read module data from old spreadsheet");
+        return {
+          success: false,
+          message: "Could not read module data from old spreadsheet",
+        };
+      }
+
+      var oldModulesInventoryValues = batchResult[0].values;
+      var oldModulesPresetsValues = batchResult[1].values;
+      var oldModulesTrackerValues = batchResult[2].values;
+
+      var inventoryData = this.getVersion50ModulesInventory(oldModulesInventoryValues);
+      var presetsData = this.getVersion50ModulesPresets(oldModulesPresetsValues);
+      var trackerData = this.getVersion47ModulesTracker(oldModulesTrackerValues);
+
+      var success = inventoryData.success && presetsData.success && trackerData.success;
+      
+      return {
+        success: success,
+        message: success ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+        oldModulesInventory: inventoryData.oldModulesInventory || {},
+        oldModulesPresets: presetsData.oldModulesPresets || {},
+        oldModulesTracker: trackerData.oldModulesTracker || {}
+      };
+    } catch (error) {
+      console.log("Error in version521: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version521: " + error.message,
+      };
+    }
   },
 
   version50: function () {
@@ -941,6 +987,7 @@ const modules = {
       "v4.0": this.version40.bind(this),
       "v4.7": this.version47.bind(this),
       "v5.0": this.version50.bind(this),
+      "v5.2.1": this.version521.bind(this),
     };
   },
 
