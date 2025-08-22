@@ -1,6 +1,7 @@
 const workshop = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: workshop.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const workshop = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const workshop = {
       return {
         success: true,
         message: "Workshop export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const workshop = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: workshop.importData");
       var newSpreadsheet = spreadsheets("Workshop newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -43,11 +44,7 @@ const workshop = {
         };
       }
 
-      var requiredRanges = [
-        "Master Sheet",
-        "Desired Ratios",
-        "IDS"
-      ];
+      var requiredRanges = ["Master Sheet", "Desired Ratios", "IDS"];
       var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -63,8 +60,17 @@ const workshop = {
       var idsData = batchResults[2].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -73,7 +79,10 @@ const workshop = {
       }
 
       // Only update workshop levels if key exists
-      if (data.hasOwnProperty('oldWorkshopLevels') && data.hasOwnProperty('oldWorkshopPlusLevels')) {
+      if (
+        data.hasOwnProperty("oldWorkshopLevels") &&
+        data.hasOwnProperty("oldWorkshopPlusLevels")
+      ) {
         var oldWorkshopLevels = data.oldWorkshopLevels;
         var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels;
         var workshopResult = this.updateWorkshopLevels(
@@ -92,7 +101,7 @@ const workshop = {
       }
 
       // Only update workshop plus ratios if key exists
-      if (data.hasOwnProperty('oldWorkshopPlusRatios')) {
+      if (data.hasOwnProperty("oldWorkshopPlusRatios")) {
         var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios;
         var ratioResult = this.updateWorkshopPlusRatios(
           "Desired Ratios",
@@ -115,10 +124,7 @@ const workshop = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -134,8 +140,7 @@ const workshop = {
       return {
         success: true,
         message: `No workshop data to update`,
-      }
-
+      };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
       return {
@@ -152,6 +157,7 @@ const workshop = {
     masterSheetData
   ) {
     try {
+      console.log("Called: workshop.updateWorkshopLevels");
       if (!masterSheetData || masterSheetData.length < 2) {
         console.log(`Not enough data in Master Sheet`);
         return {
@@ -164,7 +170,7 @@ const workshop = {
 
       var upgradeCol = 0;
       var enhancementCol = 0;
-      
+
       for (var i = 0; i < headerRow.length; i++) {
         var cellValue = String(headerRow[i] || "").toLowerCase();
         if (cellValue.includes("workshop upgrade")) {
@@ -196,15 +202,22 @@ const workshop = {
       var workshopLevels = [];
       var workshopPlusLevels = [];
       var workshopLevelsStartCol = upgradeCol + 1;
-      var workshopLevelsEndCol = workshopLevelsStartCol + (oldWorkshopLevels.presetNames.length * 2) - 1;
+      var workshopLevelsEndCol =
+        workshopLevelsStartCol + oldWorkshopLevels.presetNames.length * 2 - 1;
       var workshopPlusLevelsStartCol = enhancementCol + 2;
-      var workshopPlusLevelsEndCol = workshopPlusLevelsStartCol + oldWorkshopPlusLevels.presetNames.length - 1;
+      var workshopPlusLevelsEndCol =
+        workshopPlusLevelsStartCol +
+        oldWorkshopPlusLevels.presetNames.length -
+        1;
       for (var i = 2; i < masterSheetData.length; i++) {
         var row = masterSheetData[i];
-        
+
         var workshopName = row[upgradeCol - 1];
         if (workshopName && workshopName.startsWith("=")) {
-          workshopName = workshopName.split(",")[1].trim().replace(/['"()]/g, '');
+          workshopName = workshopName
+            .split(",")[1]
+            .trim()
+            .replace(/['"()]/g, "");
         }
         if (workshopName && oldWorkshopLevels.data[workshopName]) {
           var oldWorkshopRowData = oldWorkshopLevels.data[workshopName];
@@ -219,7 +232,7 @@ const workshop = {
           } else {
             enhancementName = parts[parts.length - 1].trim();
           }
-          enhancementName = enhancementName.replace(/['"()]/g, '');
+          enhancementName = enhancementName.replace(/['"()]/g, "");
         }
         if (enhancementName && oldWorkshopPlusLevels.data[enhancementName]) {
           var enhancementData = oldWorkshopPlusLevels.data[enhancementName];
@@ -241,7 +254,7 @@ const workshop = {
       }
 
       if (upgradeCol > 0 && workshopLevels.length > 0) {
-        var upgradeHeaders = []
+        var upgradeHeaders = [];
         oldWorkshopLevels.presetNames.forEach(function (presetName) {
           upgradeHeaders.push(presetName, "");
         });
@@ -302,8 +315,13 @@ const workshop = {
     }
   },
 
-  updateWorkshopPlusRatios: function (sheetName, oldWorkshopPlusRatios, desiredRatiosData) {
+  updateWorkshopPlusRatios: function (
+    sheetName,
+    oldWorkshopPlusRatios,
+    desiredRatiosData
+  ) {
     try {
+      console.log("Called: workshop.updateWorkshopPlusRatios");
       if (!desiredRatiosData || desiredRatiosData.length < 2) {
         console.log(`Not enough data in Desired Ratios sheet`);
         return {
@@ -313,7 +331,9 @@ const workshop = {
       }
 
       var headerRow = desiredRatiosData[0];
-      var workshopEnhancementNameCol = headerRow.indexOf("Workshop Enhancement");
+      var workshopEnhancementNameCol = headerRow.indexOf(
+        "Workshop Enhancement"
+      );
       if (workshopEnhancementNameCol === -1) {
         console.log(`Workshop Enhancement column not found`);
         return {
@@ -336,11 +356,14 @@ const workshop = {
           } else {
             enhancementName = parts[parts.length - 1].trim();
           }
-          enhancementName = enhancementName.replace(/['"()]/g, '');
+          enhancementName = enhancementName.replace(/['"()]/g, "");
         }
         if (enhancementName && oldWorkshopPlusRatios[enhancementName]) {
           var ratioData = oldWorkshopPlusRatios[enhancementName];
-          ratiosToUpdate.push([ratioData["Order"] || "", ratioData["Ratio"] || ""]);
+          ratiosToUpdate.push([
+            ratioData["Order"] || "",
+            ratioData["Ratio"] || "",
+          ]);
         } else {
           ratiosToUpdate.push(["", ""]);
         }
@@ -352,15 +375,19 @@ const workshop = {
         var startRow = 2;
         var startCol = shared.columnToLetter(workshopEnhancementNameCol + 2);
         var endCol = shared.columnToLetter(workshopEnhancementNameCol + 3);
-        var ratiosRange = `${sheetName}!${startCol}${startRow}:${endCol}${startRow + ratiosToUpdate.length - 1}`;
-        
+        var ratiosRange = `${sheetName}!${startCol}${startRow}:${endCol}${
+          startRow + ratiosToUpdate.length - 1
+        }`;
+
         return {
           success: true,
           message: `Workshop Plus Ratios updated successfully`,
-          batchUpdate: [{
-            range: ratiosRange,
-            values: ratiosToUpdate,
-          }],
+          batchUpdate: [
+            {
+              range: ratiosRange,
+              values: ratiosToUpdate,
+            },
+          ],
         };
       }
       return {
@@ -378,9 +405,10 @@ const workshop = {
 
   version20: function () {
     try {
+      console.log("Called: workshop.version20");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(`EXPORT sheet not found in old workshop spreadsheet`);
         return {
@@ -393,7 +421,10 @@ const workshop = {
       var workshopPlusLevelsRange = "EXPORT!P2:V";
       var valuesRanges = [workshopLevelsRange, workshopPlusLevelsRange];
 
-      var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
+      var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(
+        oldSheetID,
+        valuesRanges
+      );
       if (
         !updateWorkshopValuesBatchResult ||
         updateWorkshopValuesBatchResult.length < 2 ||
@@ -407,11 +438,15 @@ const workshop = {
         };
       }
       var oldWorkshopLevelsValues = updateWorkshopValuesBatchResult[0].values;
-      var oldWorkshopPlusLevelsValues = updateWorkshopValuesBatchResult[1].values;
+      var oldWorkshopPlusLevelsValues =
+        updateWorkshopValuesBatchResult[1].values;
 
-      var workshopPlusRatioRange = "Desired Ratios"
+      var workshopPlusRatioRange = "Desired Ratios";
       var formulasRanges = [workshopPlusRatioRange];
-      var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+      var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(
+        oldSheetID,
+        formulasRanges
+      );
       if (
         !updateWorkshopFormulasBatchResult ||
         updateWorkshopFormulasBatchResult.length < 1 ||
@@ -423,22 +458,30 @@ const workshop = {
           message: `Could not read workshop plus ratios data`,
         };
       }
-      var oldWorkshopPlusRatiosValues = updateWorkshopFormulasBatchResult[0].values;
+      var oldWorkshopPlusRatiosValues =
+        updateWorkshopFormulasBatchResult[0].values;
 
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion20WorkshopLevels(oldWorkshopLevelsValues);
+      var workshopLevelsResult = this.getVersion20WorkshopLevels(
+        oldWorkshopLevelsValues
+      );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(oldWorkshopPlusLevelsValues);
+      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(
+        oldWorkshopPlusLevelsValues
+      );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
       }
 
       // Process workshop plus ratios
-      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames, oldWorkshopPlusRatiosValues);
+      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(
+        workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
+        oldWorkshopPlusRatiosValues
+      );
       if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
         return workshopPlusRatiosResult;
       }
@@ -458,12 +501,13 @@ const workshop = {
       };
     }
   },
-  
+
   version10: function () {
     try {
+      console.log("Called: workshop.version10");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(`EXPORT sheet not found in old workshop spreadsheet`);
         return {
@@ -477,7 +521,7 @@ const workshop = {
 
       var updateWorkshopBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         workshopLevelsRange,
-        workshopPlusLevelsRange
+        workshopPlusLevelsRange,
       ]);
       if (
         !updateWorkshopBatchResult ||
@@ -493,15 +537,19 @@ const workshop = {
       }
       var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
-      
+
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion10WorkshopLevels(oldWorkshopLevelsValues);
+      var workshopLevelsResult = this.getVersion10WorkshopLevels(
+        oldWorkshopLevelsValues
+      );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion10WorkshopPlusLevels(oldWorkshopPlusLevelsValues);
+      var workshopPlusLevelsResult = this.getVersion10WorkshopPlusLevels(
+        oldWorkshopPlusLevelsValues
+      );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
       }
@@ -523,13 +571,21 @@ const workshop = {
 
   getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
-      var oldWorkshopLevels = {"presetNames": [null], "data": {}};
-      oldWorkshopLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+      console.log("Called: workshop.getVersion10WorkshopLevels");
+      var oldWorkshopLevels = { presetNames: [null], data: {} };
+      oldWorkshopLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
         });
         if (hasData && row[1]) {
-          oldWorkshopLevels.data[row[1]] = {"unlocked": row[0] || null, "levels": [row[2] || "", row[3] || null]};
+          oldWorkshopLevels.data[row[1]] = {
+            unlocked: row[0] || null,
+            levels: [row[2] || "", row[3] || null],
+          };
         }
       });
 
@@ -549,10 +605,15 @@ const workshop = {
 
   getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
-      var oldWorkshopPlusLevels = {"presetNames": [null], "data": {}};
-      oldWorkshopPlusLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+      console.log("Called: workshop.getVersion10WorkshopPlusLevels");
+      var oldWorkshopPlusLevels = { presetNames: [null], data: {} };
+      oldWorkshopPlusLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
         });
         if (hasData && row[0]) {
           oldWorkshopPlusLevels.data[row[0]] = [row[2] || null];
@@ -565,7 +626,9 @@ const workshop = {
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in getVersion10WorkshopPlusLevels: " + error.toString());
+      console.log(
+        "Error in getVersion10WorkshopPlusLevels: " + error.toString()
+      );
       return {
         success: false,
         message: "Error in getVersion10WorkshopPlusLevels: " + error.message,
@@ -575,9 +638,10 @@ const workshop = {
 
   getVersion20WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
+      console.log("Called: workshop.getVersion20WorkshopLevels");
       var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
-      var oldWorkshopLevelsPresetNames = []
-      oldWorkshopLevelsHeaders.forEach(function(name, index) {
+      var oldWorkshopLevelsPresetNames = [];
+      oldWorkshopLevelsHeaders.forEach(function (name, index) {
         var presetName = name && name.trim() !== "" ? name.trim() : null;
         if (presetName && presetName.startsWith("Preset")) {
           oldWorkshopLevelsPresetNames.push(null);
@@ -585,21 +649,42 @@ const workshop = {
           oldWorkshopLevelsPresetNames.push(presetName);
         }
       });
-      var oldWorkshopLevels = {"presetNames": oldWorkshopLevelsPresetNames, "data": {}};
-      oldWorkshopLevelsValues.splice(0, 2)
-      oldWorkshopLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+      var oldWorkshopLevels = {
+        presetNames: oldWorkshopLevelsPresetNames,
+        data: {},
+      };
+      oldWorkshopLevelsValues.splice(0, 2);
+      oldWorkshopLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
         });
         if (hasData && row[1]) {
-          oldWorkshopLevels.data[row[1]] = {"unlocked": row[0] || "", "levels": []};
-          row.forEach(function(cell, index) {
+          oldWorkshopLevels.data[row[1]] = {
+            unlocked: row[0] || "",
+            levels: [],
+          };
+          row.forEach(function (cell, index) {
             var presetName = oldWorkshopLevelsHeaders[index];
-            if (presetName.trim() !== "" && (oldWorkshopLevelsPresetNames.includes(presetName) || presetName.includes("Preset"))) {
-              if (presetName === "Tourney" && row[index] === row[index - 2] && (!row[index + 1] || row[index + 1] === row[index - 1])) {
+            if (
+              presetName.trim() !== "" &&
+              (oldWorkshopLevelsPresetNames.includes(presetName) ||
+                presetName.includes("Preset"))
+            ) {
+              if (
+                presetName === "Tourney" &&
+                row[index] === row[index - 2] &&
+                (!row[index + 1] || row[index + 1] === row[index - 1])
+              ) {
                 oldWorkshopLevels.data[row[1]].levels.push(null, null);
               } else {
-                oldWorkshopLevels.data[row[1]].levels.push(row[index] || null, row[index + 1] || null);
+                oldWorkshopLevels.data[row[1]].levels.push(
+                  row[index] || null,
+                  row[index + 1] || null
+                );
               }
             }
           });
@@ -621,9 +706,10 @@ const workshop = {
 
   getVersion20WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
+      console.log("Called: workshop.getVersion20WorkshopPlusLevels");
       var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
-      var oldWorkshopPlusPresetNames = []
-      oldWorkshopPlusLevelsHeaders.forEach(function(name, index) {
+      var oldWorkshopPlusPresetNames = [];
+      oldWorkshopPlusLevelsHeaders.forEach(function (name, index) {
         var presetName = name && name.trim() !== "" ? name.trim() : null;
         if (presetName && presetName.startsWith("Preset")) {
           oldWorkshopPlusPresetNames.push(null);
@@ -631,23 +717,34 @@ const workshop = {
           oldWorkshopPlusPresetNames.push(presetName);
         }
       });
-      var oldWorkshopPlusLevels = {"presetNames": oldWorkshopPlusPresetNames, data: {}};
-      oldWorkshopPlusLevelsValues.splice(0, 2)
-      oldWorkshopPlusLevelsValues.forEach(function(row) {
-        var hasData = row.some(function(cell) {
-          return cell !== null && cell !== undefined && String(cell || "").trim() !== "";
+      var oldWorkshopPlusLevels = {
+        presetNames: oldWorkshopPlusPresetNames,
+        data: {},
+      };
+      oldWorkshopPlusLevelsValues.splice(0, 2);
+      oldWorkshopPlusLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
         });
         if (hasData && row[0]) {
           oldWorkshopPlusLevels.data[row[0]] = [];
-          row.forEach(function(cell, index) {
+          row.forEach(function (cell, index) {
             var presetName = oldWorkshopPlusLevelsHeaders[index];
-            if (presetName.trim() !== "" && (oldWorkshopPlusPresetNames.includes(presetName) || presetName.includes("Preset"))) {
+            if (
+              presetName.trim() !== "" &&
+              (oldWorkshopPlusPresetNames.includes(presetName) ||
+                presetName.includes("Preset"))
+            ) {
               if (presetName === "Tourney" && row[index] === row[index - 1]) {
                 oldWorkshopPlusLevels.data[row[0]].push(null);
               } else {
                 oldWorkshopPlusLevels.data[row[0]].push(row[index] || null);
               }
-            };
+            }
           });
         }
       });
@@ -657,7 +754,9 @@ const workshop = {
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in getVersion20WorkshopPlusLevels: " + error.toString());
+      console.log(
+        "Error in getVersion20WorkshopPlusLevels: " + error.toString()
+      );
       return {
         success: false,
         message: "Error in getVersion20WorkshopPlusLevels: " + error.message,
@@ -665,11 +764,17 @@ const workshop = {
     }
   },
 
-  getVersion20WorkshopPlusRatios: function (presetNames, oldWorkshopPlusRatiosValues) {
+  getVersion20WorkshopPlusRatios: function (
+    presetNames,
+    oldWorkshopPlusRatiosValues
+  ) {
     try {
+      console.log("Called: workshop.getVersion20WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
-      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf("Workshop Enhancement");
+      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
+        "Workshop Enhancement"
+      );
       oldWorkshopPlusRatiosValues.splice(0, 1);
       for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
         var row = oldWorkshopPlusRatiosValues[i];
@@ -684,29 +789,39 @@ const workshop = {
           } else {
             enhancementName = parts[parts.length - 1].trim();
           }
-          enhancementName = enhancementName.replace(/['"()]/g, '');
+          enhancementName = enhancementName.replace(/['"()]/g, "");
         }
         if (enhancementName) {
-          enhancementName = enhancementName.replace(/\+/g, '').trim();
+          enhancementName = enhancementName.replace(/\+/g, "").trim();
           var ratioValue = row[workshopEnhancementNameCol + 2];
-          if (enhancementName === "Workshop preset" && !presetNames.includes(ratioValue) && /^\d+$/.test(ratioValue)) {
-            ratioValue = presetNames[Number(ratioValue) - 1] || "Preset " + ratioValue;
+          if (
+            enhancementName === "Workshop preset" &&
+            !presetNames.includes(ratioValue) &&
+            /^\d+$/.test(ratioValue)
+          ) {
+            ratioValue =
+              presetNames[Number(ratioValue) - 1] || "Preset " + ratioValue;
           } else if (enhancementName === "Base ratio") {
-            ratioValue = ratioValue.replace(/\+/g, '').trim();
+            ratioValue = ratioValue.replace(/\+/g, "").trim();
           }
-          oldWorkshopPlusRatios[enhancementName] = {"Order": row[workshopEnhancementNameCol + 1] || "", "Ratio": ratioValue || ""};
+          oldWorkshopPlusRatios[enhancementName] = {
+            Order: row[workshopEnhancementNameCol + 1] || "",
+            Ratio: ratioValue || "",
+          };
         }
         if (enhancementName === "Order in between") {
           break;
         }
-      };
+      }
       return {
         success: true,
         message: "Workshop plus ratios processed successfully",
         oldWorkshopPlusRatios: oldWorkshopPlusRatios,
       };
     } catch (error) {
-      console.log("Error in getVersion20WorkshopPlusRatios: " + error.toString());
+      console.log(
+        "Error in getVersion20WorkshopPlusRatios: " + error.toString()
+      );
       return {
         success: false,
         message: "Error in getVersion20WorkshopPlusRatios: " + error.message,
@@ -722,6 +837,7 @@ const workshop = {
   },
 
   isCompatibleVersion: function (oldVersion) {
+    console.log("Called: workshop.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {

@@ -1,6 +1,7 @@
 const collection = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: collection.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const collection = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const collection = {
       return {
         success: true,
         message: "IDS Collection export completed successfully",
-        data: oldDataResult.data
+        data: oldDataResult.data,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,8 +33,7 @@ const collection = {
 
   importData: function (data) {
     try {
-      console.log("Starting IDS Collection import data...");
-      
+      console.log("Called: collection.importData");
       var newSpreadsheet = spreadsheets("IDS Collection newSpreadsheet");
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
@@ -46,65 +46,99 @@ const collection = {
 
       // Configuration dictionary mapping sheet types to their required ranges
       var sheetRequiredRanges = {
-        "values": {
-          "Home Page": {"sheetName": "Home Page", "range": "Home Page"},
-          "Lab_MS": {"sheetName": "Lab_MS", "range": "Lab_MS"},
-          "UW_MS": {"sheetName": "UW_MS", "range": "UW_MS"},
-          "DVT_UW": {"sheetName": "DVT_UW", "range": "DVT_UW"},
-          "Themes & Songs": {"sheetName": "Themes & Songs", "range": "Themes & Songs"},
-          "Bots_MS": {"sheetName": "Bots_MS", "range": "Bots_MS"},
-          "DVT_Bots": {"sheetName": "DVT_Bots", "range": "DVT_Bots"},
-          "Relics": {"sheetName": "Relics", "range": "Relics"},
-          "Vault_Harmony": {"sheetName": "Vault_Harmony", "range": "Vault_Harmony"},
-          "Vault_Power": {"sheetName": "Vault_Power", "range": "Vault_Power"},
-          "Cards_MS": {"sheetName": "Cards_MS", "range": "Cards_MS"},
-          "Modules Inventory": {"sheetName": "Modules Inventory", "range": "Modules Inventory"},
-          "Modules Presets": {"sheetName": "Modules Presets", "range": "Modules Presets"},
-          "Modules Tracker": {"sheetName": "Modules Tracker", "range": "Modules Tracker"},
-          "Guardian_MS": {"sheetName": "Guardian_MS", "range": "Guardian_MS"},
-          "DVT_Guardians": {"sheetName": "DVT_Guardians", "range": "DVT_Guardians"},
-          "player_MS": {"sheetName": "player_MS", "range": "player_MS"},
+        values: {
+          "Home Page": { sheetName: "Home Page", range: "Home Page" },
+          Lab_MS: { sheetName: "Lab_MS", range: "Lab_MS" },
+          UW_MS: { sheetName: "UW_MS", range: "UW_MS" },
+          DVT_UW: { sheetName: "DVT_UW", range: "DVT_UW" },
+          "Themes & Songs": {
+            sheetName: "Themes & Songs",
+            range: "Themes & Songs",
+          },
+          Bots_MS: { sheetName: "Bots_MS", range: "Bots_MS" },
+          DVT_Bots: { sheetName: "DVT_Bots", range: "DVT_Bots" },
+          Relics: { sheetName: "Relics", range: "Relics" },
+          Vault_Harmony: { sheetName: "Vault_Harmony", range: "Vault_Harmony" },
+          Vault_Power: { sheetName: "Vault_Power", range: "Vault_Power" },
+          Cards_MS: { sheetName: "Cards_MS", range: "Cards_MS" },
+          "Modules Inventory": {
+            sheetName: "Modules Inventory",
+            range: "Modules Inventory",
+          },
+          "Modules Presets": {
+            sheetName: "Modules Presets",
+            range: "Modules Presets",
+          },
+          "Modules Tracker": {
+            sheetName: "Modules Tracker",
+            range: "Modules Tracker",
+          },
+          Guardian_MS: { sheetName: "Guardian_MS", range: "Guardian_MS" },
+          DVT_Guardians: { sheetName: "DVT_Guardians", range: "DVT_Guardians" },
+          player_MS: { sheetName: "player_MS", range: "player_MS" },
         },
-        "formulas": {
-          "Lab Planner": {"sheetName": "Lab Planner", "range": "Lab Planner"},
-          "Workshop_MS": {"sheetName": "Workshop_MS", "range": "Workshop_MS"},
-          "Workshop Ratio": {"sheetName": "Desired Ratios", "range": "Desired Ratios"},
-          "UW Cost Calculator": {"sheetName": "UW Cost Calculator v3", "range": "UW Cost Calculator v3"},
-          "Card Preset": {"sheetName": "Card Preset", "range": "Card Preset"}
-        }
+        formulas: {
+          "Lab Planner": { sheetName: "Lab Planner", range: "Lab Planner" },
+          Workshop_MS: { sheetName: "Workshop_MS", range: "Workshop_MS" },
+          "Workshop Ratio": {
+            sheetName: "Desired Ratios",
+            range: "Desired Ratios",
+          },
+          "UW Cost Calculator": {
+            sheetName: "UW Cost Calculator v3",
+            range: "UW Cost Calculator v3",
+          },
+          "Card Preset": { sheetName: "Card Preset", range: "Card Preset" },
+        },
       };
 
       // Create ranges arrays from the configuration
-      var allValuesRanges = Object.keys(sheetRequiredRanges.values).map(function(key) {
-        return sheetRequiredRanges.values[key].range;
-      });
-      
-      var allFormulasRanges = Object.keys(sheetRequiredRanges.formulas).map(function(key) {
-        return sheetRequiredRanges.formulas[key].range;
-      });
+      var allValuesRanges = Object.keys(sheetRequiredRanges.values).map(
+        function (key) {
+          return sheetRequiredRanges.values[key].range;
+        }
+      );
+
+      var allFormulasRanges = Object.keys(sheetRequiredRanges.formulas).map(
+        function (key) {
+          return sheetRequiredRanges.formulas[key].range;
+        }
+      );
 
       // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
-      
+
       if (allValuesRanges.length > 0) {
-        batchValuesResults = SheetsAPI.batchGetValues(newSheetID, allValuesRanges);
+        batchValuesResults = SheetsAPI.batchGetValues(
+          newSheetID,
+          allValuesRanges
+        );
         if (!batchValuesResults) {
-          console.log(`Error fetching values ranges from IDS Collection spreadsheet`);
+          console.log(
+            `Error fetching values ranges from IDS Collection spreadsheet`
+          );
           return {
             success: false,
-            message: "Error fetching values ranges from IDS Collection spreadsheet"
+            message:
+              "Error fetching values ranges from IDS Collection spreadsheet",
           };
         }
       }
-      
+
       if (allFormulasRanges.length > 0) {
-        batchFormulasResults = SheetsAPI.batchGetFormulas(newSheetID, allFormulasRanges);
+        batchFormulasResults = SheetsAPI.batchGetFormulas(
+          newSheetID,
+          allFormulasRanges
+        );
         if (!batchFormulasResults) {
-          console.log(`Error fetching formulas ranges from IDS Collection spreadsheet`);
+          console.log(
+            `Error fetching formulas ranges from IDS Collection spreadsheet`
+          );
           return {
             success: false,
-            message: "Error fetching formulas ranges from IDS Collection spreadsheet"
+            message:
+              "Error fetching formulas ranges from IDS Collection spreadsheet",
           };
         }
       }
@@ -114,15 +148,23 @@ const collection = {
       var batchUpdate = [];
 
       // Helper function to get range data
-      var getRangeData = function(sheetName, type) {
+      var getRangeData = function (sheetName, type) {
         type = type || "values"; // Default to values if not specified
-        
+
         if (type === "formulas") {
-          var index = Object.keys(sheetRequiredRanges.formulas).indexOf(sheetName);
-          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index].values : null;
+          var index = Object.keys(sheetRequiredRanges.formulas).indexOf(
+            sheetName
+          );
+          return index !== -1 && batchFormulasResults[index]
+            ? batchFormulasResults[index].values
+            : null;
         } else {
-          var index = Object.keys(sheetRequiredRanges.values).indexOf(sheetName);
-          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index].values : null;
+          var index = Object.keys(sheetRequiredRanges.values).indexOf(
+            sheetName
+          );
+          return index !== -1 && batchValuesResults[index]
+            ? batchValuesResults[index].values
+            : null;
         }
       };
 
@@ -135,34 +177,52 @@ const collection = {
           var labSuccess = true;
           var labMessages = [];
           var labResult, labPlannerResult;
-          if (labData.hasOwnProperty('oldLabLevels') && labMasterSheetData) {
-            labResult = lab.updateLabLevels(sheetRequiredRanges.values["Lab_MS"].sheetName, labData.oldLabLevels, labMasterSheetData);
+          if (labData.hasOwnProperty("oldLabLevels") && labMasterSheetData) {
+            labResult = lab.updateLabLevels(
+              sheetRequiredRanges.values["Lab_MS"].sheetName,
+              labData.oldLabLevels,
+              labMasterSheetData
+            );
             if (labResult && labResult.success) {
               batchUpdate = batchUpdate.concat(labResult.batchUpdate || []);
             } else {
               labSuccess = false;
-              labMessages.push(labResult ? labResult.message : "Unknown error in LabLevels");
+              labMessages.push(
+                labResult ? labResult.message : "Unknown error in LabLevels"
+              );
             }
           }
-          if (labData.hasOwnProperty('oldLabPlanner') && labPlannerData) {
-            labPlannerResult = lab.updateLabPlanner(sheetRequiredRanges.formulas["Lab Planner"].sheetName, labData.oldLabPlanner, labPlannerData);
+          if (labData.hasOwnProperty("oldLabPlanner") && labPlannerData) {
+            labPlannerResult = lab.updateLabPlanner(
+              sheetRequiredRanges.formulas["Lab Planner"].sheetName,
+              labData.oldLabPlanner,
+              labPlannerData
+            );
             if (labPlannerResult && labPlannerResult.success) {
-              batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                labPlannerResult.batchUpdate || []
+              );
             } else {
               labSuccess = false;
-              labMessages.push(labPlannerResult ? labPlannerResult.message : "Unknown error in LabPlanner");
+              labMessages.push(
+                labPlannerResult
+                  ? labPlannerResult.message
+                  : "Unknown error in LabPlanner"
+              );
             }
           }
           updateResults.push({
             sheetType: "Laboratory",
             success: labSuccess,
-            message: labSuccess ? "Laboratory updated successfully" : "Laboratory update failed: " + labMessages.join(", ")
+            message: labSuccess
+              ? "Laboratory updated successfully"
+              : "Laboratory update failed: " + labMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Laboratory",
             success: false,
-            message: "Error in Laboratory update: " + error.message
+            message: "Error in Laboratory update: " + error.message,
           });
         }
       }
@@ -172,38 +232,68 @@ const collection = {
         try {
           var workshopData = data.Workshop;
           var workshopMasterSheetData = getRangeData("Workshop_MS", "formulas");
-          var workshopPlusRatioData = getRangeData("Workshop Ratio", "formulas");
+          var workshopPlusRatioData = getRangeData(
+            "Workshop Ratio",
+            "formulas"
+          );
           var workshopSuccess = true;
           var workshopMessages = [];
           var workshopResult, workshopPlusRatioResult;
-          if (workshopData.hasOwnProperty('oldWorkshopLevels') && workshopData.hasOwnProperty('oldWorkshopPlusLevels') && workshopMasterSheetData) {
-            workshopResult = workshop.updateWorkshopLevels(sheetRequiredRanges.formulas["Workshop_MS"].sheetName, workshopData.oldWorkshopLevels, workshopData.oldWorkshopPlusLevels, workshopMasterSheetData);
+          if (
+            workshopData.hasOwnProperty("oldWorkshopLevels") &&
+            workshopData.hasOwnProperty("oldWorkshopPlusLevels") &&
+            workshopMasterSheetData
+          ) {
+            workshopResult = workshop.updateWorkshopLevels(
+              sheetRequiredRanges.formulas["Workshop_MS"].sheetName,
+              workshopData.oldWorkshopLevels,
+              workshopData.oldWorkshopPlusLevels,
+              workshopMasterSheetData
+            );
             if (workshopResult && workshopResult.success) {
-              batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                workshopResult.batchUpdate || []
+              );
             } else {
               workshopSuccess = false;
-              workshopMessages.push(workshopResult ? workshopResult.message : "Unknown error in WorkshopLevels");
+              workshopMessages.push(
+                workshopResult
+                  ? workshopResult.message
+                  : "Unknown error in WorkshopLevels"
+              );
             }
           }
-          if (workshopData.hasOwnProperty('oldWorkshopPlusRatios')) {
-            workshopPlusRatioResult = workshop.updateWorkshopPlusRatios(sheetRequiredRanges.formulas["Workshop Ratio"].sheetName, workshopData.oldWorkshopPlusRatios, workshopPlusRatioData);
+          if (workshopData.hasOwnProperty("oldWorkshopPlusRatios")) {
+            workshopPlusRatioResult = workshop.updateWorkshopPlusRatios(
+              sheetRequiredRanges.formulas["Workshop Ratio"].sheetName,
+              workshopData.oldWorkshopPlusRatios,
+              workshopPlusRatioData
+            );
             if (workshopPlusRatioResult && workshopPlusRatioResult.success) {
-              batchUpdate = batchUpdate.concat(workshopPlusRatioResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                workshopPlusRatioResult.batchUpdate || []
+              );
             } else {
               workshopSuccess = false;
-              workshopMessages.push(workshopPlusRatioResult ? workshopPlusRatioResult.message : "Unknown error in WorkshopPlusRatios");
+              workshopMessages.push(
+                workshopPlusRatioResult
+                  ? workshopPlusRatioResult.message
+                  : "Unknown error in WorkshopPlusRatios"
+              );
             }
           }
           updateResults.push({
             sheetType: "Workshop",
             success: workshopSuccess,
-            message: workshopSuccess ? "Workshop updated successfully" : "Workshop update failed: " + workshopMessages.join(", ")
+            message: workshopSuccess
+              ? "Workshop updated successfully"
+              : "Workshop update failed: " + workshopMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Workshop",
             success: false,
-            message: "Error in Workshop update: " + error.message
+            message: "Error in Workshop update: " + error.message,
           });
         }
       }
@@ -213,44 +303,77 @@ const collection = {
         try {
           var ultimateData = data["Ultimate Weapon"];
           var ultimateMasterSheetData = getRangeData("UW_MS", "values");
-          var ultimateCostCalculatorData = getRangeData("UW Cost Calculator", "formulas");
+          var ultimateCostCalculatorData = getRangeData(
+            "UW Cost Calculator",
+            "formulas"
+          );
           var ultimateDataValidationData = getRangeData("DVT_UW", "values");
           var ultimateSuccess = true;
           var ultimateMessages = [];
           var ultimateResult, ultimateCostCalculatorResult;
-          if (ultimateData.hasOwnProperty('oldUltimate') && ultimateMasterSheetData && ultimateDataValidationData) {
-            ultimateResult = ultimate.updateUltimateLevels(sheetRequiredRanges.values["UW_MS"].sheetName, ultimateData.oldUltimate, ultimateMasterSheetData, ultimateDataValidationData);
+          if (
+            ultimateData.hasOwnProperty("oldUltimate") &&
+            ultimateMasterSheetData &&
+            ultimateDataValidationData
+          ) {
+            ultimateResult = ultimate.updateUltimateLevels(
+              sheetRequiredRanges.values["UW_MS"].sheetName,
+              ultimateData.oldUltimate,
+              ultimateMasterSheetData,
+              ultimateDataValidationData
+            );
             if (ultimateResult && ultimateResult.success) {
-              batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                ultimateResult.batchUpdate || []
+              );
             } else {
               ultimateSuccess = false;
-              ultimateMessages.push(ultimateResult ? ultimateResult.message : "Unknown error in UltimateLevels");
+              ultimateMessages.push(
+                ultimateResult
+                  ? ultimateResult.message
+                  : "Unknown error in UltimateLevels"
+              );
             }
           }
-          if (ultimateData.hasOwnProperty('oldUltimateCostCalculator') && ultimateCostCalculatorData) {
-            ultimateCostCalculatorResult = ultimate.updateUltimateCostCalculator(
-              ultimateData.targetWeapons,
-              sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName,
-              ultimateData.oldUltimateCostCalculator,
-              ultimateCostCalculatorData
-            );
-            if (ultimateCostCalculatorResult && ultimateCostCalculatorResult.success) {
-              batchUpdate = batchUpdate.concat(ultimateCostCalculatorResult.batchUpdate || []);
+          if (
+            ultimateData.hasOwnProperty("oldUltimateCostCalculator") &&
+            ultimateCostCalculatorData
+          ) {
+            ultimateCostCalculatorResult =
+              ultimate.updateUltimateCostCalculator(
+                ultimateData.targetWeapons,
+                sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName,
+                ultimateData.oldUltimateCostCalculator,
+                ultimateCostCalculatorData
+              );
+            if (
+              ultimateCostCalculatorResult &&
+              ultimateCostCalculatorResult.success
+            ) {
+              batchUpdate = batchUpdate.concat(
+                ultimateCostCalculatorResult.batchUpdate || []
+              );
             } else {
               ultimateSuccess = false;
-              ultimateMessages.push(ultimateCostCalculatorResult ? ultimateCostCalculatorResult.message : "Unknown error in UltimateCostCalculator");
+              ultimateMessages.push(
+                ultimateCostCalculatorResult
+                  ? ultimateCostCalculatorResult.message
+                  : "Unknown error in UltimateCostCalculator"
+              );
             }
           }
           updateResults.push({
             sheetType: "Ultimate Weapon",
             success: ultimateSuccess,
-            message: ultimateSuccess ? "Ultimate Weapon updated successfully" : "Ultimate Weapon update failed: " + ultimateMessages.join(", ")
+            message: ultimateSuccess
+              ? "Ultimate Weapon updated successfully"
+              : "Ultimate Weapon update failed: " + ultimateMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Ultimate Weapon",
             success: false,
-            message: "Error in Ultimate Weapon update: " + error.message
+            message: "Error in Ultimate Weapon update: " + error.message,
           });
         }
       }
@@ -263,25 +386,36 @@ const collection = {
           var themesSuccess = true;
           var themesMessages = [];
           var themesResult;
-          if (themesData.hasOwnProperty('oldThemesNames') && themesMasterSheetData) {
-            themesResult = themes.updateThemes("Themes & Songs", themesData.oldThemesNames, themesMasterSheetData);
+          if (
+            themesData.hasOwnProperty("oldThemesNames") &&
+            themesMasterSheetData
+          ) {
+            themesResult = themes.updateThemes(
+              "Themes & Songs",
+              themesData.oldThemesNames,
+              themesMasterSheetData
+            );
             if (themesResult && themesResult.success) {
               batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
             } else {
               themesSuccess = false;
-              themesMessages.push(themesResult ? themesResult.message : "Unknown error in Themes");
+              themesMessages.push(
+                themesResult ? themesResult.message : "Unknown error in Themes"
+              );
             }
           }
           updateResults.push({
             sheetType: "Themes & Songs",
             success: themesSuccess,
-            message: themesSuccess ? "Themes & Songs updated successfully" : "Themes & Songs update failed: " + themesMessages.join(", ")
+            message: themesSuccess
+              ? "Themes & Songs updated successfully"
+              : "Themes & Songs update failed: " + themesMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Themes & Songs",
             success: false,
-            message: "Error in Themes & Songs update: " + error.message
+            message: "Error in Themes & Songs update: " + error.message,
           });
         }
       }
@@ -295,25 +429,38 @@ const collection = {
           var botsSuccess = true;
           var botsMessages = [];
           var botsResult;
-          if (botsData.hasOwnProperty('oldBots') && botsMasterSheetData && botsDataValidationData) {
-            botsResult = bots.updateBotLevels(sheetRequiredRanges.values["Bots_MS"].sheetName, botsData.oldBots, botsMasterSheetData, botsDataValidationData);
+          if (
+            botsData.hasOwnProperty("oldBots") &&
+            botsMasterSheetData &&
+            botsDataValidationData
+          ) {
+            botsResult = bots.updateBotLevels(
+              sheetRequiredRanges.values["Bots_MS"].sheetName,
+              botsData.oldBots,
+              botsMasterSheetData,
+              botsDataValidationData
+            );
             if (botsResult && botsResult.success) {
               batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
             } else {
               botsSuccess = false;
-              botsMessages.push(botsResult ? botsResult.message : "Unknown error in Bots");
+              botsMessages.push(
+                botsResult ? botsResult.message : "Unknown error in Bots"
+              );
             }
           }
           updateResults.push({
             sheetType: "Bots",
             success: botsSuccess,
-            message: botsSuccess ? "Bots updated successfully" : "Bots update failed: " + botsMessages.join(", ")
+            message: botsSuccess
+              ? "Bots updated successfully"
+              : "Bots update failed: " + botsMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Bots",
             success: false,
-            message: "Error in Bots update: " + error.message
+            message: "Error in Bots update: " + error.message,
           });
         }
       }
@@ -326,25 +473,33 @@ const collection = {
           var relicsSuccess = true;
           var relicsMessages = [];
           var relicsResult;
-          if (relicsData.hasOwnProperty('oldRelics') && relicsMasterSheetData) {
-            relicsResult = relics.updateRelics(sheetRequiredRanges.values["Relics"].sheetName, relicsData.oldRelics, relicsMasterSheetData);
+          if (relicsData.hasOwnProperty("oldRelics") && relicsMasterSheetData) {
+            relicsResult = relics.updateRelics(
+              sheetRequiredRanges.values["Relics"].sheetName,
+              relicsData.oldRelics,
+              relicsMasterSheetData
+            );
             if (relicsResult && relicsResult.success) {
               batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
             } else {
               relicsSuccess = false;
-              relicsMessages.push(relicsResult ? relicsResult.message : "Unknown error in Relics");
+              relicsMessages.push(
+                relicsResult ? relicsResult.message : "Unknown error in Relics"
+              );
             }
           }
           updateResults.push({
             sheetType: "Relics",
             success: relicsSuccess,
-            message: relicsSuccess ? "Relics updated successfully" : "Relics update failed: " + relicsMessages.join(", ")
+            message: relicsSuccess
+              ? "Relics updated successfully"
+              : "Relics update failed: " + relicsMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Relics",
             success: false,
-            message: "Error in Relics update: " + error.message
+            message: "Error in Relics update: " + error.message,
           });
         }
       }
@@ -358,42 +513,56 @@ const collection = {
           var vaultSuccess = true;
           var vaultMessages = [];
           var harmonyResult, powerResult;
-          if (vaultData.hasOwnProperty('oldVaultHarmony') && harmonyData) {
-            harmonyResult = vault.updateVault(sheetRequiredRanges.values["Vault_Harmony"].sheetName, harmonyData, vaultData.oldVaultHarmony);
+          if (vaultData.hasOwnProperty("oldVaultHarmony") && harmonyData) {
+            harmonyResult = vault.updateVault(
+              sheetRequiredRanges.values["Vault_Harmony"].sheetName,
+              harmonyData,
+              vaultData.oldVaultHarmony
+            );
             if (harmonyResult && harmonyResult.success) {
               batchUpdate = batchUpdate.concat(harmonyResult.batchUpdate || []);
             } else {
               vaultSuccess = false;
-              vaultMessages.push("Harmony: " + (harmonyResult ? harmonyResult.message : "Unknown error"));
+              vaultMessages.push(
+                "Harmony: " +
+                  (harmonyResult ? harmonyResult.message : "Unknown error")
+              );
             }
           }
-          if (vaultData.hasOwnProperty('oldVaultPower') && powerData) {
-            powerResult = vault.updateVault(sheetRequiredRanges.values["Vault_Power"].sheetName, powerData, vaultData.oldVaultPower);
+          if (vaultData.hasOwnProperty("oldVaultPower") && powerData) {
+            powerResult = vault.updateVault(
+              sheetRequiredRanges.values["Vault_Power"].sheetName,
+              powerData,
+              vaultData.oldVaultPower
+            );
             if (powerResult && powerResult.success) {
               batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
             } else {
               vaultSuccess = false;
-              vaultMessages.push("Power: " + (powerResult ? powerResult.message : "Unknown error"));
+              vaultMessages.push(
+                "Power: " +
+                  (powerResult ? powerResult.message : "Unknown error")
+              );
             }
           }
           if (vaultSuccess) {
             updateResults.push({
               sheetType: "Vault",
               success: true,
-              message: "Vault updated successfully"
+              message: "Vault updated successfully",
             });
           } else {
             updateResults.push({
               sheetType: "Vault",
               success: false,
-              message: "Vault update failed: " + vaultMessages.join(", ")
+              message: "Vault update failed: " + vaultMessages.join(", "),
             });
           }
         } catch (error) {
           updateResults.push({
             sheetType: "Vault",
             success: false,
-            message: "Error in Vault update: " + error.message
+            message: "Error in Vault update: " + error.message,
           });
         }
       }
@@ -407,42 +576,70 @@ const collection = {
           var cardsSuccess = true;
           var cardsMessages = [];
           var cardsLevelsResult, cardsPresetResult;
-          if (cardsData.hasOwnProperty('oldCardsLevel') && cardsData.hasOwnProperty('oldCardSlots') && cardsMasterSheetData) {
-            cardsLevelsResult = cards.updateCardsLevels(sheetRequiredRanges.values["Cards_MS"].sheetName, cardsData.oldCardsLevel, cardsData.oldCardSlots, cardsMasterSheetData);
+          if (
+            cardsData.hasOwnProperty("oldCardsLevel") &&
+            cardsData.hasOwnProperty("oldCardSlots") &&
+            cardsMasterSheetData
+          ) {
+            cardsLevelsResult = cards.updateCardsLevels(
+              sheetRequiredRanges.values["Cards_MS"].sheetName,
+              cardsData.oldCardsLevel,
+              cardsData.oldCardSlots,
+              cardsMasterSheetData
+            );
             if (cardsLevelsResult && cardsLevelsResult.success) {
-              batchUpdate = batchUpdate.concat(cardsLevelsResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                cardsLevelsResult.batchUpdate || []
+              );
             } else {
               cardsSuccess = false;
-              cardsMessages.push("Levels: " + (cardsLevelsResult ? cardsLevelsResult.message : "Unknown error"));
+              cardsMessages.push(
+                "Levels: " +
+                  (cardsLevelsResult
+                    ? cardsLevelsResult.message
+                    : "Unknown error")
+              );
             }
           }
-          if (cardsData.hasOwnProperty('oldCardsPreset') && cardsPresetData) {
-            cardsPresetResult = cards.updateCardsPreset("Card Preset", cardsData.oldCardsPreset, cardsData.shouldRemoveUsedCards, cardsPresetData);
+          if (cardsData.hasOwnProperty("oldCardsPreset") && cardsPresetData) {
+            cardsPresetResult = cards.updateCardsPreset(
+              "Card Preset",
+              cardsData.oldCardsPreset,
+              cardsData.shouldRemoveUsedCards,
+              cardsPresetData
+            );
             if (cardsPresetResult && cardsPresetResult.success) {
-              batchUpdate = batchUpdate.concat(cardsPresetResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                cardsPresetResult.batchUpdate || []
+              );
             } else {
               cardsSuccess = false;
-              cardsMessages.push("Preset: " + (cardsPresetResult ? cardsPresetResult.message : "Unknown error"));
+              cardsMessages.push(
+                "Preset: " +
+                  (cardsPresetResult
+                    ? cardsPresetResult.message
+                    : "Unknown error")
+              );
             }
           }
           if (cardsSuccess) {
             updateResults.push({
               sheetType: "Cards",
               success: true,
-              message: "Cards updated successfully"
+              message: "Cards updated successfully",
             });
           } else {
             updateResults.push({
               sheetType: "Cards",
               success: false,
-              message: "Cards update failed: " + cardsMessages.join(", ")
+              message: "Cards update failed: " + cardsMessages.join(", "),
             });
           }
         } catch (error) {
           updateResults.push({
             sheetType: "Cards",
             success: false,
-            message: "Error in Cards update: " + error.message
+            message: "Error in Cards update: " + error.message,
           });
         }
       }
@@ -451,57 +648,92 @@ const collection = {
       if (data.Modules) {
         try {
           var modulesData = data.Modules;
-          var modulesInventoryData = getRangeData("Modules Inventory", "values");
+          var modulesInventoryData = getRangeData(
+            "Modules Inventory",
+            "values"
+          );
           var modulesPresetsData = getRangeData("Modules Presets", "values");
           var modulesTrackerData = getRangeData("Modules Tracker", "values");
           var modulesSuccess = true;
           var modulesMessages = [];
           var inventoryResult, presetsResult;
-          if (modulesData.hasOwnProperty('oldModulesInventory') && modulesInventoryData) {
-            inventoryResult = modules.updateModulesInventory(sheetRequiredRanges.values["Modules Inventory"].sheetName, modulesData.oldModulesInventory, modulesInventoryData);
+          if (
+            modulesData.hasOwnProperty("oldModulesInventory") &&
+            modulesInventoryData
+          ) {
+            inventoryResult = modules.updateModulesInventory(
+              sheetRequiredRanges.values["Modules Inventory"].sheetName,
+              modulesData.oldModulesInventory,
+              modulesInventoryData
+            );
             if (inventoryResult && inventoryResult.success) {
-              batchUpdate = batchUpdate.concat(inventoryResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                inventoryResult.batchUpdate || []
+              );
             } else {
               modulesSuccess = false;
-              modulesMessages.push("Inventory: " + (inventoryResult ? inventoryResult.message : "Unknown error"));
+              modulesMessages.push(
+                "Inventory: " +
+                  (inventoryResult ? inventoryResult.message : "Unknown error")
+              );
             }
           }
-          if (modulesData.hasOwnProperty('oldModulesPresets') && modulesPresetsData) {
-            presetsResult = modules.updateModulesPresets(sheetRequiredRanges.values["Modules Presets"].sheetName, modulesData.oldModulesPresets, modulesPresetsData);
+          if (
+            modulesData.hasOwnProperty("oldModulesPresets") &&
+            modulesPresetsData
+          ) {
+            presetsResult = modules.updateModulesPresets(
+              sheetRequiredRanges.values["Modules Presets"].sheetName,
+              modulesData.oldModulesPresets,
+              modulesPresetsData
+            );
             if (presetsResult && presetsResult.success) {
               batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
             } else {
               modulesSuccess = false;
-              modulesMessages.push("Presets: " + (presetsResult ? presetsResult.message : "Unknown error"));
+              modulesMessages.push(
+                "Presets: " +
+                  (presetsResult ? presetsResult.message : "Unknown error")
+              );
             }
           }
-          if (modulesData.hasOwnProperty('oldModulesTracker') && modulesTrackerData) {
-            var trackerResult = modules.updateModulesTracker(sheetRequiredRanges.values["Modules Tracker"].sheetName, modulesData.oldModulesTracker, modulesTrackerData);
+          if (
+            modulesData.hasOwnProperty("oldModulesTracker") &&
+            modulesTrackerData
+          ) {
+            var trackerResult = modules.updateModulesTracker(
+              sheetRequiredRanges.values["Modules Tracker"].sheetName,
+              modulesData.oldModulesTracker,
+              modulesTrackerData
+            );
             if (trackerResult && trackerResult.success) {
               batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
             } else {
               modulesSuccess = false;
-              modulesMessages.push("Tracker: " + (trackerResult ? trackerResult.message : "Unknown error"));
+              modulesMessages.push(
+                "Tracker: " +
+                  (trackerResult ? trackerResult.message : "Unknown error")
+              );
             }
           }
           if (modulesSuccess) {
             updateResults.push({
               sheetType: "Modules",
               success: true,
-              message: "Modules updated successfully"
+              message: "Modules updated successfully",
             });
           } else {
             updateResults.push({
               sheetType: "Modules",
               success: false,
-              message: "Modules update failed: " + modulesMessages.join(", ")
+              message: "Modules update failed: " + modulesMessages.join(", "),
             });
           }
         } catch (error) {
           updateResults.push({
             sheetType: "Modules",
             success: false,
-            message: "Error in Modules update: " + error.message
+            message: "Error in Modules update: " + error.message,
           });
         }
       }
@@ -511,33 +743,53 @@ const collection = {
         try {
           var guardiansData = data.Guardians;
           var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
-          var guardiansDataValidationData = getRangeData("DVT_Guardians", "values");
+          var guardiansDataValidationData = getRangeData(
+            "DVT_Guardians",
+            "values"
+          );
           var guardiansSuccess = true;
           var guardiansMessages = [];
           var guardiansResult;
-          if (guardiansData.hasOwnProperty('oldGuardians') && guardiansMasterSheetData && guardiansDataValidationData) {
-            guardiansResult = guardians.updateGuardianLevels(sheetRequiredRanges.values["Guardian_MS"].sheetName, guardiansData.oldGuardians, guardiansMasterSheetData, guardiansDataValidationData);
+          if (
+            guardiansData.hasOwnProperty("oldGuardians") &&
+            guardiansMasterSheetData &&
+            guardiansDataValidationData
+          ) {
+            guardiansResult = guardians.updateGuardianLevels(
+              sheetRequiredRanges.values["Guardian_MS"].sheetName,
+              guardiansData.oldGuardians,
+              guardiansMasterSheetData,
+              guardiansDataValidationData
+            );
             if (guardiansResult && guardiansResult.success) {
-              batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
+              batchUpdate = batchUpdate.concat(
+                guardiansResult.batchUpdate || []
+              );
             } else {
               guardiansSuccess = false;
-              guardiansMessages.push(guardiansResult ? guardiansResult.message : "Unknown error in Guardians");
+              guardiansMessages.push(
+                guardiansResult
+                  ? guardiansResult.message
+                  : "Unknown error in Guardians"
+              );
             }
           }
           updateResults.push({
             sheetType: "Guardians",
             success: guardiansSuccess,
-            message: guardiansSuccess ? "Guardians updated successfully" : "Guardians update failed: " + guardiansMessages.join(", ")
+            message: guardiansSuccess
+              ? "Guardians updated successfully"
+              : "Guardians update failed: " + guardiansMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Guardians",
             success: false,
-            message: "Error in Guardians update: " + error.message
+            message: "Error in Guardians update: " + error.message,
           });
         }
       }
-      
+
       // Player updates
       if (data.Player) {
         try {
@@ -546,38 +798,58 @@ const collection = {
           var playerSuccess = true;
           var playerMessages = [];
           var playerResult;
-          if (playerData.hasOwnProperty('oldPlayerStuffData') && playerMasterSheetData) {
-            playerResult = playerStuff.updatePlayerStuffData(sheetRequiredRanges.values["player_MS"].sheetName, playerData.oldPlayerStuffData, playerMasterSheetData);
+          if (
+            playerData.hasOwnProperty("oldPlayerStuffData") &&
+            playerMasterSheetData
+          ) {
+            playerResult = playerStuff.updatePlayerStuffData(
+              sheetRequiredRanges.values["player_MS"].sheetName,
+              playerData.oldPlayerStuffData,
+              playerMasterSheetData
+            );
             if (playerResult && playerResult.success) {
               batchUpdate = batchUpdate.concat(playerResult.batchUpdate || []);
             } else {
               playerSuccess = false;
-              playerMessages.push(playerResult ? playerResult.message : "Unknown error in Player");
+              playerMessages.push(
+                playerResult ? playerResult.message : "Unknown error in Player"
+              );
             }
           }
           updateResults.push({
             sheetType: "Player & Stuff",
             success: playerSuccess,
-            message: playerSuccess ? "Player & Stuff updated successfully" : "Player & Stuff update failed: " + playerMessages.join(", ")
+            message: playerSuccess
+              ? "Player & Stuff updated successfully"
+              : "Player & Stuff update failed: " + playerMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
             sheetType: "Player & Stuff",
             success: false,
-            message: "Error in Player & Stuff update: " + error.message
+            message: "Error in Player & Stuff update: " + error.message,
           });
         }
       }
 
       // Check if any updates failed
-      var failedUpdates = updateResults.filter(function(result) {
+      var failedUpdates = updateResults.filter(function (result) {
         return !result.success;
       });
 
       if (failedUpdates.length === 0) {
         var homePageData = getRangeData("Home Page", "values");
-        var newSheetInfo = shared.findSheetTypeID(newSheetID, "Home Page", "Load your file here", homePageData);
-        if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+        var newSheetInfo = shared.findSheetTypeID(
+          newSheetID,
+          "Home Page",
+          "Load your file here",
+          homePageData
+        );
+        if (
+          !newSheetInfo ||
+          !newSheetInfo.importStatus ||
+          !newSheetInfo.importStatus.range
+        ) {
           console.log(`Could not find import status range in IDS sheet`);
           return {
             success: false,
@@ -592,25 +864,33 @@ const collection = {
       }
       // Apply all batch updates at once if we have any
       if (batchUpdate.length > 0) {
-        var finalUpdateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+        var finalUpdateResult = SheetsAPI.batchUpdateValues(
+          newSheetID,
+          batchUpdate
+        );
         if (!finalUpdateResult) {
-          console.log(`Error applying batch updates to IDS Collection spreadsheet`);
+          console.log(
+            `Error applying batch updates to IDS Collection spreadsheet`
+          );
           return {
             success: false,
-            message: "Error applying batch updates to IDS Collection spreadsheet",
+            message:
+              "Error applying batch updates to IDS Collection spreadsheet",
           };
         }
       }
 
       if (failedUpdates.length > 0) {
-        var failedSheets = failedUpdates.map(function(result) {
-          return result.sheetType;
-        }).join(", ");
-        
+        var failedSheets = failedUpdates
+          .map(function (result) {
+            return result.sheetType;
+          })
+          .join(", ");
+
         return {
           success: false,
           message: `Failed to update sheets: ${failedSheets}`,
-          failedUpdates: failedUpdates
+          failedUpdates: failedUpdates,
         };
       }
 
@@ -618,7 +898,6 @@ const collection = {
         success: true,
         message: "IDS Collection import completed successfully",
       };
-      
     } catch (error) {
       console.log(`Error in IDS Collection importData: ${error.message}`);
       return {
@@ -630,49 +909,50 @@ const collection = {
 
   version135: function () {
     try {
+      console.log("Called collection.version135");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
-        "values": {
-          "Lab Levels": "EXPORT_Lab!B5:E",           // Laboratory levels
-          "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B3:F",      // Workshop levels  
-          "Workshop Plus": "EXPORT_WS!H3:K",        // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G",      // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs",       // Themes & songs data (full sheet)
-          "Bots": "EXPORT_Bots!C5:G",               // Bots data
-          "Relics": "Relics",                       // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony",         // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power",             // Vault power data (full sheet)
-          "Card Preset": "Card Preset",              // Cards preset data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D",      // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2",         // Cards slot data
+        values: {
+          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
+          "Workshop Levels": "EXPORT_WS!B3:F", // Workshop levels
+          "Workshop Plus": "EXPORT_WS!H3:K", // Workshop plus levels
+          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
+          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
+          Bots: "EXPORT_Bots!C5:G", // Bots data
+          Relics: "Relics", // Relics data (full sheet)
+          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
+          "Vault Power": "Vault_Power", // Vault power data (full sheet)
+          "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
+          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets",     // Modules presets (full sheet)
-          "Guardians": "EXPORT_Guardian!B5:F"      // Guardians data
+          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
+          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
         },
-        "formulas": {
-          "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
-        }
+        formulas: {
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+        },
       };
-      
+
       // Create separate ranges arrays and index maps for values and formulas
-      var valuesRanges = Object.keys(rangeMap.values).map(function(key) {
+      var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
-      
-      var formulasRanges = Object.keys(rangeMap.formulas).map(function(key) {
+
+      var formulasRanges = Object.keys(rangeMap.formulas).map(function (key) {
         return rangeMap.formulas[key];
       });
 
       // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
-      
+
       if (valuesRanges.length > 0) {
         batchValuesResults = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
         if (!batchValuesResults) {
@@ -683,9 +963,12 @@ const collection = {
           };
         }
       }
-      
+
       if (formulasRanges.length > 0) {
-        batchFormulasResults = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+        batchFormulasResults = SheetsAPI.batchGetFormulas(
+          oldSheetID,
+          formulasRanges
+        );
         if (!batchFormulasResults) {
           console.log(`Could not read IDS Collection formulas data`);
           return {
@@ -694,17 +977,21 @@ const collection = {
           };
         }
       }
-      
+
       // Helper function to get batch result by key and type
-      var getBatchResult = function(key, type) {
+      var getBatchResult = function (key, type) {
         type = type || "values"; // Default to values if not specified
-        
+
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
-          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index] : null;
+          return index !== -1 && batchValuesResults[index]
+            ? batchValuesResults[index]
+            : null;
         } else if (type === "formulas") {
           var index = Object.keys(rangeMap.formulas).indexOf(key);
-          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index] : null;
+          return index !== -1 && batchFormulasResults[index]
+            ? batchFormulasResults[index]
+            : null;
         }
         return null;
       };
@@ -718,56 +1005,94 @@ const collection = {
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
-        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        
+        var labPlannerValues =
+          labPlannerValuesResult && labPlannerValuesResult.values
+            ? labPlannerValuesResult.values
+            : null;
+        var labPlannerFormulas =
+          labPlannerFormulasResult && labPlannerFormulasResult.values
+            ? labPlannerFormulasResult.values
+            : null;
+
         var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
-        
+        var labPlannerData = lab.getVersion10LabPlanner(
+          labPlannerValues,
+          labPlannerFormulas,
+          labLevelsData.oldLabLevels,
+          labLevelsData.oldLabMax
+        );
+
         var labSuccess = labLevelsData.success && labPlannerData.success;
         collectedData.Laboratory = {
           success: labSuccess,
-          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          message: labSuccess
+            ? "Laboratory data retrieved successfully"
+            : "Error retrieving Laboratory data",
           oldLabLevels: labLevelsData.oldLabLevels,
-          oldLabPlanner: labPlannerData.oldLabPlanner
+          oldLabPlanner: labPlannerData.oldLabPlanner,
         };
       }
 
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
+      if (
+        workshopLevelsResult &&
+        workshopLevelsResult.values &&
+        workshopPlusResult &&
+        workshopPlusResult.values
+      ) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        
-        var workshopLevelsData = workshop.getVersion10WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(workshopPlusLevelsValues);
-        
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
+
+        var workshopLevelsData =
+          workshop.getVersion10WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(
+          workshopPlusLevelsValues
+        );
+
+        var workshopSuccess =
+          workshopLevelsData.success && workshopPlusLevelsData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
-          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          message: workshopSuccess
+            ? "Workshop data retrieved successfully"
+            : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
-          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels
+          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
         };
       }
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
-      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult(
+        "UW Cost Calculator",
+        "formulas"
+      );
+      if (
+        ultimateResult &&
+        ultimateResult.values &&
+        ultimateCostCalculatorResult &&
+        ultimateCostCalculatorResult.values
+      ) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        
-        var ultimateWeaponsData = ultimate.getVersion10UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
-        
-        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+
+        var ultimateWeaponsData =
+          ultimate.getVersion10UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimateCostCalculatorValues
+        );
+
+        var ultimateSuccess =
+          ultimateWeaponsData.success && costCalculatorData.success;
         collectedData["Ultimate Weapon"] = {
           success: ultimateSuccess,
-          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          message: ultimateSuccess
+            ? "Ultimate Weapon data retrieved successfully"
+            : "Error retrieving Ultimate Weapon data",
           oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
-          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
 
@@ -798,17 +1123,24 @@ const collection = {
       // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
-      if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
+      if (
+        harmonyResult &&
+        harmonyResult.values &&
+        powerResult &&
+        powerResult.values
+      ) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        
+
         var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
         var powerVaultData = vault.getVersion10Vault(powerValues);
-        
+
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
           success: vaultSuccess,
-          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          message: vaultSuccess
+            ? "Vault data retrieved successfully"
+            : "Error retrieving Vault data",
           oldVaultHarmony: harmonyVaultData.oldVault,
           oldVaultPower: powerVaultData.oldVault,
         };
@@ -818,37 +1150,63 @@ const collection = {
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
-      if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
+      if (
+        cardsPresetResult &&
+        cardsPresetResult.values &&
+        cardsLevelsResult &&
+        cardsLevelsResult.values &&
+        cardsSlotsResult &&
+        cardsSlotsResult.values
+      ) {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        
+
         var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
-        
+        var cardsLevelData = cards.getVersion10CardsLevel(
+          cardsLevelValues,
+          cardsSlotsValues
+        );
+
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
           success: cardsSuccess,
-          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          message: cardsSuccess
+            ? "Cards data retrieved successfully"
+            : "Error retrieving Cards data",
           oldCardsPreset: cardsPresetData.oldCardsPreset,
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
-          oldCardSlots: cardsLevelData.oldCardSlots
+          oldCardSlots: cardsLevelData.oldCardSlots,
         };
       }
 
       // Modules data
-      var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
+      var modulesInventoryResult = getBatchResult(
+        "Modules Inventory",
+        "values"
+      );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
-      if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values) {
+      if (
+        modulesInventoryResult &&
+        modulesInventoryResult.values &&
+        modulesPresetsResult &&
+        modulesPresetsResult.values
+      ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
-        var modulesInventoryData = modules.getVersion40ModulesInventory(modulesInventoryValues);
-        var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
-        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success;
+        var modulesInventoryData = modules.getVersion40ModulesInventory(
+          modulesInventoryValues
+        );
+        var modulesPresetsData =
+          modules.getVersion40ModulesPresets(modulesPresetsValues);
+        var modulesSuccess =
+          modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
           success: modulesSuccess,
-          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          message: modulesSuccess
+            ? "Modules data retrieved successfully"
+            : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
         };
@@ -865,9 +1223,8 @@ const collection = {
       return {
         success: true,
         message: "IDS Collection data retrieved successfully",
-        data: collectedData
+        data: collectedData,
       };
-      
     } catch (error) {
       console.log(`Error in IDS Collection version135: ${error.message}`);
       return {
@@ -879,51 +1236,52 @@ const collection = {
 
   version1417: function () {
     try {
+      console.log("Called: collection.version1417");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
-        "values": {
-          "Lab Levels": "EXPORT_Lab!B5:E",          // Laboratory levels
-          "Lab Planner": "Lab Planner",             // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B3:F",      // Workshop levels  
-          "Workshop Plus": "EXPORT_WS!H3:K",        // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G",      // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs",       // Themes & songs data (full sheet)
-          "Bots": "EXPORT_Bots!C5:G",               // Bots data
-          "Relics": "Relics",                       // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony",         // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power",             // Vault power data (full sheet)
-          "Card Preset": "Card Preset",             // Cards preset data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D",      // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2",         // Cards slot data
+        values: {
+          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
+          "Workshop Levels": "EXPORT_WS!B3:F", // Workshop levels
+          "Workshop Plus": "EXPORT_WS!H3:K", // Workshop plus levels
+          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
+          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
+          Bots: "EXPORT_Bots!C5:G", // Bots data
+          Relics: "Relics", // Relics data (full sheet)
+          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
+          "Vault Power": "Vault_Power", // Vault power data (full sheet)
+          "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
+          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets",     // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker",         // Modules obtained (full sheet)
-          "Guardians": "EXPORT_Guardian!B5:F",       // Guardians data
-          "Player": "EXPORT_Player!B2:D",           // Player data
+          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
+          Player: "EXPORT_Player!B2:D", // Player data
         },
-        "formulas": {
-          "Lab Planner": "Lab Planner",              // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
-        }
+        formulas: {
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+        },
       };
-      
+
       // Create separate ranges arrays and index maps for values and formulas
-      var valuesRanges = Object.keys(rangeMap.values).map(function(key) {
+      var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
-      
-      var formulasRanges = Object.keys(rangeMap.formulas).map(function(key) {
+
+      var formulasRanges = Object.keys(rangeMap.formulas).map(function (key) {
         return rangeMap.formulas[key];
       });
 
       // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
-      
+
       if (valuesRanges.length > 0) {
         batchValuesResults = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
         if (!batchValuesResults) {
@@ -934,9 +1292,12 @@ const collection = {
           };
         }
       }
-      
+
       if (formulasRanges.length > 0) {
-        batchFormulasResults = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+        batchFormulasResults = SheetsAPI.batchGetFormulas(
+          oldSheetID,
+          formulasRanges
+        );
         if (!batchFormulasResults) {
           console.log(`Could not read IDS Collection formulas data`);
           return {
@@ -945,17 +1306,21 @@ const collection = {
           };
         }
       }
-      
+
       // Helper function to get batch result by key and type
-      var getBatchResult = function(key, type) {
+      var getBatchResult = function (key, type) {
         type = type || "values"; // Default to values if not specified
-        
+
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
-          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index] : null;
+          return index !== -1 && batchValuesResults[index]
+            ? batchValuesResults[index]
+            : null;
         } else if (type === "formulas") {
           var index = Object.keys(rangeMap.formulas).indexOf(key);
-          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index] : null;
+          return index !== -1 && batchFormulasResults[index]
+            ? batchFormulasResults[index]
+            : null;
         }
         return null;
       };
@@ -968,56 +1333,94 @@ const collection = {
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
-        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        
+        var labPlannerValues =
+          labPlannerValuesResult && labPlannerValuesResult.values
+            ? labPlannerValuesResult.values
+            : null;
+        var labPlannerFormulas =
+          labPlannerFormulasResult && labPlannerFormulasResult.values
+            ? labPlannerFormulasResult.values
+            : null;
+
         var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
-        
+        var labPlannerData = lab.getVersion10LabPlanner(
+          labPlannerValues,
+          labPlannerFormulas,
+          labLevelsData.oldLabLevels,
+          labLevelsData.oldLabMax
+        );
+
         var labSuccess = labLevelsData.success && labPlannerData.success;
         collectedData.Laboratory = {
           success: labSuccess,
-          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          message: labSuccess
+            ? "Laboratory data retrieved successfully"
+            : "Error retrieving Laboratory data",
           oldLabLevels: labLevelsData.oldLabLevels,
-          oldLabPlanner: labPlannerData.oldLabPlanner
+          oldLabPlanner: labPlannerData.oldLabPlanner,
         };
       }
 
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values) {
+      if (
+        workshopLevelsResult &&
+        workshopLevelsResult.values &&
+        workshopPlusResult &&
+        workshopPlusResult.values
+      ) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
-        
-        var workshopLevelsData = workshop.getVersion10WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(workshopPlusLevelsValues);
-        
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success;
+
+        var workshopLevelsData =
+          workshop.getVersion10WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(
+          workshopPlusLevelsValues
+        );
+
+        var workshopSuccess =
+          workshopLevelsData.success && workshopPlusLevelsData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
-          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          message: workshopSuccess
+            ? "Workshop data retrieved successfully"
+            : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
-          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels
+          oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
         };
       }
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
-      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult(
+        "UW Cost Calculator",
+        "formulas"
+      );
+      if (
+        ultimateResult &&
+        ultimateResult.values &&
+        ultimateCostCalculatorResult &&
+        ultimateCostCalculatorResult.values
+      ) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        
-        var ultimateWeaponsData = ultimate.getVersion10UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
-        
-        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+
+        var ultimateWeaponsData =
+          ultimate.getVersion10UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimateCostCalculatorValues
+        );
+
+        var ultimateSuccess =
+          ultimateWeaponsData.success && costCalculatorData.success;
         collectedData["Ultimate Weapon"] = {
           success: ultimateSuccess,
-          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          message: ultimateSuccess
+            ? "Ultimate Weapon data retrieved successfully"
+            : "Error retrieving Ultimate Weapon data",
           oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
-          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
 
@@ -1048,17 +1451,24 @@ const collection = {
       // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
-      if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
+      if (
+        harmonyResult &&
+        harmonyResult.values &&
+        powerResult &&
+        powerResult.values
+      ) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        
+
         var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
         var powerVaultData = vault.getVersion10Vault(powerValues);
-        
+
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
           success: vaultSuccess,
-          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          message: vaultSuccess
+            ? "Vault data retrieved successfully"
+            : "Error retrieving Vault data",
           oldVaultHarmony: harmonyVaultData.oldVault,
           oldVaultPower: powerVaultData.oldVault,
         };
@@ -1068,43 +1478,74 @@ const collection = {
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
-      if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
+      if (
+        cardsPresetResult &&
+        cardsPresetResult.values &&
+        cardsLevelsResult &&
+        cardsLevelsResult.values &&
+        cardsSlotsResult &&
+        cardsSlotsResult.values
+      ) {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        
+
         var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
-        
+        var cardsLevelData = cards.getVersion10CardsLevel(
+          cardsLevelValues,
+          cardsSlotsValues
+        );
+
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
           success: cardsSuccess,
-          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          message: cardsSuccess
+            ? "Cards data retrieved successfully"
+            : "Error retrieving Cards data",
           oldCardsPreset: cardsPresetData.oldCardsPreset,
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
-          oldCardSlots: cardsLevelData.oldCardSlots
+          oldCardSlots: cardsLevelData.oldCardSlots,
         };
       }
 
       // Modules data
-      var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
+      var modulesInventoryResult = getBatchResult(
+        "Modules Inventory",
+        "values"
+      );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
-      if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values && modulesTrackerResult && modulesTrackerResult.values) {
+      if (
+        modulesInventoryResult &&
+        modulesInventoryResult.values &&
+        modulesPresetsResult &&
+        modulesPresetsResult.values &&
+        modulesTrackerResult &&
+        modulesTrackerResult.values
+      ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
-        var modulesInventoryData = modules.getVersion40ModulesInventory(modulesInventoryValues);
-        var modulesPresetsData = modules.getVersion40ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(modulesTrackerValues);
-        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success && modulesTrackerData.success;
+        var modulesInventoryData = modules.getVersion40ModulesInventory(
+          modulesInventoryValues
+        );
+        var modulesPresetsData =
+          modules.getVersion40ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData =
+          modules.getVersion47ModulesTracker(modulesTrackerValues);
+        var modulesSuccess =
+          modulesInventoryData.success &&
+          modulesPresetsData.success &&
+          modulesTrackerData.success;
         collectedData.Modules = {
           success: modulesSuccess,
-          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          message: modulesSuccess
+            ? "Modules data retrieved successfully"
+            : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
-          oldModulesTracker: modulesTrackerData.oldModulesTracker
+          oldModulesTracker: modulesTrackerData.oldModulesTracker,
         };
       }
 
@@ -1127,9 +1568,8 @@ const collection = {
       return {
         success: true,
         message: "IDS Collection data retrieved successfully",
-        data: collectedData
+        data: collectedData,
       };
-      
     } catch (error) {
       console.log(`Error in IDS Collection version1417: ${error.message}`);
       return {
@@ -1138,55 +1578,56 @@ const collection = {
       };
     }
   },
-  
+
   version20: function () {
     try {
+      console.log("Called: collection.version20");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
-        "values": {
-          "Lab Levels": "EXPORT_Lab!B5:E",              // Laboratory levels
-          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M",          // Workshop levels  
-          "Workshop Plus": "EXPORT_WS!P2:V",            // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G",          // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs",           // Themes & songs data (full sheet)
-          "Bots": "EXPORT_Bots!C5:G",                   // Bots data
-          "Relics": "Relics",                           // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony",             // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power",                 // Vault power data (full sheet)
-          "Card Preset": "Card Preset",                 // Cards preset data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D",          // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2",             // Cards slot data
-          "Modules Inventory": "Modules Inventory",     // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets",         // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker",         // Modules obtained (full sheet)
-          "Guardians": "EXPORT_Guardian!B5:F",          // Guardians data
-          "Player": "EXPORT_Player!B2:D",               // Player data
+        values: {
+          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
+          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
+          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
+          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
+          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
+          Bots: "EXPORT_Bots!C5:G", // Bots data
+          Relics: "Relics", // Relics data (full sheet)
+          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
+          "Vault Power": "Vault_Power", // Vault power data (full sheet)
+          "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
+          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
+          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
+          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
+          Player: "EXPORT_Player!B2:D", // Player data
         },
-        "formulas": {
-          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
-        }
+        formulas: {
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
+          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+        },
       };
-      
+
       // Create separate ranges arrays and index maps for values and formulas
-      var valuesRanges = Object.keys(rangeMap.values).map(function(key) {
+      var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
-      
-      var formulasRanges = Object.keys(rangeMap.formulas).map(function(key) {
+
+      var formulasRanges = Object.keys(rangeMap.formulas).map(function (key) {
         return rangeMap.formulas[key];
       });
 
       // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
-      
+
       if (valuesRanges.length > 0) {
         batchValuesResults = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
         if (!batchValuesResults) {
@@ -1197,9 +1638,12 @@ const collection = {
           };
         }
       }
-      
+
       if (formulasRanges.length > 0) {
-        batchFormulasResults = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+        batchFormulasResults = SheetsAPI.batchGetFormulas(
+          oldSheetID,
+          formulasRanges
+        );
         if (!batchFormulasResults) {
           console.log(`Could not read IDS Collection formulas data`);
           return {
@@ -1208,17 +1652,21 @@ const collection = {
           };
         }
       }
-      
+
       // Helper function to get batch result by key and type
-      var getBatchResult = function(key, type) {
+      var getBatchResult = function (key, type) {
         type = type || "values"; // Default to values if not specified
-        
+
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
-          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index] : null;
+          return index !== -1 && batchValuesResults[index]
+            ? batchValuesResults[index]
+            : null;
         } else if (type === "formulas") {
           var index = Object.keys(rangeMap.formulas).indexOf(key);
-          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index] : null;
+          return index !== -1 && batchFormulasResults[index]
+            ? batchFormulasResults[index]
+            : null;
         }
         return null;
       };
@@ -1232,59 +1680,107 @@ const collection = {
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
-        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        
+        var labPlannerValues =
+          labPlannerValuesResult && labPlannerValuesResult.values
+            ? labPlannerValuesResult.values
+            : null;
+        var labPlannerFormulas =
+          labPlannerFormulasResult && labPlannerFormulasResult.values
+            ? labPlannerFormulasResult.values
+            : null;
+
         var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
-        
+        var labPlannerData = lab.getVersion10LabPlanner(
+          labPlannerValues,
+          labPlannerFormulas,
+          labLevelsData.oldLabLevels,
+          labLevelsData.oldLabMax
+        );
+
         var labSuccess = labLevelsData.success && labPlannerData.success;
         collectedData.Laboratory = {
           success: labSuccess,
-          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          message: labSuccess
+            ? "Laboratory data retrieved successfully"
+            : "Error retrieving Laboratory data",
           oldLabLevels: labLevelsData.oldLabLevels,
-          oldLabPlanner: labPlannerData.oldLabPlanner
+          oldLabPlanner: labPlannerData.oldLabPlanner,
         };
       }
 
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "formulas");
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopPlusRatioResult && workshopPlusRatioResult.values) {
+      var workshopPlusRatioResult = getBatchResult(
+        "Workshop Ratio",
+        "formulas"
+      );
+      if (
+        workshopLevelsResult &&
+        workshopLevelsResult.values &&
+        workshopPlusResult &&
+        workshopPlusResult.values &&
+        workshopPlusRatioResult &&
+        workshopPlusRatioResult.values
+      ) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
-        
-        var workshopLevelsData = workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(workshopPlusLevelsValues);
-        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames, workshopPlusRatioValues);
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
+
+        var workshopLevelsData =
+          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshopPlusLevelsValues
+        );
+        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(
+          workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
+          workshopPlusRatioValues
+        );
+        var workshopSuccess =
+          workshopLevelsData.success &&
+          workshopPlusLevelsData.success &&
+          workshopPlusRatiosData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
-          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          message: workshopSuccess
+            ? "Workshop data retrieved successfully"
+            : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
           oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
-          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
+          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios,
         };
       }
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
-      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult(
+        "UW Cost Calculator",
+        "formulas"
+      );
+      if (
+        ultimateResult &&
+        ultimateResult.values &&
+        ultimateCostCalculatorResult &&
+        ultimateCostCalculatorResult.values
+      ) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        
-        var ultimateWeaponsData = ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
-        
-        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+
+        var ultimateWeaponsData =
+          ultimate.getVersion20UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimateCostCalculatorValues
+        );
+
+        var ultimateSuccess =
+          ultimateWeaponsData.success && costCalculatorData.success;
         collectedData["Ultimate Weapon"] = {
           success: ultimateSuccess,
-          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          message: ultimateSuccess
+            ? "Ultimate Weapon data retrieved successfully"
+            : "Error retrieving Ultimate Weapon data",
           oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
-          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
 
@@ -1315,17 +1811,24 @@ const collection = {
       // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
-      if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
+      if (
+        harmonyResult &&
+        harmonyResult.values &&
+        powerResult &&
+        powerResult.values
+      ) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        
+
         var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
         var powerVaultData = vault.getVersion10Vault(powerValues);
-        
+
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
           success: vaultSuccess,
-          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          message: vaultSuccess
+            ? "Vault data retrieved successfully"
+            : "Error retrieving Vault data",
           oldVaultHarmony: harmonyVaultData.oldVault,
           oldVaultPower: powerVaultData.oldVault,
         };
@@ -1335,43 +1838,74 @@ const collection = {
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
-      if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
+      if (
+        cardsPresetResult &&
+        cardsPresetResult.values &&
+        cardsLevelsResult &&
+        cardsLevelsResult.values &&
+        cardsSlotsResult &&
+        cardsSlotsResult.values
+      ) {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        
+
         var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
-        
+        var cardsLevelData = cards.getVersion10CardsLevel(
+          cardsLevelValues,
+          cardsSlotsValues
+        );
+
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
           success: cardsSuccess,
-          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          message: cardsSuccess
+            ? "Cards data retrieved successfully"
+            : "Error retrieving Cards data",
           oldCardsPreset: cardsPresetData.oldCardsPreset,
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
-          oldCardSlots: cardsLevelData.oldCardSlots
+          oldCardSlots: cardsLevelData.oldCardSlots,
         };
       }
 
       // Modules data
-      var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
+      var modulesInventoryResult = getBatchResult(
+        "Modules Inventory",
+        "values"
+      );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
-      if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values && modulesTrackerResult && modulesTrackerResult.values) {
+      if (
+        modulesInventoryResult &&
+        modulesInventoryResult.values &&
+        modulesPresetsResult &&
+        modulesPresetsResult.values &&
+        modulesTrackerResult &&
+        modulesTrackerResult.values
+      ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(modulesInventoryValues);
-        var modulesPresetsData = modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(modulesTrackerValues);
-        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success && modulesTrackerData.success;
+        var modulesInventoryData = modules.getVersion50ModulesInventory(
+          modulesInventoryValues
+        );
+        var modulesPresetsData =
+          modules.getVersion50ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData =
+          modules.getVersion47ModulesTracker(modulesTrackerValues);
+        var modulesSuccess =
+          modulesInventoryData.success &&
+          modulesPresetsData.success &&
+          modulesTrackerData.success;
         collectedData.Modules = {
           success: modulesSuccess,
-          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          message: modulesSuccess
+            ? "Modules data retrieved successfully"
+            : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
-          oldModulesTracker: modulesTrackerData.oldModulesTracker
+          oldModulesTracker: modulesTrackerData.oldModulesTracker,
         };
       }
 
@@ -1382,7 +1916,7 @@ const collection = {
         var guardiansData = guardians.getVersion10Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
-      
+
       // Player data
       var playerResult = getBatchResult("Player", "values");
       if (playerResult && playerResult.values) {
@@ -1394,9 +1928,8 @@ const collection = {
       return {
         success: true,
         message: "IDS Collection data retrieved successfully",
-        data: collectedData
+        data: collectedData,
       };
-      
     } catch (error) {
       console.log(`Error in IDS Collection version20: ${error.message}`);
       return {
@@ -1408,52 +1941,53 @@ const collection = {
 
   version204: function () {
     try {
+      console.log("Called: collection.version204");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-      
+
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
-        "values": {
-          "Lab Levels": "EXPORT_Lab!B5:E",              // Laboratory levels
-          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M",          // Workshop levels  
-          "Workshop Plus": "EXPORT_WS!P2:V",            // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G",          // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs",           // Themes & songs data (full sheet)
-          "Bots": "EXPORT_Bots!C5:G",                   // Bots data
-          "Relics": "Relics",                           // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony",             // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power",                 // Vault power data (full sheet)
-          "Card Preset": "Card Preset",                 // Cards preset data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D",          // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2",             // Cards slot data
-          "Modules Inventory": "Modules Inventory",     // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets",         // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker",         // Modules obtained (full sheet)
-          "Guardians": "EXPORT_Guardian!B5:F",          // Guardians data
-          "Player": "EXPORT_Player!B2:D",               // Player data
+        values: {
+          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
+          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
+          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
+          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
+          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
+          Bots: "EXPORT_Bots!C5:G", // Bots data
+          Relics: "Relics", // Relics data (full sheet)
+          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
+          "Vault Power": "Vault_Power", // Vault power data (full sheet)
+          "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
+          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
+          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
+          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
+          Player: "EXPORT_Player!B2:D", // Player data
         },
-        "formulas": {
-          "Lab Planner": "Lab Planner",                 // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios",           // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3" // Ultimate Weapons Cost Calculator (full sheet)
-        }
+        formulas: {
+          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
+          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
+          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+        },
       };
-      
+
       // Create separate ranges arrays and index maps for values and formulas
-      var valuesRanges = Object.keys(rangeMap.values).map(function(key) {
+      var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
-      
-      var formulasRanges = Object.keys(rangeMap.formulas).map(function(key) {
+
+      var formulasRanges = Object.keys(rangeMap.formulas).map(function (key) {
         return rangeMap.formulas[key];
       });
 
       // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
-      
+
       if (valuesRanges.length > 0) {
         batchValuesResults = SheetsAPI.batchGetValues(oldSheetID, valuesRanges);
         if (!batchValuesResults) {
@@ -1464,9 +1998,12 @@ const collection = {
           };
         }
       }
-      
+
       if (formulasRanges.length > 0) {
-        batchFormulasResults = SheetsAPI.batchGetFormulas(oldSheetID, formulasRanges);
+        batchFormulasResults = SheetsAPI.batchGetFormulas(
+          oldSheetID,
+          formulasRanges
+        );
         if (!batchFormulasResults) {
           console.log(`Could not read IDS Collection formulas data`);
           return {
@@ -1475,17 +2012,21 @@ const collection = {
           };
         }
       }
-      
+
       // Helper function to get batch result by key and type
-      var getBatchResult = function(key, type) {
+      var getBatchResult = function (key, type) {
         type = type || "values"; // Default to values if not specified
-        
+
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
-          return index !== -1 && batchValuesResults[index] ? batchValuesResults[index] : null;
+          return index !== -1 && batchValuesResults[index]
+            ? batchValuesResults[index]
+            : null;
         } else if (type === "formulas") {
           var index = Object.keys(rangeMap.formulas).indexOf(key);
-          return index !== -1 && batchFormulasResults[index] ? batchFormulasResults[index] : null;
+          return index !== -1 && batchFormulasResults[index]
+            ? batchFormulasResults[index]
+            : null;
         }
         return null;
       };
@@ -1499,59 +2040,107 @@ const collection = {
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
       if (labLevelsResult && labLevelsResult.values) {
         var labLevelsValues = labLevelsResult.values;
-        var labPlannerValues = labPlannerValuesResult && labPlannerValuesResult.values ? labPlannerValuesResult.values : null;
-        var labPlannerFormulas = labPlannerFormulasResult && labPlannerFormulasResult.values ? labPlannerFormulasResult.values : null;
-        
+        var labPlannerValues =
+          labPlannerValuesResult && labPlannerValuesResult.values
+            ? labPlannerValuesResult.values
+            : null;
+        var labPlannerFormulas =
+          labPlannerFormulasResult && labPlannerFormulasResult.values
+            ? labPlannerFormulasResult.values
+            : null;
+
         var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(labPlannerValues, labPlannerFormulas, labLevelsData.oldLabLevels, labLevelsData.oldLabMax);
-        
+        var labPlannerData = lab.getVersion10LabPlanner(
+          labPlannerValues,
+          labPlannerFormulas,
+          labLevelsData.oldLabLevels,
+          labLevelsData.oldLabMax
+        );
+
         var labSuccess = labLevelsData.success && labPlannerData.success;
         collectedData.Laboratory = {
           success: labSuccess,
-          message: labSuccess ? "Laboratory data retrieved successfully" : "Error retrieving Laboratory data",
+          message: labSuccess
+            ? "Laboratory data retrieved successfully"
+            : "Error retrieving Laboratory data",
           oldLabLevels: labLevelsData.oldLabLevels,
-          oldLabPlanner: labPlannerData.oldLabPlanner
+          oldLabPlanner: labPlannerData.oldLabPlanner,
         };
       }
 
       // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
-      var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "formulas");
-      if (workshopLevelsResult && workshopLevelsResult.values && workshopPlusResult && workshopPlusResult.values && workshopPlusRatioResult && workshopPlusRatioResult.values) {
+      var workshopPlusRatioResult = getBatchResult(
+        "Workshop Ratio",
+        "formulas"
+      );
+      if (
+        workshopLevelsResult &&
+        workshopLevelsResult.values &&
+        workshopPlusResult &&
+        workshopPlusResult.values &&
+        workshopPlusRatioResult &&
+        workshopPlusRatioResult.values
+      ) {
         var workshopLevelsValues = workshopLevelsResult.values;
         var workshopPlusLevelsValues = workshopPlusResult.values;
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
-        
-        var workshopLevelsData = workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(workshopPlusLevelsValues);
-        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames, workshopPlusRatioValues);
-        var workshopSuccess = workshopLevelsData.success && workshopPlusLevelsData.success && workshopPlusRatiosData.success;
+
+        var workshopLevelsData =
+          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshopPlusLevelsValues
+        );
+        var workshopPlusRatiosData = workshop.getVersion20WorkshopPlusRatios(
+          workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
+          workshopPlusRatioValues
+        );
+        var workshopSuccess =
+          workshopLevelsData.success &&
+          workshopPlusLevelsData.success &&
+          workshopPlusRatiosData.success;
         collectedData.Workshop = {
           success: workshopSuccess,
-          message: workshopSuccess ? "Workshop data retrieved successfully" : "Error retrieving Workshop data",
+          message: workshopSuccess
+            ? "Workshop data retrieved successfully"
+            : "Error retrieving Workshop data",
           oldWorkshopLevels: workshopLevelsData.oldWorkshopLevels,
           oldWorkshopPlusLevels: workshopPlusLevelsData.oldWorkshopPlusLevels,
-          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios
+          oldWorkshopPlusRatios: workshopPlusRatiosData.oldWorkshopPlusRatios,
         };
       }
 
       // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
-      var ultimateCostCalculatorResult = getBatchResult("UW Cost Calculator", "formulas");
-      if (ultimateResult && ultimateResult.values && ultimateCostCalculatorResult && ultimateCostCalculatorResult.values) {
+      var ultimateCostCalculatorResult = getBatchResult(
+        "UW Cost Calculator",
+        "formulas"
+      );
+      if (
+        ultimateResult &&
+        ultimateResult.values &&
+        ultimateCostCalculatorResult &&
+        ultimateCostCalculatorResult.values
+      ) {
         var ultimateValues = ultimateResult.values;
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
-        
-        var ultimateWeaponsData = ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(ultimateCostCalculatorValues);
-        
-        var ultimateSuccess = ultimateWeaponsData.success && costCalculatorData.success;
+
+        var ultimateWeaponsData =
+          ultimate.getVersion20UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimateCostCalculatorValues
+        );
+
+        var ultimateSuccess =
+          ultimateWeaponsData.success && costCalculatorData.success;
         collectedData["Ultimate Weapon"] = {
           success: ultimateSuccess,
-          message: ultimateSuccess ? "Ultimate Weapon data retrieved successfully" : "Error retrieving Ultimate Weapon data",
+          message: ultimateSuccess
+            ? "Ultimate Weapon data retrieved successfully"
+            : "Error retrieving Ultimate Weapon data",
           oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
-          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"]
+          oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
 
@@ -1582,17 +2171,24 @@ const collection = {
       // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
-      if (harmonyResult && harmonyResult.values && powerResult && powerResult.values) {
+      if (
+        harmonyResult &&
+        harmonyResult.values &&
+        powerResult &&
+        powerResult.values
+      ) {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
-        
+
         var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
         var powerVaultData = vault.getVersion10Vault(powerValues);
-        
+
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
           success: vaultSuccess,
-          message: vaultSuccess ? "Vault data retrieved successfully" : "Error retrieving Vault data",
+          message: vaultSuccess
+            ? "Vault data retrieved successfully"
+            : "Error retrieving Vault data",
           oldVaultHarmony: harmonyVaultData.oldVault,
           oldVaultPower: powerVaultData.oldVault,
         };
@@ -1602,43 +2198,74 @@ const collection = {
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
-      if (cardsPresetResult && cardsPresetResult.values && cardsLevelsResult && cardsLevelsResult.values && cardsSlotsResult && cardsSlotsResult.values) {
+      if (
+        cardsPresetResult &&
+        cardsPresetResult.values &&
+        cardsLevelsResult &&
+        cardsLevelsResult.values &&
+        cardsSlotsResult &&
+        cardsSlotsResult.values
+      ) {
         var cardsPresetValues = cardsPresetResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
-        
+
         var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(cardsLevelValues, cardsSlotsValues);
-        
+        var cardsLevelData = cards.getVersion10CardsLevel(
+          cardsLevelValues,
+          cardsSlotsValues
+        );
+
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
           success: cardsSuccess,
-          message: cardsSuccess ? "Cards data retrieved successfully" : "Error retrieving Cards data",
+          message: cardsSuccess
+            ? "Cards data retrieved successfully"
+            : "Error retrieving Cards data",
           oldCardsPreset: cardsPresetData.oldCardsPreset,
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
-          oldCardSlots: cardsLevelData.oldCardSlots
+          oldCardSlots: cardsLevelData.oldCardSlots,
         };
       }
 
       // Modules data
-      var modulesInventoryResult = getBatchResult("Modules Inventory", "values");
+      var modulesInventoryResult = getBatchResult(
+        "Modules Inventory",
+        "values"
+      );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
-      if (modulesInventoryResult && modulesInventoryResult.values && modulesPresetsResult && modulesPresetsResult.values && modulesTrackerResult && modulesTrackerResult.values) {
+      if (
+        modulesInventoryResult &&
+        modulesInventoryResult.values &&
+        modulesPresetsResult &&
+        modulesPresetsResult.values &&
+        modulesTrackerResult &&
+        modulesTrackerResult.values
+      ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(modulesInventoryValues);
-        var modulesPresetsData = modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(modulesTrackerValues);
-        var modulesSuccess = modulesInventoryData.success && modulesPresetsData.success && modulesTrackerData.success;
+        var modulesInventoryData = modules.getVersion50ModulesInventory(
+          modulesInventoryValues
+        );
+        var modulesPresetsData =
+          modules.getVersion50ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData =
+          modules.getVersion47ModulesTracker(modulesTrackerValues);
+        var modulesSuccess =
+          modulesInventoryData.success &&
+          modulesPresetsData.success &&
+          modulesTrackerData.success;
         collectedData.Modules = {
           success: modulesSuccess,
-          message: modulesSuccess ? "Modules data retrieved successfully" : "Error retrieving Modules data",
+          message: modulesSuccess
+            ? "Modules data retrieved successfully"
+            : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
-          oldModulesTracker: modulesTrackerData.oldModulesTracker
+          oldModulesTracker: modulesTrackerData.oldModulesTracker,
         };
       }
 
@@ -1649,7 +2276,7 @@ const collection = {
         var guardiansData = guardians.getVersion21Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
-      
+
       // Player data
       var playerResult = getBatchResult("Player", "values");
       if (playerResult && playerResult.values) {
@@ -1661,9 +2288,8 @@ const collection = {
       return {
         success: true,
         message: "IDS Collection data retrieved successfully",
-        data: collectedData
+        data: collectedData,
       };
-      
     } catch (error) {
       console.log(`Error in IDS Collection version204: ${error.message}`);
       return {

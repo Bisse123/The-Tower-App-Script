@@ -1,6 +1,7 @@
 const playerStuff = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: playerStuff.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,17 +10,17 @@ const playerStuff = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
-      
+
       return {
         success: true,
         message: "Player & Stuff export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const playerStuff = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: playerStuff.importData");
       var newSpreadsheet = spreadsheets("Player & Stuff newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -58,8 +59,17 @@ const playerStuff = {
       var idsData = batchResults[1].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -70,7 +80,7 @@ const playerStuff = {
       var batchUpdate = [];
 
       // Only update player & stuff data if key exists
-      if (data.hasOwnProperty('oldPlayerStuffData')) {
+      if (data.hasOwnProperty("oldPlayerStuffData")) {
         var oldPlayerStuffData = data.oldPlayerStuffData;
         var playerResult = this.updatePlayerStuffData(
           "Master Sheet",
@@ -91,10 +101,7 @@ const playerStuff = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -123,6 +130,7 @@ const playerStuff = {
 
   updatePlayerStuffData: function (sheetName, oldPlayerData, masterSheetData) {
     try {
+      console.log("Called: playerStuff.updatePlayerStuffData");
       if (!masterSheetData || masterSheetData.length === 0) {
         console.log(`Master sheet data is empty or not found`);
         return {
@@ -144,8 +152,8 @@ const playerStuff = {
       var header = headerRow[statCol] || "";
       var perkRow = -1;
       var values = {
-        "Stat": [],
-        "Tier": [],
+        Stat: [],
+        Tier: [],
         "Premium Perk": [],
       };
       for (var row = 1; row < masterSheetData.length; row++) {
@@ -162,7 +170,6 @@ const playerStuff = {
           values["Tier"].push([wave, premium]);
         }
 
-
         if (!statName) {
           continue;
         }
@@ -177,15 +184,21 @@ const playerStuff = {
           values[header].push([value]);
         }
       }
-      
+
       var statColLetter = shared.columnToLetter(statCol + 2);
       var tierStartColLetter = shared.columnToLetter(tierCol + 2);
       var tierEndColLetter = shared.columnToLetter(tierCol + 3);
       var batchUpdate = [];
       var ranges = {
-        Stat: `${sheetName}!${statColLetter}2:${statColLetter}${2 + values.Stat.length - 1}`,
-        Tier: `${sheetName}!${tierStartColLetter}2:${tierEndColLetter}${2 + values.Tier.length - 1}`,
-        "Premium Perk": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${perkRow + values["Premium Perk"].length - 1}`,
+        Stat: `${sheetName}!${statColLetter}2:${statColLetter}${
+          2 + values.Stat.length - 1
+        }`,
+        Tier: `${sheetName}!${tierStartColLetter}2:${tierEndColLetter}${
+          2 + values.Tier.length - 1
+        }`,
+        "Premium Perk": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${
+          perkRow + values["Premium Perk"].length - 1
+        }`,
       };
       for (var key in values) {
         if (values[key].length > 0) {
@@ -207,7 +220,6 @@ const playerStuff = {
         message: "Player & Stuff data updated successfully",
         batchUpdate: batchUpdate,
       };
-
     } catch (error) {
       console.log(`Error in updatePlayerStuffData: ${error.toString()}`);
       return {
@@ -219,6 +231,7 @@ const playerStuff = {
 
   version20: function () {
     try {
+      console.log("Called: playerStuff.version20");
       var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -233,13 +246,9 @@ const playerStuff = {
       // TODO: Define appropriate ranges for player & stuff data
       var playerStuffRange = "EXPORT!B2:D";
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        playerStuffRange
+        playerStuffRange,
       ]);
-      if (
-        !batchResult ||
-        batchResult.length === 0 ||
-        !batchResult[0].values
-      ) {
+      if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log(`Could not read old player & stuff data`);
         return {
           success: false,
@@ -261,8 +270,9 @@ const playerStuff = {
 
   getVersion20PlayerStuff: function (oldPlayerStuffValues) {
     try {
-      var headers = ["Stat", "Premium Perk", "Tier"]
-      
+      console.log("Called: playerStuff.getVersion20PlayerStuff");
+      var headers = ["Stat", "Premium Perk", "Tier"];
+
       if (!oldPlayerStuffValues || oldPlayerStuffValues.length === 0) {
         console.log(`No data found in old player & stuff data`);
         return {
@@ -299,8 +309,7 @@ const playerStuff = {
         message: "Player & Stuff processed successfully",
         oldPlayerStuffData: oldPlayerStuffData,
       };
-    }
-     catch (error) {
+    } catch (error) {
       console.log("Error in getVersion20PlayerStuff: " + error.toString());
       return {
         success: false,
