@@ -1,6 +1,7 @@
 const relics = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: relics.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const relics = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const relics = {
       return {
         success: true,
         message: "Relics export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const relics = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: relics.importData");
       var newSpreadsheet = spreadsheets("Relics newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -60,8 +61,17 @@ const relics = {
       var idsData = newRelicsBatchResult[1].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -72,9 +82,13 @@ const relics = {
       var batchUpdate = [];
 
       // Only update relics if key exists
-      if (data.hasOwnProperty('oldRelics')) {
+      if (data.hasOwnProperty("oldRelics")) {
         var oldRelics = data.oldRelics;
-        var relicsResult = this.updateRelics("Relics", oldRelics, newRelicsData);
+        var relicsResult = this.updateRelics(
+          "Relics",
+          oldRelics,
+          newRelicsData
+        );
         if (!relicsResult || !relicsResult.success) {
           console.log(`Error updating relics: ${relicsResult.message}`);
           return relicsResult;
@@ -89,10 +103,7 @@ const relics = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -121,6 +132,7 @@ const relics = {
 
   updateRelics: function (sheetName, oldRelics, newRelicsData) {
     try {
+      console.log("Called: relics.updateRelics");
       if (!newRelicsData || newRelicsData.length < 3) {
         console.log(`Not enough data in new Relics sheet`);
         return {
@@ -155,7 +167,7 @@ const relics = {
       }
 
       var startRow = newRelicHeaderRow + 1;
-      
+
       // Build unlocked status array directly by iterating through new relics data
       var newRelicsUnlocked = [];
       newRelicsData.slice(startRow - 1).forEach(function (row) {
@@ -201,6 +213,7 @@ const relics = {
 
   version10: function () {
     try {
+      console.log("Called: relics.version10");
       var oldSpreadsheet = spreadsheets("Relics oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -242,6 +255,7 @@ const relics = {
 
   getVersion10Relics: function (oldRelicsData) {
     try {
+      console.log("Called: relics.getVersion10Relics");
       var oldRelicHeaderRow = -1;
       var relicNameIndex = -1;
       var relicUnlockedIndex = -1;
@@ -268,11 +282,16 @@ const relics = {
       var startRow = oldRelicHeaderRow + 1;
 
       var oldRelics = [];
-      oldRelicsData.slice(startRow - 1).forEach(function(row) {
+      oldRelicsData.slice(startRow - 1).forEach(function (row) {
         var relicName = row[relicNameIndex];
         var isUnlocked = row[relicUnlockedIndex];
-        
-        if (relicName && (isUnlocked === true || isUnlocked === "TRUE" || isUnlocked === "true")) {
+
+        if (
+          relicName &&
+          (isUnlocked === true ||
+            isUnlocked === "TRUE" ||
+            isUnlocked === "true")
+        ) {
           oldRelics.push(relicName);
         }
       });

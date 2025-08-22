@@ -1,6 +1,7 @@
 const themes = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: themes.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const themes = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const themes = {
       return {
         success: true,
         message: "Themes & Songs export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const themes = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: themes.importData");
       var newSpreadsheet = spreadsheets("Themes & Songs newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -58,8 +59,17 @@ const themes = {
       var idsData = batchResults[1].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -70,7 +80,7 @@ const themes = {
       var batchUpdate = [];
 
       // Only update themes if key exists
-      if (data.hasOwnProperty('oldThemesNames')) {
+      if (data.hasOwnProperty("oldThemesNames")) {
         var oldThemesNames = data.oldThemesNames;
         var themesResult = this.updateThemes(
           "Themes & Songs",
@@ -91,10 +101,7 @@ const themes = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -121,94 +128,100 @@ const themes = {
     }
   },
 
-  updateThemes: function (
-    sheetName,
-    oldThemesNames,
-    newThemesData
-  ) {
-    var targetThemes = [
-      "Tower Skin",
-      "Background Skin",
-      "Songs",
-      "Guardians",
-      "Menu",
-      "Profile Banner",
-    ];
-    if (!newThemesData) {
-      console.log(`Error getting new themes data`);
-      return { success: false, message: "Error getting new themes data" };
-    }
+  updateThemes: function (sheetName, oldThemesNames, newThemesData) {
+    try {
+      console.log("Called: themes.updateThemes");
+      var targetThemes = [
+        "Tower Skin",
+        "Background Skin",
+        "Songs",
+        "Guardians",
+        "Menu",
+        "Profile Banner",
+      ];
+      if (!newThemesData) {
+        console.log(`Error getting new themes data`);
+        return { success: false, message: "Error getting new themes data" };
+      }
 
-    // For each header, store {col, startRow} for quick reference
-    var headerLocations = {};
+      // For each header, store {col, startRow} for quick reference
+      var headerLocations = {};
 
-    // Pre-scan to find header columns and their start rows
-    for (var i = 0; i < newThemesData.length; i++) {
-      for (var j = 0; j < newThemesData[i].length; j++) {
-        var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
-        if (targetThemes.indexOf(newThemeUnlocked) !== -1) {
-          // If not already recorded for this col, store its location
-          if (!headerLocations[newThemeUnlocked]) {
-            headerLocations[newThemeUnlocked] = [];
+      // Pre-scan to find header columns and their start rows
+      for (var i = 0; i < newThemesData.length; i++) {
+        for (var j = 0; j < newThemesData[i].length; j++) {
+          var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
+          if (targetThemes.indexOf(newThemeUnlocked) !== -1) {
+            // If not already recorded for this col, store its location
+            if (!headerLocations[newThemeUnlocked]) {
+              headerLocations[newThemeUnlocked] = [];
+            }
+            headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 }); // +1 to start below header
           }
-          headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 }); // +1 to start below header
         }
       }
-    }
 
-    var batchUpdate = [];
+      var batchUpdate = [];
 
-    // For each header, possibly in multiple places
-    for (var key in headerLocations) {
-      headerLocations[key].forEach(function (loc) {
-        var checkboxCol = loc.col;
-        var startRow = loc.startRow;
-        var checkedSet = new Set((oldThemesNames[key] || []).map(String));
-        var checkboxArr = [];
+      // For each header, possibly in multiple places
+      for (var key in headerLocations) {
+        headerLocations[key].forEach(function (loc) {
+          var checkboxCol = loc.col;
+          var startRow = loc.startRow;
+          var checkedSet = new Set((oldThemesNames[key] || []).map(String));
+          var checkboxArr = [];
 
-        for (var row = startRow; row < newThemesData.length; row++) {
-          var newThemeName = newThemesData[row][checkboxCol + 1];
-          if (
-            newThemeName === "" ||
-            newThemeName === null ||
-            typeof newThemeName === "undefined" ||
-            targetThemes.indexOf(String(newThemeName || "").trim()) !== -1
-          ) {
-            break;
+          for (var row = startRow; row < newThemesData.length; row++) {
+            var newThemeName = newThemesData[row][checkboxCol + 1];
+            if (
+              newThemeName === "" ||
+              newThemeName === null ||
+              typeof newThemeName === "undefined" ||
+              targetThemes.indexOf(String(newThemeName || "").trim()) !== -1
+            ) {
+              break;
+            }
+            checkboxArr.push([checkedSet.has(String(newThemeName))]);
           }
-          checkboxArr.push([checkedSet.has(String(newThemeName))]);
-        }
 
-        if (checkboxArr.length > 0) {
-          var startCell =
-            shared.columnToLetter(checkboxCol + 1) + (startRow + 1);
-          var endCell =
-            shared.columnToLetter(checkboxCol + 1) +
-            (startRow + checkboxArr.length);
-          batchUpdate.push({
-            range: `${sheetName}!${startCell}:${endCell}`,
-            values: checkboxArr,
-          });
-        }
-      });
-    }
+          if (checkboxArr.length > 0) {
+            var startCell =
+              shared.columnToLetter(checkboxCol + 1) + (startRow + 1);
+            var endCell =
+              shared.columnToLetter(checkboxCol + 1) +
+              (startRow + checkboxArr.length);
+            batchUpdate.push({
+              range: `${sheetName}!${startCell}:${endCell}`,
+              values: checkboxArr,
+            });
+          }
+        });
+      }
 
-    if (batchUpdate.length !== 0) {
+      if (batchUpdate.length !== 0) {
+        return {
+          success: true,
+          message: "Themes & Songs updated successfully",
+          batchUpdate: batchUpdate,
+        };
+      }
+      return { success: true, message: "No updates needed for Themes & Songs" };
+    } catch (error) {
+      console.log("Error in updateThemes: " + error.toString());
       return {
-        success: true,
-        message: "Themes & Songs updated successfully",
-        batchUpdate: batchUpdate,
+        success: false,
+        message: "Error in updateThemes: " + error.message,
       };
     }
-    return { success: true, message: "No updates needed for Themes & Songs" };
   },
 
   version10: function () {
     try {
+      console.log("Called: themes.version10");
       var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var themesValuesRange = "Themes & Songs"
+      var themesValuesRange = "Themes & Songs";
       var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         themesValuesRange,
       ]);
@@ -235,6 +248,7 @@ const themes = {
 
   getVersion10Themes: function (oldThemesData) {
     try {
+      console.log("Called: themes.getVersion10Themes");
       var targetThemes = [
         "Tower Skin",
         "Background Skin",

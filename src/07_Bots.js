@@ -1,6 +1,7 @@
 const bots = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: bots.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const bots = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const bots = {
       return {
         success: true,
         message: "Bots export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const bots = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: bots.importData");
       var newSpreadsheet = spreadsheets("Bots newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -59,8 +60,17 @@ const bots = {
       var dataValTablesData = batchResults[2].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -71,7 +81,7 @@ const bots = {
       var batchUpdate = [];
 
       // Only update bots if key exists
-      if (data.hasOwnProperty('oldBots')) {
+      if (data.hasOwnProperty("oldBots")) {
         var oldBots = data.oldBots;
         var botsResult = this.updateBotLevels(
           "Master Sheet",
@@ -93,10 +103,7 @@ const bots = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -130,6 +137,7 @@ const bots = {
     dataValTablesData
   ) {
     try {
+      console.log("Called: bots.updateBotLevels");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",
@@ -202,8 +210,12 @@ const bots = {
 
       var newBotUnlocked = [];
       var newBotLevel = [];
-      
-      var oldBots = shared.getNewDataValidationValues(dataValTablesData, "Bots", oldBotsData);
+
+      var oldBots = shared.getNewDataValidationValues(
+        dataValTablesData,
+        "Bots",
+        oldBotsData
+      );
 
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];
@@ -280,6 +292,7 @@ const bots = {
 
   version20: function () {
     try {
+      console.log("Called: bots.version20");
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -293,7 +306,7 @@ const bots = {
 
       var botsLevelsRange = "EXPORT!C5:G";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        botsLevelsRange
+        botsLevelsRange,
       ]);
       if (
         !botBatchResult ||
@@ -321,6 +334,7 @@ const bots = {
 
   version10: function () {
     try {
+      console.log("Called: bots.version10");
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -334,7 +348,7 @@ const bots = {
 
       var botsLevelsRange = "EXPORT!C5:G";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        botsLevelsRange
+        botsLevelsRange,
       ]);
       if (
         !botBatchResult ||
@@ -362,6 +376,7 @@ const bots = {
 
   getVersion10Bots: function (oldBotLevelsData) {
     try {
+      console.log("Called: bots.getVersion10Bots");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",
@@ -401,7 +416,9 @@ const bots = {
               var valueStr = value.toString();
               if (valueStr.length >= 2 && /^\d{2}/.test(valueStr)) {
                 var firstTwoDigits = parseInt(valueStr.substring(0, 2));
-                var modifiedFirstTwo = (firstTwoDigits - 1).toString().padStart(2, '0');
+                var modifiedFirstTwo = (firstTwoDigits - 1)
+                  .toString()
+                  .padStart(2, "0");
                 value = modifiedFirstTwo + valueStr.substring(2);
               }
               bot.props[key] = value;
@@ -427,6 +444,7 @@ const bots = {
 
   getVersion20Bots: function (oldBotLevelsData) {
     try {
+      console.log("Called: bots.getVersion20Bots");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",

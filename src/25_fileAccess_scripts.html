@@ -61,74 +61,73 @@
       });
       google.script.run
         .withSuccessHandler(async function(result) {
-              console.log("Import preparation result:", result);
-  
-              if (!result.succeededTasks || result.succeededTasks.length === 0) {
-                document.getElementById("importButton").disabled = false;
-                
-                // Show generic message in status text
-                const statusMessage = result.failedTasks && result.failedTasks.length > 0 
-                  ? "Import preparation failed for all tasks."
-                  : "No valid import tasks prepared.";
-                document.getElementById("statusText").innerText = statusMessage;
-                
-                // Show detailed error messages for each failed task in the summary
-                if (result.failedTasks && result.failedTasks.length > 0) {
-                  let summaryHtml = "<strong>❌ Import Preparation Failed:</strong><br>";
-                  result.failedTasks.forEach(task => {
-                    summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
-                  });
-                  document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
-                }
-                
-                return;
-              }
-              
-              if (result.failedTasks && result.failedTasks.length > 0) {
-                console.warn(`${result.failedTasks.length} tasks failed during preparation:`, result.failedTasks);
-              }
+          console.log("Import preparation result:", result);
 
-              try {
-                // First, export all data
-                document.getElementById("statusText").innerText = `Exporting data from ${result.succeededTasks.length} sheets...`;
-                const exportResults = await exportAllData(result.succeededTasks);
-                
-                console.log("Export results:", exportResults);
-                
-                if (exportResults.failedCount > 0) {
-                  console.warn(`${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`);
-                }
-                
-                // Check if we have any successful exports to import
-                if (exportedFilesSuccess.length === 0) {
-                  document.getElementById("importButton").disabled = false;
-                  document.getElementById("statusText").innerText = "No data was successfully exported. Cannot proceed with import.";
-                  return;
-                }
-                // Create nested dictionary structure where each sheet type has its own data dictionary
-                const exportedData = {};
-                exportedFilesSuccess.forEach(exportedFile => {
-                  if (exportedFile.exportData && exportedFile.sheetType) {
-                    exportedData[exportedFile.sheetType] = exportedFile.exportData;
-                  }
-                });
-                
-                // Now proceed with imports
-                document.getElementById("statusText").innerText = `Importing ${sheetType} data...`;
-                google.script.run
-                  .withSuccessHandler(onImportSuccess)
-                  .withFailureHandler(onImportFailure)
-                  .importData(
-                    newSheetID,
-                    sheetType,
-                    exportedData
-                  );
+          if (!result.succeededTasks || result.succeededTasks.length === 0) {
+            document.getElementById("importButton").disabled = false;
+            
+            // Show generic message in status text
+            const statusMessage = result.failedTasks && result.failedTasks.length > 0 
+              ? "Import preparation failed for all tasks."
+              : "No valid import tasks prepared.";
+            document.getElementById("statusText").innerText = statusMessage;
+            
+            // Show detailed error messages for each failed task in the summary
+            if (result.failedTasks && result.failedTasks.length > 0) {
+              let summaryHtml = "<strong>❌ Import Preparation Failed:</strong><br>";
+              result.failedTasks.forEach(task => {
+                summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
+              });
+              document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+            }
+            return;
+          }
+          
+          if (result.failedTasks && result.failedTasks.length > 0) {
+            console.warn(`${result.failedTasks.length} tasks failed during preparation:`, result.failedTasks);
+          }
 
-              } catch (error) {
-                console.error("Error in export/import process:", error);
-                document.getElementById("importButton").disabled = false;
-                document.getElementById("statusText").innerText = `Error during export/import process: ${error.message || error}`;
+          try {
+            // First, export all data
+            document.getElementById("statusText").innerText = `Exporting data from ${result.succeededTasks.length} sheets...`;
+            const exportResults = await exportAllData(result.succeededTasks);
+            
+            console.log("Export results:", exportResults);
+            
+            if (exportResults.failedCount > 0) {
+              console.warn(`${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`);
+            }
+            
+            // Check if we have any successful exports to import
+            if (exportedFilesSuccess.length === 0) {
+              document.getElementById("importButton").disabled = false;
+              document.getElementById("statusText").innerText = "No data was successfully exported. Cannot proceed with import.";
+              return;
+            }
+            // Create nested dictionary structure where each sheet type has its own data dictionary
+            const exportedData = {};
+            exportedFilesSuccess.forEach(exportedFile => {
+              if (exportedFile.exportData && exportedFile.sheetType) {
+                exportedData[exportedFile.sheetType] = exportedFile.exportData;
               }
+            });
+            
+            // Now proceed with imports
+            document.getElementById("statusText").innerText = `Importing ${sheetType} data...`;
+            google.script.run
+              .withSuccessHandler(onImportSuccess)
+              .withFailureHandler(onImportFailure)
+              .importData(
+                newSheetID,
+                sheetType,
+                exportedData
+              );
+
+          } catch (error) {
+            console.error("Error in export/import process:", error);
+            document.getElementById("importButton").disabled = false;
+            document.getElementById("statusText").innerText = `Error during export/import process: ${error.message || error}`;
+          }
         })
         .withFailureHandler(function(error) {
           document.getElementById("importButton").disabled = false;

@@ -1,6 +1,7 @@
 const guardians = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: guardians.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,17 +10,15 @@ const guardians = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
       }
-
       return {
         success: true,
         message: "Guardians export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +31,7 @@ const guardians = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: guardians.importData");
       var newSpreadsheet = spreadsheets("Guardians newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -46,11 +45,7 @@ const guardians = {
       // Batch fetch required sheet data
       var requiredRanges = ["Master Sheet", "IDS", "Data_Val_Tables"];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
-      if (
-        !batchResult ||
-        batchResult.length === 0 ||
-        !batchResult[0].values
-      ) {
+      if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log("Error getting guardians sheet data");
         return {
           success: false,
@@ -63,8 +58,17 @@ const guardians = {
       var dataValTablesData = batchResult[2].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -75,7 +79,7 @@ const guardians = {
       var batchUpdate = [];
 
       // Only update guardians if key exists
-      if (data.hasOwnProperty('oldGuardians')) {
+      if (data.hasOwnProperty("oldGuardians")) {
         var oldGuardians = data.oldGuardians;
         var guardiansResult = this.updateGuardianLevels(
           "Master Sheet",
@@ -97,10 +101,7 @@ const guardians = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -134,7 +135,7 @@ const guardians = {
     dataValTablesData
   ) {
     try {
-
+      console.log("Called: guardians.updateGuardianLevels");
       var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
       if (!masterSheetData || masterSheetData.length < 2) {
         return {
@@ -142,10 +143,10 @@ const guardians = {
           message: "Not enough data in Master Sheet™",
         };
       }
-  
+
       var headerRow = masterSheetData[0];
       var guardianCol = headerRow.indexOf("Guardians") + 1;
-  
+
       if (guardianCol === 0) {
         console.log(`Guardian Weapon column not found`);
         return {
@@ -153,10 +154,10 @@ const guardians = {
           message: `Guardian Weapon column not found`,
         };
       }
-  
+
       var startCol = guardianCol + 1;
       var endCol = guardianCol + 5;
-  
+
       var newGuardianDataValues = masterSheetData
         .slice(1)
         .map(function (row) {
@@ -171,14 +172,14 @@ const guardians = {
             );
           });
         });
-  
+
       if (!newGuardianDataValues || newGuardianDataValues.length === 0) {
         return {
           success: false,
           message: "Could not read guardian data",
         };
       }
-  
+
       var newGuardianData = newGuardianDataValues.filter((row) =>
         row.some(
           (cell) =>
@@ -187,12 +188,16 @@ const guardians = {
             String(cell || "").trim() !== ""
         )
       );
-      
+
       var newGuardianUnlocked = [];
       var newGuardianLevel = [];
-  
-      var oldGuardians = shared.getNewDataValidationValues(dataValTablesData, "Guardians", oldGuardiansData);
-      
+
+      var oldGuardians = shared.getNewDataValidationValues(
+        dataValTablesData,
+        "Guardians",
+        oldGuardiansData
+      );
+
       for (var row = 0; row < newGuardianData.length; row++) {
         var rowData = newGuardianData[row];
         if (oldGuardians.hasOwnProperty(rowData[0])) {
@@ -200,7 +205,7 @@ const guardians = {
           newGuardianUnlocked.push([rowData[0]]);
           newGuardianUnlocked.push([""]);
           newGuardianUnlocked.push([oldGuardian.unlocked]);
-  
+
           for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
             var nextRowData = newGuardianData[nextRow];
             if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
@@ -221,7 +226,7 @@ const guardians = {
           newGuardianUnlocked.push([rowData[0]]);
         }
       }
-  
+
       var batchUpdate = [];
       if (newGuardianUnlocked.length > 0) {
         var unlockedCol = shared.columnToLetter(guardianCol + 1);
@@ -233,7 +238,7 @@ const guardians = {
           values: newGuardianUnlocked,
         });
       }
-  
+
       if (newGuardianLevel.length > 0) {
         var levelCol = shared.columnToLetter(guardianCol + 5);
         var levelRange = `${sheetName}!${levelCol}2:${levelCol}${
@@ -266,6 +271,7 @@ const guardians = {
 
   version21: function () {
     try {
+      console.log("Called: guardians.version21");
       var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -307,6 +313,7 @@ const guardians = {
 
   version10: function () {
     try {
+      console.log("Called: guardians.version10");
       var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -348,6 +355,7 @@ const guardians = {
 
   getVersion10Guardians: function (oldGuardianLevelsData) {
     try {
+      console.log("Called: guardians.getVersion10Guardians");
       var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
@@ -378,8 +386,8 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-                value = (value - 1).toString().padStart(2, '0');
-                guardian.props[key] = value;
+              value = (value - 1).toString().padStart(2, "0");
+              guardian.props[key] = value;
             }
           }
           guardianName = guardianName === "Steal" ? "Bounty" : guardianName;
@@ -401,6 +409,7 @@ const guardians = {
 
   getVersion21Guardians: function (oldGuardianLevelsData) {
     try {
+      console.log("Called: guardians.getVersion21Guardians");
       var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
@@ -431,7 +440,7 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-                guardian.props[key] = value;
+              guardian.props[key] = value;
             }
           }
           oldGuardians[guardianName] = guardian;
@@ -450,7 +459,7 @@ const guardians = {
       };
     }
   },
-  
+
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),

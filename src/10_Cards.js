@@ -1,6 +1,7 @@
 const cards = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: cards.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const cards = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const cards = {
       return {
         success: true,
         message: "Cards export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const cards = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: cards.importData");
       var newSpreadsheet = spreadsheets("Cards newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -58,8 +59,17 @@ const cards = {
       var idsData = batchResults[2].values;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -70,7 +80,10 @@ const cards = {
       var batchUpdate = [];
 
       // Only update cards levels if key exists
-      if (data.hasOwnProperty('oldCardsLevel') && data.hasOwnProperty('oldCardSlots')) {
+      if (
+        data.hasOwnProperty("oldCardsLevel") &&
+        data.hasOwnProperty("oldCardSlots")
+      ) {
         var oldCardsLevel = data.oldCardsLevel;
         var oldCardSlots = data.oldCardSlots || "";
         var levelsResult = this.updateCardsLevels(
@@ -87,7 +100,7 @@ const cards = {
       }
 
       // Only update cards preset if key exists
-      if (data.hasOwnProperty('oldCardsPreset')) {
+      if (data.hasOwnProperty("oldCardsPreset")) {
         var oldCardsPreset = data.oldCardsPreset;
         var shouldRemoveUsedCards = data.shouldRemoveUsedCards || true;
         var presetResult = this.updateCardsPreset(
@@ -110,10 +123,7 @@ const cards = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -146,87 +156,96 @@ const cards = {
     oldCardSlots,
     masterSheetData
   ) {
-    if (!masterSheetData) {
-      console.log(`Error getting cards master sheet data`);
-      return {
-        success: false,
-        message: "Error getting cards master sheet data",
-      };
-    }
-    if (masterSheetData.length < 2) {
-      console.log(`Master Sheet has no data or only header row`);
-      return {
-        success: false,
-        message: "Master Sheet has no data or only header row",
-      };
-    }
-
-    var headerRow = masterSheetData[0];
-    var newCardNameCol = headerRow.indexOf("Card Name");
-    if (newCardNameCol === -1) {
-      console.log(`Card Name column not found in Master Sheet`);
-      return {
-        success: false,
-        message: "Card Name column not found in Master Sheet",
-      };
-    }
-
-    var newCardsLevels = [];
-    for (var i = 1; i < masterSheetData.length; i++) {
-      var row = masterSheetData[i];
-      if (row.length > newCardNameCol + 2) {
-        newCardsLevels.push([
-          row[newCardNameCol] || "",
-          row[newCardNameCol + 1] || "",
-          row[newCardNameCol + 2] || "",
-        ]);
+    try {
+      console.log("Called: cards.updateCardsLevels");
+      if (!masterSheetData) {
+        console.log(`Error getting cards master sheet data`);
+        return {
+          success: false,
+          message: "Error getting cards master sheet data",
+        };
       }
-    }
-
-    var oldCards = {};
-    oldCardsLevel.forEach(function (row) {
-      var oldCardName = row[0];
-      var oldLevel = row[1];
-      var oldMastery = row[2];
-      if (oldCardName) {
-        oldCards[oldCardName] = [oldLevel, oldMastery];
+      if (masterSheetData.length < 2) {
+        console.log(`Master Sheet has no data or only header row`);
+        return {
+          success: false,
+          message: "Master Sheet has no data or only header row",
+        };
       }
-    });
 
-    var newCards = [];
-    newCardsLevels.forEach(function (row) {
-      var newCardName = row[0];
-      if (newCardName === "Card Slot (Gems)") {
-        newCards.push([oldCardSlots, ""]);
-      } else if (oldCards.hasOwnProperty(newCardName)) {
-        newCards.push(oldCards[newCardName]);
-      } else {
-        newCards.push([row[1], row[2]]);
+      var headerRow = masterSheetData[0];
+      var newCardNameCol = headerRow.indexOf("Card Name");
+      if (newCardNameCol === -1) {
+        console.log(`Card Name column not found in Master Sheet`);
+        return {
+          success: false,
+          message: "Card Name column not found in Master Sheet",
+        };
       }
-    });
 
-    var batchUpdate = [];
-    if (newCards.length > 0) {
-      var startCol = shared.columnToLetter(newCardNameCol + 2);
-      var endCol = shared.columnToLetter(newCardNameCol + 3);
-      var range =
-        sheetName + "!" + startCol + "2:" + endCol + (1 + newCards.length);
-      batchUpdate.push({
-        range: range,
-        values: newCards,
+      var newCardsLevels = [];
+      for (var i = 1; i < masterSheetData.length; i++) {
+        var row = masterSheetData[i];
+        if (row.length > newCardNameCol + 2) {
+          newCardsLevels.push([
+            row[newCardNameCol] || "",
+            row[newCardNameCol + 1] || "",
+            row[newCardNameCol + 2] || "",
+          ]);
+        }
+      }
+
+      var oldCards = {};
+      oldCardsLevel.forEach(function (row) {
+        var oldCardName = row[0];
+        var oldLevel = row[1];
+        var oldMastery = row[2];
+        if (oldCardName) {
+          oldCards[oldCardName] = [oldLevel, oldMastery];
+        }
       });
-    }
-    if (batchUpdate.length !== 0) {
+
+      var newCards = [];
+      newCardsLevels.forEach(function (row) {
+        var newCardName = row[0];
+        if (newCardName === "Card Slot (Gems)") {
+          newCards.push([oldCardSlots, ""]);
+        } else if (oldCards.hasOwnProperty(newCardName)) {
+          newCards.push(oldCards[newCardName]);
+        } else {
+          newCards.push([row[1], row[2]]);
+        }
+      });
+
+      var batchUpdate = [];
+      if (newCards.length > 0) {
+        var startCol = shared.columnToLetter(newCardNameCol + 2);
+        var endCol = shared.columnToLetter(newCardNameCol + 3);
+        var range =
+          sheetName + "!" + startCol + "2:" + endCol + (1 + newCards.length);
+        batchUpdate.push({
+          range: range,
+          values: newCards,
+        });
+      }
+      if (batchUpdate.length !== 0) {
+        return {
+          success: true,
+          message: `Cards levels updated successfully`,
+          batchUpdate: batchUpdate,
+        };
+      }
       return {
         success: true,
-        message: `Cards levels updated successfully`,
-        batchUpdate: batchUpdate,
+        message: `No updates needed for cards levels`,
+      };
+    } catch (error) {
+      console.log("Error in updateCardsLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in updateCardsLevels: " + error.message,
       };
     }
-    return {
-      success: true,
-      message: `No updates needed for cards levels`,
-    };
   },
 
   updateCardsPreset: function (
@@ -235,179 +254,189 @@ const cards = {
     shouldRemoveUsedCards,
     cardPresetsData
   ) {
-    if (!cardPresetsData) {
-      console.log(`Error getting cards preset sheet data`);
-      return {
-        success: false,
-        message: "Error getting cards preset sheet data",
-      };
-    }
-    if (cardPresetsData.length < 3) {
-      console.log(`Card Preset sheet has no data or only header row`);
-      return {
-        success: false,
-        message: "Card Preset sheet has no data or only header row",
-      };
-    }
-
-    var headerRowIndex = -1;
-    var headerColIndices = [];
-    var batchUpdate = [];
-
-    for (var row = 0; row < cardPresetsData.length; row++) {
-      if (
-        cardPresetsData[row].indexOf("Remove used cards from the pool") !== -1
-      ) {
-        var removeUsedCardsCol = shared.columnToLetter(
-          cardPresetsData[row].indexOf("Remove used cards from the pool")
-        );
-        batchUpdate.push({
-          range: sheetName + "!" + removeUsedCardsCol + (row + 1),
-          values: [[shouldRemoveUsedCards]],
-        });
-        continue;
+    try {
+      console.log("Called: cards.updateCardsPreset");
+      if (!cardPresetsData) {
+        console.log(`Error getting cards preset sheet data`);
+        return {
+          success: false,
+          message: "Error getting cards preset sheet data",
+        };
       }
-      var nonEmptyCells = cardPresetsData[row].filter(function (cell) {
-        return (
-          cell !== null && cell !== undefined && String(cell).trim() !== ""
-        );
-      });
-
-      if (
-        nonEmptyCells.length >= 2 &&
-        nonEmptyCells[0] === "Farming" &&
-        nonEmptyCells[1] === "Tourney"
-      ) {
-        headerRowIndex = row;
-
-        nonEmptyCells.forEach(function (header) {
-          var colIndex = cardPresetsData[row].indexOf(header);
-          if (colIndex !== -1) {
-            headerColIndices.push(colIndex);
-          }
-        });
-        break;
+      if (cardPresetsData.length < 3) {
+        console.log(`Card Preset sheet has no data or only header row`);
+        return {
+          success: false,
+          message: "Card Preset sheet has no data or only header row",
+        };
       }
-    }
 
-    if (headerRowIndex === -1) {
-      console.log(`Could not find header row with "Farming" and "Tourney"`);
-      return {
-        success: false,
-        message: "Could not find header row with Farming and Tourney",
-      };
-    }
+      var headerRowIndex = -1;
+      var headerColIndices = [];
+      var batchUpdate = [];
 
-    if (headerColIndices.length < 5) {
-      console.log(
-        `Expected 5 preset columns but found ${headerColIndices.length}`
-      );
-      return {
-        success: false,
-        message: `Expected 5 preset columns but found ${headerColIndices.length}`,
-      };
-    }
-
-    Object.keys(oldCardsPreset).forEach(function (presetName) {
-      var presetData = oldCardsPreset[presetName];
-
-      if (!presetData.order) return;
-
-      var orderIndex = presetData.order - 1;
-      if (orderIndex >= 0 && orderIndex < headerColIndices.length) {
-        var colIndex = headerColIndices[orderIndex];
-
-        var headerCell =
-          shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
-        batchUpdate.push({
-          range: sheetName + "!" + headerCell,
-          values: [[presetName]],
-        });
-
-        var cardsStartRow = headerRowIndex + 1;
-        var removeStartRow = -1;
-
-        for (
-          var row = headerRowIndex + 1;
-          row < cardPresetsData.length;
-          row++
+      for (var row = 0; row < cardPresetsData.length; row++) {
+        if (
+          cardPresetsData[row].indexOf("Remove used cards from the pool") !== -1
         ) {
-          if (
-            cardPresetsData[row].some((cell) =>
-              String(cell).includes("Cards to remove from the pool")
-            )
-          ) {
-            removeStartRow = row + 1;
-            break;
-          }
-        }
-
-        if (removeStartRow === -1) {
-          removeStartRow = cardPresetsData.length;
-        }
-
-        if (presetData.cards && presetData.cards.length > 0) {
-          var cardsData = presetData.cards.map(function (card) {
-            return [card];
-          });
-
-          var startCell =
-            shared.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
-          var endCell =
-            shared.columnToLetter(colIndex + 2) +
-            (cardsStartRow + cardsData.length);
-
+          var removeUsedCardsCol = shared.columnToLetter(
+            cardPresetsData[row].indexOf("Remove used cards from the pool")
+          );
           batchUpdate.push({
-            range: sheetName + "!" + startCell + ":" + endCell,
-            values: cardsData,
+            range: sheetName + "!" + removeUsedCardsCol + (row + 1),
+            values: [[shouldRemoveUsedCards]],
           });
+          continue;
         }
+        var nonEmptyCells = cardPresetsData[row].filter(function (cell) {
+          return (
+            cell !== null && cell !== undefined && String(cell).trim() !== ""
+          );
+        });
 
         if (
-          presetData.remove &&
-          presetData.remove.length > 0 &&
-          removeStartRow !== -1
+          nonEmptyCells.length >= 2 &&
+          nonEmptyCells[0] === "Farming" &&
+          nonEmptyCells[1] === "Tourney"
         ) {
-          var removeData = presetData.remove.map(function (card) {
-            return [card];
-          });
+          headerRowIndex = row;
 
-          var startCell =
-            shared.columnToLetter(colIndex + 2) + (removeStartRow + 1);
-          var endCell =
-            shared.columnToLetter(colIndex + 2) +
-            (removeStartRow + removeData.length);
-
-          batchUpdate.push({
-            range: sheetName + "!" + startCell + ":" + endCell,
-            values: removeData,
+          nonEmptyCells.forEach(function (header) {
+            var colIndex = cardPresetsData[row].indexOf(header);
+            if (colIndex !== -1) {
+              headerColIndices.push(colIndex);
+            }
           });
+          break;
         }
       }
-    });
 
-    if (batchUpdate.length !== 0) {
+      if (headerRowIndex === -1) {
+        console.log(`Could not find header row with "Farming" and "Tourney"`);
+        return {
+          success: false,
+          message: "Could not find header row with Farming and Tourney",
+        };
+      }
+
+      if (headerColIndices.length < 5) {
+        console.log(
+          `Expected 5 preset columns but found ${headerColIndices.length}`
+        );
+        return {
+          success: false,
+          message: `Expected 5 preset columns but found ${headerColIndices.length}`,
+        };
+      }
+
+      Object.keys(oldCardsPreset).forEach(function (presetName) {
+        var presetData = oldCardsPreset[presetName];
+
+        if (!presetData.order) return;
+
+        var orderIndex = presetData.order - 1;
+        if (orderIndex >= 0 && orderIndex < headerColIndices.length) {
+          var colIndex = headerColIndices[orderIndex];
+
+          var headerCell =
+            shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+          batchUpdate.push({
+            range: sheetName + "!" + headerCell,
+            values: [[presetName]],
+          });
+
+          var cardsStartRow = headerRowIndex + 1;
+          var removeStartRow = -1;
+
+          for (
+            var row = headerRowIndex + 1;
+            row < cardPresetsData.length;
+            row++
+          ) {
+            if (
+              cardPresetsData[row].some((cell) =>
+                String(cell).includes("Cards to remove from the pool")
+              )
+            ) {
+              removeStartRow = row + 1;
+              break;
+            }
+          }
+
+          if (removeStartRow === -1) {
+            removeStartRow = cardPresetsData.length;
+          }
+
+          if (presetData.cards && presetData.cards.length > 0) {
+            var cardsData = presetData.cards.map(function (card) {
+              return [card];
+            });
+
+            var startCell =
+              shared.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
+            var endCell =
+              shared.columnToLetter(colIndex + 2) +
+              (cardsStartRow + cardsData.length);
+
+            batchUpdate.push({
+              range: sheetName + "!" + startCell + ":" + endCell,
+              values: cardsData,
+            });
+          }
+
+          if (
+            presetData.remove &&
+            presetData.remove.length > 0 &&
+            removeStartRow !== -1
+          ) {
+            var removeData = presetData.remove.map(function (card) {
+              return [card];
+            });
+
+            var startCell =
+              shared.columnToLetter(colIndex + 2) + (removeStartRow + 1);
+            var endCell =
+              shared.columnToLetter(colIndex + 2) +
+              (removeStartRow + removeData.length);
+
+            batchUpdate.push({
+              range: sheetName + "!" + startCell + ":" + endCell,
+              values: removeData,
+            });
+          }
+        }
+      });
+
+      if (batchUpdate.length !== 0) {
+        return {
+          success: true,
+          message: `cards preset updated successfully`,
+          batchUpdate: batchUpdate,
+        };
+      }
+
       return {
         success: true,
-        message: `cards preset updated successfully`,
-        batchUpdate: batchUpdate,
+        message: `No updates needed for cards preset`,
+      };
+    } catch (error) {
+      console.log("Error in updateCardsPreset: " + error.toString());
+      return {
+        success: false,
+        message: "Error in updateCardsPreset: " + error.message,
       };
     }
-
-    return {
-      success: true,
-      message: `No updates needed for cards preset`,
-    };
   },
 
   version10: function () {
     try {
+      console.log("Called: cards.version10");
       var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
-  
+
       var oldRanges = ["Card Preset", "EXPORT!B5:D", "EXPORT!C2"];
       var oldBatchResult = SheetsAPI.batchGetValues(oldSheetID, oldRanges);
-  
+
       var oldCardsPresetData = oldBatchResult[0].values;
       var oldCardsLevelData = oldBatchResult[1].values;
       var oldCardSlotsData = oldBatchResult[2].values;
@@ -417,7 +446,10 @@ const cards = {
         return cardsPresetData;
       }
 
-      var cardsLevelData = this.getVersion10CardsLevel(oldCardsLevelData, oldCardSlotsData);
+      var cardsLevelData = this.getVersion10CardsLevel(
+        oldCardsLevelData,
+        oldCardSlotsData
+      );
       if (!cardsLevelData || !cardsLevelData.success) {
         return cardsLevelData;
       }
@@ -441,6 +473,7 @@ const cards = {
 
   getVersion10CardsPreset: function (oldCardsPresetData) {
     try {
+      console.log("Called: cards.getVersion10CardsPreset");
       var shouldRemoveUsedCards;
       var oldCardsPreset = {};
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
@@ -516,10 +549,9 @@ const cards = {
 
   getVersion10CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
     try {
+      console.log("Called: cards.getVersion10CardsLevel");
       var oldCardSlots =
-        oldCardSlotsData &&
-        oldCardSlotsData[0] &&
-        oldCardSlotsData[0][0]
+        oldCardSlotsData && oldCardSlotsData[0] && oldCardSlotsData[0][0]
           ? oldCardSlotsData[0][0]
           : null;
 

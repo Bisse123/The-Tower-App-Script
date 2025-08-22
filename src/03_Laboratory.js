@@ -1,6 +1,7 @@
 const lab = {
   exportData: function (versionDifference) {
     try {
+      console.log("Called: lab.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
       if (!getVersionFunction) {
         console.log(`Unsupported version: ${versionDifference}`);
@@ -9,7 +10,7 @@ const lab = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      
+
       var oldDataResult = getVersionFunction();
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
@@ -19,7 +20,7 @@ const lab = {
       return {
         success: true,
         message: "Laboratory export completed successfully",
-        data: oldDataResult
+        data: oldDataResult,
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
@@ -32,7 +33,7 @@ const lab = {
 
   importData: function (data) {
     try {
-      // Use sheet type-based naming for parallel execution support
+      console.log("Called: lab.importData");
       var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (!newSpreadsheet) {
@@ -47,7 +48,10 @@ const lab = {
       var labPlannerSheetName = "";
       var batchUpdate = [];
 
-      var labPlannerSheet = SheetsAPI.getSheetBySubstring(newSpreadsheet, "Lab Planner");
+      var labPlannerSheet = SheetsAPI.getSheetBySubstring(
+        newSpreadsheet,
+        "Lab Planner"
+      );
       if (labPlannerSheet) {
         labPlannerSheetName = labPlannerSheet.title;
         requiredRanges.push(labPlannerSheetName);
@@ -68,8 +72,17 @@ const lab = {
       var labPlannerData = batchResults[2] ? batchResults[2].values : null;
 
       // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(newSheetID, "IDS", "IDS Master's", idsData);
-      if (!newSheetInfo || !newSheetInfo.importStatus || !newSheetInfo.importStatus.range) {
+      var newSheetInfo = shared.findSheetTypeID(
+        newSheetID,
+        "IDS",
+        "IDS Master's",
+        idsData
+      );
+      if (
+        !newSheetInfo ||
+        !newSheetInfo.importStatus ||
+        !newSheetInfo.importStatus.range
+      ) {
         console.log(`Could not find import status range in IDS sheet`);
         return {
           success: false,
@@ -78,7 +91,7 @@ const lab = {
       }
 
       // Only update lab levels if key exists
-      if (data.hasOwnProperty('oldLabLevels')) {
+      if (data.hasOwnProperty("oldLabLevels")) {
         var oldLabLevels = data.oldLabLevels;
         var labResult = this.updateLabLevels(
           "Master Sheet",
@@ -93,7 +106,7 @@ const lab = {
       }
 
       // Only update lab planner if key exists
-      if (data.hasOwnProperty('oldLabPlanner')) {
+      if (data.hasOwnProperty("oldLabPlanner")) {
         var oldLabPlanner = data.oldLabPlanner;
         var labPlannerResult = this.updateLabPlanner(
           labPlannerSheetName,
@@ -101,7 +114,9 @@ const lab = {
           labPlannerData
         );
         if (!labPlannerResult || !labPlannerResult.success) {
-          console.log(`Error updating lab planner: ${labPlannerResult.message}`);
+          console.log(
+            `Error updating lab planner: ${labPlannerResult.message}`
+          );
           return labPlannerResult;
         }
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
@@ -114,10 +129,7 @@ const lab = {
           values: [["✅"]],
         });
 
-        var updateResult = SheetsAPI.batchUpdateValues(
-          newSheetID,
-          batchUpdate
-        );
+        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
           console.log(`Error applying batch updates to new spreadsheet`);
           return {
@@ -133,7 +145,7 @@ const lab = {
       return {
         success: true,
         message: "No laboratory data to update",
-      }
+      };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
       return {
@@ -145,6 +157,7 @@ const lab = {
 
   updateLabLevels: function (sheetName, oldLabLevels, masterSheetData) {
     try {
+      console.log("Called: lab.updateLabLevels");
       var headerValues = ["Labs"];
 
       if (!masterSheetData || masterSheetData.length < 2) {
@@ -229,6 +242,7 @@ const lab = {
 
   updateLabPlanner: function (sheetName, oldLabPlanner, labPlannerData) {
     try {
+      console.log("Called: lab.updateLabPlanner");
       if (!labPlannerData || labPlannerData.length === 0) {
         console.log(`No lab planner data provided`);
         return {
@@ -243,36 +257,59 @@ const lab = {
           message: "No lab planner updates needed",
         };
       }
-      
-      var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
-      var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
-      var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
-      
+
+      var labHeaders = [
+        "Lab One",
+        "Lab Two",
+        "Lab Three",
+        "Lab Four",
+        "Lab Five",
+      ];
+      var reminderHeaders = [
+        "Lab One Reminder",
+        "Lab Two Reminder",
+        "Lab Three Reminder",
+        "Lab Four Reminder",
+        "Lab Five Reminder",
+      ];
+      var miscHeaders = [
+        "OPTIONS",
+        "Estimated Daily Coins required to Sustain:",
+      ];
+
       var batchUpdate = [];
 
       var estimatedCoinsHeader = [...labHeaders];
       for (var rowIndex = 0; rowIndex < labPlannerData.length; rowIndex++) {
         var row = labPlannerData[rowIndex];
-        if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
+        if (
+          labHeaders.length === 0 &&
+          reminderHeaders.length === 0 &&
+          miscHeaders.length === 0
+        ) {
           break;
         }
-        labHeaders = labHeaders.filter(function(labHeader) {
+        labHeaders = labHeaders.filter(function (labHeader) {
           var colIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' &&
-                   cellValue.startsWith('=') &&
-                   cellValue.includes(labHeader);
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.startsWith("=") &&
+              cellValue.includes(labHeader)
+            );
           });
-          
+
           if (colIndex !== -1) {
             var firstColIndex = colIndex + row[colIndex].split(",").length;
             var oldBoost = oldLabPlanner[labHeader]["Boost"];
-            var boostRange = `${sheetName}!${shared.columnToLetter(firstColIndex + 3)}${rowIndex + 1}`;
+            var boostRange = `${sheetName}!${shared.columnToLetter(
+              firstColIndex + 3
+            )}${rowIndex + 1}`;
             batchUpdate.push({
               range: boostRange,
               values: [[oldBoost]],
             });
-            
+
             var oldLabData = oldLabPlanner[labHeader]["Labs"];
             if (oldLabData && oldLabData.length !== 0) {
               var startCol = shared.columnToLetter(firstColIndex);
@@ -292,11 +329,13 @@ const lab = {
           }
           return true;
         });
-        reminderHeaders = reminderHeaders.filter(function(reminderHeader) {
+        reminderHeaders = reminderHeaders.filter(function (reminderHeader) {
           var colIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' &&
-                   cellValue.trim().toLowerCase() === reminderHeader.toLowerCase();
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.trim().toLowerCase() === reminderHeader.toLowerCase()
+            );
           });
           if (colIndex !== -1) {
             var oldReminderData = oldLabPlanner[reminderHeader];
@@ -315,41 +354,69 @@ const lab = {
           }
           return true;
         });
-        miscHeaders = miscHeaders.filter(function(miscHeader) {
+        miscHeaders = miscHeaders.filter(function (miscHeader) {
           var miscColIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' &&
-                   cellValue.trim().toLowerCase() === miscHeader.toLowerCase();
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.trim().toLowerCase() === miscHeader.toLowerCase()
+            );
           });
           if (miscColIndex !== -1) {
             var miscData = oldLabPlanner[miscHeader];
-            if (miscHeader === "Estimated Daily Coins required to Sustain:" && miscData && miscData.length !== 0) {
-              var labStartOption = oldLabPlanner["OPTIONS"]["I plan my labs starting at the: →"];
+            if (
+              miscHeader === "Estimated Daily Coins required to Sustain:" &&
+              miscData &&
+              miscData.length !== 0
+            ) {
+              var labStartOption =
+                oldLabPlanner["OPTIONS"]["I plan my labs starting at the: →"];
               if (labStartOption && labStartOption.length > 1) {
                 for (var index = 0; index < miscData.length; index++) {
                   var dataRow = miscData[index];
                   if (dataRow && dataRow.length > 0) {
                     // var headers = Object.keys(oldLabPlanner);
-                    var oldLabHeader = oldLabPlanner[estimatedCoinsHeader[index]];
+                    var oldLabHeader =
+                      oldLabPlanner[estimatedCoinsHeader[index]];
                     if (!oldLabHeader) {
-                      console.log(`No old lab header found for ${estimatedCoinsHeader[index]}`);
+                      console.log(
+                        `No old lab header found for ${estimatedCoinsHeader[index]}`
+                      );
                       continue;
                     }
                     var oldLabData = oldLabHeader["Labs"];
                     if (!oldLabData || oldLabData.length === 0) {
-                      console.log(`No old lab data found for ${estimatedCoinsHeader[index]}`);
+                      console.log(
+                        `No old lab data found for ${estimatedCoinsHeader[index]}`
+                      );
                       continue;
                     }
-                    var oldLabDataFiltered = oldLabData.filter(function (dataRow) {
-                      return dataRow && dataRow.length > 2 && dataRow[2] && dataRow[2].trim() !== "";
+                    var oldLabDataFiltered = oldLabData.filter(function (
+                      dataRow
+                    ) {
+                      return (
+                        dataRow &&
+                        dataRow.length > 2 &&
+                        dataRow[2] &&
+                        dataRow[2].trim() !== ""
+                      );
                     });
-                    var miscIndex = labStartOption[1] === "Top" ? 0 : oldLabDataFiltered.length - 1;
-                    var labLevel = oldLabDataFiltered[miscIndex] ? oldLabDataFiltered[miscIndex][2] : null;
-                    if (labLevel && labLevel !== "" && labLevel === dataRow[0]) {
+                    var miscIndex =
+                      labStartOption[1] === "Top"
+                        ? 0
+                        : oldLabDataFiltered.length - 1;
+                    var labLevel = oldLabDataFiltered[miscIndex]
+                      ? oldLabDataFiltered[miscIndex][2]
+                      : null;
+                    if (
+                      labLevel &&
+                      labLevel !== "" &&
+                      labLevel === dataRow[0]
+                    ) {
                       dataRow[0] = null;
                     }
                   }
-                };
+                }
               }
               var col = shared.columnToLetter(miscColIndex + 1);
               var startCell = `${col}${rowIndex + 2}`;
@@ -359,11 +426,16 @@ const lab = {
                 range: range,
                 values: miscData,
               });
-            } else if (miscHeader === "OPTIONS" && miscData && Object.keys(miscData).length !== 0) {
+            } else if (
+              miscHeader === "OPTIONS" &&
+              miscData &&
+              Object.keys(miscData).length !== 0
+            ) {
               var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
-              var plannerRows = (labPlannerData[rowIndex + 1][plannerType] !== "" ? 1 : 2) * 4;
-              var showLabColIndex = miscColIndex + (4 * plannerType) - 2;
-              var optionColIndex = miscColIndex + (5 * plannerType) - 2;
+              var plannerRows =
+                (labPlannerData[rowIndex + 1][plannerType] !== "" ? 1 : 2) * 4;
+              var showLabColIndex = miscColIndex + 4 * plannerType - 2;
+              var optionColIndex = miscColIndex + 5 * plannerType - 2;
               var showLabCol = shared.columnToLetter(showLabColIndex + 1);
               var optionCol = shared.columnToLetter(optionColIndex + 1);
               var startCell = `${showLabCol}${rowIndex + 1}`;
@@ -372,25 +444,46 @@ const lab = {
               var values = [];
               for (var i = 0; i < plannerRows; i++) {
                 var currentRowIndex = rowIndex + i;
-                var optionKey = labPlannerData[currentRowIndex][miscColIndex + plannerType] || "";
+                var optionKey =
+                  labPlannerData[currentRowIndex][miscColIndex + plannerType] ||
+                  "";
                 if (optionKey.startsWith("=")) {
-                  optionKey = optionKey.split(",").pop().trim().replace(/['"]/g, "").replace(/[')]/g, "");
+                  optionKey = optionKey
+                    .split(",")
+                    .pop()
+                    .trim()
+                    .replace(/['"]/g, "")
+                    .replace(/[')]/g, "");
                 }
                 if (optionKey && miscData[optionKey]) {
                   if (plannerType === 1) {
-                    values.push([miscData[optionKey][0] || "", miscData[optionKey][1] || ""]);
+                    values.push([
+                      miscData[optionKey][0] || "",
+                      miscData[optionKey][1] || "",
+                    ]);
                   } else {
-                    values.push([miscData[optionKey][0] || "", "", miscData[optionKey][1] || ""]);
+                    values.push([
+                      miscData[optionKey][0] || "",
+                      "",
+                      miscData[optionKey][1] || "",
+                    ]);
                   }
                 } else {
                   if (plannerType === 1) {
-                    values.push([labPlannerData[currentRowIndex][showLabColIndex] || "", labPlannerData[currentRowIndex][optionColIndex] || ""]);
+                    values.push([
+                      labPlannerData[currentRowIndex][showLabColIndex] || "",
+                      labPlannerData[currentRowIndex][optionColIndex] || "",
+                    ]);
                   } else {
-                    values.push([labPlannerData[currentRowIndex][showLabColIndex] || "", "", labPlannerData[currentRowIndex][optionColIndex] || ""]);
+                    values.push([
+                      labPlannerData[currentRowIndex][showLabColIndex] || "",
+                      "",
+                      labPlannerData[currentRowIndex][optionColIndex] || "",
+                    ]);
                   }
                 }
               }
-              
+
               batchUpdate.push({
                 range: range,
                 values: values,
@@ -425,6 +518,7 @@ const lab = {
 
   version10: function () {
     try {
+      console.log("Called: lab.version10");
       var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
@@ -434,11 +528,14 @@ const lab = {
           message: "EXPORT sheet™ not found in old lab spreadsheet™",
         };
       }
-      
+
       var labLevelsRange = "EXPORT!B5:E";
       var rangesToFetch = [labLevelsRange];
-      
-      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(oldSpreadsheet, "Lab Planner");
+
+      var oldLabPlannerSheet = SheetsAPI.getSheetBySubstring(
+        oldSpreadsheet,
+        "Lab Planner"
+      );
 
       var oldLabPlannerValues = null;
       var oldLabPlannerFormulas = null;
@@ -447,9 +544,13 @@ const lab = {
         if (oldLabPlannerSheetName) {
           rangesToFetch.push(oldLabPlannerSheetName);
           var oldLabPlannerData = SheetsAPI.batchGetFormulas(oldSheetID, [
-            oldLabPlannerSheetName
+            oldLabPlannerSheetName,
           ]);
-          if (oldLabPlannerData && oldLabPlannerData.length > 0 && oldLabPlannerData[0].values) {
+          if (
+            oldLabPlannerData &&
+            oldLabPlannerData.length > 0 &&
+            oldLabPlannerData[0].values
+          ) {
             oldLabPlannerFormulas = oldLabPlannerData[0].values;
           }
         }
@@ -483,7 +584,12 @@ const lab = {
       var oldLabMax = labLevelsResult.oldLabMax;
 
       // Process lab planner if data exists
-      var labPlannerResult = this.getVersion10LabPlanner(oldLabPlannerValues, oldLabPlannerFormulas, oldLabLevels, oldLabMax);
+      var labPlannerResult = this.getVersion10LabPlanner(
+        oldLabPlannerValues,
+        oldLabPlannerFormulas,
+        oldLabLevels,
+        oldLabMax
+      );
       if (!labPlannerResult || !labPlannerResult.success) {
         return labPlannerResult;
       }
@@ -504,7 +610,6 @@ const lab = {
         oldLabLevels: oldLabLevels,
         oldLabPlanner: oldLabPlanner,
       };
-      
     } catch (error) {
       console.log("Error in version10: " + error.toString());
       return {
@@ -516,21 +621,24 @@ const lab = {
 
   getVersion10LabLevels: function (oldLabLevelsValues) {
     try {
+      console.log("Called: lab.getVersion10LabLevels");
       var oldLabLevels = {};
       var oldLabMax = {};
       oldLabLevelsValues.forEach(function (row) {
         var hasData = row.some(function (cell) {
-          return cell !== null &&
-                 cell !== undefined &&
-                 String(cell || "").trim() !== "";
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
         });
-        
+
         if (hasData && row[0]) {
           oldLabLevels[row[0]] = [row[1] || 0, row[2] || ""];
           oldLabMax[row[0]] = row[3] || "";
         }
       });
-      
+
       return {
         success: true,
         message: "Lab levels processed successfully",
@@ -546,32 +654,65 @@ const lab = {
     }
   },
 
-  getVersion10LabPlanner: function (oldLabPlannerValues, oldLabPlannerFormulas, oldLabLevels, oldLabMax) {
+  getVersion10LabPlanner: function (
+    oldLabPlannerValues,
+    oldLabPlannerFormulas,
+    oldLabLevels,
+    oldLabMax
+  ) {
     try {
+      console.log("Called: lab.getVersion10LabPlanner");
       if (!oldLabPlannerFormulas || !oldLabPlannerValues) {
-        console.log(`No sheet containing "Lab Planner" found in old spreadsheet`);
+        console.log(
+          `No sheet containing "Lab Planner" found in old spreadsheet`
+        );
         return {
           success: true,
           message: "No sheet containing 'Lab Planner' found in old spreadsheet",
         };
       }
-      
-      var labHeaders = ["Lab One", "Lab Two", "Lab Three", "Lab Four", "Lab Five"];
-      var reminderHeaders = ["Lab One Reminder", "Lab Two Reminder", "Lab Three Reminder", "Lab Four Reminder", "Lab Five Reminder"];
-      var miscHeaders = ["OPTIONS", "Estimated Daily Coins required to Sustain:"];
-      
+
+      var labHeaders = [
+        "Lab One",
+        "Lab Two",
+        "Lab Three",
+        "Lab Four",
+        "Lab Five",
+      ];
+      var reminderHeaders = [
+        "Lab One Reminder",
+        "Lab Two Reminder",
+        "Lab Three Reminder",
+        "Lab Four Reminder",
+        "Lab Five Reminder",
+      ];
+      var miscHeaders = [
+        "OPTIONS",
+        "Estimated Daily Coins required to Sustain:",
+      ];
+
       var oldLabPlanner = {};
-      for (var rowIndex = 0; rowIndex < oldLabPlannerFormulas.length; rowIndex++) {
+      for (
+        var rowIndex = 0;
+        rowIndex < oldLabPlannerFormulas.length;
+        rowIndex++
+      ) {
         var row = oldLabPlannerFormulas[rowIndex];
-        if (labHeaders.length === 0 && reminderHeaders.length === 0 && miscHeaders.length === 0) {
+        if (
+          labHeaders.length === 0 &&
+          reminderHeaders.length === 0 &&
+          miscHeaders.length === 0
+        ) {
           break;
         }
-        labHeaders = labHeaders.filter(function(labHeader) {
+        labHeaders = labHeaders.filter(function (labHeader) {
           var colIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' && 
-                   cellValue.startsWith('=') && 
-                   cellValue.includes(labHeader);
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.startsWith("=") &&
+              cellValue.includes(labHeader)
+            );
           });
           if (colIndex !== -1) {
             var firstColIndex = colIndex + row[colIndex].split(",").length - 1;
@@ -581,32 +722,39 @@ const lab = {
             if (!oldLabPlanner[labHeader]["Labs"]) {
               oldLabPlanner[labHeader]["Labs"] = [];
             }
-            
-            oldLabPlanner[labHeader]["Boost"] = oldLabPlannerValues[rowIndex][firstColIndex + 3] || "";
+
+            oldLabPlanner[labHeader]["Boost"] =
+              oldLabPlannerValues[rowIndex][firstColIndex + 3] || "";
 
             var lastNonEmptyRow = -1;
             for (var i = rowIndex + 3; i < oldLabPlannerFormulas.length; i++) {
               if (oldLabPlannerFormulas[i][colIndex].trim() === "") {
                 break;
               }
-              
+
               var labName = oldLabPlannerValues[i][firstColIndex + 2] || "";
               if (labName.trim() === "") {
-                oldLabPlanner[labHeader]["Labs"].push([
-                "", "", "",
-                ]);
+                oldLabPlanner[labHeader]["Labs"].push(["", "", ""]);
                 continue;
               }
               lastNonEmptyRow = i - (rowIndex + 3);
               var plannerLevel = oldLabPlannerValues[i][firstColIndex] || "";
-              if (oldLabLevels[labName] && plannerLevel === oldLabLevels[labName][0]) {
+              if (
+                oldLabLevels[labName] &&
+                plannerLevel === oldLabLevels[labName][0]
+              ) {
                 plannerLevel = "";
               }
-              var plannerTarget = oldLabPlannerValues[i][firstColIndex + 1] || "";
-              if (oldLabLevels[labName] && (plannerTarget === oldLabLevels[labName][1] || plannerTarget === oldLabMax[labName])) {
+              var plannerTarget =
+                oldLabPlannerValues[i][firstColIndex + 1] || "";
+              if (
+                oldLabLevels[labName] &&
+                (plannerTarget === oldLabLevels[labName][1] ||
+                  plannerTarget === oldLabMax[labName])
+              ) {
                 plannerTarget = "";
               }
-              
+
               oldLabPlanner[labHeader]["Labs"].push([
                 plannerLevel,
                 plannerTarget,
@@ -616,58 +764,86 @@ const lab = {
             if (lastNonEmptyRow === -1) {
               delete oldLabPlanner[labHeader]["Labs"];
             } else {
-              oldLabPlanner[labHeader]["Labs"] = oldLabPlanner[labHeader]["Labs"].slice(0, lastNonEmptyRow + 1);
+              oldLabPlanner[labHeader]["Labs"] = oldLabPlanner[labHeader][
+                "Labs"
+              ].slice(0, lastNonEmptyRow + 1);
             }
             return false;
           }
           return true;
         });
-        reminderHeaders = reminderHeaders.filter(function(reminderHeader) {
+        reminderHeaders = reminderHeaders.filter(function (reminderHeader) {
           var colIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' && 
-                   cellValue.trim().toLowerCase() === reminderHeader.toLowerCase();
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.trim().toLowerCase() === reminderHeader.toLowerCase()
+            );
           });
           if (colIndex !== -1) {
             var reminderRowIndex = rowIndex;
             if (!oldLabPlanner[reminderHeader]) {
               oldLabPlanner[reminderHeader] = [];
             }
-            while (oldLabPlannerValues[reminderRowIndex][colIndex] === reminderHeader) {
+            while (
+              oldLabPlannerValues[reminderRowIndex][colIndex] === reminderHeader
+            ) {
               var reminderData = oldLabPlannerValues[reminderRowIndex];
-              oldLabPlanner[reminderHeader].push([reminderData[colIndex + 2] || "", reminderData[colIndex + 3] || ""]);
+              oldLabPlanner[reminderHeader].push([
+                reminderData[colIndex + 2] || "",
+                reminderData[colIndex + 3] || "",
+              ]);
               reminderRowIndex++;
             }
             return false;
           }
           return true;
         });
-        miscHeaders = miscHeaders.filter(function(miscHeader) {
+        miscHeaders = miscHeaders.filter(function (miscHeader) {
           var miscColIndex = row.findIndex(function (cellValue) {
-            return cellValue && 
-                   typeof cellValue === 'string' && 
-                   cellValue.trim().toLowerCase() === miscHeader.toLowerCase();
+            return (
+              cellValue &&
+              typeof cellValue === "string" &&
+              cellValue.trim().toLowerCase() === miscHeader.toLowerCase()
+            );
           });
           if (miscColIndex !== -1) {
             if (miscHeader === "Estimated Daily Coins required to Sustain:") {
-              oldLabPlanner[miscHeader] = oldLabPlannerValues.slice(rowIndex + 1, rowIndex + 6).map(function (row) {
-                return [row[miscColIndex] || null];
-              });
+              oldLabPlanner[miscHeader] = oldLabPlannerValues
+                .slice(rowIndex + 1, rowIndex + 6)
+                .map(function (row) {
+                  return [row[miscColIndex] || null];
+                });
             } else if (miscHeader === "OPTIONS") {
               var plannerType = row[miscColIndex + 1] !== "" ? 1 : 2;
-              var plannerRows =  (oldLabPlannerFormulas[rowIndex + 1][miscColIndex + plannerType] !== "" ? 1 : 2) * 4;
+              var plannerRows =
+                (oldLabPlannerFormulas[rowIndex + 1][
+                  miscColIndex + plannerType
+                ] !== ""
+                  ? 1
+                  : 2) * 4;
               var showLabColIndex = miscColIndex + (4 * plannerType - 2);
               var optionColIndex = miscColIndex + (5 * plannerType - 2);
               var optionDict = {};
-              oldLabPlannerFormulas.slice(rowIndex, rowIndex + plannerRows).forEach(function (row) {
-                if (row[miscColIndex + 1] !== "") {
-                  var optionKey = row[miscColIndex + 1];
-                  if (optionKey.startsWith("=")) {
-                    optionKey = optionKey.split(",").pop().trim().replace(/['"]/g, "").replace(/[')]/g, "");
+              oldLabPlannerFormulas
+                .slice(rowIndex, rowIndex + plannerRows)
+                .forEach(function (row) {
+                  if (row[miscColIndex + 1] !== "") {
+                    var optionKey = row[miscColIndex + 1];
+                    if (optionKey.startsWith("=")) {
+                      optionKey = optionKey
+                        .split(",")
+                        .pop()
+                        .trim()
+                        .replace(/['"]/g, "")
+                        .replace(/[')]/g, "");
+                    }
+                    optionDict[optionKey] = [
+                      row[showLabColIndex] || "",
+                      row[optionColIndex] || "",
+                    ];
                   }
-                  optionDict[optionKey] = [row[showLabColIndex] || "", row[optionColIndex] || ""];
-                }
-              });
+                });
               oldLabPlanner[miscHeader] = optionDict;
             }
             return false;
@@ -697,6 +873,7 @@ const lab = {
   },
 
   isCompatibleVersion: function (oldVersion) {
+    console.log("Called: lab.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
