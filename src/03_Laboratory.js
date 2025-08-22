@@ -19,10 +19,7 @@ const lab = {
       return {
         success: true,
         message: "Laboratory export completed successfully",
-        data: {
-          oldLabLevels: oldDataResult.oldLabLevels || [],
-          oldLabPlanner: oldDataResult.oldLabPlanner || null
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

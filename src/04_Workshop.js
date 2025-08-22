@@ -19,11 +19,7 @@ const workshop = {
       return {
         success: true,
         message: "Workshop export completed successfully",
-        data: {
-          oldWorkshopLevels: oldDataResult.oldWorkshopLevels || [],
-          oldWorkshopPlusLevels: oldDataResult.oldWorkshopPlusLevels || [],
-          oldWorkshopPlusRatios: oldDataResult.oldWorkshopPlusRatios || [],
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

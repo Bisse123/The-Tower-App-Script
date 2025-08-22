@@ -19,12 +19,7 @@ const cards = {
       return {
         success: true,
         message: "Cards export completed successfully",
-        data: {
-          oldCardsLevel: oldDataResult.oldCardsLevel || [],
-          oldCardSlots: oldDataResult.oldCardSlots || "",
-          oldCardsPreset: oldDataResult.oldCardsPreset || {},
-          shouldRemoveUsedCards: oldDataResult.shouldRemoveUsedCards || true
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);

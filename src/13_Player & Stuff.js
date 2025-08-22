@@ -19,9 +19,7 @@ const playerStuff = {
       return {
         success: true,
         message: "Player & Stuff export completed successfully",
-        data: {
-          oldPlayerStuffData: oldDataResult.oldPlayerStuffData || {}
-        }
+        data: oldDataResult
       };
     } catch (error) {
       console.log(`Error in exportData: ${error.toString()}`);
