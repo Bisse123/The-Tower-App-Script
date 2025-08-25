@@ -878,7 +878,7 @@ const modules = {
               String(cell).toLowerCase().includes(type)
             ) &&
             !String(cell).toLowerCase().includes("summary") &&
-            !String(cell).toLowerCase().includes("Quantity")
+            !String(cell).toLowerCase().includes("quantity")
         );
         if (colIdx === -1) {
           continue;
