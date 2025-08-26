@@ -80,11 +80,13 @@ const playerStuff = {
       var batchUpdate = [];
 
       // Only update player & stuff data if key exists
-      if (data.hasOwnProperty("oldPlayerStuffData")) {
-        var oldPlayerStuffData = data.oldPlayerStuffData;
+      if (data.hasOwnProperty("oldPlayerStuffTierData") && data.hasOwnProperty("oldPlayerStuffStatsData")) {
+        var oldPlayerStuffTierData = data.oldPlayerStuffTierData;
+        var oldPlayerStuffStatsData = data.oldPlayerStuffStatsData;
         var playerResult = this.updatePlayerStuffData(
           "Master Sheet",
-          oldPlayerStuffData,
+          oldPlayerStuffTierData,
+          oldPlayerStuffStatsData,
           masterSheetData
         );
         if (!playerResult || !playerResult.success) {
@@ -128,7 +130,7 @@ const playerStuff = {
     }
   },
 
-  updatePlayerStuffData: function (sheetName, oldPlayerData, masterSheetData) {
+  updatePlayerStuffData: function (sheetName, oldPlayerTierData, oldPlayerStatsData, masterSheetData) {
     try {
       console.log("Called: playerStuff.updatePlayerStuffData");
       if (!masterSheetData || masterSheetData.length === 0) {
@@ -154,7 +156,7 @@ const playerStuff = {
       var values = {
         Stat: [],
         Tier: [],
-        "Premium Perk": [],
+        "Premium Packs": [],
       };
       for (var row = 1; row < masterSheetData.length; row++) {
         var rowData = masterSheetData[row];
@@ -164,9 +166,9 @@ const playerStuff = {
           break;
         }
 
-        if (oldPlayerData["Tier"] && oldPlayerData["Tier"][tierValue]) {
-          var wave = oldPlayerData["Tier"][tierValue].value || "";
-          var premium = oldPlayerData["Tier"][tierValue].premium || "";
+        if (oldPlayerTierData && oldPlayerTierData[tierValue]) {
+          var wave = oldPlayerTierData[tierValue].wave || "";
+          var premium = oldPlayerTierData[tierValue].premium || "";
           values["Tier"].push([wave, premium]);
         }
 
@@ -174,13 +176,13 @@ const playerStuff = {
           continue;
         }
 
-        if (statName === "Premium Perk") {
-          header = "Premium Perk";
+        if (statName === "Premium Packs") {
+          header = "Premium Packs";
           perkRow = row + 2;
         }
 
-        if (oldPlayerData[header] && oldPlayerData[header][statName]) {
-          var value = oldPlayerData[header][statName].value || "";
+        if (oldPlayerStatsData[header] && oldPlayerStatsData[header][statName]) {
+          var value = oldPlayerStatsData[header][statName].value || "";
           values[header].push([value]);
         }
       }
@@ -196,8 +198,8 @@ const playerStuff = {
         Tier: `${sheetName}!${tierStartColLetter}2:${tierEndColLetter}${
           2 + values.Tier.length - 1
         }`,
-        "Premium Perk": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${
-          perkRow + values["Premium Perk"].length - 1
+        "Premium Packs": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${
+          perkRow + values["Premium Packs"].length - 1
         }`,
       };
       for (var key in values) {
@@ -229,6 +231,51 @@ const playerStuff = {
     }
   },
 
+  version33: function () {
+    try {
+      console.log("Called: playerStuff.version33");
+      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+      var tierRange = "EXPORT!B3:D";
+      var statsRange = "EXPORT!F3:G";
+      var ranges = [tierRange, statsRange];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+      if (!batchResult || batchResult.length ===0) {
+        console.log(`Could not read old player & stuff data`);
+        return {
+          success: false,
+          message: `Could not read old player & stuff data`,
+        };
+      }
+      var oldPlayerStuffTierValues = batchResult[0].values;
+      var oldPlayerStuffStatsValues = batchResult[1].values;
+      var tierDataResult = this.getVersion20PlayerStuffTiers(oldPlayerStuffTierValues);
+      var statsDataResult = this.getVersion33PlayerStuffStats(oldPlayerStuffStatsValues);
+      success = tierDataResult.success && statsDataResult.success;
+      return {
+        success: success,
+        message: success ? "Player & Stuff processed successfully" : "Error processing Player & Stuff data",
+        oldPlayerStuffTierData: tierDataResult.oldPlayerStuffTierData,
+        oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
+      };
+
+    } catch (error) {
+      console.log("Error in version33: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version33: " + error.message,
+      };
+    }
+  },
+
   version20: function () {
     try {
       console.log("Called: playerStuff.version20");
@@ -242,23 +289,29 @@ const playerStuff = {
           message: "EXPORT sheet not found in old spreadsheet",
         };
       }
-
-      // TODO: Define appropriate ranges for player & stuff data
-      var playerStuffRange = "EXPORT!B2:D";
-      var batchResult = SheetsAPI.batchGetValues(oldSheetID, [
-        playerStuffRange,
-      ]);
-      if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+      var tierRange = "EXPORT!B16:D";
+      var statsRange = "EXPORT!B2:C12";
+      var ranges = [tierRange, statsRange];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+      if (!batchResult || batchResult.length ===0) {
         console.log(`Could not read old player & stuff data`);
         return {
           success: false,
           message: `Could not read old player & stuff data`,
         };
       }
-      var oldPlayerStuffValues = batchResult[0].values;
+      var oldPlayerStuffTierValues = batchResult[0].values;
+      var oldPlayerStuffStatsValues = batchResult[1].values;
+      var tierDataResult = this.getVersion20PlayerStuffTiers(oldPlayerStuffTierValues);
+      var statsDataResult = this.getVersion20PlayerStuffStats(oldPlayerStuffStatsValues);
+      success = tierDataResult.success && statsDataResult.success;
+      return {
+        success: success,
+        message: success ? "Player & Stuff processed successfully" : "Error processing Player & Stuff data",
+        oldPlayerStuffTierData: tierDataResult.oldPlayerStuffTierData,
+        oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
+      };
 
-      var playerStuffData = this.getVersion20PlayerStuff(oldPlayerStuffValues);
-      return playerStuffData;
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
@@ -268,52 +321,127 @@ const playerStuff = {
     }
   },
 
-  getVersion20PlayerStuff: function (oldPlayerStuffValues) {
+  getVersion20PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
-      console.log("Called: playerStuff.getVersion20PlayerStuff");
-      var headers = ["Stat", "Premium Perk", "Tier"];
+      console.log("Called: playerStuff.getversion20PlayerStuffTiers");
 
-      if (!oldPlayerStuffValues || oldPlayerStuffValues.length === 0) {
-        console.log(`No data found in old player & stuff data`);
+      if (!oldPlayerStuffTierValues || oldPlayerStuffTierValues.length === 0) {
+        console.log(`No data found in old player & stuff tier data`);
         return {
           success: false,
-          message: "No data found in old player & stuff data",
+          message: "No data found in old player & stuff tier data",
         };
       }
-      var header = headers[0];
-      var oldPlayerStuffData = {};
-      oldPlayerStuffData[header] = {};
-      for (var row = 0; row < oldPlayerStuffValues.length; row++) {
-        var rowData = oldPlayerStuffValues[row];
-        var name = rowData[0] || "";
-        var value = rowData[1] || "";
+      var oldPlayerStuffTierData = {};
+      for (var row = 0; row < oldPlayerStuffTierValues.length; row++) {
+        var rowData = oldPlayerStuffTierValues[row];
+        var tier = rowData[0] || "";
+        var wave = rowData[1] || "";
         var premium = rowData[2] || "";
-        if (headers.includes(name)) {
-          header = name;
-          oldPlayerStuffData[header] = {};
-          continue;
-        }
-        if (header === "Premium Perk" && name === "Coin Multiplier") {
-          continue;
-        }
-        if (name) {
-          oldPlayerStuffData[header][name] = {
-            value: value,
+        if (tier) {
+          oldPlayerStuffTierData[tier] = {
+            wave: wave,
             premium: premium,
           };
         }
       }
+      
 
       return {
         success: true,
-        message: "Player & Stuff processed successfully",
-        oldPlayerStuffData: oldPlayerStuffData,
+        message: "Player & Stuff tier processed successfully",
+        oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log("Error in getVersion20PlayerStuff: " + error.toString());
+      console.log("Error in getversion20PlayerStuffTiers: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20PlayerStuff: " + error.message,
+        message: "Error in getversion20PlayerStuffTiers: " + error.message,
+      };
+    }
+  },
+
+  getVersion20PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+    try {
+      console.log("Called: playerStuff.getversion20PlayerStuffStats");
+
+      if (!oldPlayerStuffStatsValues || oldPlayerStuffStatsValues.length === 0) {
+        console.log(`No data found in old player & stuff stat data`);
+        return {
+          success: false,
+          message: "No data found in old player & stuff stat data",
+        };
+      }
+      var oldPlayerStuffStatsData = {};
+      var header = "Stat";
+      oldPlayerStuffStatsData[header] = {};
+      for (var row = 0; row < oldPlayerStuffStatsValues.length; row++) {
+        var rowData = oldPlayerStuffStatsValues[row];
+        var name = rowData[0] || "";
+        var value = rowData[1] || "";
+        if (name === "Premium Perk") {
+          header = "Premium Packs";
+          oldPlayerStuffStatsData[header] = {};
+          continue;
+        }
+        if (name) {
+          oldPlayerStuffStatsData[header][name] = {
+            value: value,
+          };
+        }
+      }
+      return {
+        success: true,
+        message: "Player & Stuff stats processed successfully",
+        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+      };
+    } catch (error) {
+      console.log("Error in getversion20PlayerStuffStats: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getversion20PlayerStuffStats: " + error.message,
+      };
+    }
+  },
+  getVersion33PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+    try {
+      console.log("Called: playerStuff.getversion20PlayerStuffStats");
+
+      if (!oldPlayerStuffStatsValues || oldPlayerStuffStatsValues.length === 0) {
+        console.log(`No data found in old player & stuff stat data`);
+        return {
+          success: false,
+          message: "No data found in old player & stuff stat data",
+        };
+      }
+      var oldPlayerStuffStatsData = {};
+      var header = "Stat";
+      oldPlayerStuffStatsData[header] = {};
+      for (var row = 0; row < oldPlayerStuffStatsValues.length; row++) {
+        var rowData = oldPlayerStuffStatsValues[row];
+        var name = rowData[0] || "";
+        var value = rowData[1] || "";
+        if (name === "Premium Packs") {
+          header = "Premium Packs";
+          oldPlayerStuffStatsData[header] = {};
+          continue;
+        }
+        if (name) {
+          oldPlayerStuffStatsData[header][name] = {
+            value: value,
+          };
+        }
+      }
+      return {
+        success: true,
+        message: "Player & Stuff stats processed successfully",
+        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+      };
+    } catch (error) {
+      console.log("Error in getversion20PlayerStuffStats: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getversion20PlayerStuffStats: " + error.message,
       };
     }
   },
@@ -321,6 +449,7 @@ const playerStuff = {
   get convertVersionFunctions() {
     return {
       "v2.0": this.version20.bind(this),
+      "v3.3": this.version33.bind(this),
     };
   },
 
