@@ -670,6 +670,7 @@ const workshop = {
           row.forEach(function (cell, index) {
             var presetName = oldWorkshopLevelsHeaders[index];
             if (
+              presetName &&
               presetName.trim() !== "" &&
               (oldWorkshopLevelsPresetNames.includes(presetName) ||
                 presetName.includes("Preset"))
@@ -735,6 +736,7 @@ const workshop = {
           row.forEach(function (cell, index) {
             var presetName = oldWorkshopPlusLevelsHeaders[index];
             if (
+              presetName &&
               presetName.trim() !== "" &&
               (oldWorkshopPlusPresetNames.includes(presetName) ||
                 presetName.includes("Preset"))
