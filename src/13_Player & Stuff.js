@@ -231,9 +231,9 @@ const playerStuff = {
     }
   },
 
-  version33: function () {
+  version32: function () {
     try {
-      console.log("Called: playerStuff.version33");
+      console.log("Called: playerStuff.version32");
       var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -258,7 +258,7 @@ const playerStuff = {
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
       var tierDataResult = this.getVersion20PlayerStuffTiers(oldPlayerStuffTierValues);
-      var statsDataResult = this.getVersion33PlayerStuffStats(oldPlayerStuffStatsValues);
+      var statsDataResult = this.getVersion32PlayerStuffStats(oldPlayerStuffStatsValues);
       success = tierDataResult.success && statsDataResult.success;
       return {
         success: success,
@@ -268,10 +268,10 @@ const playerStuff = {
       };
 
     } catch (error) {
-      console.log("Error in version33: " + error.toString());
+      console.log("Error in version32: " + error.toString());
       return {
         success: false,
-        message: "Error in version33: " + error.message,
+        message: "Error in version32: " + error.message,
       };
     }
   },
@@ -403,9 +403,10 @@ const playerStuff = {
       };
     }
   },
-  getVersion33PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+
+  getVersion32PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
-      console.log("Called: playerStuff.getversion20PlayerStuffStats");
+      console.log("Called: playerStuff.getVersion32PlayerStuffStats");
 
       if (!oldPlayerStuffStatsValues || oldPlayerStuffStatsValues.length === 0) {
         console.log(`No data found in old player & stuff stat data`);
@@ -421,7 +422,7 @@ const playerStuff = {
         var rowData = oldPlayerStuffStatsValues[row];
         var name = rowData[0] || "";
         var value = rowData[1] || "";
-        if (name === "Premium Packs") {
+        if (name === "Premium Packs" || name === "Premium Perk") {
           header = "Premium Packs";
           oldPlayerStuffStatsData[header] = {};
           continue;
@@ -438,10 +439,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in getversion20PlayerStuffStats: " + error.toString());
+      console.log("Error in getversion32PlayerStuffStats: " + error.toString());
       return {
         success: false,
-        message: "Error in getversion20PlayerStuffStats: " + error.message,
+        message: "Error in getversion32PlayerStuffStats: " + error.message,
       };
     }
   },
@@ -449,7 +450,7 @@ const playerStuff = {
   get convertVersionFunctions() {
     return {
       "v2.0": this.version20.bind(this),
-      "v3.3": this.version33.bind(this),
+      "v3.2": this.version32.bind(this),
     };
   },
 
