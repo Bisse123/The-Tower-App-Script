@@ -2357,9 +2357,9 @@ const collection = {
     }
   },
 
-  version211: function () {
+  version21: function () {
     try {
-      console.log("Called: collection.version204");
+      console.log("Called: collection.version21");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -2708,7 +2708,7 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion33PlayerStuffStats(playerStatValues);
+        var playerStatData = playerStuff.getVersion32PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2727,10 +2727,10 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version204: ${error.message}`);
+      console.log(`Error in IDS Collection version21: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version204: ${error.message}`,
+        message: `Error in IDS Collection version21: ${error.message}`,
       };
     }
   },
@@ -2741,7 +2741,7 @@ const collection = {
       "v1.4.17": this.version1417.bind(this),
       "v2.0": this.version20.bind(this),
       "v2.0.4": this.version204.bind(this),
-      "v2.1.1": this.version211.bind(this),
+      "v2.1": this.version21.bind(this),
     };
   },
 
