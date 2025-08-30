@@ -43,7 +43,7 @@ const guardians = {
       }
 
       // Batch fetch required sheet data
-      var requiredRanges = ["Master Sheet", "IDS", "Data_Val_Tables"];
+      var requiredRanges = ["Master Sheet", "IDS", "DVT_Guardians"];
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log("Error getting guardians sheet data");
