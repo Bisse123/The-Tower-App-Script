@@ -106,9 +106,13 @@
             }
             // Create nested dictionary structure where each sheet type has its own data dictionary
             const exportedData = {};
+            const sheetVisibilityData = {};
             exportedFilesSuccess.forEach(exportedFile => {
               if (exportedFile.exportData && exportedFile.sheetType) {
                 exportedData[exportedFile.sheetType] = exportedFile.exportData;
+                if (exportedFile.sheetVisibility) {
+                  sheetVisibilityData[exportedFile.sheetType] = exportedFile.sheetVisibility;
+                }
               }
             });
             
@@ -120,7 +124,8 @@
               .importData(
                 newSheetID,
                 sheetType,
-                exportedData
+                exportedData,
+                sheetVisibilityData
               );
 
           } catch (error) {
@@ -157,7 +162,8 @@
             .importData(
               newSheetID,
               sheetType,
-              exportResult.data
+              exportResult.data,
+              exportResult.sheetVisibility
             );
         } else {
           document.getElementById("importButton").disabled = false;
@@ -297,7 +303,8 @@
                     ...exportedFile,
                     oldSheetID: task.oldSheetID,
                     idMasterID: task.idMasterID,
-                    exportData: result.data
+                    exportData: result.data,
+                    sheetVisibility: result.sheetVisibility
                   });
                   console.log(`Moved ${task.sheetType} from ${sourceArray} to exported success`);
                 } else {
@@ -517,7 +524,8 @@
             .importData(
               task.newSheetID,
               task.sheetType,
-              task.exportData
+              exportedFile.exportData,
+              exportedFile.sheetVisibility
             );
         });
       });
@@ -559,7 +567,6 @@
     } catch (error) {
       console.error("Error in import execution:", error);
       document.getElementById("statusText").innerText = `Error during imports: ${error.message || error}`;
-    } finally {
       document.getElementById("importButton").disabled = false;
     }
   }
@@ -569,10 +576,11 @@
     console.log("Import result:", result);
     if (result.success) {
       document.getElementById("statusText").innerText = `${result.message}`;
+      document.getElementById("fileAccessTitle").innerHTML = `✅ ${sheetType} Imported Successfully`;
       document.getElementById("updateMasterButton").disabled = false;
       document.getElementById(
         "selectedFileSummary"
-      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before updating your ${sheetType === "IDS Collection" ? sheetType : "IDS Master"}! ⚠️</strong><br>`;
+      ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before ${sheetType === "IDS Collection" ? "moving your IDS Collection" : "updating your IDS Master"}! ⚠️</strong><br>`;
       showAccessibleFilesSummary();
     } else {
       if (result.failedUpdates && result.failedUpdates.length > 0) {
@@ -817,6 +825,7 @@
     
     // Show warning message if there are successfully imported files
     if (importedFilesSuccess && importedFilesSuccess.length > 0) {
+      document.getElementById("importButton").disabled = true;
       summaryHtml += `<strong>⚠️ Make sure your data is imported correctly before updating your IDS Master! ⚠️</strong><br>`;
     }
     
@@ -830,6 +839,7 @@
     
     // Show files that are still copied (ready for import)
     if (copiedTemplateFiles && copiedTemplateFiles.length > 0) {
+      document.getElementById("importButton").disabled = false;
       summaryHtml += `<br><strong>📋 Sheets (Ready for Import):</strong><br>`;
       copiedTemplateFiles.forEach(file => {
         summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
@@ -838,6 +848,7 @@
     
     // Show files that failed to export
     if (exportedFilesFailed && exportedFilesFailed.length > 0) {
+      document.getElementById("importButton").disabled = false;
       summaryHtml += `<br><strong>❌ Export Failed (Requires Retry):</strong><br>`;
       exportedFilesFailed.forEach(file => {
         summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version} - ${file.error}<br>`;
@@ -846,6 +857,7 @@
     
     // Show files that failed to import
     if (importedFilesFailed && importedFilesFailed.length > 0) {
+      document.getElementById("importButton").disabled = false;
       summaryHtml += `<br><strong>❌ Import Failed (Requires Retry):</strong><br>`;
       importedFilesFailed.forEach(file => {
         summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version} - ${file.error}<br>`;
