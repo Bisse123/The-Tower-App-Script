@@ -3,7 +3,7 @@ const SheetsAPI = {
   getSpreadsheet: function (spreadsheetId) {
     try {
       const response = Sheets.Spreadsheets.get(spreadsheetId, {
-        fields: "spreadsheetId,sheets(properties(sheetId,title))",
+        fields: "spreadsheetId,sheets(properties(sheetId,title,hidden))",
       });
       return response;
     } catch (error) {
@@ -36,6 +36,94 @@ const SheetsAPI = {
     } catch (error) {
       console.error(`Error getting sheet by substring: ${error}`);
       return null;
+    }
+  },
+
+  // Apply sheet visibility using provided visibility data
+  applySheetVisibility: function (newSpreadsheet, sheetVisibility) {
+    try {
+      if (!newSpreadsheet) {
+        console.error('Missing spreadsheet parameter');
+        return {
+          success: false,
+          message: 'Missing spreadsheet parameter'
+        };
+      }
+
+      if (!newSpreadsheet.sheets) {
+        console.error('Invalid spreadsheet structure - missing sheets');
+        return {
+          success: false,
+          message: 'Invalid spreadsheet structure - missing sheets'
+        };
+      }
+
+      if (!sheetVisibility || typeof sheetVisibility !== 'object') {
+        return {
+          success: true,
+          message: 'No sheet visibility data provided',
+          processedSheets: []
+        };
+      }
+
+      var requests = [];
+      var processedSheets = [];
+
+      // Process each sheet in the new spreadsheet
+      for (var i = 0; i < newSpreadsheet.sheets.length; i++) {
+        var newSheet = newSpreadsheet.sheets[i];
+        var newSheetName = newSheet.properties.title;
+        var newSheetId = newSheet.properties.sheetId;
+
+        // Check if we have visibility data for this sheet
+        if (sheetVisibility.hasOwnProperty(newSheetName)) {
+          var targetHidden = sheetVisibility[newSheetName];
+          var currentHidden = newSheet.properties.hidden || false;
+
+          // Only update if visibility states are different
+          if (targetHidden !== currentHidden) {
+            requests.push({
+              updateSheetProperties: {
+                properties: {
+                  sheetId: newSheetId,
+                  hidden: targetHidden
+                },
+                fields: 'hidden'
+              }
+            });
+            processedSheets.push({
+              name: newSheetName,
+              action: targetHidden ? 'hidden' : 'shown'
+            });
+          }
+        }
+      }
+
+      // Execute batch update if there are requests
+      if (requests.length > 0) {
+        Sheets.Spreadsheets.batchUpdate({
+          requests: requests
+        }, newSpreadsheet.spreadsheetId);
+
+        return {
+          success: true,
+          message: `Successfully updated visibility for ${requests.length} sheets`,
+          processedSheets: processedSheets
+        };
+      } else {
+        return {
+          success: true,
+          message: 'No sheet visibility changes needed',
+          processedSheets: []
+        };
+      }
+
+    } catch (error) {
+      console.error(`Error applying sheet visibility: ${error}`);
+      return {
+        success: false,
+        message: `Error updating sheet visibility: ${error.toString()}`
+      };
     }
   },
 

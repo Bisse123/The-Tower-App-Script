@@ -360,6 +360,24 @@ const ultimate = {
 
         var rowData = ultimateCostCalculatorData[row];
 
+        var uwsWantedIndex = rowData.indexOf("# Of UWs Wanted");
+        var uwPlusWantedIndex = rowData.indexOf("# Of UW+ Wanted");
+        if (uwsWantedIndex !== -1 && oldUltimateCostCalculator["# Of UWs Wanted"]) {
+          batchUpdate.push({
+            range: `${sheetName}!${shared.columnToLetter(uwsWantedIndex + 3)}${
+              row + 1
+            }`,
+            values: [[oldUltimateCostCalculator["# Of UWs Wanted"]]],
+          });
+        }
+        if (uwPlusWantedIndex !== -1 && oldUltimateCostCalculator["# Of UW+ Wanted"]) {
+          batchUpdate.push({
+            range: `${sheetName}!${shared.columnToLetter(uwPlusWantedIndex + 3)}${
+              row + 1
+            }`,
+            values: [[oldUltimateCostCalculator["# Of UW+ Wanted"]]],
+          });
+        }
         // Check each missing weapon to see if it's in this row
         for (
           var weaponIndex = 0;
@@ -758,7 +776,14 @@ const ultimate = {
 
       for (var row = 0; row < oldUltimateCostCalculatorValues.length; row++) {
         var rowData = oldUltimateCostCalculatorValues[row];
-
+        var uwsWantedIndex = rowData.indexOf("# Of UWs Wanted");
+        var uwPlusWantedIndex = rowData.indexOf("# Of UW+ Wanted");
+        if (uwsWantedIndex !== -1) {
+          oldUltimateCostCalculator["# Of UWs Wanted"] = rowData[uwsWantedIndex + 2];
+        }
+        if (uwPlusWantedIndex !== -1) {
+          oldUltimateCostCalculator["# Of UW+ Wanted"] = rowData[uwPlusWantedIndex + 2];
+        }
         // Check each cell in the row to find weapon names
         for (var colIndex = 0; colIndex < rowData.length; colIndex++) {
           var cellValue = rowData[colIndex];
@@ -770,13 +795,14 @@ const ultimate = {
             var weapon = cellValue.trim();
 
             // Skip if this weapon was already processed or if it's a header/metadata
-            if (
-              processedWeapons[weapon] ||
-              weapon === "Current Value" ||
-              weapon === "Target Value" ||
-              weapon === "Sub"
+            if (processedWeapons[weapon] ||
+                weapon === "# Of UWs Wanted" ||
+                weapon === "# Of UW+ Wanted" ||
+                weapon === "Current Value" ||
+                weapon === "Target Value" ||
+                weapon === "Sub"
             ) {
-              continue;
+              break;
             }
 
             // Only process if this weapon is in our targetWeapons list
@@ -845,7 +871,8 @@ const ultimate = {
                 }
                 if (
                   modSub &&
-                  (typeof modSub !== "string" || !modSub.startsWith("="))
+                  (typeof modSub !== "string" ||
+                    !modSub.startsWith("="))
                 ) {
                   weaponValues[subName].modSub = modSub;
                 }

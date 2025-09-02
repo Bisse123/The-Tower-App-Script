@@ -385,6 +385,15 @@ function exportData(oldSheetID, sheetType, versionDifference) {
       };
     }
 
+    // Extract sheet visibility information from old spreadsheet
+    var sheetVisibility = {};
+    if (oldSpreadsheet && oldSpreadsheet.sheets) {
+      for (var i = 0; i < oldSpreadsheet.sheets.length; i++) {
+        var sheet = oldSpreadsheet.sheets[i];
+        sheetVisibility[sheet.properties.title] = sheet.properties.hidden || false;
+      }
+    }
+
     // Export the data from the old spreadsheet
     var exportResult = sheetTypeFunction.exportData(versionDifference);
     if (!exportResult || !exportResult.success) {
@@ -404,7 +413,8 @@ function exportData(oldSheetID, sheetType, versionDifference) {
     return {
       success: true,
       message: `Export of ${sheetType} data completed successfully.`,
-      data: exportResult.data
+      data: exportResult.data,
+      sheetVisibility: sheetVisibility
     };
   } catch (error) {
     console.log(`Error during export: ${error.message}`);
@@ -418,7 +428,8 @@ function exportData(oldSheetID, sheetType, versionDifference) {
 function importData(
   newSheetID,
   sheetType,
-  data
+  data,
+  sheetVisibility
 ) {
   try {
     if (!sheetType) {
@@ -463,6 +474,21 @@ function importData(
       };
     }
 
+    // Apply sheet visibility using the provided visibility data
+    if (sheetVisibility && Object.keys(sheetVisibility).length > 0) {
+      var hideShowSheetsResult = SheetsAPI.applySheetVisibility(newSpreadsheet, sheetVisibility);
+      if (!hideShowSheetsResult || !hideShowSheetsResult.success) {
+        console.log(`Error updating sheet visibility: ${
+          hideShowSheetsResult ? hideShowSheetsResult.message : "Unknown error"
+        }`);
+        return {
+          success: false,
+          message: `Error updating sheet visibility: ${
+            hideShowSheetsResult && hideShowSheetsResult.message ? hideShowSheetsResult.message : "Unknown error"
+          }`,
+        };
+      }
+    }
     // Import the data to the new spreadsheet
     var importResult = sheetTypeFunction.importData(data);
     if (!importResult || !importResult.success) {
