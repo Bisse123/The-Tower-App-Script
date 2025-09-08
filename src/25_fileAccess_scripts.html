@@ -111,7 +111,7 @@
               if (exportedFile.exportData && exportedFile.sheetType) {
                 exportedData[exportedFile.sheetType] = exportedFile.exportData;
                 if (exportedFile.sheetVisibility) {
-                  sheetVisibilityData[exportedFile.sheetType] = exportedFile.sheetVisibility;
+                  Object.assign(sheetVisibilityData, exportedFile.sheetVisibility);
                 }
               }
             });
