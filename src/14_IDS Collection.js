@@ -1263,7 +1263,7 @@ const collection = {
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
           Guardians: "EXPORT_Guardian!B5:F", // Guardians data
           "Player Tier": "EXPORT_Player!B16:D", // Player tier data
           "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
@@ -1626,7 +1626,7 @@ const collection = {
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
           Guardians: "EXPORT_Guardian!B5:F", // Guardians data
           "Player Tier": "EXPORT_Player!B16:D", // Player tier data
           "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
@@ -2004,7 +2004,7 @@ const collection = {
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
           Guardians: "EXPORT_Guardian!B5:F", // Guardians data
           "Player Tier": "EXPORT_Player!B16:D", // Player tier data
           "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
@@ -2382,7 +2382,7 @@ const collection = {
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules obtained (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
           Guardians: "EXPORT_Guardian!B5:F", // Guardians data
           "Player Tier": "EXPORT_Player!B3:D", // Player tier data
           "Player Stat": "EXPORT_Player!F3:G", // Player stat data
@@ -2734,7 +2734,7 @@ const collection = {
       };
     }
   },
-
+  
   get convertVersionFunctions() {
     return {
       "v1.3.5": this.version135.bind(this),
