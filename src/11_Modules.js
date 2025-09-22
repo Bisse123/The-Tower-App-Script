@@ -291,6 +291,7 @@ const modules = {
         newModuleInventoryValues
       );
       var batchUpdate = [];
+      var usedSpares = {};
       targetModuleTypes.forEach(function (moduleType) {
         if (oldModulesInventory.hasOwnProperty(moduleType)) {
           var rowIdx = newModuleTypeIndex[moduleType];
@@ -299,11 +300,12 @@ const modules = {
           for (var col = 1; col < row.length; col++) {
             var cellValue = String(row[col]);
             if (
-              cellValue.trim() === "Any Other" &&
-              !oldModulesInventory[moduleType].hasOwnProperty(cellValue)
+              cellValue.trim().includes("Spare") ||
+              (cellValue.trim().includes("Any Other") &&
+              !oldModulesInventory[moduleType].hasOwnProperty(cellValue))
             ) {
               for (var spare in oldModulesInventory[moduleType]) {
-                if (spare.includes("Spare")) {
+                if (spare.includes("Spare") && !usedSpares[spare]) {
                   batchUpdate.push({
                     range: `${sheetName}!${shared.columnToLetter(col + 1)}${
                       rowIdx + 1
@@ -311,9 +313,13 @@ const modules = {
                     values: [[spare]],
                   });
                   cellValue = spare;
+                  usedSpares[spare] = true;
                   break;
                 }
               }
+            }
+            if (cellValue.trim().includes("Spare") && !usedSpares[cellValue]) {
+              usedSpares[cellValue] = true;
             }
             if (
               cellValue.trim() !== "" &&
@@ -750,7 +756,7 @@ const modules = {
                 oldModulesInventoryValues[rowIdx + 2][col] != null
                   ? String(oldModulesInventoryValues[rowIdx + 2][col]).trim()
                   : "";
-              if (removedRarity.includes(moduleRarity)) {
+              if (removedRarity.includes(moduleRarity) && !moduleName.includes("Any Other")) {
                 moduleRarity = "Epic";
               }
               oldModulesInventory[moduleType][moduleName] = {
