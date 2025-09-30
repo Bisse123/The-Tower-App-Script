@@ -149,9 +149,9 @@ const themes = {
           oldThemesNames.autoFill === true ||
           oldThemesNames.autoFill === "TRUE" ||
           oldThemesNames.autoFill === "true";
-        if (!autoFill) {
-          targetThemes.push("Milestone Skin");
-        }
+      }
+      if (!autoFill) {
+        targetThemes.push("Milestone Skin");
       }
 
       // For each header, store {col, startRow} for quick reference
@@ -379,7 +379,7 @@ const themes = {
           if (oldThemeUnlocked === "Auto-fill from Player and Stuff") {
             oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
             continue;
-          } 
+          }
           // If cell is a header
           if (
             targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
