@@ -143,14 +143,32 @@ const themes = {
         console.log(`Error getting new themes data`);
         return { success: false, message: "Error getting new themes data" };
       }
+      var autoFill = false;
+      if (oldThemesNames.hasOwnProperty("autoFill")) {
+        autoFill =
+          oldThemesNames.autoFill === true ||
+          oldThemesNames.autoFill === "TRUE" ||
+          oldThemesNames.autoFill === "true";
+        if (!autoFill) {
+          targetThemes.push("Milestone Skin");
+        }
+      }
 
       // For each header, store {col, startRow} for quick reference
       var headerLocations = {};
+      var batchUpdate = [];
 
       // Pre-scan to find header columns and their start rows
       for (var i = 0; i < newThemesData.length; i++) {
         for (var j = 0; j < newThemesData[i].length; j++) {
           var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
+          if (newThemeUnlocked === "Auto-fill from Player and Stuff") {
+            batchUpdate.push({
+              range: `${sheetName}!${shared.columnToLetter(j + 1) + (i + 2)}`,
+              values: [[autoFill]],
+            });
+            break;
+          }
           if (targetThemes.indexOf(newThemeUnlocked) !== -1) {
             // If not already recorded for this col, store its location
             if (!headerLocations[newThemeUnlocked]) {
@@ -160,8 +178,6 @@ const themes = {
           }
         }
       }
-
-      var batchUpdate = [];
 
       // For each header, possibly in multiple places
       for (var key in headerLocations) {
@@ -211,6 +227,37 @@ const themes = {
       return {
         success: false,
         message: "Error in updateThemes: " + error.message,
+      };
+    }
+  },
+
+  version216: function () {
+    try {
+      console.log("Called: themes.version216");
+      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      var themesValuesRange = "Themes & Songs";
+      var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        themesValuesRange,
+      ]);
+      if (
+        !themesOldBatchResult ||
+        themesOldBatchResult.length === 0 ||
+        !themesOldBatchResult[0].values
+      ) {
+        console.log(`Error getting old themes data`);
+        return { success: false, message: "Error getting old themes data" };
+      }
+      var oldThemesData = themesOldBatchResult[0].values;
+
+      var themesData = this.getversion216Themes(oldThemesData);
+      return themesData;
+    } catch (error) {
+      console.log("Error in version216: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version216: " + error.message,
       };
     }
   },
@@ -274,6 +321,10 @@ const themes = {
             targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
           ) {
             currentHeader = String(oldThemeUnlocked || "").trim();
+            if (oldThemesData[row][col + 2] === "Tier Unlocked") {
+              currentHeader = "Milestone Skin";
+              oldThemesNames["Milestone Skin"] = [];
+            }
             headerCol = col;
             continue;
           }
@@ -301,9 +352,70 @@ const themes = {
     }
   },
 
+  getversion216Themes: function (oldThemesData) {
+    try {
+      console.log("Called: themes.getversion216Themes");
+      var targetThemes = [
+        "Tower Skin",
+        "Background Skin",
+        "Songs",
+        "Guardians",
+        "Menu",
+        "Profile Banner",
+        "Milestone Skin",
+      ];
+
+      var oldThemesNames = {};
+
+      targetThemes.forEach(function (header) {
+        oldThemesNames[header] = [];
+      });
+      var currentHeader = null;
+      var headerCol = -1;
+      // Loop through each column first, then rows
+      for (var col = 1; col < oldThemesData[1].length; col++) {
+        for (var row = 0; row < oldThemesData.length; row++) {
+          var oldThemeUnlocked = oldThemesData[row][col];
+          if (oldThemeUnlocked === "Auto-fill from Player and Stuff") {
+            oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
+            continue;
+          } 
+          // If cell is a header
+          if (
+            targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
+          ) {
+            currentHeader = String(oldThemeUnlocked || "").trim();
+            headerCol = col;
+            continue;
+          }
+          var isThemeUnlocked =
+            oldThemeUnlocked === true ||
+            oldThemeUnlocked === "TRUE" ||
+            oldThemeUnlocked === "true";
+          if (currentHeader && col === headerCol && isThemeUnlocked) {
+            var oldThemeName = oldThemesData[row][col + 1];
+            oldThemesNames[currentHeader].push(oldThemeName);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        oldThemesNames: oldThemesNames,
+      };
+    } catch (error) {
+      console.log("Error in getversion216Themes: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getversion216Themes: " + error.message,
+      };
+    }
+  },
+
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
+      "v2.1.4": this.version216.bind(this),
     };
   },
 
