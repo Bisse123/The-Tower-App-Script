@@ -56,7 +56,7 @@ const collection = {
             range: "Themes & Songs",
           },
           Bots_MS: { sheetName: "Bots_MS", range: "Bots_MS" },
-          DVT_Bots: { sheetName: "DVT_Bots", range: "DVT_Bots" },
+          DVT_Bots: { sheetName: "DVT_Bot", range: "DVT_Bot" },
           Relics: { sheetName: "Relics", range: "Relics" },
           Vault_Harmony: { sheetName: "Vault_Harmony", range: "Vault_Harmony" },
           Vault_Power: { sheetName: "Vault_Power", range: "Vault_Power" },

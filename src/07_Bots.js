@@ -45,7 +45,7 @@ const bots = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet", "IDS", "Data_Val_Tables"];
+      var requiredRanges = ["Master Sheet", "IDS", "DVT_Bot"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
