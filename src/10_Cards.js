@@ -44,7 +44,12 @@ const cards = {
         };
       }
 
-      var requiredRanges = ["Master Sheet", "Card Preset", "IDS"];
+      var requiredRanges = [
+        "Master Sheet",
+        "Card Preset",
+        "Card and Mastery Tracker",
+        "IDS",
+      ];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -56,7 +61,8 @@ const cards = {
 
       var masterSheetData = batchResults[0].values;
       var cardPresetsData = batchResults[1].values;
-      var idsData = batchResults[2].values;
+      var cardTrackerData = batchResults[2].values;
+      var idsData = batchResults[3].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -114,6 +120,20 @@ const cards = {
           return presetResult;
         }
         batchUpdate = batchUpdate.concat(presetResult.batchUpdate || []);
+      }
+
+      if (data.hasOwnProperty("oldCardsTracker")) {
+        var oldCardsTracker = data.oldCardsTracker;
+        var trackerResult = this.updateCardsTracker(
+          "Card and Mastery Tracker",
+          oldCardsTracker,
+          cardTrackerData
+        );
+        if (!trackerResult || !trackerResult.success) {
+          console.log(`Error updating cards tracker: ${trackerResult.message}`);
+          return trackerResult;
+        }
+        batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
       // Add import status update to batch if any update was made
@@ -428,22 +448,118 @@ const cards = {
     }
   },
 
+  updateCardsTracker: function (sheetName, oldCardsTracker, cardTrackerData) {
+    try {
+      console.log("Called: cards.updateCardsTracker");
+      if (!cardTrackerData) {
+        console.log(`Error getting cards tracker sheet data`);
+        return {
+          success: false,
+          message: "Error getting cards tracker sheet data",
+        };
+      }
+      if (cardTrackerData.length < 2) {
+        console.log(`Card Tracker sheet has no data or only header row`);
+        return {
+          success: false,
+          message: "Card Tracker sheet has no data or only header row",
+        };
+      }
+
+      console.log("OLD:", JSON.stringify(oldCardsTracker));
+      var batchUpdate = [];
+      for (var i = 0; i < cardTrackerData.length; i++) {
+        var row = cardTrackerData[i];
+        var cardNameColIndex = row.indexOf("Card");
+        var progressColIndex = row.indexOf("Progress");
+        var priorityColIndex = row.indexOf("Priority");
+        if (
+          cardNameColIndex !== -1 &&
+          progressColIndex !== -1 &&
+          priorityColIndex !== -1
+        ) {
+          for (var rowIdx = i + 1; rowIdx < cardTrackerData.length; rowIdx++) {
+            var trackerRow = cardTrackerData[rowIdx];
+            var cardName = trackerRow[cardNameColIndex];
+            if (!cardName || String(cardName).trim() === "") {
+              break;
+            }
+            if (oldCardsTracker.hasOwnProperty(cardName)) {
+              var oldData = oldCardsTracker[cardName];
+              if (oldData.progress) {
+                batchUpdate.push({
+                  range:
+                    sheetName +
+                    "!" +
+                    shared.columnToLetter(progressColIndex + 1) +
+                    (rowIdx + 1),
+                  values: [[oldData.progress]],
+                });
+              }
+              if (oldData.priority) {
+                batchUpdate.push({
+                  range:
+                    sheetName +
+                    "!" +
+                    shared.columnToLetter(priorityColIndex + 1) +
+                    (rowIdx + 1),
+                  values: [[oldData.priority]],
+                });
+              }
+            }
+          }
+          break;
+        }
+      }
+      console.log("BATCH:", JSON.stringify(batchUpdate));
+      if (batchUpdate.length !== 0) {
+        return {
+          success: true,
+          message: `Cards tracker updated successfully`,
+          batchUpdate: batchUpdate,
+        };
+      }
+
+      return {
+        success: true,
+        message: `No updates needed for cards tracker`,
+      };
+    } catch (error) {
+      console.log("Error in updateCardsTracker: " + error.toString());
+      return {
+        success: false,
+        message: "Error in updateCardsTracker: " + error.message,
+      };
+    }
+  },
+
   version10: function () {
     try {
       console.log("Called: cards.version10");
       var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      var oldRanges = ["Card Preset", "EXPORT!B5:D", "EXPORT!C2"];
+      var oldRanges = [
+        "Card Preset",
+        "Card and Mastery Tracker",
+        "EXPORT!B5:D",
+        "EXPORT!C2",
+      ];
       var oldBatchResult = SheetsAPI.batchGetValues(oldSheetID, oldRanges);
 
       var oldCardsPresetData = oldBatchResult[0].values;
-      var oldCardsLevelData = oldBatchResult[1].values;
-      var oldCardSlotsData = oldBatchResult[2].values;
+      var oldCardsTrackerData = oldBatchResult[1].values;
+      var oldCardsLevelData = oldBatchResult[2].values;
+      var oldCardSlotsData = oldBatchResult[3].values;
 
       var cardsPresetData = this.getVersion10CardsPreset(oldCardsPresetData);
       if (!cardsPresetData || !cardsPresetData.success) {
         return cardsPresetData;
+      }
+
+      var cardsTrackerData = this.getVersion10CardsTracker(oldCardsTrackerData);
+      if (!cardsTrackerData || !cardsTrackerData.success) {
+        return cardsTrackerData;
       }
 
       var cardsLevelData = this.getVersion10CardsLevel(
@@ -460,6 +576,7 @@ const cards = {
         oldCardsLevel: cardsLevelData.oldCardsLevel,
         oldCardSlots: cardsLevelData.oldCardSlots,
         oldCardsPreset: cardsPresetData.oldCardsPreset,
+        oldCardsTracker: cardsTrackerData.oldCardsTracker,
         shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
       };
     } catch (error) {
@@ -467,6 +584,71 @@ const cards = {
       return {
         success: false,
         message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  getVersion10CardsTracker: function (oldCardsTrackerData) {
+    try {
+      console.log("Called: cards.getVersion10CardsTracker");
+      var ignoreprioValues = ["*", "Purchased"];
+      var oldCardsTracker = {};
+      for (
+        var rowIndex = 0;
+        rowIndex < oldCardsTrackerData.length;
+        rowIndex++
+      ) {
+        var row = oldCardsTrackerData[rowIndex];
+        var cardNameColIndex = row.indexOf("Card");
+        var progressColIndex = row.indexOf("Progress");
+        var priorityColIndex = row.indexOf("Priority");
+        console.log(
+          "rowIndex:",
+          rowIndex,
+          "cardNameColIndex:",
+          cardNameColIndex,
+          "progressColIndex:",
+          progressColIndex,
+          "priorityColIndex:",
+          priorityColIndex
+        );
+        if (cardNameColIndex !== -1) {
+          for (
+            var rowIdx = rowIndex + 1;
+            rowIdx < oldCardsTrackerData.length;
+            rowIdx++
+          ) {
+            var trackerRow = oldCardsTrackerData[rowIdx];
+            var cardName = trackerRow[cardNameColIndex];
+            if (!cardName || String(cardName).trim() === "") {
+              break;
+            }
+            var progress = trackerRow[progressColIndex];
+            var priority = trackerRow[priorityColIndex];
+            if (
+              priority &&
+              ignoreprioValues.includes(String(priority).trim())
+            ) {
+              priority = null;
+            }
+            oldCardsTracker[cardName] = {
+              progress: progress || null,
+              priority: priority || null,
+            };
+          }
+          break;
+        }
+      }
+      return {
+        success: true,
+        message: "Cards tracker processed successfully",
+        oldCardsTracker: oldCardsTracker,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10CardsTracker: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10CardsTracker: " + error.message,
       };
     }
   },

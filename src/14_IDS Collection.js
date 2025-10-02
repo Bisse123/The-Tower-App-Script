@@ -61,6 +61,10 @@ const collection = {
           Vault_Harmony: { sheetName: "Vault_Harmony", range: "Vault_Harmony" },
           Vault_Power: { sheetName: "Vault_Power", range: "Vault_Power" },
           Cards_MS: { sheetName: "Cards_MS", range: "Cards_MS" },
+          Cards_Tracker: {
+            sheetName: "Card and Mastery Tracker",
+            range: "Card and Mastery Tracker",
+          },
           "Modules Inventory": {
             sheetName: "Modules Inventory",
             range: "Modules Inventory",
@@ -572,6 +576,7 @@ const collection = {
         try {
           var cardsData = data.Cards;
           var cardsMasterSheetData = getRangeData("Cards_MS", "values");
+          var cardsTrackerData = getRangeData("Cards_Tracker", "values");
           var cardsPresetData = getRangeData("Card Preset", "formulas");
           var cardsSuccess = true;
           var cardsMessages = [];
@@ -603,7 +608,7 @@ const collection = {
           }
           if (cardsData.hasOwnProperty("oldCardsPreset") && cardsPresetData) {
             cardsPresetResult = cards.updateCardsPreset(
-              "Card Preset",
+              sheetRequiredRanges.formulas["Card Preset"].sheetName,
               cardsData.oldCardsPreset,
               cardsData.shouldRemoveUsedCards,
               cardsPresetData
@@ -618,6 +623,26 @@ const collection = {
                 "Preset: " +
                   (cardsPresetResult
                     ? cardsPresetResult.message
+                    : "Unknown error")
+              );
+            }
+          }
+          if (cardsData.hasOwnProperty("oldCardsTracker") && cardsTrackerData) {
+            var cardsTrackerResult = cards.updateCardsTracker(
+              sheetRequiredRanges.values["Cards_Tracker"].sheetName,
+              cardsData.oldCardsTracker,
+              cardsTrackerData
+            );
+            if (cardsTrackerResult && cardsTrackerResult.success) {
+              batchUpdate = batchUpdate.concat(
+                cardsTrackerResult.batchUpdate || []
+              );
+            } else {
+              cardsSuccess = false;
+              cardsMessages.push(
+                "Tracker: " +
+                  (cardsTrackerResult
+                    ? cardsTrackerResult.message
                     : "Unknown error")
               );
             }
@@ -932,6 +957,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -1152,17 +1178,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -1171,8 +1201,11 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
+        var cardsTrackerData = cards.getVersion10CardsTracker(
+          cardsTrackerValues
+        );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -1182,6 +1215,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -1259,6 +1293,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -1481,17 +1516,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -1500,8 +1539,11 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
+        var cardsTrackerData = cards.getVersion10CardsTracker(
+          cardsTrackerValues
+        );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -1511,6 +1553,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -1573,8 +1616,10 @@ const collection = {
       ) {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
-        var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+        var playerTierData =
+          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+        var playerStatData =
+          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -1622,6 +1667,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -1859,17 +1905,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -1877,6 +1927,10 @@ const collection = {
         var cardsLevelData = cards.getVersion10CardsLevel(
           cardsLevelValues,
           cardsSlotsValues
+        );
+        var cardsTrackerData = cards.getVersion20CardsTracker(
+          cardsTrackerValues,
+          cardsPresetData.oldCardsPreset
         );
 
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
@@ -1889,6 +1943,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -1951,8 +2006,10 @@ const collection = {
       ) {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
-        var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+        var playerTierData =
+          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+        var playerStatData =
+          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2000,6 +2057,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -2237,17 +2295,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -2256,8 +2318,12 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
+        var cardsTrackerData = cards.getVersion20CardsTracker(
+          cardsTrackerValues,
+          cardsPresetData.oldCardsPreset
+        );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -2267,6 +2333,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -2329,8 +2396,10 @@ const collection = {
       ) {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
-        var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+        var playerTierData =
+          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+        var playerStatData =
+          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2378,6 +2447,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -2615,17 +2685,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -2634,8 +2708,11 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
+        var cardsTrackerData = cards.getVersion10CardsTracker(
+          cardsTrackerValues
+        );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -2645,6 +2722,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -2707,8 +2785,10 @@ const collection = {
       ) {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
-        var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+        var playerTierData =
+          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+        var playerStatData =
+          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2756,6 +2836,7 @@ const collection = {
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
           "Card Preset": "Card Preset", // Cards preset data (full sheet)
+          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
           "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
@@ -2993,17 +3074,21 @@ const collection = {
 
       // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
+      var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
       var cardsSlotsResult = getBatchResult("Cards Slots", "values");
       if (
         cardsPresetResult &&
         cardsPresetResult.values &&
+        cardsTrackerResult &&
+        cardsTrackerResult.values &&
         cardsLevelsResult &&
         cardsLevelsResult.values &&
         cardsSlotsResult &&
         cardsSlotsResult.values
       ) {
         var cardsPresetValues = cardsPresetResult.values;
+        var cardsTrackerValues = cardsTrackerResult.values;
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
@@ -3012,8 +3097,11 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
+        var cardsTrackerData = cards.getVersion10CardsTracker(
+          cardsTrackerValues
+        );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
+        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -3023,6 +3111,7 @@ const collection = {
           shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
           oldCardsLevel: cardsLevelData.oldCardsLevel,
           oldCardSlots: cardsLevelData.oldCardSlots,
+          oldCardsTracker: cardsTrackerData.oldCardsTracker,
         };
       }
 
@@ -3085,8 +3174,10 @@ const collection = {
       ) {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
-        var playerTierData = playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
-        var playerStatData = playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+        var playerTierData =
+          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+        var playerStatData =
+          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3112,7 +3203,7 @@ const collection = {
       };
     }
   },
-  
+
   get convertVersionFunctions() {
     return {
       "v1.3.5": this.version135.bind(this),
