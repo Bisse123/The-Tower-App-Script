@@ -447,9 +447,16 @@
             checkSingleSheetAccess(templateInfo, sheetIds)
               .then((accessResult) => {
                 if (accessResult.success && accessResult.hasAccess) {
+                  // Clear access-related caches immediately since we now have access
+                  inaccessibleFilesCache = [];
+                  templateInaccessibleFilesCache = [];
+                  notOwnedFilesCache = [];
                   // Now we have access - continue with template copy in updateSingleSheet
                   proceedWithUpdateSingleSheetTemplateCopy();
                 } else {
+                  inaccessibleFilesCache = accessResult.inaccessibleFiles;
+                  templateInaccessibleFilesCache =
+                    accessResult.templateInaccessibleFiles;
                   console.error("Still no access after picker:", accessResult);
                   setStatusText("Still missing access after file selection.");
                   resetUpdateSingleSheetButton();
@@ -480,7 +487,7 @@
           } else if (isUpdateSingleSheetFlow) {
             // Handle IDS Master Only update after access granted
             console.log("Rechecking access for IDS Master Only update flow");
-            
+
             // Re-check subsheet access and continue with updateSingleSheet
             updateIDSMasterOnly();
           } else if (currentCopyMode) {
@@ -1208,6 +1215,16 @@
           };
           accessibleFilesCache.push(newSheetFile);
 
+          // Clear the access-related caches since we're transitioning to import workflow
+          inaccessibleFilesCache = [];
+          templateInaccessibleFilesCache = [];
+          notOwnedFilesCache = [];
+
+          // Update the file access title to show success
+          document.getElementById(
+            "fileAccessTitle"
+          ).innerHTML = `✅ ${sheetType} Template Created Successfully!`;
+
           // Show link to the new sheet in selectedFileSummary
           const selectedFileSummary = document.getElementById(
             "selectedFileSummary"
@@ -1215,9 +1232,17 @@
           selectedFileSummary.innerHTML = `<strong>✅ Template copy created successfully!</strong><br>
               <a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit" target="_blank" style="margin-left: 2em;">
                 Open ${sheetType} Sheet
-              </a><br><br>`;
+              </a><br><br>
+              <strong>⚠️ Make sure your data is imported correctly before moving your ${sheetType}! ⚠️</strong><br>`;
 
-          showAccessibleFilesSummary();
+          // Hide access-related buttons since we're now in import workflow
+          const addAnotherButton = document.getElementById("addAnotherButton");
+          if (addAnotherButton) addAnotherButton.style.display = "none";
+
+          const instructionsSection = document.getElementById(
+            "instructionsSection"
+          );
+          if (instructionsSection) instructionsSection.style.display = "none";
         } else {
           console.error(
             "Template copy failed:",
