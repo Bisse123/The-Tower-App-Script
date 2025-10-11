@@ -447,16 +447,9 @@
             checkSingleSheetAccess(templateInfo, sheetIds)
               .then((accessResult) => {
                 if (accessResult.success && accessResult.hasAccess) {
-                  // Clear access-related caches immediately since we now have access
-                  inaccessibleFilesCache = [];
-                  templateInaccessibleFilesCache = [];
-                  notOwnedFilesCache = [];
                   // Now we have access - continue with template copy in updateSingleSheet
                   proceedWithUpdateSingleSheetTemplateCopy();
                 } else {
-                  inaccessibleFilesCache = accessResult.inaccessibleFiles;
-                  templateInaccessibleFilesCache =
-                    accessResult.templateInaccessibleFiles;
                   console.error("Still no access after picker:", accessResult);
                   setStatusText("Still missing access after file selection.");
                   resetUpdateSingleSheetButton();
@@ -478,6 +471,7 @@
             );
             resetUpdateSingleSheetButton();
           }
+          return;
         } else if (sheetType === "IDS Master") {
           if (isCombinedUpdate) {
             // Handle combined update after access granted
@@ -1214,11 +1208,6 @@
             name: copyResult.fileName || `${sheetType} Sheet Copy`,
           };
           accessibleFilesCache.push(newSheetFile);
-
-          // Clear the access-related caches since we're transitioning to import workflow
-          inaccessibleFilesCache = [];
-          templateInaccessibleFilesCache = [];
-          notOwnedFilesCache = [];
 
           // Update the file access title to show success
           document.getElementById(
