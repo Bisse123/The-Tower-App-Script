@@ -18,7 +18,7 @@
     style="display: none"
     disabled
   >
-    Copy All Templates
+    Update All Subsheets
   </button>
   <button
     id="copyUpdateButton"
@@ -26,7 +26,7 @@
     style="display: none"
     disabled
   >
-    Copy Templates with Updates
+    Update Subsheets with new versions
   </button>
   <button
     id="importButton"
@@ -42,6 +42,38 @@
     style="display: none"
     disabled
   >
-    Update IDS Master
+    Move IDS Master
+  </button>
+  <button
+    id="updateSingleSheetButton"
+    onclick="updateSingleSheet()"
+    style="display: none"
+    disabled
+  >
+    Update Single Sheet
+  </button>
+  <button
+    id="updateMasterOnlyButton"
+    onclick="updateIDSMasterOnly()"
+    style="display: none"
+    disabled
+  >
+    📄 Update IDS Master Only
+  </button>
+  <button
+    id="updateSubsheetsOnlyButton"
+    onclick="updateSubsheetsOnly()"
+    style="display: none"
+    disabled
+  >
+    📋 Update Subsheets Only
+  </button>
+  <button
+    id="updateMasterAndSubsheetsButton"
+    onclick="updateMasterAndSubsheets()"
+    style="display: none"
+    disabled
+  >
+    🔄 Update Master & Subsheets
   </button>
 </div>

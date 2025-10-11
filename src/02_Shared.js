@@ -29,8 +29,8 @@ const SheetsAPI = {
   // Find sheet by substring in name from spreadsheet
   getSheetBySubstring: function (spreadsheet, substring) {
     try {
-      const sheet = spreadsheet.sheets.find(
-        (s) => s.properties.title.toLowerCase().includes(substring.toLowerCase())
+      const sheet = spreadsheet.sheets.find((s) =>
+        s.properties.title.toLowerCase().includes(substring.toLowerCase())
       );
       return sheet ? sheet.properties : null;
     } catch (error) {
@@ -43,26 +43,26 @@ const SheetsAPI = {
   applySheetVisibility: function (newSpreadsheet, sheetVisibility) {
     try {
       if (!newSpreadsheet) {
-        console.error('Missing spreadsheet parameter');
+        console.error("Missing spreadsheet parameter");
         return {
           success: false,
-          message: 'Missing spreadsheet parameter'
+          message: "Missing spreadsheet parameter",
         };
       }
 
       if (!newSpreadsheet.sheets) {
-        console.error('Invalid spreadsheet structure - missing sheets');
+        console.error("Invalid spreadsheet structure - missing sheets");
         return {
           success: false,
-          message: 'Invalid spreadsheet structure - missing sheets'
+          message: "Invalid spreadsheet structure - missing sheets",
         };
       }
 
-      if (!sheetVisibility || typeof sheetVisibility !== 'object') {
+      if (!sheetVisibility || typeof sheetVisibility !== "object") {
         return {
           success: true,
-          message: 'No sheet visibility data provided',
-          processedSheets: []
+          message: "No sheet visibility data provided",
+          processedSheets: [],
         };
       }
 
@@ -86,14 +86,14 @@ const SheetsAPI = {
               updateSheetProperties: {
                 properties: {
                   sheetId: newSheetId,
-                  hidden: targetHidden
+                  hidden: targetHidden,
                 },
-                fields: 'hidden'
-              }
+                fields: "hidden",
+              },
             });
             processedSheets.push({
               name: newSheetName,
-              action: targetHidden ? 'hidden' : 'shown'
+              action: targetHidden ? "hidden" : "shown",
             });
           }
         }
@@ -101,28 +101,30 @@ const SheetsAPI = {
 
       // Execute batch update if there are requests
       if (requests.length > 0) {
-        Sheets.Spreadsheets.batchUpdate({
-          requests: requests
-        }, newSpreadsheet.spreadsheetId);
+        Sheets.Spreadsheets.batchUpdate(
+          {
+            requests: requests,
+          },
+          newSpreadsheet.spreadsheetId
+        );
 
         return {
           success: true,
           message: `Successfully updated visibility for ${requests.length} sheets`,
-          processedSheets: processedSheets
+          processedSheets: processedSheets,
         };
       } else {
         return {
           success: true,
-          message: 'No sheet visibility changes needed',
-          processedSheets: []
+          message: "No sheet visibility changes needed",
+          processedSheets: [],
         };
       }
-
     } catch (error) {
       console.error(`Error applying sheet visibility: ${error}`);
       return {
         success: false,
-        message: `Error updating sheet visibility: ${error.toString()}`
+        message: `Error updating sheet visibility: ${error.toString()}`,
       };
     }
   },
@@ -172,13 +174,17 @@ const shared = {
   findSheetVersion: function (sheetID, sheetName, preLoadedValues) {
     try {
       var values;
-      
+
       // Use pre-loaded values if provided, otherwise fetch them
       if (preLoadedValues) {
         values = preLoadedValues;
       } else {
         var batchResult = SheetsAPI.batchGetValues(sheetID, [sheetName]);
-        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+        if (
+          !batchResult ||
+          batchResult.length === 0 ||
+          !batchResult[0].values
+        ) {
           console.log(
             `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`
           );
@@ -186,24 +192,23 @@ const shared = {
         }
         values = batchResult[0].values;
       }
-      
+
       var currentVersion = null;
       var latestVersion = null;
       for (var row = 0; row < values.length; row++) {
         var currentVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" &&
-          [
-            "version change",
-            "this version",
-            "version check"
-          ].some(w => cell.toLowerCase().includes(w))
+          (cell) =>
+            typeof cell === "string" &&
+            ["version change", "this version", "version check"].some((w) =>
+              cell.toLowerCase().includes(w)
+            )
         );
         var latestVersionCol = values[row].findIndex(
-          (cell) => typeof cell === "string" &&
-          [
-            "latest remote version",
-            "latest version"
-          ].some(w => cell.toLowerCase().includes(w))
+          (cell) =>
+            typeof cell === "string" &&
+            ["latest remote version", "latest version"].some((w) =>
+              cell.toLowerCase().includes(w)
+            )
         );
         if (currentVersionCol !== -1 && !currentVersion) {
           currentVersion = values[row + 1][currentVersionCol];
@@ -221,6 +226,71 @@ const shared = {
       };
     } catch (error) {
       console.error(`Error finding sheet version: ${error}`);
+      return null;
+    }
+  },
+  
+  // Get Effective Paths version information (both current and latest)
+  getEPathsVersion: function (sheetID, sheetName, preLoadedValues) {
+    try {
+      var values;
+
+      // Use pre-loaded values if provided, otherwise fetch them
+      if (preLoadedValues) {
+        values = preLoadedValues;
+      } else {
+        var batchResult = SheetsAPI.batchGetValues(sheetID, [sheetName]);
+        if (
+          !batchResult ||
+          batchResult.length === 0 ||
+          !batchResult[0].values
+        ) {
+          console.log(
+            `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`
+          );
+          return null;
+        }
+        values = batchResult[0].values;
+      }
+
+      var currentVersion = null;
+      var latestVersion = null;
+      
+      // Search for version information in the sheet
+      for (var i = 0; i < values.length; i++) {
+        for (var j = 0; j < values[i].length; j++) {
+          var cellValue = values[i] && values[i][j] ? values[i][j] : "";
+          
+          // Look for "Current Version:" and concatenate next 2 cells
+          if (cellValue && typeof cellValue === "string" && cellValue.includes("Current Version:") && !currentVersion) {
+            var currentPart1 = values[i] && values[i][j + 1] ? values[i][j + 1] : "";
+            var currentPart2 = values[i] && values[i][j + 2] ? values[i][j + 2] : "";
+            currentVersion = currentPart1 + currentPart2;
+          }
+          
+          // Look for "Latest Version:" and concatenate next 2 cells
+          if (cellValue && typeof cellValue === "string" && cellValue.includes("Latest Version:") && !latestVersion) {
+            var latestPart1 = values[i] && values[i][j + 1] ? values[i][j + 1] : "";
+            var latestPart2 = values[i] && values[i][j + 2] ? values[i][j + 2] : "";
+            latestVersion = latestPart1 + latestPart2;
+          }
+          
+          // If we found both versions, break out of loops
+          if (currentVersion && latestVersion) {
+            break;
+          }
+        }
+        if (currentVersion && latestVersion) {
+          break;
+        }
+      }
+      
+      return {
+        currentVersion: currentVersion,
+        latestVersion: latestVersion,
+      };
+    } catch (error) {
+      console.error(`Error finding Effective Paths version: ${error}`);
       return null;
     }
   },
@@ -244,10 +314,15 @@ const shared = {
     return "same";
   },
 
-  findSheetTypeID: function (spreadsheetId, sheetName, sheetType, preLoadedValues) {
+  findSheetTypeID: function (
+    spreadsheetId,
+    sheetName,
+    sheetType,
+    preLoadedValues
+  ) {
     var sheetType = sheetType || "IDS Master's";
     var values;
-    
+
     // Use pre-loaded values if provided, otherwise fetch them
     if (preLoadedValues) {
       values = preLoadedValues;
@@ -307,10 +382,15 @@ const shared = {
     return null;
   },
 
-  findSheetTypeURL: function (spreadsheetId, sheetName, sheetType, preLoadedValues) {
+  findSheetTypeURL: function (
+    spreadsheetId,
+    sheetName,
+    sheetType,
+    preLoadedValues
+  ) {
     var sheetType = sheetType || "IDS Master's";
     var values;
-    
+
     // Use pre-loaded values if provided, otherwise fetch them
     if (preLoadedValues) {
       values = preLoadedValues;
@@ -328,7 +408,11 @@ const shared = {
     var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
-        if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1 && values[i][j].indexOf("More IDs are available") === -1) {
+        if (
+          regex.test(values[i][j]) &&
+          values[i][j].indexOf("script") === -1 &&
+          values[i][j].indexOf("More IDs are available") === -1
+        ) {
           var versionA1 = shared.columnToLetter(j + 6) + (i + 1);
           var templateA1 = shared.columnToLetter(j + 1) + (i + 2);
           var oldVersionA1 = shared.columnToLetter(j + 7) + (i + 1);
@@ -396,28 +480,37 @@ const shared = {
 
   // Extract URL from HYPERLINK formula
   extractUrlFromHyperlink: function (formula) {
-    if (!formula || typeof formula !== 'string') {
+    if (!formula || typeof formula !== "string") {
       return null;
     }
-    
-    // Match HYPERLINK formula pattern: =HYPERLINK("url", "text")
-    var hyperlinkMatch = formula.match(/=HYPERLINK\s*\(\s*"([^"]+)"/i);
+
+    // Check if formula starts with "="
+    if (!formula.startsWith("=")) {
+      return null;
+    }
+
+    // Match HYPERLINK function anywhere in the formula: HYPERLINK("url", "text")
+    var hyperlinkMatch = formula.match(/HYPERLINK\s*\(\s*"([^"]+)"/i);
     if (hyperlinkMatch && hyperlinkMatch[1]) {
       return hyperlinkMatch[1];
     }
-    
+
     return null;
   },
 
-  getNewDataValidationValues: function (dataValTablesData, dataValType, oldValues) {
+  getNewDataValidationValues: function (
+    dataValTablesData,
+    dataValType,
+    oldValues
+  ) {
     console.log(`Updating data validation values for type: ${dataValType}`);
     if (!dataValTablesData || !Array.isArray(dataValTablesData)) {
       console.error("Invalid data validation tables data");
       return null;
     }
     var newValues = {};
-    Object.keys(oldValues).forEach(oldName => {
-      newValues[oldName] = { "unlocked": oldValues[oldName].unlocked, "props": {} };
+    Object.keys(oldValues).forEach((oldName) => {
+      newValues[oldName] = { unlocked: oldValues[oldName].unlocked, props: {} };
       var colIndex = dataValTablesData[0].indexOf(oldName);
       if (colIndex !== -1) {
         var offset = dataValType === "Guardians" ? 4 : 5;
@@ -425,13 +518,20 @@ const shared = {
         var lastColIndex = colIndex + (offset - 1) * 2;
         for (var col = firstColIndex; col < lastColIndex; col++) {
           var propName = dataValTablesData[1][col];
-          if (oldValues[oldName].hasOwnProperty("props") && oldValues[oldName].props.hasOwnProperty(propName)) {
+          if (
+            oldValues[oldName].hasOwnProperty("props") &&
+            oldValues[oldName].props.hasOwnProperty(propName)
+          ) {
             var oldPropValue = oldValues[oldName].props[propName];
-            var lookUpCol = (firstColIndex - offset) + (col - firstColIndex) / 2;
+            var lookUpCol = firstColIndex - offset + (col - firstColIndex) / 2;
             for (var row = 3; row < dataValTablesData.length; row++) {
               var rowData = dataValTablesData[row];
               var lookUpValue = rowData[lookUpCol];
-              if (lookUpValue && lookUpValue.trim() !== "" && lookUpValue.substring(0, 2) === oldPropValue.substring(0, 2)) {
+              if (
+                lookUpValue &&
+                lookUpValue.trim() !== "" &&
+                lookUpValue.substring(0, 2) === oldPropValue.substring(0, 2)
+              ) {
                 newValues[oldName].props[propName] = lookUpValue;
                 break;
               }
@@ -441,17 +541,165 @@ const shared = {
       }
     });
     return newValues;
-  }
+  },
+
+  findSheetTemplateID: function (sheetID, sheetName, sheetType) {
+    try {
+      console.log(
+        `Finding template ID for sheet: ${sheetID}, sheet name: ${sheetName}, type: ${sheetType}`
+      );
+
+      var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, sheetID);
+      if (!spreadsheet) {
+        console.log(`Could not access spreadsheet with ID: ${sheetID}`);
+        return null;
+      }
+
+      var sheet = SheetsAPI.getSheetByName(spreadsheet, sheetName);
+      if (!sheet) {
+        console.log(`Could not find sheet: ${sheetName}`);
+        return null;
+      }
+
+      // Get all data from the sheet to search for HYPERLINK formulas
+      // Use batch API calls for better performance
+      var formulas = SheetsAPI.batchGetFormulas(sheetID, [sheetName]);
+      var values = SheetsAPI.batchGetValues(sheetID, [sheetName]);
+      
+      if (!formulas || !formulas[0] || !formulas[0].values) {
+        console.log(`Could not fetch formulas from sheet: ${sheetName}`);
+        return null;
+      }
+      
+      if (!values || !values[0] || !values[0].values) {
+        console.log(`Could not fetch values from sheet: ${sheetName}`);
+        return null;
+      }
+      
+      var formulaData = formulas[0].values;
+      var valueData = values[0].values;
+
+      console.log(
+        `Searching ${formulaData.length} rows for template HYPERLINK formulas`
+      );
+
+      var templateID = null;
+      var version = null;
+
+      // Search for template HYPERLINK formula
+      for (var i = 0; i < formulaData.length; i++) {
+        for (var j = 0; j < formulaData[i].length; j++) {
+          var formula = formulaData[i][j];
+
+          // Check if this cell contains a HYPERLINK formula with "copy" text
+          if (
+            formula &&
+            typeof formula === "string" &&
+            formula.toUpperCase().includes("HYPERLINK") &&
+            formula.toLowerCase().includes("copy")
+          ) {
+            console.log(
+              `Found potential template link in row ${i + 1}, col ${
+                j + 1
+              }: ${formula}`
+            );
+
+            // Extract URL from the HYPERLINK formula
+            var templateUrl = shared.extractUrlFromHyperlink(formula);
+            if (templateUrl) {
+              // Extract sheet ID from the URL
+              templateID = shared.extractSheetId(templateUrl);
+              if (templateID) {
+                console.log(`Found template ID: ${templateID}`);
+              }
+            }
+          }
+
+          // Special handling for Effective Paths sheet type - use getEPathsVersion
+          if (sheetType === "Effective Paths" && !version) {
+            var ePathsVersionInfo = shared.getEPathsVersion(sheetID, sheetName, valueData);
+            if (ePathsVersionInfo && ePathsVersionInfo.latestVersion) {
+              version = ePathsVersionInfo.latestVersion;
+              console.log(`Effective Paths version found: ${version}`);
+            }
+          }
+
+          // Check if we have both templateID and version for Effective Paths, return immediately
+          if (sheetType === "Effective Paths" && templateID && version) {
+            return {
+              templateID: templateID,
+              templateVersion: version,
+            };
+          }
+        }
+        if (templateID && sheetType !== "Effective Paths") {
+          break; // Break outer loop for non-Effective Paths sheets
+        }
+      }
+
+      // If template ID was found, get version info and return result
+      if (templateID && sheetType !== "Effective Paths") {
+        // Standard version handling for all sheet types that reach here
+        var currentSheetVersionInfo = shared.findSheetVersion(
+          sheetID,
+          sheetName,
+          valueData
+        );
+        if (currentSheetVersionInfo && currentSheetVersionInfo.latestVersion) {
+          console.log(
+            `Template version (from latest): ${currentSheetVersionInfo.latestVersion}`
+          );
+          return {
+            templateID: templateID,
+            templateVersion: currentSheetVersionInfo.latestVersion,
+          };
+        }
+      }
+
+      console.log(
+        `No template HYPERLINK with "copy" found in sheet: ${sheetName}`
+      );
+      return null;
+    } catch (error) {
+      console.error(`Error finding template ID: ${error.toString()}`);
+      return null;
+    }
+  },
+  
+  // Utility function to extract column offset from a range string
+  getColumnOffsetFromRange: function (range) {
+    // Extract the range part after the sheet name (e.g., "AC1:AN35" from "eHP!AC1:AN35")
+    var rangePart = range.split('!')[1];
+    if (!rangePart) return 0;
+    
+    // Extract the starting column (e.g., "AC" from "AC1:AN35")
+    var startCell = rangePart.split(':')[0];
+    if (!startCell) return 0;
+    
+    // Extract column letters (remove numbers)
+    var columnLetters = startCell.replace(/[0-9]/g, '');
+    
+    // Convert column letters to 0-based index
+    var columnIndex = 0;
+    for (var i = 0; i < columnLetters.length; i++) {
+      columnIndex = columnIndex * 26 + (columnLetters.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+    }
+    
+    return columnIndex - 1; // Convert to 0-based index
+  },
 };
 
 function updateSheet(sheetType, newSheetID, oldSheetID) {
   try {
-    var newSpreadsheet = spreadsheets(`${sheetType} newSpreadsheet`, newSheetID);
+    var newSpreadsheet = spreadsheets(
+      `${sheetType} newSpreadsheet`,
+      newSheetID
+    );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
-        message: `New spreadsheet™ not found with ID: ${newSheetID}`
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
     }
 
@@ -461,16 +709,22 @@ function updateSheet(sheetType, newSheetID, oldSheetID) {
       console.log(`Could not retrieve file information for new or old sheet.`);
       return {
         success: false,
-        message: `Could not retrieve file information for new or old sheet™.`
+        message: `Could not retrieve file information for new or old sheet™.`,
       };
     }
 
-    var newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page");
+    var newVersionInfo;
+    if (sheetType === "Effective Paths") {
+      newVersionInfo = shared.getEPathsVersion(newSheetID, "Home Page");
+    } else {
+      newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page");
+    }
+    
     if (!newVersionInfo || !newVersionInfo.currentVersion) {
       console.log(`Could not find new sheet version`);
       return {
         success: false,
-        message: `Could not find new sheet™ version`
+        message: `Could not find new sheet™ version`,
       };
     }
     var newVersion = newVersionInfo.currentVersion;
@@ -485,7 +739,9 @@ function updateSheet(sheetType, newSheetID, oldSheetID) {
     if (sheetType === "IDS Collection") {
       newFileName = newFileName.replace("IDS Master", "IDS Collection");
     }
-    console.log(`Updating file name from "${oldFile.name}" to "${newFileName}"`);
+    console.log(
+      `Updating file name from "${oldFile.name}" to "${newFileName}"`
+    );
 
     try {
       Drive.Files.update(
@@ -503,7 +759,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID) {
       console.log(`Error moving new sheet: ${error.toString()}`);
       return {
         success: false,
-        message: `Error moving new sheet™: ${error.toString()}`
+        message: `Error moving new sheet™: ${error.toString()}`,
       };
     }
 
@@ -513,10 +769,9 @@ function updateSheet(sheetType, newSheetID, oldSheetID) {
       console.log(`Error deleting old sheet: ${error.toString()}`);
       return {
         success: false,
-        message: `Error deleting old sheet™: ${error.toString()}`
+        message: `Error deleting old sheet™: ${error.toString()}`,
       };
     }
-
 
     return {
       success: true,
@@ -538,16 +793,16 @@ function updateIdsMaster(idMasterID, idDataEntries) {
     console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
     return {
       success: false,
-      message: `IDS Master Spreadsheet™ not found with ID: ${idMasterID}`
+      message: `IDS Master Spreadsheet™ not found with ID: ${idMasterID}`,
     };
   }
-  
+
   var idMasterIDSheet = SheetsAPI.getSheetByName(idsMasterSpreadsheet, "IDS");
   if (!idMasterIDSheet) {
     console.log(`IDS sheet not found in ID master spreadsheet`);
     return {
       success: false,
-      message: `IDS sheet™ not found in ID master spreadsheet™`
+      message: `IDS sheet™ not found in ID master spreadsheet™`,
     };
   }
   try {
@@ -557,21 +812,28 @@ function updateIdsMaster(idMasterID, idDataEntries) {
     for (var i = 0; i < idDataEntries.length; i++) {
       var idData = idDataEntries[i];
       var sheetType = idData.sheetType;
+      if (sheetType === "IDS Master") {
+        continue; // Skip IDS Master entries
+      }
       var idMasterSpreadsheetInfo = shared.findSheetTypeID(
         idMasterID,
         "IDS",
         sheetType,
         idsMasterValues
       );
-      if (!idMasterSpreadsheetInfo || !idMasterSpreadsheetInfo.cell || !idMasterSpreadsheetInfo.cell.range) {
+      if (
+        !idMasterSpreadsheetInfo ||
+        !idMasterSpreadsheetInfo.cell ||
+        !idMasterSpreadsheetInfo.cell.range
+      ) {
         console.log(`IDS Master cell range not found`);
         return {
           success: false,
-          message: `IDS Master cell range not found`
+          message: `IDS Master cell range not found`,
         };
       }
       var cellRange = idMasterSpreadsheetInfo.cell.range;
-      var values = [[idData.newSheetID]]
+      var values = [[idData.newSheetID]];
       batchUpdate.push({
         range: cellRange,
         values: values,
@@ -580,14 +842,12 @@ function updateIdsMaster(idMasterID, idDataEntries) {
 
     if (batchUpdate.length > 0) {
       try {
-        SheetsAPI.batchUpdateValues(idMasterID, [
-          batchUpdate,
-        ]);
+        SheetsAPI.batchUpdateValues(idMasterID, [batchUpdate]);
       } catch (error) {
         console.log(`Error updating ID Master sheet: ${error.toString()}`);
         return {
           success: false,
-          message: `Error updating ID Master sheet™: ${error.toString()}`
+          message: `Error updating ID Master sheet™: ${error.toString()}`,
         };
       }
     }
@@ -608,13 +868,16 @@ function updateIdsMaster(idMasterID, idDataEntries) {
 
 function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
   try {
-    var newSpreadsheet = spreadsheets(`${sheetType} newSpreadsheet`, newSheetID);
+    var newSpreadsheet = spreadsheets(
+      `${sheetType} newSpreadsheet`,
+      newSheetID
+    );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
         success: false,
         message: `New spreadsheet™ not found with ID: ${newSheetID}`,
-        imported: false
+        imported: false,
       };
     }
 
@@ -622,11 +885,15 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
     var sheetName = "IDS";
     var searchName = "IDS Master's";
     var requiresIDSSheet = true;
-    
+
     if (sheetType === "IDS Collection") {
       sheetName = "Home Page";
       searchName = "Load your file here";
       requiresIDSSheet = false;
+    } else if (sheetType === "Effective Paths") {
+      sheetName = "IDS";
+      searchName = "IDS Master's";
+      requiresIDSSheet = true;
     }
 
     // Check for required sheets based on sheet type
@@ -637,18 +904,37 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         return {
           success: false,
           message: `IDS sheet™ not found in new ${sheetType} spreadsheet™.`,
-          imported: false
+          imported: false,
         };
       }
     }
 
-    var newHomePageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "Home Page");
+    // Check for Effective Paths specific sheets
+    if (sheetType === "Effective Paths") {
+      var eHPSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eHP");
+      var eDamageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eDamage");
+      var eEconSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eEcon");
+      
+      if (!eHPSheet || !eDamageSheet || !eEconSheet) {
+        console.log(`Required Effective Paths sheets not found in new spreadsheet.`);
+        return {
+          success: false,
+          message: `New spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).`,
+          imported: false,
+        };
+      }
+    }
+
+    var newHomePageSheet = SheetsAPI.getSheetByName(
+      newSpreadsheet,
+      "Home Page"
+    );
     if (!newHomePageSheet) {
       console.log(`Home Page sheet not found in new ${sheetType} spreadsheet`);
       return {
         success: false,
         message: `Home Page sheet™ not found in new ${sheetType} spreadsheet™`,
-        imported: false
+        imported: false,
       };
     }
 
@@ -660,32 +946,50 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       return {
         success: false,
         message: `Could not fetch required data from new sheet`,
-        imported: false
+        imported: false,
       };
     }
 
     var newIDSValues = newSheetData[0].values;
-    var newHomePageValues = requiresIDSSheet ? newSheetData[1].values : newSheetData[0].values;
+    var newHomePageValues = requiresIDSSheet
+      ? newSheetData[1].values
+      : newSheetData[0].values;
 
     // STEP 1: Check compatibility first (for early failure)
-    var newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page", newHomePageValues);
+    var newVersionInfo;
+    if (sheetType === "Effective Paths") {
+      newVersionInfo = shared.getEPathsVersion(
+        newSheetID,
+        "Home Page",
+        newHomePageValues
+      );
+    } else {
+      newVersionInfo = shared.findSheetVersion(
+        newSheetID,
+        "Home Page",
+        newHomePageValues
+      );
+    }
+    
     if (!newVersionInfo) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
         success: false,
         message: `Version not found in new ${sheetType} spreadsheet™.`,
-        imported: false
+        imported: false,
       };
     }
 
     var newVersion = newVersionInfo.currentVersion;
     var latestVersion = newVersionInfo.latestVersion;
     if (!newVersion || !latestVersion) {
-      console.log(`Version information is incomplete in new ${sheetType} spreadsheet.`);
+      console.log(
+        `Version information is incomplete in new ${sheetType} spreadsheet.`
+      );
       return {
         success: false,
         message: `Version information is incomplete in new ${sheetType} spreadsheet™.`,
-        imported: false
+        imported: false,
       };
     }
 
@@ -696,28 +1000,34 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       return {
         success: false,
         message: `The version of the new sheet (${newVersion}) is not the latest version (${latestVersion}). Please update before importing.`,
-        imported: false
+        imported: false,
       };
     }
 
     // Check old sheet compatibility
-    var oldSpreadsheet = spreadsheets(`${sheetType} oldSpreadsheet`, oldSheetID);
+    var oldSpreadsheet = spreadsheets(
+      `${sheetType} oldSpreadsheet`,
+      oldSheetID
+    );
     if (!oldSpreadsheet) {
       console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
       return {
         success: false,
         message: `Old spreadsheet™ not found with ID: ${oldSheetID}`,
-        imported: false
+        imported: false,
       };
     }
 
-    var oldHomePageSheet = SheetsAPI.getSheetByName(oldSpreadsheet, "Home Page");
+    var oldHomePageSheet = SheetsAPI.getSheetByName(
+      oldSpreadsheet,
+      "Home Page"
+    );
     if (!oldHomePageSheet) {
       console.log(`Home Page sheet not found in old ${sheetType} spreadsheet`);
       return {
         success: false,
         message: `Home Page sheet™ not found in old ${sheetType} spreadsheet™`,
-        imported: false
+        imported: false,
       };
     }
 
@@ -728,21 +1038,34 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       return {
         success: false,
         message: `Could not fetch Home Page data from old sheet`,
-        imported: false
+        imported: false,
       };
     }
 
     var oldHomePageValues = oldHomePageData[0].values;
     var versionDifference = "None";
     if (oldHomePageValues[1][1] !== "IDS Master") {
-      var oldVersionInfo = shared.findSheetVersion(oldSheetID, "Home Page", oldHomePageValues);
+      var oldVersionInfo;
+      if (sheetType === "Effective Paths") {
+        oldVersionInfo = shared.getEPathsVersion(
+          oldSheetID,
+          "Home Page",
+          oldHomePageValues
+        );
+      } else {
+        oldVersionInfo = shared.findSheetVersion(
+          oldSheetID,
+          "Home Page",
+          oldHomePageValues
+        );
+      }
 
       if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
         console.log(`Version not found in old ${sheetType} spreadsheet.`);
         return {
           success: false,
           message: `Version not found in old ${sheetType} spreadsheet™.`,
-          imported: false
+          imported: false,
         };
       }
 
@@ -756,7 +1079,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         return {
           success: false,
           message: `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`,
-          imported: false
+          imported: false,
         };
       }
 
@@ -764,59 +1087,69 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       if (sheetTypeFunction) {
         versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
         if (!versionDifference) {
-          console.log(`Old version of ${sheetType} is incompatible for import (${oldVersion})`);
+          console.log(
+            `Old version of ${sheetType} is incompatible for import (${oldVersion})`
+          );
           return {
             success: false,
             message: `Old version of ${sheetType} is incompatible for import (${oldVersion}).`,
-            imported: false
+            imported: false,
           };
         }
       } else {
-        console.log(`No compatibility function found for ${sheetType}. Assuming incompatible.`);
+        console.log(
+          `No compatibility function found for ${sheetType}. Assuming incompatible.`
+        );
         return {
           success: false,
           message: `No compatibility function found for ${sheetType}. Assuming incompatible.`,
-          imported: false
+          imported: false,
         };
       }
     }
 
     // STEP 2: If compatible, check import status
-    var newSpreadsheetInfo = shared.findSheetTypeID(newSheetID, sheetName, searchName, newIDSValues);
+    var newSpreadsheetInfo = shared.findSheetTypeID(
+      newSheetID,
+      sheetName,
+      searchName,
+      newIDSValues
+    );
     if (!newSpreadsheetInfo || !newSpreadsheetInfo.importStatus) {
       console.log(`Can not find import cell in the new IDS sheet.`);
       return {
         success: false,
         message: `Can not find import cell in the new IDS sheet.`,
-        imported: false
+        imported: false,
       };
     }
 
     var importStatusValue = newSpreadsheetInfo.importStatus.value;
-    var isImported = (importStatusValue === "✅");
+    var isImported = importStatusValue === "✅";
 
     if (isImported) {
       return {
         success: true,
         message: "Data is already imported.",
         imported: true,
-        versionDifference: versionDifference
+        versionDifference: versionDifference,
       };
     } else {
       return {
         success: true,
         message: `Data is not imported yet. Ready for import.`,
         imported: false,
-        versionDifference: versionDifference
+        versionDifference: versionDifference,
       };
     }
-
   } catch (error) {
-    console.log(`Error checking import status and compatibility: ${error.message}`);
+    console.log(
+      `Error checking import status and compatibility: ${error.message}`
+    );
     return {
       success: false,
       message: `Error checking import status and compatibility: ${error.message}`,
-      imported: false
+      imported: false,
     };
   }
 }
@@ -846,7 +1179,7 @@ function checkSheetAccess(sheetID, userEmail) {
         success: false,
         message: "Missing sheetID or userEmail parameter",
         accessible: false,
-        owned: false
+        owned: false,
       };
     }
 
@@ -868,26 +1201,26 @@ function checkSheetAccess(sheetID, userEmail) {
         accessible: true,
         owned: isOwner,
         sheetID: sheetID,
-        name: file.name
+        name: file.name,
       };
     } catch (error) {
       console.log(`Sheet access denied for ${sheetID}: ${error.toString()}`);
-      
+
       return {
         success: true,
         message: `Sheet access denied`,
         accessible: false,
         owned: false,
-        sheetID: sheetID
+        sheetID: sheetID,
       };
     }
   } catch (error) {
     console.error(`Error checking sheet access: ${error.toString()}`);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: `Error checking sheet access: ${error.toString()}`,
       accessible: false,
-      owned: false
+      owned: false,
     };
   }
 }
@@ -896,7 +1229,7 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
   try {
     const sheetTypes = [
       "Laboratory",
-      "Workshop", 
+      "Workshop",
       "Ultimate Weapon",
       "Themes & Songs",
       "Bots",
@@ -908,9 +1241,11 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       "Player & Stuff",
     ];
 
-    copyMode = copyMode || 'all';
-    console.log(`Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`);
-    
+    copyMode = copyMode || "all";
+    console.log(
+      `Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`
+    );
+
     // Fetch IDS Master data once
     var idsMasterData = fetchIdsMasterData(idMasterID);
     if (!idsMasterData.success) {
@@ -918,58 +1253,69 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       return {
         success: false,
         message: `Error fetching IDS Master data: ${idsMasterData.message}`,
-        collection: idsMasterData.collection || false
+        collection: idsMasterData.collection || false,
       };
     }
-    
+
     var templateInfo = [];
     var sheetIds = [idMasterID];
-    
+
     // Process all sheet types using the pre-fetched data
     for (var i = 0; i < sheetTypes.length; i++) {
       var sheetType = sheetTypes[i];
       try {
-        var templateResult = getTemplateInfo(idsMasterData, sheetType, copyMode);
-        
+        var templateResult = getTemplateInfo(
+          idsMasterData,
+          sheetType,
+          copyMode
+        );
+
         if (templateResult && templateResult.success) {
           // Skip if version filtering excluded this template
           if (templateResult.versionFiltered) {
             console.log(`Skipping ${sheetType} - version filtering applied`);
             continue;
           }
-          
+
           templateInfo.push({
             templateID: templateResult.templateID,
             sheetType: sheetType,
             templateVersion: templateResult.templateVersion,
             oldVersion: templateResult.oldVersion,
-            oldSheetID: templateResult.oldSheetID
+            oldSheetID: templateResult.oldSheetID,
           });
-          
+
           // Collect old sheet IDs
           if (templateResult.oldSheetID) {
             sheetIds.push(templateResult.oldSheetID);
           }
         } else {
-          console.log(`Error getting template info for ${sheetType}: ${templateResult ? templateResult.message : 'Unknown error'}`);
+          console.log(
+            `Error getting template info for ${sheetType}: ${
+              templateResult ? templateResult.message : "Unknown error"
+            }`
+          );
         }
       } catch (templateError) {
-        console.log(`Error processing template for ${sheetType}: ${templateError.toString()}`);
+        console.log(
+          `Error processing template for ${sheetType}: ${templateError.toString()}`
+        );
       }
     }
-    
+
     return {
       success: true,
       sheetIds: sheetIds,
       templateInfo: templateInfo,
-      message: `Found ${templateInfo.length} templates and ${sheetIds.length} old sheets to check`
+      message: `Found ${templateInfo.length} templates and ${sheetIds.length} old sheets to check`,
     };
-    
   } catch (error) {
-    console.log(`Error getting template and old sheet IDs: ${error.toString()}`);
+    console.log(
+      `Error getting template and old sheet IDs: ${error.toString()}`
+    );
     return {
       success: false,
-      message: `Error getting template and old sheet IDs: ${error.message}`
+      message: `Error getting template and old sheet IDs: ${error.message}`,
     };
   }
 }
@@ -980,10 +1326,15 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
     var values = idsMasterData.values;
     var formulas = idsMasterData.formulas;
     var idMasterID = idsMasterData.idMasterID;
-    copyMode = copyMode || 'all';
-    
-    var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", sheetType, values);
-    
+    copyMode = copyMode || "all";
+
+    var spreadsheetInfo = shared.findSheetTypeURL(
+      idMasterID,
+      "IDS",
+      sheetType,
+      values
+    );
+
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
       console.log(`Could not find sheet template for ${sheetType}`);
       return {
@@ -991,7 +1342,7 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
         message: `Could not find sheet template for ${sheetType}`,
       };
     }
-    
+
     if (!spreadsheetInfo.id) {
       console.log(
         `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
@@ -1013,40 +1364,55 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
 
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
-    
+
     // Version filtering logic - only process if 'update' mode and template is newer
-    if (copyMode === 'update') {
+    if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
-        console.log(`Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`);
+        console.log(
+          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`
+        );
         return {
           success: true,
           versionFiltered: true,
           message: `Version information missing for ${sheetType}`,
         };
       }
-      
-      var versionComparison = shared.compareVersions(oldVersion, templateVersion);
-      if (versionComparison !== 'older') {
-        console.log(`${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`);
+
+      var versionComparison = shared.compareVersions(
+        oldVersion,
+        templateVersion
+      );
+      if (versionComparison !== "older") {
+        console.log(
+          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`
+        );
         return {
           success: true,
           versionFiltered: true,
           message: `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}`,
         };
       }
-      
-      console.log(`${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`);
+
+      console.log(
+        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`
+      );
     }
-    
+
     var templateRow = spreadsheetInfo.template.row - 1; // Convert to 0-based
     var templateCol = spreadsheetInfo.template.col - 1; // Convert to 0-based
-    
+
     // Get template URL from pre-fetched formulas
     var templateUrl = "";
-    if (formulas && formulas[templateRow] && formulas[templateRow][templateCol]) {
-      templateUrl = shared.extractUrlFromHyperlink(formulas[templateRow][templateCol]);
+    if (
+      formulas &&
+      formulas[templateRow] &&
+      formulas[templateRow][templateCol]
+    ) {
+      templateUrl = shared.extractUrlFromHyperlink(
+        formulas[templateRow][templateCol]
+      );
     }
-    
+
     if (!templateUrl) {
       console.log(`Template URL not found for ${sheetType}`);
       return {
@@ -1071,10 +1437,12 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
       templateVersion: templateVersion,
       oldVersion: oldVersion,
       sheetType: sheetType,
-      message: `Successfully got template info for ${sheetType}`
+      message: `Successfully got template info for ${sheetType}`,
     };
   } catch (error) {
-    console.error(`Error getting template info for ${sheetType}: ${error.toString()}`);
+    console.error(
+      `Error getting template info for ${sheetType}: ${error.toString()}`
+    );
     return { success: false, message: `${error.toString()}` };
   }
 }
@@ -1086,7 +1454,7 @@ function checkTemplateAccess(templateID) {
       return {
         success: false,
         message: "Missing templateID parameter",
-        accessible: false
+        accessible: false,
       };
     }
 
@@ -1094,30 +1462,32 @@ function checkTemplateAccess(templateID) {
       var file = Drive.Files.get(templateID, {
         fields: "id, name",
       });
-      
+
       return {
         success: true,
         message: `Template access verified`,
         accessible: true,
         templateID: templateID,
-        name: file.name
+        name: file.name,
       };
     } catch (error) {
-      console.log(`Template access denied for ${templateID}: ${error.toString()}`);
-      
+      console.log(
+        `Template access denied for ${templateID}: ${error.toString()}`
+      );
+
       return {
         success: true,
         message: `Template access denied`,
         accessible: false,
-        templateID: templateID
+        templateID: templateID,
       };
     }
   } catch (error) {
     console.error(`Error checking template access: ${error.toString()}`);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: `Error checking template access: ${error.toString()}`,
-      accessible: false
+      accessible: false,
     };
   }
 }
@@ -1178,7 +1548,7 @@ function fetchIdsMasterData(idMasterID) {
         message: `IDS Master file not found with ID: ${idMasterID}`,
       };
     }
-    
+
     var idMasterSheetInfo = SheetsAPI.getSheetByName(idMasterSheet, "IDS");
     if (!idMasterSheetInfo) {
       console.log(`IDS sheet not found in the IDS Master file.`);
@@ -1192,7 +1562,7 @@ function fetchIdsMasterData(idMasterID) {
     // Two API calls to get both values and formulas from IDS sheet
     var idsValues = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
     var idsFormulas = SheetsAPI.batchGetFormulas(idMasterID, ["IDS"]);
-    
+
     if (!idsValues || !idsValues[0] || !idsValues[0].values) {
       console.log(`Could not read IDS sheet data from IDS Master.`);
       return {
@@ -1215,7 +1585,7 @@ function fetchIdsMasterData(idMasterID) {
       sheetInfo: idMasterSheetInfo,
       values: idsValues[0].values,
       formulas: idsFormulas[0].values,
-      idMasterID: idMasterID
+      idMasterID: idMasterID,
     };
   } catch (error) {
     console.error(`Error fetching IDS Master data: ${error.toString()}`);
@@ -1229,10 +1599,15 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
     var values = idsMasterData.values;
     var formulas = idsMasterData.formulas;
     var idMasterID = idsMasterData.idMasterID;
-    copyMode = copyMode || 'all';
-    
-    var spreadsheetInfo = shared.findSheetTypeURL(idMasterID, "IDS", sheetType, values);
-    
+    copyMode = copyMode || "all";
+
+    var spreadsheetInfo = shared.findSheetTypeURL(
+      idMasterID,
+      "IDS",
+      sheetType,
+      values
+    );
+
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
       console.log(`Could not find sheet template for ${sheetType}`);
       return {
@@ -1240,7 +1615,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
         message: `Could not find sheet template for ${sheetType}`,
       };
     }
-    
+
     if (!spreadsheetInfo.id) {
       console.log(
         `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
@@ -1262,40 +1637,55 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
 
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
-    
+
     // Version filtering logic - only process if 'update' mode and template is newer
-    if (copyMode === 'update') {
+    if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
-        console.log(`Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`);
+        console.log(
+          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`
+        );
         return {
           success: true,
           versionFiltered: true,
           message: `Version information missing for ${sheetType}`,
         };
       }
-      
-      var versionComparison = shared.compareVersions(oldVersion, templateVersion);
-      if (versionComparison !== 'older') {
-        console.log(`${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`);
+
+      var versionComparison = shared.compareVersions(
+        oldVersion,
+        templateVersion
+      );
+      if (versionComparison !== "older") {
+        console.log(
+          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`
+        );
         return {
           success: true,
           versionFiltered: true,
           message: `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}`,
         };
       }
-      
-      console.log(`${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`);
+
+      console.log(
+        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`
+      );
     }
-    
+
     var templateRow = spreadsheetInfo.template.row - 1; // Convert to 0-based
     var templateCol = spreadsheetInfo.template.col - 1; // Convert to 0-based
-    
+
     // Get template URL from pre-fetched formulas instead of making API call
     var templateUrl = "";
-    if (formulas && formulas[templateRow] && formulas[templateRow][templateCol]) {
-      templateUrl = shared.extractUrlFromHyperlink(formulas[templateRow][templateCol]);
+    if (
+      formulas &&
+      formulas[templateRow] &&
+      formulas[templateRow][templateCol]
+    ) {
+      templateUrl = shared.extractUrlFromHyperlink(
+        formulas[templateRow][templateCol]
+      );
     }
-    
+
     if (!templateUrl) {
       console.log(`Template URL not found for ${sheetType}`);
       return {
@@ -1318,7 +1708,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       var file = Drive.Files.get(templateID, {
         fields: "id",
       });
-      
+
       // Template is accessible, return success with template information
       return {
         success: true,
@@ -1336,7 +1726,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
         `Error retrieving template file information: ${error.toString()}`
       );
       console.log(`Template ID: ${templateID}, Sheet Type: ${sheetType}`);
-      
+
       // Template access denied, return information needed for granting access
       return {
         success: true,
@@ -1351,7 +1741,9 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       };
     }
   } catch (error) {
-    console.error(`Error processing template access for ${sheetType}: ${error.toString()}`);
+    console.error(
+      `Error processing template access for ${sheetType}: ${error.toString()}`
+    );
     return { success: false, message: `${error.toString()}` };
   }
 }
@@ -1362,14 +1754,16 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
   if (!idsMasterData.success) {
     return idsMasterData;
   }
-  
-  return processTemplateAccess(idsMasterData, sheetType, 'all');
+
+  return processTemplateAccess(idsMasterData, sheetType, "all");
 }
 
 function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
   try {
+    var fileName = `Copy of ${sheetType} ${templateVersion}`;
+    
     var newFile = Drive.Files.copy(
-      { name: `Copy of ${sheetType} ${templateVersion}` },
+      { name: fileName },
       templateID,
       { fields: "id" }
     );
@@ -1382,7 +1776,21 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
       };
     }
 
-    var newSpreadsheet = spreadsheets(`${sheetType} newSpreadsheet`, newFile.id);
+    var newSpreadsheet = spreadsheets(
+      `${sheetType} newSpreadsheet`,
+      newFile.id
+    );
+
+    if (sheetType === "IDS Master") {
+      console.log(`Copied IDS Master template, no further setup needed.`);
+      return {
+        success: true,
+        message: `Successfully copied IDS Master template.`,
+        fileId: newFile.id,
+        fileName: fileName,
+        gid: "",
+      };
+    }
 
     var newSheet = SheetsAPI.getSheetByName(newSpreadsheet, "IDS");
     if (!newSheet) {
@@ -1391,47 +1799,68 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
         success: true,
         message: `IDS sheet™ not found in Copy of ${sheetType} spreadsheet™.`,
         fileId: newFile.id,
+        fileName: fileName,
         gid: "",
       };
     }
-    
+
     // Single API call to get all IDS sheet data at once
     var idsValues = SheetsAPI.batchGetValues(newFile.id, ["IDS"]);
     if (!idsValues || !idsValues[0] || !idsValues[0].values) {
-      console.log(`Could not read IDS sheet data from new ${sheetType} template`);
+      console.log(
+        `Could not read IDS sheet data from new ${sheetType} template`
+      );
       return {
         success: true,
         message: `Could not read IDS sheet data from new ${sheetType} template`,
         fileId: newFile.id,
+        fileName: fileName,
         gid: newSheet.sheetId,
       };
     }
-    
+
     var values = idsValues[0].values;
-    
-    var thisSheetInfo = shared.findSheetTypeID(newFile.id, "IDS", "This Sheet ID", values);
-    var idMasterInfo = shared.findSheetTypeID(newFile.id, "IDS", "IDS Master's", values);
-    
+
+    var thisSheetInfo = shared.findSheetTypeID(
+      newFile.id,
+      "IDS",
+      "This Sheet ID",
+      values
+    );
+
     if (!thisSheetInfo || !thisSheetInfo.cell) {
-      console.log(`Could not find 'This Sheet ID' entry in new ${sheetType} template`);
+      console.log(
+        `Could not find 'This Sheet ID' entry in new ${sheetType} template`
+      );
       return {
         success: true,
         message: `Could not find 'This Sheet ID' entry in new ${sheetType} template`,
         fileId: newFile.id,
+        fileName: fileName,
         gid: newSheet.sheetId,
       };
-    }
+    };
     
+    var idMasterInfo = shared.findSheetTypeID(
+      newFile.id,
+      "IDS",
+      "IDS Master's",
+      values
+    );
+
     if (!idMasterInfo || !idMasterInfo.cell) {
-      console.log(`Could not find 'IDS Master's' entry in new ${sheetType} template`);
+      console.log(
+        `Could not find 'IDS Master's' entry in new ${sheetType} template`
+      );
       return {
         success: true,
         message: `Could not find 'IDS Master's' entry in new ${sheetType} template`,
         fileId: newFile.id,
+        fileName: fileName,
         gid: newSheet.sheetId,
       };
     }
-    
+
     // Single batch update instead of separate calls
     SheetsAPI.batchUpdateValues(newFile.id, [
       {
@@ -1448,6 +1877,7 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
       success: true,
       message: `Successfully copied ${sheetType} template.`,
       fileId: newFile.id,
+      fileName: fileName,
       gid: newSheet.sheetId,
     };
   } catch (error) {
@@ -1463,7 +1893,10 @@ function checkNewSheetReference(newSheetID, sheetType) {
       return { success: false, message: "Missing newSheetID parameter." };
     }
 
-    var newSpreadsheet = spreadsheets(`${sheetType} newSpreadsheet`, newSheetID);
+    var newSpreadsheet = spreadsheets(
+      `${sheetType} newSpreadsheet`,
+      newSheetID
+    );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
       return {
@@ -1509,17 +1942,26 @@ function checkNewSheetReference(newSheetID, sheetType) {
 }
 
 // Prepare data for IDS Master import to be executed in parallel on client side
-function prepareImportData(idMasterID, copiedTemplateFiles, importedFilesFailed, exportedFilesFailed) {
+function prepareImportData(
+  idMasterID,
+  copiedTemplateFiles,
+  importedFilesFailed,
+  exportedFilesFailed
+) {
   try {
     // Ensure all arrays exist and combine them
     copiedTemplateFiles = copiedTemplateFiles || [];
     importedFilesFailed = importedFilesFailed || [];
     exportedFilesFailed = exportedFilesFailed || [];
-    
-    var allTemplateFiles = copiedTemplateFiles.concat(importedFilesFailed).concat(exportedFilesFailed);
-    
-    console.log(`Preparing parallel IDS Master import data for ${allTemplateFiles.length} template files (${copiedTemplateFiles.length} copied + ${importedFilesFailed.length} import failed + ${exportedFilesFailed.length} export failed)`);
-    
+
+    var allTemplateFiles = copiedTemplateFiles
+      .concat(importedFilesFailed)
+      .concat(exportedFilesFailed);
+
+    console.log(
+      `Preparing parallel IDS Master import data for ${allTemplateFiles.length} template files (${copiedTemplateFiles.length} copied + ${importedFilesFailed.length} import failed + ${exportedFilesFailed.length} export failed)`
+    );
+
     // Get the IDS Master data once (single API call for values)
     var idsValues = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
     if (!idsValues || !idsValues[0] || !idsValues[0].values) {
@@ -1527,57 +1969,67 @@ function prepareImportData(idMasterID, copiedTemplateFiles, importedFilesFailed,
         success: false,
         message: `Could not read IDS sheet data from IDS Master`,
         succeededTasks: [],
-        failedTasks: []
+        failedTasks: [],
       };
     }
-    
+
     var values = idsValues[0].values;
     var succeededTasks = [];
     var failedTasks = [];
-    
+
     // Prepare all import tasks with required information
     for (var i = 0; i < allTemplateFiles.length; i++) {
       var templateFile = allTemplateFiles[i];
       var sheetType = templateFile.sheetType;
       var newSheetID = templateFile.fileId;
-      
+
       // Get the sheet type info using pre-loaded values
-      var sheetTypeInfo = shared.findSheetTypeURL(idMasterID, "IDS", sheetType, values);
+      var sheetTypeInfo = shared.findSheetTypeURL(
+        idMasterID,
+        "IDS",
+        sheetType,
+        values
+      );
       if (!sheetTypeInfo || !sheetTypeInfo.id) {
         failedTasks.push({
           sheetType: sheetType,
           success: false,
-          message: `Could not find old sheet information for ${sheetType}`
+          message: `Could not find old sheet information for ${sheetType}`,
         });
         continue;
       }
-      
+
       var oldSheetID = shared.extractSheetId(sheetTypeInfo.id);
       if (!oldSheetID) {
         failedTasks.push({
           sheetType: sheetType,
           success: false,
-          message: `Could not extract old sheet ID for ${sheetType}`
+          message: `Could not extract old sheet ID for ${sheetType}`,
         });
         continue;
       }
-      
+
       var oldVersion = sheetTypeInfo.oldVersion.value;
       var templateVersion = sheetTypeInfo.version.value;
-      
-      console.log(`oldVersion: ${oldVersion}, templateVersion: ${templateVersion}`);
+
+      console.log(
+        `oldVersion: ${oldVersion}, templateVersion: ${templateVersion}`
+      );
       var versionDifference = null;
       if (oldVersion && templateVersion) {
-        var versionComparison = shared.compareVersions(oldVersion, templateVersion);
+        var versionComparison = shared.compareVersions(
+          oldVersion,
+          templateVersion
+        );
         if (versionComparison === "newer") {
           failedTasks.push({
             sheetType: sheetType,
             success: false,
-            message: `Old version (${oldVersion}) is newer than template version (${templateVersion})`
+            message: `Old version (${oldVersion}) is newer than template version (${templateVersion})`,
           });
           continue;
         }
-        
+
         // Get version difference from sheet type function
         var sheetTypeFunction = sheetVars(sheetType);
         if (sheetTypeFunction) {
@@ -1586,36 +2038,35 @@ function prepareImportData(idMasterID, copiedTemplateFiles, importedFilesFailed,
             failedTasks.push({
               sheetType: sheetType,
               success: false,
-              message: `Old version of ${sheetType} is incompatible for import`
+              message: `Old version of ${sheetType} is incompatible for import`,
             });
             continue;
           }
         }
       }
-      
+
       succeededTasks.push({
         sheetType: sheetType,
         newSheetID: newSheetID,
         oldSheetID: oldSheetID,
         idMasterID: idMasterID,
-        versionDifference: versionDifference
+        versionDifference: versionDifference,
       });
     }
-    
+
     return {
       success: true,
       message: `Prepared import data for ${succeededTasks.length} tasks`,
       succeededTasks: succeededTasks,
-      failedTasks: failedTasks
+      failedTasks: failedTasks,
     };
-    
   } catch (error) {
     console.error(`Error preparing import data:`, error);
     return {
       success: false,
       message: `Error preparing import data: ${error.toString()}`,
       succeededTasks: [],
-      failedTasks: []
+      failedTasks: [],
     };
   }
 }
@@ -1623,16 +2074,18 @@ function prepareImportData(idMasterID, copiedTemplateFiles, importedFilesFailed,
 function deleteOldSheet(sheetID) {
   try {
     console.log(`Attempting to delete sheet with ID: ${sheetID}`);
-    
+
     // Get file information to verify it exists before deletion
     var fileInfo;
     try {
       fileInfo = Drive.Files.get(sheetID, { fields: "id, name, trashed" });
     } catch (error) {
-      console.log(`Sheet ${sheetID} not found or already deleted: ${error.toString()}`);
+      console.log(
+        `Sheet ${sheetID} not found or already deleted: ${error.toString()}`
+      );
       return {
         success: true,
-        message: `Sheet was already deleted or not found: ${sheetID}`
+        message: `Sheet was already deleted or not found: ${sheetID}`,
       };
     }
 
@@ -1641,24 +2094,227 @@ function deleteOldSheet(sheetID) {
       console.log(`Sheet ${sheetID} (${fileInfo.name}) is already trashed`);
       return {
         success: true,
-        message: `Sheet "${fileInfo.name}" was already deleted`
+        message: `Sheet "${fileInfo.name}" was already deleted`,
       };
     }
 
     // Delete the file by moving it to trash
     Drive.Files.update({ trashed: true }, sheetID);
-    
+
     console.log(`Successfully deleted sheet: ${fileInfo.name} (${sheetID})`);
     return {
       success: true,
-      message: `Successfully deleted sheet: "${fileInfo.name}"`
+      message: `Successfully deleted sheet: "${fileInfo.name}"`,
     };
-    
   } catch (error) {
     console.log(`Error deleting sheet ${sheetID}: ${error.toString()}`);
     return {
       success: false,
-      message: `Error deleting sheet: ${error.toString()}`
+      message: `Error deleting sheet: ${error.toString()}`,
     };
+  }
+}
+
+function getTemplateIdForSingleSheet(sheetID, sheetType) {
+  try {
+    if (!sheetID) {
+      console.log(`Missing sheetID parameter.`);
+      return { success: false, message: "Missing sheetID parameter." };
+    }
+    if (!sheetType) {
+      console.log(`Missing sheetType parameter.`);
+      return { success: false, message: "Missing sheetType parameter." };
+    }
+    var spreadsheetInfo = shared.findSheetTemplateID(sheetID, "Home Page", sheetType);
+    if (!spreadsheetInfo || !spreadsheetInfo.templateID || !spreadsheetInfo.templateVersion) {
+      console.log(`Could not find sheet template for ${sheetType}`);
+      return {
+        success: false,
+        message: `Could not find sheet template for ${sheetType}`,
+      };
+    }
+    return {
+      success: true,
+      templateID: spreadsheetInfo.templateID,
+      templateVersion: spreadsheetInfo.templateVersion,
+      message: `Successfully got template ID for ${sheetType}`,
+    };
+  } catch (error) {
+    console.error(
+      `Error getting template ID for single sheet: ${error.toString()}`
+    );
+    return { success: false, message: `${error.toString()}` };
+  }
+}
+
+function checkExportCompatibility(oldSheetID, sheetType) {
+  try {
+    if (!oldSheetID) {
+      return { success: false, message: "Missing oldSheetID parameter." };
+    }
+    if (!sheetType) {
+      return { success: false, message: "Missing sheetType parameter." };
+    }
+
+    var oldSpreadsheet = spreadsheets(
+      `${sheetType} oldSpreadsheet`,
+      oldSheetID
+    );
+    if (!oldSpreadsheet) {
+      return {
+        success: false,
+        message: `Could not access old ${sheetType} spreadsheet with ID: ${oldSheetID}`,
+      };
+    }
+
+    var oldHomePageSheet = SheetsAPI.getSheetByName(
+      oldSpreadsheet,
+      "Home Page"
+    );
+    if (!oldHomePageSheet) {
+      return {
+        success: false,
+        message: `Home Page sheet not found in old ${sheetType} spreadsheet`,
+      };
+    }
+
+    // Fetch old sheet Home Page data
+    var oldHomePageData = SheetsAPI.batchGetValues(oldSheetID, ["Home Page"]);
+    if (!oldHomePageData || oldHomePageData.length === 0) {
+      return {
+        success: false,
+        message: `Could not read Home Page data from old ${sheetType} spreadsheet`,
+      };
+    }
+
+    var oldHomePageValues = oldHomePageData[0].values;
+    var oldVersionInfo;
+    var oldVersion;
+    
+    if (sheetType === "Effective Paths") {
+      // Use the new getEPathsVersion function for Effective Paths
+      oldVersionInfo = shared.getEPathsVersion(oldSheetID, "Home Page", oldHomePageValues);
+      if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
+        return {
+          success: false,
+          message: `Current Version not found in old ${sheetType} spreadsheet.`,
+        };
+      }
+      oldVersion = oldVersionInfo.currentVersion;
+      console.log(`Effective Paths current version found: ${oldVersion}`);
+    } else {
+      // Standard version handling for all other sheet types
+      oldVersionInfo = shared.findSheetVersion(
+        oldSheetID,
+        "Home Page",
+        oldHomePageValues
+      );
+
+      if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
+        return {
+          success: false,
+          message: `Version not found in old ${sheetType} spreadsheet.`,
+        };
+      }
+      
+      oldVersion = oldVersionInfo.currentVersion;
+    }
+    
+    // Check compatibility using the sheetType's compatibility function
+    var sheetTypeFunction = sheetVars(sheetType);
+    if (sheetTypeFunction) {
+      var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
+      if (!versionDifference) {
+        return {
+          success: false,
+          message: `Old version of ${sheetType} is incompatible for export (${oldVersion})`,
+        };
+      }
+      return {
+        success: true,
+        message: `Old ${sheetType} version (${oldVersion}) is compatible for export`,
+        oldVersion: oldVersion,
+        versionDifference: versionDifference
+      };
+    } else {
+      return {
+        success: false,
+        message: `No compatibility function found for ${sheetType}. Cannot verify export compatibility.`,
+      };
+    }
+  } catch (error) {
+    console.error(`Error checking export compatibility: ${error.toString()}`);
+    return { 
+      success: false, 
+      message: `Error checking export compatibility: ${error.toString()}` 
+    };
+  }
+}
+
+function updateSheetID(spreadsheetID, sheetID, sheetType) {
+  try {
+    if (!spreadsheetID) {
+      return { success: false, message: "Missing spreadsheetID parameter." };
+    }
+    if (!sheetID) {
+      return { success: false, message: "Missing sheetID parameter." };
+    }
+    if (!sheetType) {
+      return { success: false, message: "Missing sheetType parameter." };
+    }
+    var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, spreadsheetID);
+    if (!spreadsheet) {
+      return {
+        success: false,
+        message: `Could not access spreadsheet with ID: ${spreadsheetID}`,
+      };
+    }
+    var idSheet = SheetsAPI.getSheetByName(spreadsheet, "IDS");
+    if (!idSheet) {
+      return {
+        success: false,
+        message: `IDS sheet not found in spreadsheet with ID: ${spreadsheetID}`,
+      };
+    }
+    var idValues = SheetsAPI.batchGetValues(spreadsheetID, ["IDS"]);
+    if (!idValues || idValues.length === 0) {
+      return {
+        success: false,
+        message: `Could not read IDS sheet data from spreadsheet with ID: ${spreadsheetID}`,
+      };
+    }
+    var values = idValues[0].values;
+    var sheetTypeInfo = shared.findSheetTypeID(
+      spreadsheetID,
+      "IDS",
+      "IDS Master",
+      values
+    );
+    if (!sheetTypeInfo || !sheetTypeInfo.cell) {
+      return {
+        success: false,
+        message: `Could not find IDS Master entry in IDS sheet.`,
+      };
+    }
+    var currentSheetID = shared.extractSheetId(sheetTypeInfo.id);
+    if (currentSheetID === sheetID) {
+      return {
+        success: true,
+        message: `Sheet ID is already up to date in IDS sheet.`,
+      };
+    }
+    SheetsAPI.batchUpdateValues(spreadsheetID, [
+      {
+        range: sheetTypeInfo.cell.range,
+        values: [[sheetID]],
+      },
+    ]);
+    return {
+      success: true,
+      message: `Successfully updated IDS Master ID in IDS sheet.`,
+    };
+  } catch (error) {
+    console.error(`Error updating sheet ID: ${error.toString()}`);
+    return { success: false, message: `Error updating sheet ID: ${error.toString()}` };
   }
 }
