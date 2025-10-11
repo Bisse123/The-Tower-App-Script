@@ -136,7 +136,7 @@ const guardians = {
   ) {
     try {
       console.log("Called: guardians.updateGuardianLevels");
-      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
       if (!masterSheetData || masterSheetData.length < 2) {
         return {
           success: false,
@@ -145,7 +145,7 @@ const guardians = {
       }
 
       var headerRow = masterSheetData[0];
-      var guardianCol = headerRow.indexOf("Guardians") + 1;
+      var guardianCol = headerRow.indexOf("Chips") + 1;
 
       if (guardianCol === 0) {
         console.log(`Guardian Weapon column not found`);
@@ -269,6 +269,48 @@ const guardians = {
     }
   },
 
+  version22: function () {
+    try {
+      console.log("Called: guardians.version22");
+      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+
+      var guardianLevelsRange = "EXPORT!B5:F";
+      var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        guardianLevelsRange,
+      ]);
+      if (
+        !guardianBatchResult ||
+        guardianBatchResult.length === 0 ||
+        !guardianBatchResult[0].values
+      ) {
+        console.log(`Could not read guardian levels data`);
+        return {
+          success: false,
+          message: `Could not read guardian levels data`,
+        };
+      }
+      var oldGuardianLevelsData = guardianBatchResult[0].values;
+
+      var guardiansData = this.getVersion22Guardians(oldGuardianLevelsData);
+      return guardiansData;
+    } catch (error) {
+      console.log("Error in version22: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version22: " + error.message,
+      };
+    }
+  },
+
   version21: function () {
     try {
       console.log("Called: guardians.version21");
@@ -371,7 +413,12 @@ const guardians = {
         var guardianName = oldGuardianLevels[row][0];
         // Only proceed if guardianName is in targetGuardians
         if (guardianName && targetGuardians.includes(guardianName)) {
-          var unlocked = oldGuardianLevels[row + 2][0];
+          var unlocked;
+          if (guardianName === "Attack" || guardianName === "Ally") {
+            unlocked = null;
+          } else {
+            unlocked = oldGuardianLevels[row + 2][0];
+          }
           var guardian = {
             unlocked: unlocked,
             props: {},
@@ -425,7 +472,12 @@ const guardians = {
         var guardianName = oldGuardianLevels[row][0];
         // Only proceed if guardianName is in targetGuardians
         if (guardianName && targetGuardians.includes(guardianName)) {
-          var unlocked = oldGuardianLevels[row + 2][0];
+          var unlocked;
+          if (guardianName === "Attack" || guardianName === "Ally") {
+            unlocked = null;
+          } else {
+            unlocked = oldGuardianLevels[row + 2][0];
+          }
           var guardian = {
             unlocked: unlocked,
             props: {},
@@ -460,10 +512,69 @@ const guardians = {
     }
   },
 
+  getVersion22Guardians: function (oldGuardianLevelsData) {
+    try {
+      console.log("Called: guardians.getVersion22Guardians");
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
+      var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldGuardians = {};
+      for (var row = 0; row < oldGuardianLevels.length; row++) {
+        var guardianName = oldGuardianLevels[row][0];
+        // Only proceed if guardianName is in targetGuardians
+        if (guardianName && targetGuardians.includes(guardianName)) {
+          var unlocked;
+          if (guardianName === "Attack" || guardianName === "Ally") {
+            unlocked = null;
+          } else {
+            unlocked = oldGuardianLevels[row + 2][0];
+          }
+          var guardian = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
+            var nextRowData = oldGuardianLevels[nextRow];
+            if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              guardian.props[key] = value;
+            }
+          }
+          oldGuardians[guardianName] = guardian;
+        }
+      }
+
+      return {
+        success: true,
+        oldGuardians: oldGuardians,
+      };
+    } catch (error) {
+      console.log("Error in getVersion22Guardians: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion22Guardians: " + error.message,
+      };
+    }
+  },
+
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
       "v2.1": this.version21.bind(this),
+      "v2.2": this.version22.bind(this),
     };
   },
 
