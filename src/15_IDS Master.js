@@ -154,9 +154,9 @@ const master = {
     }
   },
 
-  version10: function () {
+  version20: function () {
     try {
-      console.log("Called: master.version10");
+      console.log("Called: master.version20");
       var oldSpreadsheet = spreadsheets("IDS Master oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
@@ -178,7 +178,7 @@ const master = {
       }
 
       var idsValues = idsResult[0].values;
-      var idsDataResult = this.getVersion10IDSData(idsValues);
+      var idsDataResult = this.getVersion20IDSData(idsValues);
 
       if (!idsDataResult.success) {
         console.log(`${idsDataResult.message}`);
@@ -190,20 +190,20 @@ const master = {
         data: {
           idsData: idsDataResult.data,
         },
-        message: "IDS Master v1.0 data exported successfully",
+        message: "IDS Master v2.0 data exported successfully",
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version20: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version20: " + error.message,
       };
     }
   },
 
-  getVersion10IDSData: function (idsValues) {
+  getVersion20IDSData: function (idsValues) {
     try {
-      console.log("Called: master.getVersion10IDSData");
+      console.log("Called: master.getVersion20IDSData");
       
       // Extract all sheet references from the IDS sheet
       var sheetReferences = {};
@@ -238,20 +238,20 @@ const master = {
       return {
         success: true,
         data: sheetReferences,
-        message: "IDS Master v1.0 data extracted successfully",
+        message: "IDS Master data extracted successfully",
       };
     } catch (error) {
-      console.log("Error in getVersion10IDSData: " + error.toString());
+      console.log("Error in getVersion20IDSData: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10IDSData: " + error.message,
+        message: "Error in getVersion20IDSData: " + error.message,
       };
     }
   },
 
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v2.0": this.version20.bind(this),
     };
   },
 
