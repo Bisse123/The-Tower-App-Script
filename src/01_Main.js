@@ -108,6 +108,7 @@ function onOpen(e) {
     ui.createMenu("Import Data")
       .addItem("Get Started", "showGetStartedDialog")
       .addItem("Import Data", "showImportDialog")
+      .addItem("Update Sheet", "showUpdateDialog")
       .addToUi();
   } catch (error) {}
 }
