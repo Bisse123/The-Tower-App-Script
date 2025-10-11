@@ -45,7 +45,41 @@ const bots = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = ["Master Sheet", "IDS", "DVT_Bot"];
+      var requiredRanges = ["Master Sheet", "IDS"];
+      var dvtIndex = requiredRanges.length;
+      var dvtNamedRanges = {
+        "Flame Bot": {
+          "Damage R.": "DVT_BOT_UG_FB_DMGR",
+          "Cooldown": "DVT_BOT_UG_FB_CD",
+          "Damage": "DVT_BOT_UG_FB_DMG",
+          "Range": "DVT_BOT_UG_FB_RANGE",
+        },
+        "Thunder Bot": {
+          "Duration": "DVT_BOT_UG_TB_DUR",
+          "Cooldown": "DVT_BOT_UG_TB_CD",
+          "Linger": "DVT_BOT_UG_TB_LINGER",
+          "Range": "DVT_BOT_UG_TB_RANGE",
+        },
+        "Golden Bot": {
+          "Duration": "DVT_BOT_UG_GB_DUR",
+          "Cooldown": "DVT_BOT_UG_GB_CD",
+          "Bonus": "DVT_BOT_UG_GB_BONUS",
+          "Range": "DVT_BOT_UG_GB_RANGE",
+        },
+        "Amplify Bot": {
+          "Duration": "DVT_BOT_UG_AB_DUR",
+          "Cooldown": "DVT_BOT_UG_AB_CD",
+          "Bonus": "DVT_BOT_UG_AB_BONUS",
+          "Range": "DVT_BOT_UG_AB_RANGE",
+        },
+      }
+
+      Object.keys(dvtNamedRanges).forEach(function (bot) {
+        Object.keys(dvtNamedRanges[bot]).forEach(function (prop) {
+          requiredRanges.push(dvtNamedRanges[bot][prop]);
+        });
+      });
+
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -57,7 +91,19 @@ const bots = {
 
       var masterSheetData = batchResults[0].values;
       var idsData = batchResults[1].values;
-      var dataValTablesData = batchResults[2].values;
+
+      var dvtNamedRangesData = {};
+      Object.keys(dvtNamedRanges).forEach(function (bot) {
+        dvtNamedRangesData[bot] = {};
+        Object.keys(dvtNamedRanges[bot]).forEach(function (prop) {
+          if (batchResults[dvtIndex]) {
+            dvtNamedRangesData[bot][prop] = batchResults[dvtIndex].values;
+          } else {
+            dvtNamedRangesData[bot][prop] = [];
+          }
+          dvtIndex++;
+        });
+      });
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -87,7 +133,7 @@ const bots = {
           "Master Sheet",
           oldBots,
           masterSheetData,
-          dataValTablesData
+          dvtNamedRangesData
         );
         if (!botsResult || !botsResult.success) {
           console.log(`Error updating bots: ${botsResult.message}`);
@@ -132,9 +178,9 @@ const bots = {
 
   updateBotLevels: function (
     sheetName,
-    oldBotsData,
+    oldBots,
     masterSheetData,
-    dataValTablesData
+    dvtNamedRangesData
   ) {
     try {
       console.log("Called: bots.updateBotLevels");
@@ -211,17 +257,12 @@ const bots = {
       var newBotUnlocked = [];
       var newBotLevel = [];
 
-      var oldBots = shared.getNewDataValidationValues(
-        dataValTablesData,
-        "Bots",
-        oldBotsData
-      );
-
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];
-        if (oldBots.hasOwnProperty(rowData[0])) {
-          var oldBot = oldBots[rowData[0]];
-          newBotUnlocked.push([rowData[0]]);
+        var botName = rowData[0];
+        if (oldBots.hasOwnProperty(botName)) {
+          var oldBot = oldBots[botName];
+          newBotUnlocked.push([botName]);
           newBotUnlocked.push([""]);
           newBotUnlocked.push([""]);
           newBotUnlocked.push([oldBot.unlocked]);
@@ -233,7 +274,8 @@ const bots = {
             }
             var newBotProp = nextRowData[2];
             if (oldBot.props.hasOwnProperty(newBotProp)) {
-              newBotLevel.push([oldBot.props[newBotProp]]);
+              var dvtPropValue = shared.getDVTValue(oldBot.props[newBotProp], dvtNamedRangesData[botName][newBotProp]);
+              newBotLevel.push([dvtPropValue]);
             } else {
               newBotLevel.push([nextRowData[4]]);
             }

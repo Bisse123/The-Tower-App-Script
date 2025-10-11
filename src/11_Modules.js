@@ -43,10 +43,25 @@ const modules = {
         };
       }
 
-      // Batch fetch all required sheet data
-      var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
-      var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
-      if (!batchResult || batchResult.length === 0) {
+      // Batch get required data for update function only
+      var requiredRanges = [
+        "Inventory",
+        "Presets", 
+        "Tracker",
+        "IDS",
+      ];
+      var dvtIndex = requiredRanges.length;
+      var dvtNamedRanges = {
+        "Assist Level": "DVT_Mod_Assist_Level",
+      }
+
+      Object.keys(dvtNamedRanges).forEach(function (item) {
+        requiredRanges.push(dvtNamedRanges[item]);
+      });
+
+      var batchUpdate = [];
+      var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
+      if (!batchResults || batchResults.length === 0) {
         console.log("Error getting modules sheet data");
         return {
           success: false,
@@ -54,10 +69,16 @@ const modules = {
         };
       }
 
-      var newModuleInventoryValues = batchResult[0].values;
-      var newModulePresetsValues = batchResult[1].values;
-      var newModulesTrackerValues = batchResult[2].values;
-      var idsData = batchResult[3].values;
+      var newModuleInventoryValues = batchResults[0].values;
+      var newModulePresetsValues = batchResults[1].values;
+      var newModulesTrackerValues = batchResults[2].values;
+      var idsData = batchResults[3].values;
+
+      var dvtNamedRangesData = {};
+      Object.keys(dvtNamedRanges).forEach(function (item) {
+        dvtNamedRangesData[item] = batchResults[dvtIndex] ? batchResults[dvtIndex].values : [];
+        dvtIndex++;
+      });
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -102,7 +123,8 @@ const modules = {
         var presetsResult = this.updateModulesPresets(
           "Presets",
           oldModulesPresets,
-          newModulePresetsValues
+          newModulePresetsValues,
+          dvtNamedRangesData
         );
         if (!presetsResult || !presetsResult.success) {
           return {
@@ -167,7 +189,8 @@ const modules = {
   updateModulesPresets: function (
     sheetName,
     oldModulesPresets,
-    newModulePresetsValues
+    newModulePresetsValues,
+    dvtNamedRangesData
   ) {
     try {
       console.log("Called: modules.updateModulesPresets");
@@ -216,9 +239,14 @@ const modules = {
                 )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
                   rowIdx + 4
                 }`;
+                
+                // Transform values using DVT
+                var dvtMultiplier = shared.getDVTValue(oldModulesPresets[moduleType][presetName].multiplier || "", dvtNamedRangesData["Assist Level"]);
+                var dvtSubstat = shared.getDVTValue(oldModulesPresets[moduleType][presetName].substat || "", dvtNamedRangesData["Assist Level"]);
+                  
                 var multiSubValues = [
-                  [oldModulesPresets[moduleType][presetName].multiplier || ""],
-                  [oldModulesPresets[moduleType][presetName].substat || ""],
+                  [dvtMultiplier],
+                  [dvtSubstat],
                 ];
                 batchUpdate.push({
                   range: lockedRange,

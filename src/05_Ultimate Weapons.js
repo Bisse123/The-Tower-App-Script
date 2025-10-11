@@ -49,8 +49,70 @@ const ultimate = {
         "Master Sheet",
         "UW Cost Calculator v3",
         "IDS",
-        "Data_Val_Tables",
       ];
+      var dvtIndex = requiredRanges.length;
+      var dvtNamedRanges = {
+        "Chain Lightning": {
+          "Damage": "DVT_UW_UG_CL_DMG",
+          "Quantity": "DVT_UW_UG_CL_QNT",
+          "Chance": "DVT_UW_UG_CL_CH",
+          "Smite": "DVT_UW_UG_CL_SM",
+        },
+        "Smart Missiles": {
+          "Damage": "DVT_UW_UG_SM_DMG",
+          "Quantity": "DVT_UW_UG_SM_QNT",
+          "Cooldown": "DVT_UW_UG_SM_CD",
+          "Cover Fire": "DVT_UW_UG_SM_CF",
+        },
+        "Death Wave": {
+          "Damage": "DVT_UW_UG_DW_DMG",
+          "Quantity": "DVT_UW_UG_DW_QNT",
+          "Cooldown": "DVT_UW_UG_DW_CD",
+          "Kill Wall": "DVT_UW_UG_DW_KW",
+        },
+        "Chrono Field": {
+          "Duration": "DVT_UW_UG_CF_DU",
+          "Speed Reduction": "DVT_UW_UG_CF_SP",
+          "Cooldown": "DVT_UW_UG_CF_CD",
+          "Chrono Loop": "DVT_UW_UG_CF_CL",
+        },
+        "Inner Land Mines": {
+          "Damage": "DVT_UW_UG_ILM_DMG",
+          "Quantity": "DVT_UW_UG_ILM_QNT",
+          "Cooldown": "DVT_UW_UG_ILM_CD",
+          "Charged Mines": "DVT_UW_UG_ILM_CM",
+        },
+        "Golden Tower": {
+          "Multiplier": "DVT_UW_UG_GT_M",
+          "Duration": "DVT_UW_UG_GT_DU",
+          "Cooldown": "DVT_UW_UG_GT_CD",
+          "Golden Combo": "DVT_UW_UG_GT_GC",
+        },
+        "Poison Swamp": {
+          "Damage": "DVT_UW_UG_PS_DMG",
+          "Duration": "DVT_UW_UG_PS_DU",
+          "Cooldown": "DVT_UW_UG_PS_CH",
+          "Death Creep": "DVT_UW_UG_PS_DC",
+        },
+        "Black Hole": {
+          "Size": "DVT_UW_UG_BH_SZ",
+          "Duration": "DVT_UW_UG_BH_DU",
+          "Cooldown": "DVT_UW_UG_BH_CD",
+          "Consume": "DVT_UW_UG_BH_C",
+        },
+        "Spotlight": {
+          "Multiplier": "DVT_UW_UG_SL_MU",
+          "Angle": "DVT_UW_UG_SL_AN",
+          "Quantity": "DVT_UW_UG_SL_QNT",
+          "Light Range": "DVT_UW_UG_SL_LR",
+        },
+      };
+      Object.keys(dvtNamedRanges).forEach(function (weapon) {
+        Object.keys(dvtNamedRanges[weapon]).forEach(function (prop) {
+          requiredRanges.push(dvtNamedRanges[weapon][prop]);
+        });
+      });
+
       var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -64,7 +126,19 @@ const ultimate = {
       var masterSheetData = batchResults[0].values;
       var ultimateCostCalculatorData = batchResults[1].values;
       var idsData = batchResults[2].values;
-      var dataValTablesData = batchResults[3].values;
+
+      var dvtNamedRangesData = {};
+      Object.keys(dvtNamedRanges).forEach(function (weapon) {
+        dvtNamedRangesData[weapon] = {};
+        Object.keys(dvtNamedRanges[weapon]).forEach(function (prop) {
+          if (batchResults[dvtIndex]) {
+            dvtNamedRangesData[weapon][prop] = batchResults[dvtIndex].values;
+          } else {
+            dvtNamedRangesData[weapon][prop] = [];
+          }
+          dvtIndex++;
+        });
+      });
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -92,7 +166,7 @@ const ultimate = {
           "Master Sheet",
           oldUltimate,
           masterSheetData,
-          dataValTablesData
+          dvtNamedRangesData
         );
         if (!ultimateResult || !ultimateResult.success) {
           console.log(
@@ -161,9 +235,9 @@ const ultimate = {
 
   updateUltimateLevels: function (
     sheetName,
-    oldUltimateData,
+    oldUltimate,
     masterSheetData,
-    dataValTablesData
+    dvtNamedRangesData
   ) {
     try {
       console.log("Called: ultimate.updateUltimateLevels");
@@ -238,17 +312,12 @@ const ultimate = {
       var newUltimateUnlocked = [];
       var newUltimateLevel = [];
 
-      var oldUltimate = shared.getNewDataValidationValues(
-        dataValTablesData,
-        "Ultimate Weapons",
-        oldUltimateData
-      );
-
       for (var row = 0; row < newUltimateData.length; row++) {
         var rowData = newUltimateData[row];
-        if (oldUltimate.hasOwnProperty(rowData[0])) {
-          var oldWeapon = oldUltimate[rowData[0]];
-          newUltimateUnlocked.push([rowData[0]]);
+        var weaponName = rowData[0];
+        if (oldUltimate.hasOwnProperty(weaponName)) {
+          var oldWeapon = oldUltimate[weaponName];
+          newUltimateUnlocked.push([weaponName]);
           newUltimateUnlocked.push([""]);
           newUltimateUnlocked.push([oldWeapon.unlocked]);
 
@@ -260,7 +329,8 @@ const ultimate = {
             }
             var newWeaponProp = nextRowData[2];
             if (oldWeapon.props.hasOwnProperty(newWeaponProp)) {
-              newUltimateLevel.push([oldWeapon.props[newWeaponProp]]);
+              var dvtPropValue = shared.getDVTValue(oldWeapon.props[newWeaponProp], dvtNamedRangesData[weaponName][newWeaponProp]);
+              newUltimateLevel.push([dvtPropValue]);
             } else {
               newUltimateLevel.push([nextRowData[4]]);
             }
