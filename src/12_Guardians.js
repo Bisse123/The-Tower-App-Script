@@ -43,7 +43,42 @@ const guardians = {
       }
 
       // Batch fetch required sheet data
-      var requiredRanges = ["Master Sheet", "IDS", "DVT_Guardians"];
+      var requiredRanges = ["Master Sheet", "IDS"];
+      var dvtIndex = requiredRanges.length;
+      var dvtNamedRanges = {
+        "Attack": {
+          "Percentage": "DVT_GAR_UG_AT_PER",
+          "Cooldown": "DVT_GAR_UG_AT_COO",
+          "Targets": "DVT_GAR_UG_AT_TAR"
+        },
+        "Ally": {
+          "Recovery Amount": "DVT_GAR_UG_AL_REC",
+          "Max Recovery": "DVT_GAR_UG_AL_MAX",
+          "Cooldown": "DVT_GAR_UG_AL_COO"
+        },
+        "Bounty": {
+          "Multiplier": "DVT_GAR_UG_BO_MUL",
+          "Cooldown": "DVT_GAR_UG_BO_COO",
+          "Targets": "DVT_GAR_UG_BO_TAR"
+        },
+        "Fetch": {
+          "Cooldown": "DVT_GAR_UG_FE_COO",
+          "Find Chance": "DVT_GAR_UG_FE_FIN",
+          "Double Find Chance": "DVT_GAR_UG_FE_DOU"
+        },
+        "Summon": {
+          "Cooldown": "DVT_GAR_UG_SU_COO",
+          "Duration": "DVT_GAR_UG_SU_DUR",
+          "Cash Bonus": "DVT_GAR_UG_SU_CAS"
+        }
+      }
+
+      Object.keys(dvtNamedRanges).forEach(function (guardian) {
+        Object.keys(dvtNamedRanges[guardian]).forEach(function (prop) {
+          requiredRanges.push(dvtNamedRanges[guardian][prop]);
+        });
+      });
+
       var batchResult = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log("Error getting guardians sheet data");
@@ -55,7 +90,19 @@ const guardians = {
 
       var masterSheetData = batchResult[0].values;
       var idsData = batchResult[1].values;
-      var dataValTablesData = batchResult[2].values;
+
+      var dvtNamedRangesData = {};
+      Object.keys(dvtNamedRanges).forEach(function (guardian) {
+        dvtNamedRangesData[guardian] = {};
+        Object.keys(dvtNamedRanges[guardian]).forEach(function (prop) {
+          if (batchResult[dvtIndex]) {
+            dvtNamedRangesData[guardian][prop] = batchResult[dvtIndex].values;
+          } else {
+            dvtNamedRangesData[guardian][prop] = [];
+          }
+          dvtIndex++;
+        });
+      });
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -85,7 +132,7 @@ const guardians = {
           "Master Sheet",
           oldGuardians,
           masterSheetData,
-          dataValTablesData
+          dvtNamedRangesData
         );
         if (!guardiansResult || !guardiansResult.success) {
           console.log(`Error updating guardians: ${guardiansResult.message}`);
@@ -130,9 +177,9 @@ const guardians = {
 
   updateGuardianLevels: function (
     sheetName,
-    oldGuardiansData,
+    oldGuardians,
     masterSheetData,
-    dataValTablesData
+    dvtNamedRangesData
   ) {
     try {
       console.log("Called: guardians.updateGuardianLevels");
@@ -192,17 +239,12 @@ const guardians = {
       var newGuardianUnlocked = [];
       var newGuardianLevel = [];
 
-      var oldGuardians = shared.getNewDataValidationValues(
-        dataValTablesData,
-        "Guardians",
-        oldGuardiansData
-      );
-
       for (var row = 0; row < newGuardianData.length; row++) {
         var rowData = newGuardianData[row];
-        if (oldGuardians.hasOwnProperty(rowData[0])) {
-          var oldGuardian = oldGuardians[rowData[0]];
-          newGuardianUnlocked.push([rowData[0]]);
+        var guardianName = rowData[0];
+        if (oldGuardians.hasOwnProperty(guardianName)) {
+          var oldGuardian = oldGuardians[guardianName];
+          newGuardianUnlocked.push([guardianName]);
           newGuardianUnlocked.push([""]);
           newGuardianUnlocked.push([oldGuardian.unlocked]);
 
@@ -214,7 +256,8 @@ const guardians = {
             }
             var newGuardianProp = nextRowData[2];
             if (oldGuardian.props.hasOwnProperty(newGuardianProp)) {
-              newGuardianLevel.push([oldGuardian.props[newGuardianProp]]);
+              var dvtPropValue = shared.getDVTValue(oldGuardian.props[newGuardianProp], dvtNamedRangesData[guardianName][newGuardianProp]);
+              newGuardianLevel.push([dvtPropValue]);
             } else {
               newGuardianLevel.push([nextRowData[4]]);
             }
