@@ -530,8 +530,8 @@ const ePaths = {
     }
   },
 
-  version10: function () {
-    console.log("Called: ePaths.version10");
+  version4110200: function () {
+    console.log("Called: ePaths.version4110200");
     var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
     var oldSheetID = oldSpreadsheet.spreadsheetId;
     if (
@@ -561,9 +561,9 @@ const ePaths = {
     var eDamageValues = batchResult[1].values;
     var eEconValues = batchResult[2].values;
 
-    var eHPData = this.getVersion10eHP(eHPValues);
-    var eDamageData = this.getVersion10eDamage(eDamageValues);
-    var eEconData = this.getVersion10eEcon(eEconValues);
+    var eHPData = this.getVersion4110200eHP(eHPValues);
+    var eDamageData = this.getVersion4110200eDamage(eDamageValues);
+    var eEconData = this.getVersion4110200eEcon(eEconValues);
 
     return {
       success: true,
@@ -573,9 +573,9 @@ const ePaths = {
     };
   },
 
-  getVersion10eHP: function (oldValues) {
+  getVersion4110200eHP: function (oldValues) {
     try {
-      console.log("Called: ePaths.getVersion10eHP");
+      console.log("Called: ePaths.getVersion4110200eHP");
       var customData = [
         "Wall Health",
         "Max Recovery",
@@ -653,17 +653,17 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion10eHP: ${error.toString()}`);
+      console.log(`Error in getVersion4110200eHP: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion10eHP: " + error.message,
+        message: "Error in getVersion4110200eHP: " + error.message,
       };
     }
   },
 
-  getVersion10eDamage: function (oldValues) {
+  getVersion4110200eDamage: function (oldValues) {
     try {
-      console.log("Called: ePaths.getVersion10eDamage");
+      console.log("Called: ePaths.getVersion4110200eDamage");
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
@@ -740,17 +740,17 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion10eDamage: ${error.toString()}`);
+      console.log(`Error in getVersion4110200eDamage: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion10eDamage: " + error.message,
+        message: "Error in getVersion4110200eDamage: " + error.message,
       };
     }
   },
 
-  getVersion10eEcon: function (oldValues) {
+  getVersion4110200eEcon: function (oldValues) {
     try {
-      console.log("Called: ePaths.getVersion10eEcon");
+      console.log("Called: ePaths.getVersion4110200eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
@@ -821,17 +821,17 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion10eEcon: ${error.toString()}`);
+      console.log(`Error in getVersion4110200eEcon: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion10eEcon: " + error.message,
+        message: "Error in getVersion4110200eEcon: " + error.message,
       };
     }
   },
 
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v4.11.02.00": this.version4110200.bind(this),
     };
   },
 
