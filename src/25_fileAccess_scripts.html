@@ -1551,10 +1551,12 @@
     const copyButton = document.getElementById("copyButton");
     const copyUpdateButton = document.getElementById("copyUpdateButton");
     const updateButton = document.getElementById("updateMasterButton");
-    const updateSingleSheetButton = document.getElementById(
-      "updateSingleSheetButton"
-    );
+    const updateSingleSheetButton = document.getElementById("updateSingleSheetButton");
     const instructionsSection = document.getElementById("instructionsSection");
+    const updateMasterOnlyButton = document.getElementById("updateMasterOnlyButton");
+    const updateSubsheetsOnlyButton = document.getElementById("updateSubsheetsOnlyButton");
+    const updateMasterAndSubsheetsButton = document.getElementById("updateMasterAndSubsheetsButton");
+    const fileAccessSection = document.getElementById("fileAccessSection");
 
     const totalInaccessibleFiles =
       inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
@@ -1577,18 +1579,12 @@
         `;
 
         // Show the IDS Master option buttons
-        document.getElementById("updateMasterOnlyButton").style.display =
-          "inline-block";
-        document.getElementById("updateMasterOnlyButton").disabled = false;
-        document.getElementById("updateSubsheetsOnlyButton").style.display =
-          "inline-block";
-        document.getElementById("updateSubsheetsOnlyButton").disabled = false;
-        document.getElementById(
-          "updateMasterAndSubsheetsButton"
-        ).style.display = "inline-block";
-        document.getElementById(
-          "updateMasterAndSubsheetsButton"
-        ).disabled = false;
+        updateMasterOnlyButton.style.display = "inline-block";
+        updateMasterOnlyButton.disabled = false;
+        updateSubsheetsOnlyButton.style.display = "inline-block";
+        updateSubsheetsOnlyButton.disabled = false;
+        updateMasterAndSubsheetsButton.style.display = "inline-block";
+        updateMasterAndSubsheetsButton.disabled = false;
 
         copyButton.style.display = "none";
         copyUpdateButton.style.display = "none";
@@ -1662,7 +1658,7 @@
       updateSingleSheetButton.style.display = "none";
     }
 
-    document.getElementById("fileAccessSection").style.display = "block";
+    fileAccessSection.style.display = "block";
   }
 
   function onImportStatusAndCompatibilitySuccess(result) {

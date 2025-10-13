@@ -861,10 +861,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       sheetName = "Home Page";
       searchName = "Load your file here";
       requiresIDSSheet = false;
-    } else if (sheetType === "Effective Paths") {
-      sheetName = "IDS";
-      searchName = "IDS Master's";
-      requiresIDSSheet = true;
     }
 
     // Check for required sheets based on sheet type
