@@ -658,9 +658,54 @@ const shared = {
     
     return columnIndex - 1; // Convert to 0-based index
   },
+
+  // Helper function to add sheet ID and IDS Master ID updates to batch
+  addIDUpdatesToBatch: function(batchUpdate, sheetType, newSheetID, idsData) {
+    try {
+      // Get spreadsheet references using the centralized spreadsheets function
+      var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
+      var idMasterID = idMasterSpreadsheet ? idMasterSpreadsheet.spreadsheetId : null;
+
+      if (newSheetID && idMasterID) {
+        // Find the "This Sheet ID" and "IDS Master's" entries
+        var thisSheetInfo = shared.findSheetTypeID(
+          newSheetID,
+          "IDS",
+          "This Sheet ID",
+          idsData
+        );
+        var idMasterInfo = shared.findSheetTypeID(
+          newSheetID,
+          "IDS", 
+          "IDS Master's",
+          idsData
+        );
+
+        // Add ID updates to batch if entries are found
+        if (thisSheetInfo && thisSheetInfo.cell && thisSheetInfo.cell.range) {
+          batchUpdate.push({
+            range: thisSheetInfo.cell.range,
+            values: [[newSheetID]],
+          });
+          console.log(`Added ${sheetType} sheet ID update to batch: ${newSheetID}`);
+        }
+        if (idMasterInfo && idMasterInfo.cell && idMasterInfo.cell.range) {
+          batchUpdate.push({
+            range: idMasterInfo.cell.range,
+            values: [[idMasterID]],
+          });
+          console.log(`Added IDS Master ID update to batch: ${idMasterID}`);
+        }
+      }
+      return batchUpdate;
+    } catch (error) {
+      console.log(`Error adding ID updates to batch: ${error.toString()}`);
+      return batchUpdate; // Return original batch if error occurs
+    }
+  },
 };
 
-function updateSheet(sheetType, newSheetID, oldSheetID) {
+function moveSheet(sheetType, newSheetID, oldSheetID) {
   try {
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
@@ -750,7 +795,7 @@ function updateSheet(sheetType, newSheetID, oldSheetID) {
       newName: newFileName,
     };
   } catch (error) {
-    console.log(`Error in updateSheet: ${error.toString()}`);
+    console.log(`Error in moveSheet: ${error.toString()}`);
     return {
       success: false,
       message: error.toString(),
@@ -861,10 +906,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       sheetName = "Home Page";
       searchName = "Load your file here";
       requiresIDSSheet = false;
-    } else if (sheetType === "Effective Paths") {
-      sheetName = "IDS";
-      searchName = "IDS Master's";
-      requiresIDSSheet = true;
     }
 
     // Check for required sheets based on sheet type
@@ -1729,7 +1770,7 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
   return processTemplateAccess(idsMasterData, sheetType, "all");
 }
 
-function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
+function copyFileTemplate(templateID, sheetType, templateVersion) {
   try {
     var fileName = `Copy of ${sheetType} ${templateVersion}`;
     
@@ -1812,37 +1853,8 @@ function copyFileTemplate(idMasterID, templateID, sheetType, templateVersion) {
       };
     };
     
-    var idMasterInfo = shared.findSheetTypeID(
-      newFile.id,
-      "IDS",
-      "IDS Master's",
-      values
-    );
-
-    if (!idMasterInfo || !idMasterInfo.cell) {
-      console.log(
-        `Could not find 'IDS Master's' entry in new ${sheetType} template`
-      );
-      return {
-        success: true,
-        message: `Could not find 'IDS Master's' entry in new ${sheetType} template`,
-        fileId: newFile.id,
-        fileName: fileName,
-        gid: newSheet.sheetId,
-      };
-    }
-
-    // Single batch update instead of separate calls
-    SheetsAPI.batchUpdateValues(newFile.id, [
-      {
-        range: thisSheetInfo.cell.range,
-        values: [[newFile.id]],
-      },
-      {
-        range: idMasterInfo.cell.range,
-        values: [[idMasterID]],
-      },
-    ]);
+    // Note: ID setting is now handled in importData to reduce API calls during copying
+    console.log(`Successfully copied ${sheetType} template, IDs will be set during import.`);
 
     return {
       success: true,

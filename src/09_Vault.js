@@ -108,31 +108,30 @@ const vault = {
         batchUpdate = batchUpdate.concat(powerResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        // Apply batch updates to the new spreadsheet
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Vault", newSheetID, idsData);
 
+      // Apply all updates (including ID setting and import status)
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Vault data imported successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: "No vault data to update",
+        message: `Vault import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

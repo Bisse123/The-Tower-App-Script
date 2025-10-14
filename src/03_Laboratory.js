@@ -122,29 +122,30 @@ const lab = {
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch only if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Set sheet IDs and IDS Master ID (moved from copyFileTemplate for optimization)
+      batchUpdate = shared.addIDUpdatesToBatch(batchUpdate, "Laboratory", newSheetID, idsData);
+
+      // Apply all updates (always includes ID setting, conditionally includes import status)
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Laboratory import completed successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: "No laboratory data to update",
+        message: `Laboratory import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

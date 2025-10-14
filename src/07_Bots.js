@@ -142,30 +142,30 @@ const bots = {
         batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Bots", newSheetID, idsData);
 
+      // Apply all updates (including ID setting and import status)
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Bots import completed successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: "No bots data to update",
+        message: `Bots import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

@@ -49,13 +49,20 @@ const ePaths = {
       var eHPRange = "eHP!AC1:AQ35";
       var eDamageRange = "eDamage!AI1:AX75";
       var eEconRange = "eEcon!AI1:AW55";
-      var ranges = [eHPRange, eDamageRange, eEconRange, "IDS"];
+      var eHPLabRange = "eHP!L4:L5";
+      var eRegenLabRange = "eHP!AA4:AA5";
+      var eDamageLabRange = "eDamage!L4:L5";
+      var eEconLabRange = "eEcon!L4:L5";
+      var eDiscountLabRange = "eEcon!AG4:AG5";
+      var ranges = [
+        "IDS", eHPRange, eDamageRange, eEconRange,
+        eHPLabRange, eRegenLabRange, eDamageLabRange, eEconLabRange, eDiscountLabRange];
       
       // Calculate column offsets for each range
       var eHPColumnOffset = shared.getColumnOffsetFromRange(eHPRange);
       var eDamageColumnOffset = shared.getColumnOffsetFromRange(eDamageRange);
       var eEconColumnOffset = shared.getColumnOffsetFromRange(eEconRange);
-      
+
       var batchGetResult = SheetsAPI.batchGetFormulas(newSheetID, ranges);
       if (!batchGetResult || batchGetResult.length === 0) {
         return {
@@ -64,10 +71,15 @@ const ePaths = {
         };
       }
 
-      var eHPValues = batchGetResult[0].values;
-      var eDamageValues = batchGetResult[1].values;
-      var eEconValues = batchGetResult[2].values;
-      var idsData = batchGetResult[3].values;
+      var idsData = batchGetResult[0].values;
+      var eHPValues = batchGetResult[1].values;
+      var eDamageValues = batchGetResult[2].values;
+      var eEconValues = batchGetResult[3].values;
+      var eHPLabValues = batchGetResult[4].values;
+      var eRegenLabValues = batchGetResult[5].values;
+      var eDamageLabValues = batchGetResult[6].values;
+      var eEconLabValues = batchGetResult[7].values;
+      var eDiscountLabValues = batchGetResult[8].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -96,7 +108,9 @@ const ePaths = {
           "eHP",
           data.eHP.oldData,
           eHPValues,
-          eHPColumnOffset
+          eHPColumnOffset,
+          eHPLabValues,
+          eRegenLabValues,
         );
         if (!eHPResult || !eHPResult.success) {
           console.log(`eHP update failed: ${eHPResult.message}`);
@@ -113,7 +127,8 @@ const ePaths = {
           "eDamage",
           data.eDamage.oldData,
           eDamageValues,
-          eDamageColumnOffset
+          eDamageColumnOffset,
+          eDamageLabValues
         );
         if (!eDamageResult || !eDamageResult.success) {
           console.log(`eDamage update failed: ${eDamageResult.message}`);
@@ -130,7 +145,9 @@ const ePaths = {
           "eEcon",
           data.eEcon.oldData,
           eEconValues,
-          eEconColumnOffset
+          eEconColumnOffset,
+          eEconLabValues,
+          eDiscountLabValues
         );
         if (!eEconResult || !eEconResult.success) {
           console.log(`eEcon update failed: ${eEconResult.message}`);
@@ -142,27 +159,27 @@ const ePaths = {
         batchUpdate = batchUpdate.concat(eEconResult.batchUpdate || []);
       }
 
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          return {
-            success: false,
-            message: "Failed to update new spreadsheet™ with Effective Paths data.",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Effective Paths", newSheetID, idsData);
+
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
         return {
-          success: true,
-          message: `Effective Paths data imported successfully`,
+          success: false,
+          message: "Failed to update new spreadsheet™ with Effective Paths data.",
         };
       }
       return {
         success: true,
-        message: "No Effective Paths data to update",
+        message: `Effective Paths import completed successfully`,
       };
     } catch (error) {
       console.log(`Error importing ePaths data: ${error.toString()}`);
@@ -173,12 +190,10 @@ const ePaths = {
     }
   },
 
-  updateEHP: function (sheetName, oldData, eHPData, columnOffset) {
+  updateEHP: function (sheetName, oldData, eHPData, columnOffset, eHPLabData, eRegenLabData) {
     try {
       console.log("Called: ePaths.updateEHP");
       
-      // Add debugging to check the structure of oldData
-      console.log("oldData structure:", oldData);
       if (!oldData) {
         return {
           success: false,
@@ -188,6 +203,24 @@ const ePaths = {
       }
       
       var batchUpdate = [];
+
+      if (eHPLabData && eHPLabData[0] && eHPLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eHPRunningTime")) {
+        var eHPRunningTimeValue = oldData.eHPRunningTime;
+        console.log("eHPRunningTimeValue:", eHPRunningTimeValue);
+        batchUpdate.push({
+          range: `${sheetName}!L5`,
+          values: [[eHPRunningTimeValue]],
+        });
+      }
+      if (eRegenLabData && eRegenLabData[0] && eRegenLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eRegenRunningTime")) {
+        var eRegenRunningTimeValue = oldData.eRegenRunningTime;
+        console.log("eRegenRunningTimeValue:", eRegenRunningTimeValue);
+        batchUpdate.push({
+          range: `${sheetName}!AA5`,
+          values: [[eRegenRunningTimeValue]],
+        });
+      }
+
       for (var i = 0; i < eHPData.length; i++) {
         for (var j = 0; j < eHPData[i].length; j++) {
           var cell = eHPData[i][j];
@@ -280,12 +313,10 @@ const ePaths = {
     }
   },
 
-  updateEDamage: function (sheetName, oldData, eDamageData, columnOffset) {
+  updateEDamage: function (sheetName, oldData, eDamageData, columnOffset, eDamageLabData) {
     try {
       console.log("Called: ePaths.updateEDamage");
       
-      // Add debugging to check the structure of oldData
-      console.log("oldData structure:", oldData);
       if (!oldData) {
         return {
           success: false,
@@ -295,6 +326,16 @@ const ePaths = {
       }
       
       var batchUpdate = [];
+
+      if (eDamageLabData && eDamageLabData[0] && eDamageLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eDamageRunningTime")) {
+        var eDamageRunningTimeValue = oldData.eDamageRunningTime;
+        console.log("eDamageRunningTimeValue:", eDamageRunningTimeValue);
+        batchUpdate.push({
+          range: `${sheetName}!L5`,
+          values: [[eDamageRunningTimeValue]],
+        });
+      }
+
       for (var i = 0; i < eDamageData.length; i++) {
         for (var j = 0; j < eDamageData[i].length; j++) {
           var cell = eDamageData[i][j];
@@ -415,12 +456,10 @@ const ePaths = {
     }
   },
 
-  updateEEcon: function (sheetName, oldData, eEconData, columnOffset) {
+  updateEEcon: function (sheetName, oldData, eEconData, columnOffset, eEconLabData, eDiscountLabData) {
     try {
       console.log("Called: ePaths.updateEEcon");
       
-      // Add debugging to check the structure of oldData
-      console.log("oldData structure:", oldData);
       if (!oldData) {
         return {
           success: false,
@@ -430,6 +469,24 @@ const ePaths = {
       }
       
       var batchUpdate = [];
+
+      if (eEconLabData && eEconLabData[0] && eEconLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eEconRunningTime")) {
+        var eEconRunningTimeValue = oldData.eEconRunningTime;
+        console.log("eEconRunningTimeValue:", eEconRunningTimeValue);
+        batchUpdate.push({
+          range: `${sheetName}!L5`,
+          values: [[eEconRunningTimeValue]],
+        });
+      }
+      if (eDiscountLabData && eDiscountLabData[0] && eDiscountLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eDiscountRunningTime")) {
+        var eDiscountRunningTime = oldData.eDiscountRunningTime;
+        console.log("discountValue:", eDiscountRunningTime);
+        batchUpdate.push({
+          range: `${sheetName}!AG5`,
+          values: [[eDiscountRunningTime]],
+        });
+      }
+
       for (var i = 0; i < eEconData.length; i++) {
         for (var j = 0; j < eEconData[i].length; j++) {
           var cell = eEconData[i][j];
@@ -549,7 +606,15 @@ const ePaths = {
     var eHPRange = "eHP!AC1:AQ35";
     var eDamageRange = "eDamage!AI1:AX75";
     var eEconRange = "eEcon!AI1:AW55";
-    var ranges = [eHPRange, eDamageRange, eEconRange];
+    var eHPLabRange = "eHP!L4:L5";
+    var eRegenLabRange = "eHP!AA4:AA5";
+    var eDamageLabRange = "eDamage!L4:L5";
+    var eEconLabRange = "eEcon!L4:L5";
+    var eDiscountLabRange = "eEcon!AG4:AG5";
+    var ranges = [
+      eHPRange, eDamageRange, eEconRange,
+      eHPLabRange, eRegenLabRange, eDamageLabRange, eEconLabRange, eDiscountLabRange
+    ];
     var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
     if (!batchResult || !batchResult.length === 0) {
       return {
@@ -560,10 +625,15 @@ const ePaths = {
     var eHPValues = batchResult[0].values;
     var eDamageValues = batchResult[1].values;
     var eEconValues = batchResult[2].values;
+    var eHPLabValues = batchResult[3].values;
+    var eRegenLabValues = batchResult[4].values;
+    var eDamageLabValues = batchResult[5].values;
+    var eEconLabValues = batchResult[6].values;
+    var eDiscountLabValues = batchResult[7].values;
 
-    var eHPData = this.getVersion4110200eHP(eHPValues);
-    var eDamageData = this.getVersion4110200eDamage(eDamageValues);
-    var eEconData = this.getVersion4110200eEcon(eEconValues);
+    var eHPData = this.getVersion4110200eHP(eHPValues, eHPLabValues, eRegenLabValues);
+    var eDamageData = this.getVersion4110200eDamage(eDamageValues, eDamageLabValues);
+    var eEconData = this.getVersion4110200eEcon(eEconValues, eEconLabValues, eDiscountLabValues);
 
     return {
       success: true,
@@ -573,7 +643,7 @@ const ePaths = {
     };
   },
 
-  getVersion4110200eHP: function (oldValues) {
+  getVersion4110200eHP: function (oldValues, oldeHPLabValues, oldeRegenLabValues) {
     try {
       console.log("Called: ePaths.getVersion4110200eHP");
       var customData = [
@@ -586,6 +656,20 @@ const ePaths = {
       var modulesData = ["Armor"];
 
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (oldeHPLabValues && oldeHPLabValues[0] && oldeHPLabValues[0][0] === "Running Time") {
+        var eHPRunningTime = oldeHPLabValues[1][0];
+        if (String(eHPRunningTime)) {
+          oldData.eHPRunningTime = eHPRunningTime;
+        }
+      }
+      if (oldeRegenLabValues && oldeRegenLabValues[0] && oldeRegenLabValues[0][0] === "Running Time") {
+        var eRegenRunningTime = oldeRegenLabValues[1][0];
+        if (String(eRegenRunningTime)) {
+          oldData.eRegenRunningTime = eRegenRunningTime;
+        }
+      }
+
       for (var i = 0; i < oldValues.length; i++) {
         for (var j = 0; j < oldValues[i].length; j++) {
           var cell = oldValues[i][j];
@@ -644,6 +728,13 @@ const ePaths = {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[i + 1][j];
+            console.log("Found running time:", runningTime);
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
           }
         }
       }
@@ -661,13 +752,20 @@ const ePaths = {
     }
   },
 
-  getVersion4110200eDamage: function (oldValues) {
+  getVersion4110200eDamage: function (oldValues, oldeDamageLabValues) {
     try {
       console.log("Called: ePaths.getVersion4110200eDamage");
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (oldeDamageLabValues && oldeDamageLabValues[0] && oldeDamageLabValues[0][0] === "Running Time") {
+        var eDamageRunningTime = oldeDamageLabValues[1][0];
+        if (String(eDamageRunningTime)) {
+          oldData.eDamageRunningTime = eDamageRunningTime;
+        }
+      }
 
       for (var i = 0; i < oldValues.length; i++) {
         for (var j = 0; j < oldValues[i].length; j++) {
@@ -727,6 +825,13 @@ const ePaths = {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[i + 1][j];
+            console.log("Found running time:", runningTime);
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
             oldData.Preset = oldValues[i][j + 2];
           } else if (cell === "PS Beta Testing") {
@@ -748,12 +853,26 @@ const ePaths = {
     }
   },
 
-  getVersion4110200eEcon: function (oldValues) {
+  getVersion4110200eEcon: function (oldValues, oldeEconLabValues, oldeDiscountLabValues) {
     try {
       console.log("Called: ePaths.getVersion4110200eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (oldeEconLabValues && oldeEconLabValues[0] && oldeEconLabValues[0][0] === "Running Time") {
+        var eEconRunningTime = oldeEconLabValues[1][0];
+        if (String(eEconRunningTime)) {
+          oldData.eEconRunningTime = eEconRunningTime;
+        }
+      }
+      if (oldeDiscountLabValues && oldeDiscountLabValues[0] && oldeDiscountLabValues[0][0] === "Running Time") {
+        var eDiscountRunningTime = oldeDiscountLabValues[1][0];
+        if (String(eDiscountRunningTime)) {
+          oldData.eDiscountRunningTime = eDiscountRunningTime;
+        }
+      }
+
       for (var i = 0; i < oldValues.length; i++) {
         for (var j = 0; j < oldValues[i].length; j++) {
           var cell = oldValues[i][j];
