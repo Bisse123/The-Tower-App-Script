@@ -499,7 +499,7 @@ function exportData(oldSheetID, sheetType, versionDifference) {
   }
 }
 
-function importData(newSheetID, sheetType, data, sheetVisibility) {
+function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
   try {
     if (!sheetType) {
       console.log(`Sheet type is not defined.`);
@@ -535,6 +535,18 @@ function importData(newSheetID, sheetType, data, sheetVisibility) {
         success: false,
         message: `New spreadsheet™ not found with ID: ${newSheetID}`,
       };
+    }
+
+    // Set up IDS Master spreadsheet if ID is provided
+    if (idMasterID) {
+      var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
+      if (!idMasterSpreadsheet) {
+        console.log(`IDS Master spreadsheet not found with ID: ${idMasterID}`);
+        return {
+          success: false,
+          message: `IDS Master spreadsheet not found with ID: ${idMasterID}`,
+        };
+      }
     }
 
     var sheetTypeFunction = sheetVars(sheetType);

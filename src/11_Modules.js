@@ -152,30 +152,29 @@ const modules = {
         batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Modules", newSheetID, idsData);
 
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Modules data imported successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: "No modules data to update",
+        message: batchUpdate.length > 1 ? `Modules data imported successfully` : "No modules data to update, but ID setting completed",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

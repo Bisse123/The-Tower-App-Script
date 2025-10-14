@@ -45,7 +45,6 @@ const workshop = {
       }
 
       var requiredRanges = ["Master Sheet", "Desired Ratios", "IDS"];
-      var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -77,6 +76,8 @@ const workshop = {
           message: "Could not find import status range in IDS sheet",
         };
       }
+
+      var batchUpdate = [];
 
       // Only update workshop levels if key exists
       if (
@@ -117,29 +118,30 @@ const workshop = {
         batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Workshop", newSheetID, idsData);
+
+      // Apply all updates (including ID setting and import status)
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Workshop import completed successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: `No workshop data to update`,
+        message: `Workshop import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

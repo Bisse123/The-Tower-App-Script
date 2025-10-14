@@ -875,14 +875,7 @@
       );
 
       // Call the template copying function from the fileAccess scripts
-      if (typeof proceedWithTemplateCopying === "function") {
-        proceedWithTemplateCopying(currentCopyMode);
-      } else {
-        console.error("proceedWithTemplateCopying function not available");
-        setStatusText("Error: Template copying function not available.");
-        document.getElementById("copyButton").disabled = false;
-        document.getElementById("copyUpdateButton").disabled = false;
-      }
+      proceedWithTemplateCopying(currentCopyMode);
     } else {
       console.error("Template and sheet access check failed:", result.message);
       setStatusText(`${result.message}`);
@@ -1193,11 +1186,11 @@
           importButton.disabled = false;
 
           // Set up the update master button as well
-          const updateMasterButton =
-            document.getElementById("updateMasterButton");
-          updateMasterButton.innerText = `Move ${sheetType}`;
-          updateMasterButton.style.display = "inline-block";
-          updateMasterButton.disabled = true; // Will be enabled after successful import
+          const moveSheetButton =
+            document.getElementById("moveSheetButton");
+          moveSheetButton.innerText = `Move ${sheetType}`;
+          moveSheetButton.style.display = "inline-block";
+          moveSheetButton.disabled = true; // Will be enabled after successful import
 
           // Update global newSheetID for the import process
           newSheetID = copyResult.fileId;
@@ -1219,10 +1212,9 @@
             "selectedFileSummary"
           );
           selectedFileSummary.innerHTML = `<strong>✅ Template copy created successfully!</strong><br>
-              <a href="https://docs.google.com/spreadsheets/d/${newSheetID}/edit" target="_blank" style="margin-left: 2em;">
+              <a href="${googleLink}/${newSheetID}/edit" target="_blank" style="margin-left: 2em;">
                 Open ${sheetType} Sheet
-              </a><br><br>
-              <strong>⚠️ Make sure your data is imported correctly before moving your ${sheetType}! ⚠️</strong><br>`;
+              </a><br>`;
 
           // Hide access-related buttons since we're now in import workflow
           const addAnotherButton = document.getElementById("addAnotherButton");
@@ -1250,6 +1242,6 @@
         setStatusText(`Template copy error: ${error.message || error}`);
         resetUpdateSingleSheetButton();
       })
-      .copyFileTemplate(idMasterID, templateID, sheetType, templateVersion);
+      .copyFileTemplate(templateID, sheetType, templateVersion);
   }
 </script>

@@ -113,7 +113,6 @@ const ultimate = {
         });
       });
 
-      var batchUpdate = [];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -159,6 +158,8 @@ const ultimate = {
         };
       }
 
+      var batchUpdate = [];
+
       // Only update ultimate levels if key exists
       if (data.hasOwnProperty("oldUltimate")) {
         var oldUltimate = data.oldUltimate;
@@ -199,30 +200,30 @@ const ultimate = {
         );
       }
 
-      // Add import status update to batch if any update was made
+      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
           values: [["✅"]],
         });
+      }
 
-        var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
-        if (!updateResult) {
-          console.log(`Error applying batch updates to new spreadsheet`);
-          return {
-            success: false,
-            message: "Error applying batch updates to new spreadsheet™",
-          };
-        }
+      // Always add ID updates
+      shared.addIDUpdatesToBatch(batchUpdate, "Ultimate Weapons", newSheetID, idsData);
 
+      // Apply all updates (including ID setting and import status)
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
         return {
-          success: true,
-          message: `Ultimate Weapons import completed successfully`,
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
         };
       }
+
       return {
         success: true,
-        message: `No ultimate weapons to update`,
+        message: `Ultimate Weapons import completed successfully`,
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);

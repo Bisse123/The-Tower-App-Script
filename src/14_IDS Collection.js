@@ -1021,8 +1021,23 @@ const collection = {
         return !result.success;
       });
 
+      // Set the newSheetID in "Your ID:" field for performance optimization
+      var homePageData = getRangeData("Home Page", "values");
+      var yourIdInfo = shared.findSheetTypeID(
+        newSheetID,
+        "Home Page", 
+        "Your ID:",
+        homePageData
+      );
+      if (yourIdInfo && yourIdInfo.cell && yourIdInfo.cell.range) {
+        batchUpdate.push({
+          range: yourIdInfo.cell.range,
+          values: [[newSheetID]],
+        });
+        console.log(`Added IDS Collection sheet ID update to batch: ${newSheetID}`);
+      }
+
       if (failedUpdates.length === 0) {
-        var homePageData = getRangeData("Home Page", "values");
         var newSheetInfo = shared.findSheetTypeID(
           newSheetID,
           "Home Page",
