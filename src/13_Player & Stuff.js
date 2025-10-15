@@ -83,15 +83,15 @@ const playerStuff = {
       if (data.hasOwnProperty("oldPlayerStuffTierData") && data.hasOwnProperty("oldPlayerStuffStatsData")) {
         var oldPlayerStuffTierData = data.oldPlayerStuffTierData;
         var oldPlayerStuffStatsData = data.oldPlayerStuffStatsData;
-        var playerResult = this.updatePlayerStuffData(
+        var playerStuffResult = this.updatePlayerStuffData(
           "Master Sheet",
           oldPlayerStuffTierData,
           oldPlayerStuffStatsData,
           masterSheetData
         );
-        if (!playerResult || !playerResult.success) {
-          console.log(`Error updating player data: ${playerResult.message}`);
-          return playerResult;
+        if (!playerStuffResult || !playerStuffResult.success) {
+          console.log(`Error updating player data: ${playerStuffResult.message}`);
+          return playerStuffResult;
         }
         batchUpdate = batchUpdate.concat(playerStuffResult.batchUpdate || []);
       }
