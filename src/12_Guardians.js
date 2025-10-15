@@ -150,7 +150,7 @@ const guardians = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Guardians", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Guardians", newSheetID, idsData, data.idMasterID);
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {

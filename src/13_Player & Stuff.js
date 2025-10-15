@@ -105,7 +105,7 @@ const playerStuff = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Player & Stuff", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Player & Stuff", newSheetID, idsData, data.idMasterID);
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {

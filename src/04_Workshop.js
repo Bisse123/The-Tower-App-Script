@@ -127,7 +127,7 @@ const workshop = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Workshop", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Workshop", newSheetID, idsData, data.idMasterID);
 
       // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);

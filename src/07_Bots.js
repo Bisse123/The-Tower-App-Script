@@ -151,7 +151,7 @@ const bots = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Bots", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Bots", newSheetID, idsData, data.idMasterID);
 
       // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);

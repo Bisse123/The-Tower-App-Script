@@ -660,12 +660,8 @@ const shared = {
   },
 
   // Helper function to add sheet ID and IDS Master ID updates to batch
-  addIDUpdatesToBatch: function(batchUpdate, sheetType, newSheetID, idsData) {
+  addIDUpdatesToBatch: function(batchUpdate, sheetType, newSheetID, idsData, idMasterID) {
     try {
-      // Get spreadsheet references using the centralized spreadsheets function
-      var idMasterSpreadsheet = spreadsheets("idMasterSpreadsheet");
-      var idMasterID = idMasterSpreadsheet ? idMasterSpreadsheet.spreadsheetId : null;
-
       if (newSheetID && idMasterID) {
         // Find the "This Sheet ID" and "IDS Master's" entries
         var thisSheetInfo = shared.findSheetTypeID(
