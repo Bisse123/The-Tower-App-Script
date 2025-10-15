@@ -145,7 +145,7 @@ const cards = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Cards", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Cards", newSheetID, idsData, data.idMasterID);
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {

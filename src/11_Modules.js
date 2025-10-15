@@ -161,7 +161,7 @@ const modules = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Modules", newSheetID, idsData);
+      shared.addIDUpdatesToBatch(batchUpdate, "Modules", newSheetID, idsData, data.idMasterID);
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
