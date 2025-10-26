@@ -32,7 +32,7 @@ const ePaths = {
   importData: function (data) {
     try {
       console.log("Called: ePaths.importData");
-      
+
       var newSpreadsheet = spreadsheets("Effective Paths newSpreadsheet");
       var newSheetID = newSpreadsheet.spreadsheetId;
       if (
@@ -42,10 +42,11 @@ const ePaths = {
       ) {
         return {
           success: false,
-          message: "New spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
+          message:
+            "New spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
         };
       }
-      
+
       var eHPRange = "eHP!AC1:AQ35";
       var eDamageRange = "eDamage!AI1:AX75";
       var eEconRange = "eEcon!AI1:AW55";
@@ -55,9 +56,17 @@ const ePaths = {
       var eEconLabRange = "eEcon!L4:L5";
       var eDiscountLabRange = "eEcon!AG4:AG5";
       var ranges = [
-        "IDS", eHPRange, eDamageRange, eEconRange,
-        eHPLabRange, eRegenLabRange, eDamageLabRange, eEconLabRange, eDiscountLabRange];
-      
+        "IDS",
+        eHPRange,
+        eDamageRange,
+        eEconRange,
+        eHPLabRange,
+        eRegenLabRange,
+        eDamageLabRange,
+        eEconLabRange,
+        eDiscountLabRange,
+      ];
+
       // Calculate column offsets for each range
       var eHPColumnOffset = shared.getColumnOffsetFromRange(eHPRange);
       var eDamageColumnOffset = shared.getColumnOffsetFromRange(eDamageRange);
@@ -110,7 +119,7 @@ const ePaths = {
           eHPValues,
           eHPColumnOffset,
           eHPLabValues,
-          eRegenLabValues,
+          eRegenLabValues
         );
         if (!eHPResult || !eHPResult.success) {
           console.log(`eHP update failed: ${eHPResult.message}`);
@@ -168,13 +177,20 @@ const ePaths = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Effective Paths", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Effective Paths",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         return {
           success: false,
-          message: "Failed to update new spreadsheet™ with Effective Paths data.",
+          message:
+            "Failed to update new spreadsheet™ with Effective Paths data.",
         };
       }
       return {
@@ -190,10 +206,17 @@ const ePaths = {
     }
   },
 
-  updateEHP: function (sheetName, oldData, eHPData, columnOffset, eHPLabData, eRegenLabData) {
+  updateEHP: function (
+    sheetName,
+    oldData,
+    eHPData,
+    columnOffset,
+    eHPLabData,
+    eRegenLabData
+  ) {
     try {
       console.log("Called: ePaths.updateEHP");
-      
+
       if (!oldData) {
         return {
           success: false,
@@ -201,20 +224,28 @@ const ePaths = {
           batchUpdate: [],
         };
       }
-      
+
       var batchUpdate = [];
 
-      if (eHPLabData && eHPLabData[0] && eHPLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eHPRunningTime")) {
+      if (
+        eHPLabData &&
+        eHPLabData[0] &&
+        eHPLabData[0][0] === "Running Time" &&
+        oldData.hasOwnProperty("eHPRunningTime")
+      ) {
         var eHPRunningTimeValue = oldData.eHPRunningTime;
-        console.log("eHPRunningTimeValue:", eHPRunningTimeValue);
         batchUpdate.push({
           range: `${sheetName}!L5`,
           values: [[eHPRunningTimeValue]],
         });
       }
-      if (eRegenLabData && eRegenLabData[0] && eRegenLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eRegenRunningTime")) {
+      if (
+        eRegenLabData &&
+        eRegenLabData[0] &&
+        eRegenLabData[0][0] === "Running Time" &&
+        oldData.hasOwnProperty("eRegenRunningTime")
+      ) {
         var eRegenRunningTimeValue = oldData.eRegenRunningTime;
-        console.log("eRegenRunningTimeValue:", eRegenRunningTimeValue);
         batchUpdate.push({
           range: `${sheetName}!AA5`,
           values: [[eRegenRunningTimeValue]],
@@ -276,7 +307,10 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
-              if (oldData.UserGuess && oldData.UserGuess.hasOwnProperty(guessName)) {
+              if (
+                oldData.UserGuess &&
+                oldData.UserGuess.hasOwnProperty(guessName)
+              ) {
                 var guessValue = oldData.UserGuess[guessName];
                 var guessCol = shared.columnToLetter(columnOffset + j + 5);
                 var guessCellAddress = `${guessCol}${k + 1}`;
@@ -313,10 +347,16 @@ const ePaths = {
     }
   },
 
-  updateEDamage: function (sheetName, oldData, eDamageData, columnOffset, eDamageLabData) {
+  updateEDamage: function (
+    sheetName,
+    oldData,
+    eDamageData,
+    columnOffset,
+    eDamageLabData
+  ) {
     try {
       console.log("Called: ePaths.updateEDamage");
-      
+
       if (!oldData) {
         return {
           success: false,
@@ -324,12 +364,16 @@ const ePaths = {
           batchUpdate: [],
         };
       }
-      
+
       var batchUpdate = [];
 
-      if (eDamageLabData && eDamageLabData[0] && eDamageLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eDamageRunningTime")) {
+      if (
+        eDamageLabData &&
+        eDamageLabData[0] &&
+        eDamageLabData[0][0] === "Running Time" &&
+        oldData.hasOwnProperty("eDamageRunningTime")
+      ) {
         var eDamageRunningTimeValue = oldData.eDamageRunningTime;
-        console.log("eDamageRunningTimeValue:", eDamageRunningTimeValue);
         batchUpdate.push({
           range: `${sheetName}!L5`,
           values: [[eDamageRunningTimeValue]],
@@ -391,7 +435,10 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
-              if (oldData.UserGuess && oldData.UserGuess.hasOwnProperty(guessName)) {
+              if (
+                oldData.UserGuess &&
+                oldData.UserGuess.hasOwnProperty(guessName)
+              ) {
                 var guessValue = oldData.UserGuess[guessName];
                 var guessCol = shared.columnToLetter(columnOffset + j + 5);
                 var guessCellAddress = `${guessCol}${k + 1}`;
@@ -456,10 +503,17 @@ const ePaths = {
     }
   },
 
-  updateEEcon: function (sheetName, oldData, eEconData, columnOffset, eEconLabData, eDiscountLabData) {
+  updateEEcon: function (
+    sheetName,
+    oldData,
+    eEconData,
+    columnOffset,
+    eEconLabData,
+    eDiscountLabData
+  ) {
     try {
       console.log("Called: ePaths.updateEEcon");
-      
+
       if (!oldData) {
         return {
           success: false,
@@ -467,20 +521,28 @@ const ePaths = {
           batchUpdate: [],
         };
       }
-      
+
       var batchUpdate = [];
 
-      if (eEconLabData && eEconLabData[0] && eEconLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eEconRunningTime")) {
+      if (
+        eEconLabData &&
+        eEconLabData[0] &&
+        eEconLabData[0][0] === "Running Time" &&
+        oldData.hasOwnProperty("eEconRunningTime")
+      ) {
         var eEconRunningTimeValue = oldData.eEconRunningTime;
-        console.log("eEconRunningTimeValue:", eEconRunningTimeValue);
         batchUpdate.push({
           range: `${sheetName}!L5`,
           values: [[eEconRunningTimeValue]],
         });
       }
-      if (eDiscountLabData && eDiscountLabData[0] && eDiscountLabData[0][0] === "Running Time" && oldData.hasOwnProperty("eDiscountRunningTime")) {
+      if (
+        eDiscountLabData &&
+        eDiscountLabData[0] &&
+        eDiscountLabData[0][0] === "Running Time" &&
+        oldData.hasOwnProperty("eDiscountRunningTime")
+      ) {
         var eDiscountRunningTime = oldData.eDiscountRunningTime;
-        console.log("discountValue:", eDiscountRunningTime);
         batchUpdate.push({
           range: `${sheetName}!AG5`,
           values: [[eDiscountRunningTime]],
@@ -537,12 +599,19 @@ const ePaths = {
               var guessName = eEconData[k][j];
               if (!guessName) break;
               if (guessName.startsWith("=")) {
-                var parts = guessName.split(",");
-                guessName = parts[parts.length - 2]
-                  .replace(/["\(\)]/g, "")
-                  .trim();
+                if (guessName.includes("GB Sync Current Ratio")) {
+                  guessName = "GB Sync Current Ratio";
+                } else {
+                  var parts = guessName.split(",");
+                  guessName = parts[parts.length - 2]
+                    .replace(/["\(\)]/g, "")
+                    .trim();
+                }
               }
-              if (oldData.UserGuess && oldData.UserGuess.hasOwnProperty(guessName)) {
+              if (
+                oldData.UserGuess &&
+                oldData.UserGuess.hasOwnProperty(guessName)
+              ) {
                 var guessValue = oldData.UserGuess[guessName];
                 var guessCol = shared.columnToLetter(columnOffset + j + 5);
                 var guessCellAddress = `${guessCol}${k + 1}`;
@@ -612,8 +681,14 @@ const ePaths = {
     var eEconLabRange = "eEcon!L4:L5";
     var eDiscountLabRange = "eEcon!AG4:AG5";
     var ranges = [
-      eHPRange, eDamageRange, eEconRange,
-      eHPLabRange, eRegenLabRange, eDamageLabRange, eEconLabRange, eDiscountLabRange
+      eHPRange,
+      eDamageRange,
+      eEconRange,
+      eHPLabRange,
+      eRegenLabRange,
+      eDamageLabRange,
+      eEconLabRange,
+      eDiscountLabRange,
     ];
     var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
     if (!batchResult || !batchResult.length === 0) {
@@ -631,9 +706,20 @@ const ePaths = {
     var eEconLabValues = batchResult[6].values;
     var eDiscountLabValues = batchResult[7].values;
 
-    var eHPData = this.getVersion4110200eHP(eHPValues, eHPLabValues, eRegenLabValues);
-    var eDamageData = this.getVersion4110200eDamage(eDamageValues, eDamageLabValues);
-    var eEconData = this.getVersion4110200eEcon(eEconValues, eEconLabValues, eDiscountLabValues);
+    var eHPData = this.getVersion4110200eHP(
+      eHPValues,
+      eHPLabValues,
+      eRegenLabValues
+    );
+    var eDamageData = this.getVersion4110200eDamage(
+      eDamageValues,
+      eDamageLabValues
+    );
+    var eEconData = this.getVersion4110200eEcon(
+      eEconValues,
+      eEconLabValues,
+      eDiscountLabValues
+    );
 
     return {
       success: true,
@@ -643,7 +729,11 @@ const ePaths = {
     };
   },
 
-  getVersion4110200eHP: function (oldValues, oldeHPLabValues, oldeRegenLabValues) {
+  getVersion4110200eHP: function (
+    oldValues,
+    oldeHPLabValues,
+    oldeRegenLabValues
+  ) {
     try {
       console.log("Called: ePaths.getVersion4110200eHP");
       var customData = [
@@ -657,13 +747,21 @@ const ePaths = {
 
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
 
-      if (oldeHPLabValues && oldeHPLabValues[0] && oldeHPLabValues[0][0] === "Running Time") {
+      if (
+        oldeHPLabValues &&
+        oldeHPLabValues[0] &&
+        oldeHPLabValues[0][0] === "Running Time"
+      ) {
         var eHPRunningTime = oldeHPLabValues[1][0];
         if (String(eHPRunningTime)) {
           oldData.eHPRunningTime = eHPRunningTime;
         }
       }
-      if (oldeRegenLabValues && oldeRegenLabValues[0] && oldeRegenLabValues[0][0] === "Running Time") {
+      if (
+        oldeRegenLabValues &&
+        oldeRegenLabValues[0] &&
+        oldeRegenLabValues[0][0] === "Running Time"
+      ) {
         var eRegenRunningTime = oldeRegenLabValues[1][0];
         if (String(eRegenRunningTime)) {
           oldData.eRegenRunningTime = eRegenRunningTime;
@@ -680,7 +778,10 @@ const ePaths = {
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
                 var customValue = oldValues[k][j - 1];
-                if (!String(customValue) || String(customValue).startsWith("=")) {
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
                   continue;
                 }
                 oldData.Custom[customName] = customValue;
@@ -688,7 +789,10 @@ const ePaths = {
             }
           } else if (cell === "Perks") {
             var perksAreActive = oldValues[i][j + 4];
-            if (String(perksAreActive) && !String(perksAreActive).startsWith("=")) {
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var k = i + 2; k < oldValues.length; k++) {
@@ -724,7 +828,10 @@ const ePaths = {
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
             var rowsCalculated = oldValues[i + 1][j];
-            if (!String(rowsCalculated) || String(rowsCalculated).startsWith("=")) {
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;
@@ -760,7 +867,11 @@ const ePaths = {
       var modulesData = ["Cannon", "Core"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
 
-      if (oldeDamageLabValues && oldeDamageLabValues[0] && oldeDamageLabValues[0][0] === "Running Time") {
+      if (
+        oldeDamageLabValues &&
+        oldeDamageLabValues[0] &&
+        oldeDamageLabValues[0][0] === "Running Time"
+      ) {
         var eDamageRunningTime = oldeDamageLabValues[1][0];
         if (String(eDamageRunningTime)) {
           oldData.eDamageRunningTime = eDamageRunningTime;
@@ -777,7 +888,10 @@ const ePaths = {
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
                 var customValue = oldValues[k][j - 1];
-                if (!String(customValue) || String(customValue).startsWith("=")) {
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
                   continue;
                 }
                 oldData.Custom[customName] = customValue;
@@ -785,7 +899,10 @@ const ePaths = {
             }
           } else if (cell === "Perks") {
             var perksAreActive = oldValues[i][j + 4];
-            if (String(perksAreActive) && !String(perksAreActive).startsWith("=")) {
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var k = i + 2; k < oldValues.length; k++) {
@@ -821,7 +938,10 @@ const ePaths = {
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
             var rowsCalculated = oldValues[i + 1][j];
-            if (!String(rowsCalculated) || String(rowsCalculated).startsWith("=")) {
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;
@@ -853,20 +973,32 @@ const ePaths = {
     }
   },
 
-  getVersion4110200eEcon: function (oldValues, oldeEconLabValues, oldeDiscountLabValues) {
+  getVersion4110200eEcon: function (
+    oldValues,
+    oldeEconLabValues,
+    oldeDiscountLabValues
+  ) {
     try {
       console.log("Called: ePaths.getVersion4110200eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
 
-      if (oldeEconLabValues && oldeEconLabValues[0] && oldeEconLabValues[0][0] === "Running Time") {
+      if (
+        oldeEconLabValues &&
+        oldeEconLabValues[0] &&
+        oldeEconLabValues[0][0] === "Running Time"
+      ) {
         var eEconRunningTime = oldeEconLabValues[1][0];
         if (String(eEconRunningTime)) {
           oldData.eEconRunningTime = eEconRunningTime;
         }
       }
-      if (oldeDiscountLabValues && oldeDiscountLabValues[0] && oldeDiscountLabValues[0][0] === "Running Time") {
+      if (
+        oldeDiscountLabValues &&
+        oldeDiscountLabValues[0] &&
+        oldeDiscountLabValues[0][0] === "Running Time"
+      ) {
         var eDiscountRunningTime = oldeDiscountLabValues[1][0];
         if (String(eDiscountRunningTime)) {
           oldData.eDiscountRunningTime = eDiscountRunningTime;
@@ -883,7 +1015,10 @@ const ePaths = {
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
                 var customValue = oldValues[k][j - 1];
-                if (!String(customValue) || String(customValue).startsWith("=")) {
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
                   continue;
                 }
                 oldData.Custom[customName] = customValue;
@@ -891,7 +1026,10 @@ const ePaths = {
             }
           } else if (cell === "Perks") {
             var perksAreActive = oldValues[i][j + 4];
-            if (String(perksAreActive) && !String(perksAreActive).startsWith("=")) {
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var k = i + 2; k < oldValues.length; k++) {
@@ -912,10 +1050,14 @@ const ePaths = {
                 continue;
               }
               if (guessName.startsWith("=")) {
-                var parts = guessName.split(",");
-                guessName = parts[parts.length - 2]
-                  .replace(/["\(\)]/g, "")
-                  .trim();
+                if (guessName.includes("GB Sync Current Ratio")) {
+                  guessName = "GB Sync Current Ratio";
+                } else {
+                  var parts = guessName.split(",");
+                  guessName = parts[parts.length - 2]
+                    .replace(/["\(\)]/g, "")
+                    .trim();
+                }
               }
               oldData.UserGuess[guessName] = guessValue;
             }
@@ -927,7 +1069,10 @@ const ePaths = {
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
             var rowsCalculated = oldValues[i + 1][j];
-            if (!String(rowsCalculated) || String(rowsCalculated).startsWith("=")) {
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;

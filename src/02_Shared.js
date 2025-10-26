@@ -683,14 +683,12 @@ const shared = {
             range: thisSheetInfo.cell.range,
             values: [[newSheetID]],
           });
-          console.log(`Added ${sheetType} sheet ID update to batch: ${newSheetID}`);
         }
         if (idMasterInfo && idMasterInfo.cell && idMasterInfo.cell.range) {
           batchUpdate.push({
             range: idMasterInfo.cell.range,
             values: [[idMasterID]],
           });
-          console.log(`Added IDS Master ID update to batch: ${idMasterID}`);
         }
       }
       return batchUpdate;
