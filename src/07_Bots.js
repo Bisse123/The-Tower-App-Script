@@ -50,29 +50,29 @@ const bots = {
       var dvtNamedRanges = {
         "Flame Bot": {
           "Damage R.": "DVT_BOT_UG_FB_DMGR",
-          "Cooldown": "DVT_BOT_UG_FB_CD",
-          "Damage": "DVT_BOT_UG_FB_DMG",
-          "Range": "DVT_BOT_UG_FB_RANGE",
+          Cooldown: "DVT_BOT_UG_FB_CD",
+          Damage: "DVT_BOT_UG_FB_DMG",
+          Range: "DVT_BOT_UG_FB_RANGE",
         },
         "Thunder Bot": {
-          "Duration": "DVT_BOT_UG_TB_DUR",
-          "Cooldown": "DVT_BOT_UG_TB_CD",
-          "Linger": "DVT_BOT_UG_TB_LINGER",
-          "Range": "DVT_BOT_UG_TB_RANGE",
+          Duration: "DVT_BOT_UG_TB_DUR",
+          Cooldown: "DVT_BOT_UG_TB_CD",
+          Linger: "DVT_BOT_UG_TB_LINGER",
+          Range: "DVT_BOT_UG_TB_RANGE",
         },
         "Golden Bot": {
-          "Duration": "DVT_BOT_UG_GB_DUR",
-          "Cooldown": "DVT_BOT_UG_GB_CD",
-          "Bonus": "DVT_BOT_UG_GB_BONUS",
-          "Range": "DVT_BOT_UG_GB_RANGE",
+          Duration: "DVT_BOT_UG_GB_DUR",
+          Cooldown: "DVT_BOT_UG_GB_CD",
+          Bonus: "DVT_BOT_UG_GB_BONUS",
+          Range: "DVT_BOT_UG_GB_RANGE",
         },
         "Amplify Bot": {
-          "Duration": "DVT_BOT_UG_AB_DUR",
-          "Cooldown": "DVT_BOT_UG_AB_CD",
-          "Bonus": "DVT_BOT_UG_AB_BONUS",
-          "Range": "DVT_BOT_UG_AB_RANGE",
+          Duration: "DVT_BOT_UG_AB_DUR",
+          Cooldown: "DVT_BOT_UG_AB_CD",
+          Bonus: "DVT_BOT_UG_AB_BONUS",
+          Range: "DVT_BOT_UG_AB_RANGE",
         },
-      }
+      };
 
       Object.keys(dvtNamedRanges).forEach(function (bot) {
         Object.keys(dvtNamedRanges[bot]).forEach(function (prop) {
@@ -151,7 +151,13 @@ const bots = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Bots", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Bots",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -274,7 +280,10 @@ const bots = {
             }
             var newBotProp = nextRowData[2];
             if (oldBot.props.hasOwnProperty(newBotProp)) {
-              var dvtPropValue = shared.getDVTValue(oldBot.props[newBotProp], dvtNamedRangesData[botName][newBotProp]);
+              var dvtPropValue = shared.getDVTValue(
+                oldBot.props[newBotProp],
+                dvtNamedRangesData[botName][newBotProp]
+              );
               newBotLevel.push([dvtPropValue]);
             } else {
               newBotLevel.push([nextRowData[4]]);

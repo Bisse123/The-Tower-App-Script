@@ -229,7 +229,7 @@ const shared = {
       return null;
     }
   },
-  
+
   // Get Effective Paths version information (both current and latest)
   getEPathsVersion: function (sheetID, sheetName, preLoadedValues) {
     try {
@@ -255,26 +255,40 @@ const shared = {
 
       var currentVersion = null;
       var latestVersion = null;
-      
+
       // Search for version information in the sheet
       for (var i = 0; i < values.length; i++) {
         for (var j = 0; j < values[i].length; j++) {
           var cellValue = values[i] && values[i][j] ? values[i][j] : "";
-          
+
           // Look for "Current Version:" and concatenate next 2 cells
-          if (cellValue && typeof cellValue === "string" && cellValue.includes("Current Version:") && !currentVersion) {
-            var currentPart1 = values[i] && values[i][j + 1] ? values[i][j + 1] : "";
-            var currentPart2 = values[i] && values[i][j + 2] ? values[i][j + 2] : "";
+          if (
+            cellValue &&
+            typeof cellValue === "string" &&
+            cellValue.includes("Current Version:") &&
+            !currentVersion
+          ) {
+            var currentPart1 =
+              values[i] && values[i][j + 1] ? values[i][j + 1] : "";
+            var currentPart2 =
+              values[i] && values[i][j + 2] ? values[i][j + 2] : "";
             currentVersion = currentPart1 + currentPart2;
           }
-          
+
           // Look for "Latest Version:" and concatenate next 2 cells
-          if (cellValue && typeof cellValue === "string" && cellValue.includes("Latest Version:") && !latestVersion) {
-            var latestPart1 = values[i] && values[i][j + 1] ? values[i][j + 1] : "";
-            var latestPart2 = values[i] && values[i][j + 2] ? values[i][j + 2] : "";
+          if (
+            cellValue &&
+            typeof cellValue === "string" &&
+            cellValue.includes("Latest Version:") &&
+            !latestVersion
+          ) {
+            var latestPart1 =
+              values[i] && values[i][j + 1] ? values[i][j + 1] : "";
+            var latestPart2 =
+              values[i] && values[i][j + 2] ? values[i][j + 2] : "";
             latestVersion = latestPart1 + latestPart2;
           }
-          
+
           // If we found both versions, break out of loops
           if (currentVersion && latestVersion) {
             break;
@@ -284,7 +298,7 @@ const shared = {
           break;
         }
       }
-      
+
       return {
         currentVersion: currentVersion,
         latestVersion: latestVersion,
@@ -498,11 +512,11 @@ const shared = {
     return null;
   },
 
-  getDVTValue: function(oldValue, dvtNamedRangesData) {
+  getDVTValue: function (oldValue, dvtNamedRangesData) {
     if (!oldValue || !dvtNamedRangesData) {
       return oldValue; // Return original if no data
     }
-    
+
     var oldLevel = oldValue.substring(0, 2);
     for (var i = 0; i < dvtNamedRangesData.length; i++) {
       var row = dvtNamedRangesData[i];
@@ -536,17 +550,17 @@ const shared = {
       // Use batch API calls for better performance
       var formulas = SheetsAPI.batchGetFormulas(sheetID, [sheetName]);
       var values = SheetsAPI.batchGetValues(sheetID, [sheetName]);
-      
+
       if (!formulas || !formulas[0] || !formulas[0].values) {
         console.log(`Could not fetch formulas from sheet: ${sheetName}`);
         return null;
       }
-      
+
       if (!values || !values[0] || !values[0].values) {
         console.log(`Could not fetch values from sheet: ${sheetName}`);
         return null;
       }
-      
+
       var formulaData = formulas[0].values;
       var valueData = values[0].values;
 
@@ -588,7 +602,11 @@ const shared = {
 
           // Special handling for Effective Paths sheet type - use getEPathsVersion
           if (sheetType === "Effective Paths" && !version) {
-            var ePathsVersionInfo = shared.getEPathsVersion(sheetID, sheetName, valueData);
+            var ePathsVersionInfo = shared.getEPathsVersion(
+              sheetID,
+              sheetName,
+              valueData
+            );
             if (ePathsVersionInfo && ePathsVersionInfo.latestVersion) {
               version = ePathsVersionInfo.latestVersion;
               console.log(`Effective Paths version found: ${version}`);
@@ -636,31 +654,39 @@ const shared = {
       return null;
     }
   },
-  
+
   // Utility function to extract column offset from a range string
   getColumnOffsetFromRange: function (range) {
     // Extract the range part after the sheet name (e.g., "AC1:AN35" from "eHP!AC1:AN35")
-    var rangePart = range.split('!')[1];
+    var rangePart = range.split("!")[1];
     if (!rangePart) return 0;
-    
+
     // Extract the starting column (e.g., "AC" from "AC1:AN35")
-    var startCell = rangePart.split(':')[0];
+    var startCell = rangePart.split(":")[0];
     if (!startCell) return 0;
-    
+
     // Extract column letters (remove numbers)
-    var columnLetters = startCell.replace(/[0-9]/g, '');
-    
+    var columnLetters = startCell.replace(/[0-9]/g, "");
+
     // Convert column letters to 0-based index
     var columnIndex = 0;
     for (var i = 0; i < columnLetters.length; i++) {
-      columnIndex = columnIndex * 26 + (columnLetters.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+      columnIndex =
+        columnIndex * 26 +
+        (columnLetters.charCodeAt(i) - "A".charCodeAt(0) + 1);
     }
-    
+
     return columnIndex - 1; // Convert to 0-based index
   },
 
   // Helper function to add sheet ID and IDS Master ID updates to batch
-  addIDUpdatesToBatch: function(batchUpdate, sheetType, newSheetID, idsData, idMasterID) {
+  addIDUpdatesToBatch: function (
+    batchUpdate,
+    sheetType,
+    newSheetID,
+    idsData,
+    idMasterID
+  ) {
     try {
       if (newSheetID && idMasterID) {
         // Find the "This Sheet ID" and "IDS Master's" entries
@@ -672,7 +698,7 @@ const shared = {
         );
         var idMasterInfo = shared.findSheetTypeID(
           newSheetID,
-          "IDS", 
+          "IDS",
           "IDS Master's",
           idsData
         );
@@ -729,7 +755,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
     } else {
       newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page");
     }
-    
+
     if (!newVersionInfo || !newVersionInfo.currentVersion) {
       console.log(`Could not find new sheet version`);
       return {
@@ -920,9 +946,11 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       var eHPSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eHP");
       var eDamageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eDamage");
       var eEconSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eEcon");
-      
+
       if (!eHPSheet || !eDamageSheet || !eEconSheet) {
-        console.log(`Required Effective Paths sheets not found in new spreadsheet.`);
+        console.log(
+          `Required Effective Paths sheets not found in new spreadsheet.`
+        );
         return {
           success: false,
           message: `New spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).`,
@@ -976,7 +1004,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         newHomePageValues
       );
     }
-    
+
     if (!newVersionInfo) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
       return {
@@ -1767,12 +1795,10 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
 function copyFileTemplate(templateID, sheetType, templateVersion) {
   try {
     var fileName = `Copy of ${sheetType} ${templateVersion}`;
-    
-    var newFile = Drive.Files.copy(
-      { name: fileName },
-      templateID,
-      { fields: "id" }
-    );
+
+    var newFile = Drive.Files.copy({ name: fileName }, templateID, {
+      fields: "id",
+    });
 
     if (!newFile || !newFile.id) {
       console.log(`Error copying ${sheetType} template: no file returned`);
@@ -1845,10 +1871,12 @@ function copyFileTemplate(templateID, sheetType, templateVersion) {
         fileName: fileName,
         gid: newSheet.sheetId,
       };
-    };
-    
+    }
+
     // Note: ID setting is now handled in importData to reduce API calls during copying
-    console.log(`Successfully copied ${sheetType} template, IDs will be set during import.`);
+    console.log(
+      `Successfully copied ${sheetType} template, IDs will be set during import.`
+    );
 
     return {
       success: true,
@@ -2102,8 +2130,16 @@ function getTemplateIdForSingleSheet(sheetID, sheetType) {
       console.log(`Missing sheetType parameter.`);
       return { success: false, message: "Missing sheetType parameter." };
     }
-    var spreadsheetInfo = shared.findSheetTemplateID(sheetID, "Home Page", sheetType);
-    if (!spreadsheetInfo || !spreadsheetInfo.templateID || !spreadsheetInfo.templateVersion) {
+    var spreadsheetInfo = shared.findSheetTemplateID(
+      sheetID,
+      "Home Page",
+      sheetType
+    );
+    if (
+      !spreadsheetInfo ||
+      !spreadsheetInfo.templateID ||
+      !spreadsheetInfo.templateVersion
+    ) {
       console.log(`Could not find sheet template for ${sheetType}`);
       return {
         success: false,
@@ -2167,10 +2203,14 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     var oldHomePageValues = oldHomePageData[0].values;
     var oldVersionInfo;
     var oldVersion;
-    
+
     if (sheetType === "Effective Paths") {
       // Use the new getEPathsVersion function for Effective Paths
-      oldVersionInfo = shared.getEPathsVersion(oldSheetID, "Home Page", oldHomePageValues);
+      oldVersionInfo = shared.getEPathsVersion(
+        oldSheetID,
+        "Home Page",
+        oldHomePageValues
+      );
       if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
         return {
           success: false,
@@ -2193,10 +2233,10 @@ function checkExportCompatibility(oldSheetID, sheetType) {
           message: `Version not found in old ${sheetType} spreadsheet.`,
         };
       }
-      
+
       oldVersion = oldVersionInfo.currentVersion;
     }
-    
+
     // Check compatibility using the sheetType's compatibility function
     var sheetTypeFunction = sheetVars(sheetType);
     if (sheetTypeFunction) {
@@ -2211,7 +2251,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
         success: true,
         message: `Old ${sheetType} version (${oldVersion}) is compatible for export`,
         oldVersion: oldVersion,
-        versionDifference: versionDifference
+        versionDifference: versionDifference,
       };
     } else {
       return {
@@ -2221,9 +2261,9 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     }
   } catch (error) {
     console.error(`Error checking export compatibility: ${error.toString()}`);
-    return { 
-      success: false, 
-      message: `Error checking export compatibility: ${error.toString()}` 
+    return {
+      success: false,
+      message: `Error checking export compatibility: ${error.toString()}`,
     };
   }
 }
@@ -2292,6 +2332,9 @@ function updateSheetID(spreadsheetID, sheetID, sheetType) {
     };
   } catch (error) {
     console.error(`Error updating sheet ID: ${error.toString()}`);
-    return { success: false, message: `Error updating sheet ID: ${error.toString()}` };
+    return {
+      success: false,
+      message: `Error updating sheet ID: ${error.toString()}`,
+    };
   }
 }

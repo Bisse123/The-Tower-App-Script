@@ -44,16 +44,11 @@ const modules = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = [
-        "Inventory",
-        "Presets", 
-        "Tracker",
-        "IDS",
-      ];
+      var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
         "Assist Level": "DVT_Mod_Assist_Level",
-      }
+      };
 
       Object.keys(dvtNamedRanges).forEach(function (item) {
         requiredRanges.push(dvtNamedRanges[item]);
@@ -76,7 +71,9 @@ const modules = {
 
       var dvtNamedRangesData = {};
       Object.keys(dvtNamedRanges).forEach(function (item) {
-        dvtNamedRangesData[item] = batchResults[dvtIndex] ? batchResults[dvtIndex].values : [];
+        dvtNamedRangesData[item] = batchResults[dvtIndex]
+          ? batchResults[dvtIndex].values
+          : [];
         dvtIndex++;
       });
 
@@ -161,7 +158,13 @@ const modules = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Modules", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Modules",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
@@ -174,7 +177,10 @@ const modules = {
 
       return {
         success: true,
-        message: batchUpdate.length > 1 ? `Modules data imported successfully` : "No modules data to update, but ID setting completed",
+        message:
+          batchUpdate.length > 1
+            ? `Modules data imported successfully`
+            : "No modules data to update, but ID setting completed",
       };
     } catch (error) {
       console.log(`Error in importData: ${error.toString()}`);
@@ -238,15 +244,18 @@ const modules = {
                 )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
                   rowIdx + 4
                 }`;
-                
+
                 // Transform values using DVT
-                var dvtMultiplier = shared.getDVTValue(oldModulesPresets[moduleType][presetName].multiplier || "", dvtNamedRangesData["Assist Level"]);
-                var dvtSubstat = shared.getDVTValue(oldModulesPresets[moduleType][presetName].substat || "", dvtNamedRangesData["Assist Level"]);
-                  
-                var multiSubValues = [
-                  [dvtMultiplier],
-                  [dvtSubstat],
-                ];
+                var dvtMultiplier = shared.getDVTValue(
+                  oldModulesPresets[moduleType][presetName].multiplier || "",
+                  dvtNamedRangesData["Assist Level"]
+                );
+                var dvtSubstat = shared.getDVTValue(
+                  oldModulesPresets[moduleType][presetName].substat || "",
+                  dvtNamedRangesData["Assist Level"]
+                );
+
+                var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
                 batchUpdate.push({
                   range: lockedRange,
                   values: lockedValues,
@@ -329,7 +338,7 @@ const modules = {
             if (
               cellValue.trim().includes("Spare") ||
               (cellValue.trim().includes("Any Other") &&
-              !oldModulesInventory[moduleType].hasOwnProperty(cellValue))
+                !oldModulesInventory[moduleType].hasOwnProperty(cellValue))
             ) {
               for (var spare in oldModulesInventory[moduleType]) {
                 if (spare.includes("Spare") && !usedSpares[spare]) {
@@ -783,7 +792,10 @@ const modules = {
                 oldModulesInventoryValues[rowIdx + 2][col] != null
                   ? String(oldModulesInventoryValues[rowIdx + 2][col]).trim()
                   : "";
-              if (removedRarity.includes(moduleRarity) && !moduleName.includes("Any Other")) {
+              if (
+                removedRarity.includes(moduleRarity) &&
+                !moduleName.includes("Any Other")
+              ) {
                 moduleRarity = "Epic";
               }
               oldModulesInventory[moduleType][moduleName] = {

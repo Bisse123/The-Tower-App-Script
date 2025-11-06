@@ -131,7 +131,13 @@ const lab = {
       }
 
       // Set sheet IDs and IDS Master ID (moved from copyFileTemplate for optimization)
-      batchUpdate = shared.addIDUpdatesToBatch(batchUpdate, "Laboratory", newSheetID, idsData, data.idMasterID);
+      batchUpdate = shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Laboratory",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       // Apply all updates (always includes ID setting, conditionally includes import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);

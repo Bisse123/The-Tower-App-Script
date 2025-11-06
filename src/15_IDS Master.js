@@ -64,7 +64,10 @@ const master = {
       if (data && data.idsData) {
         try {
           var idsUpdateResult = this.updateIDSData(data.idsData, idsValues);
-          if (idsUpdateResult.success && idsUpdateResult.batchUpdate.length > 0) {
+          if (
+            idsUpdateResult.success &&
+            idsUpdateResult.batchUpdate.length > 0
+          ) {
             batchUpdate = batchUpdate.concat(idsUpdateResult.batchUpdate);
           } else if (!idsUpdateResult.success) {
             failedUpdates.push({
@@ -118,9 +121,9 @@ const master = {
       var batchUpdate = [];
 
       // Update each sheet reference from old IDS data
-      Object.keys(oldIDSValues).forEach(function(sheetType) {
+      Object.keys(oldIDSValues).forEach(function (sheetType) {
         var sheetID = oldIDSValues[sheetType];
-        
+
         // Find the sheet type in new IDS values
         var sheetInfo = shared.findSheetTypeID(
           null,
@@ -204,12 +207,12 @@ const master = {
   getVersion20IDSData: function (idsValues) {
     try {
       console.log("Called: master.getVersion20IDSData");
-      
+
       // Extract all sheet references from the IDS sheet
       var sheetReferences = {};
       var sheetTypes = [
         "Laboratory",
-        "Workshop", 
+        "Workshop",
         "Ultimate Weapon",
         "Themes & Songs",
         "Bots",
