@@ -352,7 +352,7 @@ function showUpdateDialog() {
     }
     try {
       var sheetIDs = findSheetIDs(sheet, sheetType, searchValue);
-      
+
       var idMasterID = sheetIDs.idMasterID;
 
       var template = HtmlService.createTemplateFromFile("20_WebApp");

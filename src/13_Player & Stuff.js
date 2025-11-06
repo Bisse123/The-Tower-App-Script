@@ -80,7 +80,10 @@ const playerStuff = {
       var batchUpdate = [];
 
       // Only update player & stuff data if key exists
-      if (data.hasOwnProperty("oldPlayerStuffTierData") && data.hasOwnProperty("oldPlayerStuffStatsData")) {
+      if (
+        data.hasOwnProperty("oldPlayerStuffTierData") &&
+        data.hasOwnProperty("oldPlayerStuffStatsData")
+      ) {
         var oldPlayerStuffTierData = data.oldPlayerStuffTierData;
         var oldPlayerStuffStatsData = data.oldPlayerStuffStatsData;
         var playerStuffResult = this.updatePlayerStuffData(
@@ -90,7 +93,9 @@ const playerStuff = {
           masterSheetData
         );
         if (!playerStuffResult || !playerStuffResult.success) {
-          console.log(`Error updating player data: ${playerStuffResult.message}`);
+          console.log(
+            `Error updating player data: ${playerStuffResult.message}`
+          );
           return playerStuffResult;
         }
         batchUpdate = batchUpdate.concat(playerStuffResult.batchUpdate || []);
@@ -105,7 +110,13 @@ const playerStuff = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Player & Stuff", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Player & Stuff",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
@@ -129,7 +140,12 @@ const playerStuff = {
     }
   },
 
-  updatePlayerStuffData: function (sheetName, oldPlayerTierData, oldPlayerStatsData, masterSheetData) {
+  updatePlayerStuffData: function (
+    sheetName,
+    oldPlayerTierData,
+    oldPlayerStatsData,
+    masterSheetData
+  ) {
     try {
       console.log("Called: playerStuff.updatePlayerStuffData");
       if (!masterSheetData || masterSheetData.length === 0) {
@@ -180,7 +196,10 @@ const playerStuff = {
           perkRow = row + 2;
         }
 
-        if (oldPlayerStatsData[header] && oldPlayerStatsData[header][statName]) {
+        if (
+          oldPlayerStatsData[header] &&
+          oldPlayerStatsData[header][statName]
+        ) {
           var value = oldPlayerStatsData[header][statName].value || "";
           values[header].push([value]);
         }
@@ -247,7 +266,7 @@ const playerStuff = {
       var statsRange = "EXPORT!F3:G";
       var ranges = [tierRange, statsRange];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
-      if (!batchResult || batchResult.length ===0) {
+      if (!batchResult || batchResult.length === 0) {
         console.log(`Could not read old player & stuff data`);
         return {
           success: false,
@@ -256,16 +275,21 @@ const playerStuff = {
       }
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
-      var tierDataResult = this.getVersion20PlayerStuffTiers(oldPlayerStuffTierValues);
-      var statsDataResult = this.getVersion32PlayerStuffStats(oldPlayerStuffStatsValues);
+      var tierDataResult = this.getVersion20PlayerStuffTiers(
+        oldPlayerStuffTierValues
+      );
+      var statsDataResult = this.getVersion32PlayerStuffStats(
+        oldPlayerStuffStatsValues
+      );
       success = tierDataResult.success && statsDataResult.success;
       return {
         success: success,
-        message: success ? "Player & Stuff processed successfully" : "Error processing Player & Stuff data",
+        message: success
+          ? "Player & Stuff processed successfully"
+          : "Error processing Player & Stuff data",
         oldPlayerStuffTierData: tierDataResult.oldPlayerStuffTierData,
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
-
     } catch (error) {
       console.log("Error in version32: " + error.toString());
       return {
@@ -292,7 +316,7 @@ const playerStuff = {
       var statsRange = "EXPORT!B2:C12";
       var ranges = [tierRange, statsRange];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
-      if (!batchResult || batchResult.length ===0) {
+      if (!batchResult || batchResult.length === 0) {
         console.log(`Could not read old player & stuff data`);
         return {
           success: false,
@@ -301,16 +325,21 @@ const playerStuff = {
       }
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
-      var tierDataResult = this.getVersion20PlayerStuffTiers(oldPlayerStuffTierValues);
-      var statsDataResult = this.getVersion20PlayerStuffStats(oldPlayerStuffStatsValues);
+      var tierDataResult = this.getVersion20PlayerStuffTiers(
+        oldPlayerStuffTierValues
+      );
+      var statsDataResult = this.getVersion20PlayerStuffStats(
+        oldPlayerStuffStatsValues
+      );
       success = tierDataResult.success && statsDataResult.success;
       return {
         success: success,
-        message: success ? "Player & Stuff processed successfully" : "Error processing Player & Stuff data",
+        message: success
+          ? "Player & Stuff processed successfully"
+          : "Error processing Player & Stuff data",
         oldPlayerStuffTierData: tierDataResult.oldPlayerStuffTierData,
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
-
     } catch (error) {
       console.log("Error in version20: " + error.toString());
       return {
@@ -344,7 +373,6 @@ const playerStuff = {
           };
         }
       }
-      
 
       return {
         success: true,
@@ -364,7 +392,10 @@ const playerStuff = {
     try {
       console.log("Called: playerStuff.getversion20PlayerStuffStats");
 
-      if (!oldPlayerStuffStatsValues || oldPlayerStuffStatsValues.length === 0) {
+      if (
+        !oldPlayerStuffStatsValues ||
+        oldPlayerStuffStatsValues.length === 0
+      ) {
         console.log(`No data found in old player & stuff stat data`);
         return {
           success: false,
@@ -407,7 +438,10 @@ const playerStuff = {
     try {
       console.log("Called: playerStuff.getVersion32PlayerStuffStats");
 
-      if (!oldPlayerStuffStatsValues || oldPlayerStuffStatsValues.length === 0) {
+      if (
+        !oldPlayerStuffStatsValues ||
+        oldPlayerStuffStatsValues.length === 0
+      ) {
         console.log(`No data found in old player & stuff stat data`);
         return {
           success: false,

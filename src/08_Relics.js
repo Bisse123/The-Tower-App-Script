@@ -105,7 +105,13 @@ const relics = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Relics", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Relics",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);

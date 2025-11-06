@@ -47,57 +47,57 @@ const collection = {
       // Define DVT named ranges for each module
       var dvtNamedRangesUW = {
         "Chain Lightning": {
-          "Damage": "DVT_UW_UG_CL_DMG",
-          "Quantity": "DVT_UW_UG_CL_QNT",
-          "Chance": "DVT_UW_UG_CL_CH",
-          "Smite": "DVT_UW_UG_CL_SM",
+          Damage: "DVT_UW_UG_CL_DMG",
+          Quantity: "DVT_UW_UG_CL_QNT",
+          Chance: "DVT_UW_UG_CL_CH",
+          Smite: "DVT_UW_UG_CL_SM",
         },
         "Smart Missiles": {
-          "Damage": "DVT_UW_UG_SM_DMG",
-          "Quantity": "DVT_UW_UG_SM_QNT",
-          "Cooldown": "DVT_UW_UG_SM_CD",
+          Damage: "DVT_UW_UG_SM_DMG",
+          Quantity: "DVT_UW_UG_SM_QNT",
+          Cooldown: "DVT_UW_UG_SM_CD",
           "Cover Fire": "DVT_UW_UG_SM_CF",
         },
         "Death Wave": {
-          "Damage": "DVT_UW_UG_DW_DMG",
-          "Quantity": "DVT_UW_UG_DW_QNT",
-          "Cooldown": "DVT_UW_UG_DW_CD",
+          Damage: "DVT_UW_UG_DW_DMG",
+          Quantity: "DVT_UW_UG_DW_QNT",
+          Cooldown: "DVT_UW_UG_DW_CD",
           "Kill Wall": "DVT_UW_UG_DW_KW",
         },
         "Chrono Field": {
-          "Duration": "DVT_UW_UG_CF_DU",
+          Duration: "DVT_UW_UG_CF_DU",
           "Speed Reduction": "DVT_UW_UG_CF_SP",
-          "Cooldown": "DVT_UW_UG_CF_CD",
+          Cooldown: "DVT_UW_UG_CF_CD",
           "Chrono Loop": "DVT_UW_UG_CF_CL",
         },
         "Inner Land Mines": {
-          "Damage": "DVT_UW_UG_ILM_DMG",
-          "Quantity": "DVT_UW_UG_ILM_QNT",
-          "Cooldown": "DVT_UW_UG_ILM_CD",
+          Damage: "DVT_UW_UG_ILM_DMG",
+          Quantity: "DVT_UW_UG_ILM_QNT",
+          Cooldown: "DVT_UW_UG_ILM_CD",
           "Charged Mines": "DVT_UW_UG_ILM_CM",
         },
         "Golden Tower": {
-          "Multiplier": "DVT_UW_UG_GT_M",
-          "Duration": "DVT_UW_UG_GT_DU",
-          "Cooldown": "DVT_UW_UG_GT_CD",
+          Multiplier: "DVT_UW_UG_GT_M",
+          Duration: "DVT_UW_UG_GT_DU",
+          Cooldown: "DVT_UW_UG_GT_CD",
           "Golden Combo": "DVT_UW_UG_GT_GC",
         },
         "Poison Swamp": {
-          "Damage": "DVT_UW_UG_PS_DMG",
-          "Duration": "DVT_UW_UG_PS_DU",
-          "Cooldown": "DVT_UW_UG_PS_CH",
+          Damage: "DVT_UW_UG_PS_DMG",
+          Duration: "DVT_UW_UG_PS_DU",
+          Cooldown: "DVT_UW_UG_PS_CH",
           "Death Creep": "DVT_UW_UG_PS_DC",
         },
         "Black Hole": {
-          "Size": "DVT_UW_UG_BH_SZ",
-          "Duration": "DVT_UW_UG_BH_DU",
-          "Cooldown": "DVT_UW_UG_BH_CD",
-          "Consume": "DVT_UW_UG_BH_C",
+          Size: "DVT_UW_UG_BH_SZ",
+          Duration: "DVT_UW_UG_BH_DU",
+          Cooldown: "DVT_UW_UG_BH_CD",
+          Consume: "DVT_UW_UG_BH_C",
         },
-        "Spotlight": {
-          "Multiplier": "DVT_UW_UG_SL_MU",
-          "Angle": "DVT_UW_UG_SL_AN",
-          "Quantity": "DVT_UW_UG_SL_QNT",
+        Spotlight: {
+          Multiplier: "DVT_UW_UG_SL_MU",
+          Angle: "DVT_UW_UG_SL_AN",
+          Quantity: "DVT_UW_UG_SL_QNT",
           "Light Range": "DVT_UW_UG_SL_LR",
         },
       };
@@ -105,27 +105,27 @@ const collection = {
       var dvtNamedRangesBots = {
         "Flame Bot": {
           "Damage R.": "DVT_BOT_UG_FB_DMGR",
-          "Cooldown": "DVT_BOT_UG_FB_CD",
-          "Damage": "DVT_BOT_UG_FB_DMG",
-          "Range": "DVT_BOT_UG_FB_RANGE",
+          Cooldown: "DVT_BOT_UG_FB_CD",
+          Damage: "DVT_BOT_UG_FB_DMG",
+          Range: "DVT_BOT_UG_FB_RANGE",
         },
         "Thunder Bot": {
-          "Duration": "DVT_BOT_UG_TB_DUR",
-          "Cooldown": "DVT_BOT_UG_TB_CD",
-          "Linger": "DVT_BOT_UG_TB_LINGER",
-          "Range": "DVT_BOT_UG_TB_RANGE",
+          Duration: "DVT_BOT_UG_TB_DUR",
+          Cooldown: "DVT_BOT_UG_TB_CD",
+          Linger: "DVT_BOT_UG_TB_LINGER",
+          Range: "DVT_BOT_UG_TB_RANGE",
         },
         "Golden Bot": {
-          "Duration": "DVT_BOT_UG_GB_DUR",
-          "Cooldown": "DVT_BOT_UG_GB_CD",
-          "Bonus": "DVT_BOT_UG_GB_BONUS",
-          "Range": "DVT_BOT_UG_GB_RANGE",
+          Duration: "DVT_BOT_UG_GB_DUR",
+          Cooldown: "DVT_BOT_UG_GB_CD",
+          Bonus: "DVT_BOT_UG_GB_BONUS",
+          Range: "DVT_BOT_UG_GB_RANGE",
         },
         "Amplify Bot": {
-          "Duration": "DVT_BOT_UG_AB_DUR",
-          "Cooldown": "DVT_BOT_UG_AB_CD",
-          "Bonus": "DVT_BOT_UG_AB_BONUS",
-          "Range": "DVT_BOT_UG_AB_RANGE",
+          Duration: "DVT_BOT_UG_AB_DUR",
+          Cooldown: "DVT_BOT_UG_AB_CD",
+          Bonus: "DVT_BOT_UG_AB_BONUS",
+          Range: "DVT_BOT_UG_AB_RANGE",
         },
       };
 
@@ -134,31 +134,31 @@ const collection = {
       };
 
       var dvtNamedRangesGuardians = {
-        "Attack": {
-          "Percentage": "DVT_GAR_UG_AT_PER",
-          "Cooldown": "DVT_GAR_UG_AT_COO",
-          "Targets": "DVT_GAR_UG_AT_TAR"
+        Attack: {
+          Percentage: "DVT_GAR_UG_AT_PER",
+          Cooldown: "DVT_GAR_UG_AT_COO",
+          Targets: "DVT_GAR_UG_AT_TAR",
         },
-        "Ally": {
+        Ally: {
           "Recovery Amount": "DVT_GAR_UG_AL_REC",
           "Max Recovery": "DVT_GAR_UG_AL_MAX",
-          "Cooldown": "DVT_GAR_UG_AL_COO"
+          Cooldown: "DVT_GAR_UG_AL_COO",
         },
-        "Bounty": {
-          "Multiplier": "DVT_GAR_UG_BO_MUL",
-          "Cooldown": "DVT_GAR_UG_BO_COO",
-          "Targets": "DVT_GAR_UG_BO_TAR"
+        Bounty: {
+          Multiplier: "DVT_GAR_UG_BO_MUL",
+          Cooldown: "DVT_GAR_UG_BO_COO",
+          Targets: "DVT_GAR_UG_BO_TAR",
         },
-        "Fetch": {
-          "Cooldown": "DVT_GAR_UG_FE_COO",
+        Fetch: {
+          Cooldown: "DVT_GAR_UG_FE_COO",
           "Find Chance": "DVT_GAR_UG_FE_FIN",
-          "Double Find Chance": "DVT_GAR_UG_FE_DOU"
+          "Double Find Chance": "DVT_GAR_UG_FE_DOU",
         },
-        "Summon": {
-          "Cooldown": "DVT_GAR_UG_SU_COO",
-          "Duration": "DVT_GAR_UG_SU_DUR",
-          "Cash Bonus": "DVT_GAR_UG_SU_CAS"
-        }
+        Summon: {
+          Cooldown: "DVT_GAR_UG_SU_COO",
+          Duration: "DVT_GAR_UG_SU_DUR",
+          "Cash Bonus": "DVT_GAR_UG_SU_CAS",
+        },
       };
 
       // Configuration dictionary mapping sheet types to their required ranges
@@ -214,7 +214,10 @@ const collection = {
       Object.keys(dvtNamedRangesUW).forEach(function (weapon) {
         Object.keys(dvtNamedRangesUW[weapon]).forEach(function (prop) {
           var rangeName = dvtNamedRangesUW[weapon][prop];
-          sheetRequiredRanges.values[rangeName] = { sheetName: rangeName, range: rangeName };
+          sheetRequiredRanges.values[rangeName] = {
+            sheetName: rangeName,
+            range: rangeName,
+          };
         });
       });
 
@@ -222,21 +225,30 @@ const collection = {
       Object.keys(dvtNamedRangesBots).forEach(function (bot) {
         Object.keys(dvtNamedRangesBots[bot]).forEach(function (prop) {
           var rangeName = dvtNamedRangesBots[bot][prop];
-          sheetRequiredRanges.values[rangeName] = { sheetName: rangeName, range: rangeName };
+          sheetRequiredRanges.values[rangeName] = {
+            sheetName: rangeName,
+            range: rangeName,
+          };
         });
       });
 
       // Add Modules DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesModules).forEach(function (item) {
         var rangeName = dvtNamedRangesModules[item];
-        sheetRequiredRanges.values[rangeName] = { sheetName: rangeName, range: rangeName };
+        sheetRequiredRanges.values[rangeName] = {
+          sheetName: rangeName,
+          range: rangeName,
+        };
       });
 
       // Add Guardians DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesGuardians).forEach(function (guardian) {
         Object.keys(dvtNamedRangesGuardians[guardian]).forEach(function (prop) {
           var rangeName = dvtNamedRangesGuardians[guardian][prop];
-          sheetRequiredRanges.values[rangeName] = { sheetName: rangeName, range: rangeName };
+          sheetRequiredRanges.values[rangeName] = {
+            sheetName: rangeName,
+            range: rangeName,
+          };
         });
       });
 
@@ -926,7 +938,9 @@ const collection = {
         try {
           var guardiansData = data.Guardians;
           var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
-          var guardiansDVTData = buildDVTNamedRangesData(dvtNamedRangesGuardians);
+          var guardiansDVTData = buildDVTNamedRangesData(
+            dvtNamedRangesGuardians
+          );
           var guardiansSuccess = true;
           var guardiansMessages = [];
           var guardiansResult;
@@ -1025,7 +1039,7 @@ const collection = {
       var homePageData = getRangeData("Home Page", "values");
       var yourIdInfo = shared.findSheetTypeID(
         newSheetID,
-        "Home Page", 
+        "Home Page",
         "Your ID:",
         homePageData
       );
@@ -1034,7 +1048,9 @@ const collection = {
           range: yourIdInfo.cell.range,
           values: [[newSheetID]],
         });
-        console.log(`Added IDS Collection sheet ID update to batch: ${newSheetID}`);
+        console.log(
+          `Added IDS Collection sheet ID update to batch: ${newSheetID}`
+        );
       }
 
       if (failedUpdates.length === 0) {
@@ -1371,11 +1387,13 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
-        var cardsTrackerData = cards.getVersion10CardsTracker(
-          cardsTrackerValues
-        );
+        var cardsTrackerData =
+          cards.getVersion10CardsTracker(cardsTrackerValues);
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -1709,11 +1727,13 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
-        var cardsTrackerData = cards.getVersion10CardsTracker(
-          cardsTrackerValues
-        );
+        var cardsTrackerData =
+          cards.getVersion10CardsTracker(cardsTrackerValues);
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -2493,7 +2513,10 @@ const collection = {
           cardsPresetData.oldCardsPreset
         );
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -2878,11 +2901,13 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
-        var cardsTrackerData = cards.getVersion10CardsTracker(
-          cardsTrackerValues
-        );
+        var cardsTrackerData =
+          cards.getVersion10CardsTracker(cardsTrackerValues);
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -3267,11 +3292,13 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
-        var cardsTrackerData = cards.getVersion10CardsTracker(
-          cardsTrackerValues
-        );
+        var cardsTrackerData =
+          cards.getVersion10CardsTracker(cardsTrackerValues);
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess
@@ -3656,11 +3683,13 @@ const collection = {
           cardsLevelValues,
           cardsSlotsValues
         );
-        var cardsTrackerData = cards.getVersion10CardsTracker(
-          cardsTrackerValues
-        );
+        var cardsTrackerData =
+          cards.getVersion10CardsTracker(cardsTrackerValues);
 
-        var cardsSuccess = cardsPresetData.success && cardsLevelData.success && cardsTrackerData.success;
+        var cardsSuccess =
+          cardsPresetData.success &&
+          cardsLevelData.success &&
+          cardsTrackerData.success;
         collectedData.Cards = {
           success: cardsSuccess,
           message: cardsSuccess

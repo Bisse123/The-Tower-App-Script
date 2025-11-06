@@ -45,65 +45,61 @@ const ultimate = {
       }
 
       // Batch get required data for update function only
-      var requiredRanges = [
-        "Master Sheet",
-        "UW Cost Calculator v3",
-        "IDS",
-      ];
+      var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
         "Chain Lightning": {
-          "Damage": "DVT_UW_UG_CL_DMG",
-          "Quantity": "DVT_UW_UG_CL_QNT",
-          "Chance": "DVT_UW_UG_CL_CH",
-          "Smite": "DVT_UW_UG_CL_SM",
+          Damage: "DVT_UW_UG_CL_DMG",
+          Quantity: "DVT_UW_UG_CL_QNT",
+          Chance: "DVT_UW_UG_CL_CH",
+          Smite: "DVT_UW_UG_CL_SM",
         },
         "Smart Missiles": {
-          "Damage": "DVT_UW_UG_SM_DMG",
-          "Quantity": "DVT_UW_UG_SM_QNT",
-          "Cooldown": "DVT_UW_UG_SM_CD",
+          Damage: "DVT_UW_UG_SM_DMG",
+          Quantity: "DVT_UW_UG_SM_QNT",
+          Cooldown: "DVT_UW_UG_SM_CD",
           "Cover Fire": "DVT_UW_UG_SM_CF",
         },
         "Death Wave": {
-          "Damage": "DVT_UW_UG_DW_DMG",
-          "Quantity": "DVT_UW_UG_DW_QNT",
-          "Cooldown": "DVT_UW_UG_DW_CD",
+          Damage: "DVT_UW_UG_DW_DMG",
+          Quantity: "DVT_UW_UG_DW_QNT",
+          Cooldown: "DVT_UW_UG_DW_CD",
           "Kill Wall": "DVT_UW_UG_DW_KW",
         },
         "Chrono Field": {
-          "Duration": "DVT_UW_UG_CF_DU",
+          Duration: "DVT_UW_UG_CF_DU",
           "Speed Reduction": "DVT_UW_UG_CF_SP",
-          "Cooldown": "DVT_UW_UG_CF_CD",
+          Cooldown: "DVT_UW_UG_CF_CD",
           "Chrono Loop": "DVT_UW_UG_CF_CL",
         },
         "Inner Land Mines": {
-          "Damage": "DVT_UW_UG_ILM_DMG",
-          "Quantity": "DVT_UW_UG_ILM_QNT",
-          "Cooldown": "DVT_UW_UG_ILM_CD",
+          Damage: "DVT_UW_UG_ILM_DMG",
+          Quantity: "DVT_UW_UG_ILM_QNT",
+          Cooldown: "DVT_UW_UG_ILM_CD",
           "Charged Mines": "DVT_UW_UG_ILM_CM",
         },
         "Golden Tower": {
-          "Multiplier": "DVT_UW_UG_GT_M",
-          "Duration": "DVT_UW_UG_GT_DU",
-          "Cooldown": "DVT_UW_UG_GT_CD",
+          Multiplier: "DVT_UW_UG_GT_M",
+          Duration: "DVT_UW_UG_GT_DU",
+          Cooldown: "DVT_UW_UG_GT_CD",
           "Golden Combo": "DVT_UW_UG_GT_GC",
         },
         "Poison Swamp": {
-          "Damage": "DVT_UW_UG_PS_DMG",
-          "Duration": "DVT_UW_UG_PS_DU",
-          "Cooldown": "DVT_UW_UG_PS_CH",
+          Damage: "DVT_UW_UG_PS_DMG",
+          Duration: "DVT_UW_UG_PS_DU",
+          Cooldown: "DVT_UW_UG_PS_CH",
           "Death Creep": "DVT_UW_UG_PS_DC",
         },
         "Black Hole": {
-          "Size": "DVT_UW_UG_BH_SZ",
-          "Duration": "DVT_UW_UG_BH_DU",
-          "Cooldown": "DVT_UW_UG_BH_CD",
-          "Consume": "DVT_UW_UG_BH_C",
+          Size: "DVT_UW_UG_BH_SZ",
+          Duration: "DVT_UW_UG_BH_DU",
+          Cooldown: "DVT_UW_UG_BH_CD",
+          Consume: "DVT_UW_UG_BH_C",
         },
-        "Spotlight": {
-          "Multiplier": "DVT_UW_UG_SL_MU",
-          "Angle": "DVT_UW_UG_SL_AN",
-          "Quantity": "DVT_UW_UG_SL_QNT",
+        Spotlight: {
+          Multiplier: "DVT_UW_UG_SL_MU",
+          Angle: "DVT_UW_UG_SL_AN",
+          Quantity: "DVT_UW_UG_SL_QNT",
           "Light Range": "DVT_UW_UG_SL_LR",
         },
       };
@@ -209,7 +205,13 @@ const ultimate = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Ultimate Weapon", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Ultimate Weapon",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -330,7 +332,10 @@ const ultimate = {
             }
             var newWeaponProp = nextRowData[2];
             if (oldWeapon.props.hasOwnProperty(newWeaponProp)) {
-              var dvtPropValue = shared.getDVTValue(oldWeapon.props[newWeaponProp], dvtNamedRangesData[weaponName][newWeaponProp]);
+              var dvtPropValue = shared.getDVTValue(
+                oldWeapon.props[newWeaponProp],
+                dvtNamedRangesData[weaponName][newWeaponProp]
+              );
               newUltimateLevel.push([dvtPropValue]);
             } else {
               newUltimateLevel.push([nextRowData[4]]);
@@ -433,7 +438,10 @@ const ultimate = {
 
         var uwsWantedIndex = rowData.indexOf("# Of UWs Wanted");
         var uwPlusWantedIndex = rowData.indexOf("# Of UW+ Wanted");
-        if (uwsWantedIndex !== -1 && oldUltimateCostCalculator["# Of UWs Wanted"]) {
+        if (
+          uwsWantedIndex !== -1 &&
+          oldUltimateCostCalculator["# Of UWs Wanted"]
+        ) {
           batchUpdate.push({
             range: `${sheetName}!${shared.columnToLetter(uwsWantedIndex + 3)}${
               row + 1
@@ -441,11 +449,14 @@ const ultimate = {
             values: [[oldUltimateCostCalculator["# Of UWs Wanted"]]],
           });
         }
-        if (uwPlusWantedIndex !== -1 && oldUltimateCostCalculator["# Of UW+ Wanted"]) {
+        if (
+          uwPlusWantedIndex !== -1 &&
+          oldUltimateCostCalculator["# Of UW+ Wanted"]
+        ) {
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(uwPlusWantedIndex + 3)}${
-              row + 1
-            }`,
+            range: `${sheetName}!${shared.columnToLetter(
+              uwPlusWantedIndex + 3
+            )}${row + 1}`,
             values: [[oldUltimateCostCalculator["# Of UW+ Wanted"]]],
           });
         }
@@ -850,10 +861,12 @@ const ultimate = {
         var uwsWantedIndex = rowData.indexOf("# Of UWs Wanted");
         var uwPlusWantedIndex = rowData.indexOf("# Of UW+ Wanted");
         if (uwsWantedIndex !== -1) {
-          oldUltimateCostCalculator["# Of UWs Wanted"] = rowData[uwsWantedIndex + 2];
+          oldUltimateCostCalculator["# Of UWs Wanted"] =
+            rowData[uwsWantedIndex + 2];
         }
         if (uwPlusWantedIndex !== -1) {
-          oldUltimateCostCalculator["# Of UW+ Wanted"] = rowData[uwPlusWantedIndex + 2];
+          oldUltimateCostCalculator["# Of UW+ Wanted"] =
+            rowData[uwPlusWantedIndex + 2];
         }
         // Check each cell in the row to find weapon names
         for (var colIndex = 0; colIndex < rowData.length; colIndex++) {
@@ -866,12 +879,13 @@ const ultimate = {
             var weapon = cellValue.trim();
 
             // Skip if this weapon was already processed or if it's a header/metadata
-            if (processedWeapons[weapon] ||
-                weapon === "# Of UWs Wanted" ||
-                weapon === "# Of UW+ Wanted" ||
-                weapon === "Current Value" ||
-                weapon === "Target Value" ||
-                weapon === "Sub"
+            if (
+              processedWeapons[weapon] ||
+              weapon === "# Of UWs Wanted" ||
+              weapon === "# Of UW+ Wanted" ||
+              weapon === "Current Value" ||
+              weapon === "Target Value" ||
+              weapon === "Sub"
             ) {
               break;
             }
@@ -942,8 +956,7 @@ const ultimate = {
                 }
                 if (
                   modSub &&
-                  (typeof modSub !== "string" ||
-                    !modSub.startsWith("="))
+                  (typeof modSub !== "string" || !modSub.startsWith("="))
                 ) {
                   weaponValues[subName].modSub = modSub;
                 }

@@ -46,32 +46,32 @@ const guardians = {
       var requiredRanges = ["Master Sheet", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
-        "Attack": {
-          "Percentage": "DVT_GAR_UG_AT_PER",
-          "Cooldown": "DVT_GAR_UG_AT_COO",
-          "Targets": "DVT_GAR_UG_AT_TAR"
+        Attack: {
+          Percentage: "DVT_GAR_UG_AT_PER",
+          Cooldown: "DVT_GAR_UG_AT_COO",
+          Targets: "DVT_GAR_UG_AT_TAR",
         },
-        "Ally": {
+        Ally: {
           "Recovery Amount": "DVT_GAR_UG_AL_REC",
           "Max Recovery": "DVT_GAR_UG_AL_MAX",
-          "Cooldown": "DVT_GAR_UG_AL_COO"
+          Cooldown: "DVT_GAR_UG_AL_COO",
         },
-        "Bounty": {
-          "Multiplier": "DVT_GAR_UG_BO_MUL",
-          "Cooldown": "DVT_GAR_UG_BO_COO",
-          "Targets": "DVT_GAR_UG_BO_TAR"
+        Bounty: {
+          Multiplier: "DVT_GAR_UG_BO_MUL",
+          Cooldown: "DVT_GAR_UG_BO_COO",
+          Targets: "DVT_GAR_UG_BO_TAR",
         },
-        "Fetch": {
-          "Cooldown": "DVT_GAR_UG_FE_COO",
+        Fetch: {
+          Cooldown: "DVT_GAR_UG_FE_COO",
           "Find Chance": "DVT_GAR_UG_FE_FIN",
-          "Double Find Chance": "DVT_GAR_UG_FE_DOU"
+          "Double Find Chance": "DVT_GAR_UG_FE_DOU",
         },
-        "Summon": {
-          "Cooldown": "DVT_GAR_UG_SU_COO",
-          "Duration": "DVT_GAR_UG_SU_DUR",
-          "Cash Bonus": "DVT_GAR_UG_SU_CAS"
-        }
-      }
+        Summon: {
+          Cooldown: "DVT_GAR_UG_SU_COO",
+          Duration: "DVT_GAR_UG_SU_DUR",
+          "Cash Bonus": "DVT_GAR_UG_SU_CAS",
+        },
+      };
 
       Object.keys(dvtNamedRanges).forEach(function (guardian) {
         Object.keys(dvtNamedRanges[guardian]).forEach(function (prop) {
@@ -150,7 +150,13 @@ const guardians = {
       }
 
       // Always add ID updates
-      shared.addIDUpdatesToBatch(batchUpdate, "Guardians", newSheetID, idsData, data.idMasterID);
+      shared.addIDUpdatesToBatch(
+        batchUpdate,
+        "Guardians",
+        newSheetID,
+        idsData,
+        data.idMasterID
+      );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
@@ -255,7 +261,10 @@ const guardians = {
             }
             var newGuardianProp = nextRowData[2];
             if (oldGuardian.props.hasOwnProperty(newGuardianProp)) {
-              var dvtPropValue = shared.getDVTValue(oldGuardian.props[newGuardianProp], dvtNamedRangesData[guardianName][newGuardianProp]);
+              var dvtPropValue = shared.getDVTValue(
+                oldGuardian.props[newGuardianProp],
+                dvtNamedRangesData[guardianName][newGuardianProp]
+              );
               newGuardianLevel.push([dvtPropValue]);
             } else {
               newGuardianLevel.push([nextRowData[4]]);
