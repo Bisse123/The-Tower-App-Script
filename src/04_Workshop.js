@@ -522,9 +522,9 @@ const workshop = {
     }
   },
 
-  version20: function () {
+  version21: function () {
     try {
-      console.log("Called: workshop.version20");
+      console.log("Called: workshop.version21");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -597,7 +597,7 @@ const workshop = {
       }
 
       // Process workshop plus ratios
-      var workshopPlusRatiosResult = this.getVersion20WorkshopPlusRatios(
+      var workshopPlusRatiosResult = this.getVersion21WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
         oldWorkshopPlusRatiosValues
       );
@@ -611,6 +611,74 @@ const workshop = {
         oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
         oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
         oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
+      };
+    } catch (error) {
+      console.log("Error in version21: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version21: " + error.message,
+      };
+    }
+  },
+
+  version20: function () {
+    try {
+      console.log("Called: workshop.version20");
+      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old workshop spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet™ not found in old workshop spreadsheet™",
+        };
+      }
+
+      var workshopLevelsRange = "EXPORT!B2:M";
+      var workshopPlusLevelsRange = "EXPORT!P2:V";
+      var valuesRanges = [workshopLevelsRange, workshopPlusLevelsRange];
+
+      var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(
+        oldSheetID,
+        valuesRanges
+      );
+      if (
+        !updateWorkshopValuesBatchResult ||
+        updateWorkshopValuesBatchResult.length < 2 ||
+        !updateWorkshopValuesBatchResult[0].values ||
+        !updateWorkshopValuesBatchResult[1].values
+      ) {
+        console.log(`Could not read workshop levels data`);
+        return {
+          success: false,
+          message: `Could not read workshop levels data`,
+        };
+      }
+      var oldWorkshopLevelsValues = updateWorkshopValuesBatchResult[0].values;
+      var oldWorkshopPlusLevelsValues =
+        updateWorkshopValuesBatchResult[1].values;
+
+      // Process workshop levels
+      var workshopLevelsResult = this.getVersion20WorkshopLevels(
+        oldWorkshopLevelsValues
+      );
+      if (!workshopLevelsResult || !workshopLevelsResult.success) {
+        return workshopLevelsResult;
+      }
+
+      // Process workshop plus levels
+      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(
+        oldWorkshopPlusLevelsValues
+      );
+      if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
+        return workshopPlusLevelsResult;
+      }
+      return {
+        success: true,
+        message: "Workshop levels processed successfully",
+        oldWorkshopLevels: workshopLevelsResult.oldWorkshopLevels,
+        oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
       };
     } catch (error) {
       console.log("Error in version20: " + error.toString());
@@ -885,12 +953,12 @@ const workshop = {
     }
   },
 
-  getVersion20WorkshopPlusRatios: function (
+  getVersion21WorkshopPlusRatios: function (
     presetNames,
     oldWorkshopPlusRatiosValues
   ) {
     try {
-      console.log("Called: workshop.getVersion20WorkshopPlusRatios");
+      console.log("Called: workshop.getVersion21WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
       var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
@@ -949,11 +1017,11 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion20WorkshopPlusRatios: " + error.toString()
+        "Error in getVersion21WorkshopPlusRatios: " + error.toString()
       );
       return {
         success: false,
-        message: "Error in getVersion20WorkshopPlusRatios: " + error.message,
+        message: "Error in getVersion21WorkshopPlusRatios: " + error.message,
       };
     }
   },
@@ -1018,6 +1086,7 @@ const workshop = {
     return {
       "v1.0": this.version10.bind(this),
       "v2.0": this.version20.bind(this),
+      "v2.1": this.version21.bind(this),
       "v2.2.8": this.version228.bind(this),
     };
   },
