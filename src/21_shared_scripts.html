@@ -1161,13 +1161,13 @@
       .withSuccessHandler(async function (copyResult) {
         if (copyResult.success) {
           // Check if we need to add a delay for Effective Paths sheets
-          if (sheetType === "Effective Paths") {
-            console.log(
-              "Waiting 10 seconds for Effective Paths calculations to complete..."
-            );
-            // Add a 10-second delay for Effective Paths to allow calculations to complete
-            await new Promise((resolve) => setTimeout(resolve, 10000));
-          }
+          // if (sheetType === "Effective Paths") {
+          //   console.log(
+          //     "Waiting 10 seconds for Effective Paths calculations to complete..."
+          //   );
+          //   // Add a 10-second delay for Effective Paths to allow calculations to complete
+          //   await new Promise((resolve) => setTimeout(resolve, 10000));
+          // }
 
           setStatusText("Template copy created successfully!");
 
