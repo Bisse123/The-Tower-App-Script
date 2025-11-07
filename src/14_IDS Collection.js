@@ -166,6 +166,10 @@ const collection = {
         values: {
           "Home Page": { sheetName: "Home Page", range: "Home Page" },
           Lab_MS: { sheetName: "Lab_MS", range: "Lab_MS" },
+          "Workshop Ratio": {
+            sheetName: "Desired Ratios",
+            range: "Desired Ratios",
+          },
           UW_MS: { sheetName: "UW_MS", range: "UW_MS" },
           "Themes & Songs": {
             sheetName: "Themes & Songs",
@@ -198,10 +202,6 @@ const collection = {
         formulas: {
           "Lab Planner": { sheetName: "Lab Planner", range: "Lab Planner" },
           Workshop_MS: { sheetName: "Workshop_MS", range: "Workshop_MS" },
-          "Workshop Ratio": {
-            sheetName: "Desired Ratios",
-            range: "Desired Ratios",
-          },
           "UW Cost Calculator": {
             sheetName: "UW Cost Calculator v3",
             range: "UW Cost Calculator v3",
@@ -407,7 +407,7 @@ const collection = {
           var workshopMasterSheetData = getRangeData("Workshop_MS", "formulas");
           var workshopPlusRatioData = getRangeData(
             "Workshop Ratio",
-            "formulas"
+            "values"
           );
           var workshopSuccess = true;
           var workshopMessages = [];
@@ -438,7 +438,7 @@ const collection = {
           }
           if (workshopData.hasOwnProperty("oldWorkshopPlusRatios")) {
             workshopPlusRatioResult = workshop.updateWorkshopPlusRatios(
-              sheetRequiredRanges.formulas["Workshop Ratio"].sheetName,
+              sheetRequiredRanges.values["Workshop Ratio"].sheetName,
               workshopData.oldWorkshopPlusRatios,
               workshopPlusRatioData
             );
@@ -3806,6 +3806,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
           "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
           "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
+          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
           "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
           Bots: "EXPORT_Bots!C5:G", // Bots data
@@ -3825,7 +3826,6 @@ const collection = {
         },
         formulas: {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
         },
       };
@@ -3928,7 +3928,7 @@ const collection = {
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
         "Workshop Ratio",
-        "formulas"
+        "values"
       );
       if (
         workshopLevelsResult &&
