@@ -1131,7 +1131,12 @@
 
     // Show master link if there are updated files
     if (idsMasterUpdated) {
-      summaryHtml += `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong>`;
+      let masterLabel = "IDS Master";
+      console.log("cachedMasterTemplateInfo:", cachedMasterTemplateInfo);
+      if (cachedMasterTemplateInfo) {
+        masterLabel = '<strong style="color:#fff;background:#e53935;padding:0 0.4em;border-radius:0.3em;">new</strong> IDS Master';
+      }
+      summaryHtml += `<strong>🔄 Please go to your ${masterLabel} and grant the new sheet(s) access.</strong>`;
       summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
     }
 

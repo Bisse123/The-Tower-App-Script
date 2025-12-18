@@ -637,6 +637,20 @@ const ePaths = {
             for (var k = i + 1; k < eEconData.length; k++) {
               var guessName = eEconData[k][j];
               if (!guessName) break;
+              if (guessName.includes("Enemies that die in GB")) {
+                var matchingKey = Object.keys(oldData.UserGuess || {}).find(function(key) {
+                  return key.includes("Enemies that die in GB");
+                });
+                if (matchingKey) {
+                  guessName = matchingKey;
+                  var guessNameCol = shared.columnToLetter(columnOffset + j + 1);
+                  var guessNameCellAddress = `${guessNameCol}${k + 1}`;
+                  batchUpdate.push({
+                    range: `${sheetName}!${guessNameCellAddress}`,
+                    values: [[guessName]],
+                  });
+                }
+              }
               if (guessName.startsWith("=")) {
                 if (guessName.includes("GB Sync Current Ratio")) {
                   guessName = "GB Sync Current Ratio";
