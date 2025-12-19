@@ -403,6 +403,14 @@ const ePaths = {
         }
       }
 
+      if (oldData.hasOwnProperty("CLDamage")) {
+        var cLDamageValue = oldData.CLDamage;
+        batchUpdate.push({
+          range: `${sheetName}!AM149`,
+          values: [[cLDamageValue]],
+        });
+      }
+
       for (var i = 0; i < eDamageData.length; i++) {
         for (var j = 0; j < eDamageData[i].length; j++) {
           var cell = eDamageData[i][j];
@@ -734,6 +742,7 @@ const ePaths = {
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!L3:L5";
       var eDiscountLabRange = "eEcon!AG3:AG5";
+      var CLDmgRange = "eDamage!AL149:AM149";
       var ranges = [
         eHPRange,
         eDamageRange,
@@ -743,6 +752,7 @@ const ePaths = {
         eDamageLabRange,
         eEconLabRange,
         eDiscountLabRange,
+        CLDmgRange,
       ];
       var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
       if (!batchResult || !batchResult.length === 0) {
@@ -759,6 +769,7 @@ const ePaths = {
       var eDamageLabValues = batchResult[5].values;
       var eEconLabValues = batchResult[6].values;
       var eDiscountLabValues = batchResult[7].values;
+      var cLDmgValues = batchResult[8].values;
 
       var eHPData = this.getVersion4110321eHP(
         eHPValues,
@@ -767,7 +778,8 @@ const ePaths = {
       );
       var eDamageData = this.getVersion4110321eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
+        cLDmgValues
       );
       var eEconData = this.getVersion4110321eEcon(
         eEconValues,
@@ -1373,7 +1385,7 @@ const ePaths = {
     }
   },
 
-  getVersion4110321eDamage: function (oldValues, oldeDamageLabValues) {
+  getVersion4110321eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
       console.log("Called: ePaths.getVersion4110321eDamage");
 
@@ -1394,6 +1406,9 @@ const ePaths = {
         if (String(eDamageRunningTime)) {
           oldData.eDamageRunningTime = eDamageRunningTime;
         }
+      }
+      if (cLDmgValues && cLDmgValues[0] && cLDmgValues[0][0] !== null) {
+        oldData.CLDamage = cLDmgValues[0][1];
       }
 
       for (var i = 0; i < oldValues.length; i++) {
