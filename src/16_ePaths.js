@@ -205,6 +205,8 @@ const ePaths = {
     }
   },
   
+  //#region Update Functions
+
   updateEHP: function (
     sheetName,
     oldData,
@@ -701,12 +703,22 @@ const ePaths = {
             }
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
-            var moduleCol = shared.columnToLetter(columnOffset + j + 2);
-            var moduleCellAddress = `${moduleCol}${i + 1}`;
-            batchUpdate.push({
-              range: `${sheetName}!${moduleCellAddress}`,
-              values: [[moduleValue]],
-            });
+            if (moduleValue.main !== undefined) {
+              var moduleCol = shared.columnToLetter(columnOffset + j + 2);
+              var moduleCellAddress = `${moduleCol}${i + 1}`;
+              batchUpdate.push({
+                range: `${sheetName}!${moduleCellAddress}`,
+                values: [[moduleValue.main]],
+              });
+            }
+            if (moduleValue.assist !== undefined) {
+              var assistCol = shared.columnToLetter(columnOffset + j + 6);
+              var assistCellAddress = `${assistCol}${i + 1}`;
+              batchUpdate.push({
+                range: `${sheetName}!${assistCellAddress}`,
+                values: [[moduleValue.assist]],
+              });
+            }
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
@@ -733,7 +745,9 @@ const ePaths = {
       };
     }
   },
+  //#endregion
 
+  //#region Convert Versions
   version5000104: function () {
     try {
       console.log("Called: ePaths.version5000104");
@@ -752,7 +766,7 @@ const ePaths = {
       }
 
       var eHPRange = "eHP!AC1:AQ35";
-      var eDamageRange = "eDamage!AI1:AX75";
+      var eDamageRange = "eDamage!AI1:AX90";
       var eEconRange = "eEcon!AI1:AW55";
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AA3:AA5";
@@ -984,370 +998,9 @@ const ePaths = {
       };
     }
   },
+  //#endregion
 
-  getVersion4110200eHP: function (
-    oldValues,
-    oldeHPLabValues,
-    oldeRegenLabValues
-  ) {
-    try {
-      console.log("Called: ePaths.getVersion4110200eHP");
-      var customData = [
-        "Wall Health",
-        "Max Recovery",
-        "Chrono Field ⚠️",
-        "Death Wave Health",
-        "Chain Thunder ⚠️",
-      ];
-      var modulesData = ["Armor"];
-
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
-
-      if (
-        oldeHPLabValues &&
-        oldeHPLabValues[0] &&
-        oldeHPLabValues[0][0] === "Running Time"
-      ) {
-        var eHPRunningTime = oldeHPLabValues[1][0];
-        if (String(eHPRunningTime)) {
-          oldData.eHPRunningTime = eHPRunningTime;
-        }
-      }
-      if (
-        oldeRegenLabValues &&
-        oldeRegenLabValues[0] &&
-        oldeRegenLabValues[0][0] === "Running Time"
-      ) {
-        var eRegenRunningTime = oldeRegenLabValues[1][0];
-        if (String(eRegenRunningTime)) {
-          oldData.eRegenRunningTime = eRegenRunningTime;
-        }
-      }
-
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
-          if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
-              if (!customName) break; // Stop when customName is empty
-              if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
-                if (
-                  !String(customValue) ||
-                  String(customValue).startsWith("=")
-                ) {
-                  continue;
-                }
-                oldData.Custom[customName] = customValue;
-              }
-            }
-          } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
-            if (
-              String(perksAreActive) &&
-              !String(perksAreActive).startsWith("=")
-            ) {
-              oldData.Perks["Active"] = perksAreActive;
-            }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
-            }
-          } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
-              if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
-              if (!String(guessValue) || String(guessValue).startsWith("=")) {
-                continue;
-              }
-              if (guessName.startsWith("=")) {
-                var parts = guessName.split(",");
-                guessName = parts[parts.length - 2]
-                  .replace(/["\(\)]/g, "")
-                  .trim();
-              }
-              oldData.UserGuess[guessName] = guessValue;
-            }
-          } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
-            if (!moduleLevel || moduleLevel.startsWith("=")) {
-              continue;
-            }
-            oldData.Modules[cell] = moduleLevel;
-          } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
-            if (
-              !String(rowsCalculated) ||
-              String(rowsCalculated).startsWith("=")
-            ) {
-              continue;
-            }
-            oldData.rowsCalculated = rowsCalculated;
-          } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
-            console.log("Found running time:", runningTime);
-            if (!String(runningTime)) {
-              continue;
-            }
-            oldData.runningTime = runningTime;
-          }
-        }
-      }
-      return {
-        success: true,
-        message: "eHP data extracted successfully",
-        oldData: oldData,
-      };
-    } catch (error) {
-      console.log(`Error in getVersion4110200eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4110200eHP: " + error.message,
-      };
-    }
-  },
-
-  getVersion4110200eDamage: function (oldValues, oldeDamageLabValues) {
-    try {
-      console.log("Called: ePaths.getVersion4110200eDamage");
-
-      var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
-      var modulesData = ["Cannon", "Core"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
-
-      if (
-        oldeDamageLabValues &&
-        oldeDamageLabValues[0] &&
-        oldeDamageLabValues[0][0] === "Running Time"
-      ) {
-        var eDamageRunningTime = oldeDamageLabValues[1][0];
-        if (String(eDamageRunningTime)) {
-          oldData.eDamageRunningTime = eDamageRunningTime;
-        }
-      }
-
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
-          if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
-              if (!customName) break; // Stop when customName is empty
-              if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
-                if (
-                  !String(customValue) ||
-                  String(customValue).startsWith("=")
-                ) {
-                  continue;
-                }
-                oldData.Custom[customName] = customValue;
-              }
-            }
-          } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
-            if (
-              String(perksAreActive) &&
-              !String(perksAreActive).startsWith("=")
-            ) {
-              oldData.Perks["Active"] = perksAreActive;
-            }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
-            }
-          } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
-              if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
-              if (!String(guessValue) || String(guessValue).startsWith("=")) {
-                continue;
-              }
-              if (guessName.startsWith("=")) {
-                var parts = guessName.split(",");
-                guessName = parts[parts.length - 2]
-                  .replace(/["\(\)]/g, "")
-                  .trim();
-              }
-              oldData.UserGuess[guessName] = guessValue;
-            }
-          } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
-            if (!moduleLevel || moduleLevel.startsWith("=")) {
-              continue;
-            }
-            oldData.Modules[cell] = moduleLevel;
-          } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
-            if (
-              !String(rowsCalculated) ||
-              String(rowsCalculated).startsWith("=")
-            ) {
-              continue;
-            }
-            oldData.rowsCalculated = rowsCalculated;
-          } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
-            console.log("Found running time:", runningTime);
-            if (!String(runningTime)) {
-              continue;
-            }
-            oldData.runningTime = runningTime;
-          } else if (cell === "Total Lab Time") {
-            oldData.Preset = oldValues[i][j + 2];
-          } else if (cell === "PS Beta Testing") {
-            oldData.PSBeta = oldValues[i - 1][j];
-          }
-        }
-      }
-      return {
-        success: true,
-        message: "eDamage data extracted successfully",
-        oldData: oldData,
-      };
-    } catch (error) {
-      console.log(`Error in getVersion4110200eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4110200eDamage: " + error.message,
-      };
-    }
-  },
-
-  getVersion4110200eEcon: function (
-    oldValues,
-    oldeEconLabValues,
-    oldeDiscountLabValues
-  ) {
-    try {
-      console.log("Called: ePaths.getVersion4110200eEcon");
-      var customData = ["Gold Bot - Cooldown"];
-      var modulesData = ["Generator"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
-
-      if (
-        oldeEconLabValues &&
-        oldeEconLabValues[0] &&
-        oldeEconLabValues[0][0] === "Running Time"
-      ) {
-        var eEconRunningTime = oldeEconLabValues[1][0];
-        if (String(eEconRunningTime)) {
-          oldData.eEconRunningTime = eEconRunningTime;
-        }
-      }
-      if (
-        oldeDiscountLabValues &&
-        oldeDiscountLabValues[0] &&
-        oldeDiscountLabValues[0][0] === "Running Time"
-      ) {
-        var eDiscountRunningTime = oldeDiscountLabValues[1][0];
-        if (String(eDiscountRunningTime)) {
-          oldData.eDiscountRunningTime = eDiscountRunningTime;
-        }
-      }
-
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
-          if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
-              if (!customName) break; // Stop when customName is empty
-              if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
-                if (
-                  !String(customValue) ||
-                  String(customValue).startsWith("=")
-                ) {
-                  continue;
-                }
-                oldData.Custom[customName] = customValue;
-              }
-            }
-          } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
-            if (
-              String(perksAreActive) &&
-              !String(perksAreActive).startsWith("=")
-            ) {
-              oldData.Perks["Active"] = perksAreActive;
-            }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
-            }
-          } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
-              if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
-              if (!String(guessValue) || String(guessValue).startsWith("=")) {
-                continue;
-              }
-              if (guessName.startsWith("=")) {
-                if (guessName.includes("GB Sync Current Ratio")) {
-                  guessName = "GB Sync Current Ratio";
-                } else {
-                  var parts = guessName.split(",");
-                  guessName = parts[parts.length - 2]
-                    .replace(/["\(\)]/g, "")
-                    .trim();
-                }
-              }
-              oldData.UserGuess[guessName] = guessValue;
-            }
-          } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
-            if (!moduleLevel || moduleLevel.startsWith("=")) {
-              continue;
-            }
-            oldData.Modules[cell] = moduleLevel;
-          } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
-            if (
-              !String(rowsCalculated) ||
-              String(rowsCalculated).startsWith("=")
-            ) {
-              continue;
-            }
-            oldData.rowsCalculated = rowsCalculated;
-          }
-        }
-      }
-      return {
-        success: true,
-        message: "eEcon data extracted successfully",
-        oldData: oldData,
-      };
-    } catch (error) {
-      console.log(`Error in getVersion4110200eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4110200eEcon: " + error.message,
-      };
-    }
-  },
+  //#region Get eHP
 
   getVersion4110321eHP: function (
     oldValues,
@@ -1487,6 +1140,140 @@ const ePaths = {
     }
   },
 
+  getVersion4110200eHP: function (
+    oldValues,
+    oldeHPLabValues,
+    oldeRegenLabValues
+  ) {
+    try {
+      console.log("Called: ePaths.getVersion4110200eHP");
+      var customData = [
+        "Wall Health",
+        "Max Recovery",
+        "Chrono Field ⚠️",
+        "Death Wave Health",
+        "Chain Thunder ⚠️",
+      ];
+      var modulesData = ["Armor"];
+
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (
+        oldeHPLabValues &&
+        oldeHPLabValues[0] &&
+        oldeHPLabValues[0][0] === "Running Time"
+      ) {
+        var eHPRunningTime = oldeHPLabValues[1][0];
+        if (String(eHPRunningTime)) {
+          oldData.eHPRunningTime = eHPRunningTime;
+        }
+      }
+      if (
+        oldeRegenLabValues &&
+        oldeRegenLabValues[0] &&
+        oldeRegenLabValues[0][0] === "Running Time"
+      ) {
+        var eRegenRunningTime = oldeRegenLabValues[1][0];
+        if (String(eRegenRunningTime)) {
+          oldData.eRegenRunningTime = eRegenRunningTime;
+        }
+      }
+
+      for (var i = 0; i < oldValues.length; i++) {
+        for (var j = 0; j < oldValues[i].length; j++) {
+          var cell = oldValues[i][j];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var customName = oldValues[k][j - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[k][j - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[i][j + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var k = i + 2; k < oldValues.length; k++) {
+              var perkName = oldValues[k][j];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              oldData.Perks[perkName] = oldValues[k][j + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var guessName = oldValues[k][j];
+              if (!guessName) break;
+              var guessValue = oldValues[k][j + 4];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                var parts = guessName.split(",");
+                guessName = parts[parts.length - 2]
+                  .replace(/["\(\)]/g, "")
+                  .trim();
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[i][j + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            oldData.Modules[cell] = moduleLevel;
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[i + 1][j];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[i + 1][j];
+            console.log("Found running time:", runningTime);
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eHP data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion4110200eHP: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion4110200eHP: " + error.message,
+      };
+    }
+  },
+
+  //#endregion
+
+  //#region Get eDamage
+  
   getVersion4110321eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
       console.log("Called: ePaths.getVersion4110321eDamage");
@@ -1608,43 +1395,22 @@ const ePaths = {
     }
   },
 
-  getVersion4110321eEcon: function (
-    oldValues,
-    oldeEconLabValues,
-    oldeDiscountLabValues
-  ) {
+  getVersion4110200eDamage: function (oldValues, oldeDamageLabValues) {
     try {
-      console.log("Called: ePaths.getVersion4110321eEcon");
-      var customData = ["Gold Bot - Cooldown"];
-      var modulesData = ["Generator"];
+      console.log("Called: ePaths.getVersion4110200eDamage");
+
+      var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
+      var modulesData = ["Cannon", "Core"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
 
       if (
-        oldeEconLabValues &&
-        oldeEconLabValues[1] &&
-        oldeEconLabValues[1][0] === "Running Time"
+        oldeDamageLabValues &&
+        oldeDamageLabValues[0] &&
+        oldeDamageLabValues[0][0] === "Running Time"
       ) {
-        var eEconLabCost = oldeEconLabValues[0][0];
-        if (String(eEconLabCost)) {
-          oldData.eEconLabCost = eEconLabCost;
-        }
-        var eEconRunningTime = oldeEconLabValues[2][0];
-        if (String(eEconRunningTime)) {
-          oldData.eEconRunningTime = eEconRunningTime;
-        }
-      }
-      if (
-        oldeDiscountLabValues &&
-        oldeDiscountLabValues[1] &&
-        oldeDiscountLabValues[1][0] === "Running Time"
-      ) {
-        var eDiscountLabCost = oldeDiscountLabValues[0][0];
-        if (String(eDiscountLabCost)) {
-          oldData.eDiscountLabCost = eDiscountLabCost;
-        }
-        var eDiscountRunningTime = oldeDiscountLabValues[2][0];
-        if (String(eDiscountRunningTime)) {
-          oldData.eDiscountRunningTime = eDiscountRunningTime;
+        var eDamageRunningTime = oldeDamageLabValues[1][0];
+        if (String(eDamageRunningTime)) {
+          oldData.eDamageRunningTime = eDamageRunningTime;
         }
       }
 
@@ -1693,14 +1459,10 @@ const ePaths = {
                 continue;
               }
               if (guessName.startsWith("=")) {
-                if (guessName.includes("GB Sync Current Ratio")) {
-                  guessName = "GB Sync Current Ratio";
-                } else {
-                  var parts = guessName.split(",");
-                  guessName = parts[parts.length - 2]
-                    .replace(/["\(\)]/g, "")
-                    .trim();
-                }
+                var parts = guessName.split(",");
+                guessName = parts[parts.length - 2]
+                  .replace(/["\(\)]/g, "")
+                  .trim();
               }
               oldData.UserGuess[guessName] = guessValue;
             }
@@ -1719,23 +1481,37 @@ const ePaths = {
               continue;
             }
             oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[i + 1][j];
+            console.log("Found running time:", runningTime);
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
+          } else if (cell === "Total Lab Time") {
+            oldData.Preset = oldValues[i][j + 2];
+          } else if (cell === "PS Beta Testing") {
+            oldData.PSBeta = oldValues[i - 1][j];
           }
         }
       }
       return {
         success: true,
-        message: "eEcon data extracted successfully",
+        message: "eDamage data extracted successfully",
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110321eEcon: ${error.toString()}`);
+      console.log(`Error in getVersion4110200eDamage: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110321eEcon: " + error.message,
+        message: "Error in getVersion4110200eDamage: " + error.message,
       };
     }
   },
 
+  //#endregion
+
+  //#region Get eEcon
   
   getVersion5000104eEcon: function (
     oldValues,
@@ -1839,10 +1615,20 @@ const ePaths = {
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[i][j + 1];
-            if (!moduleLevel || moduleLevel.startsWith("=")) {
+            var assModLevel = oldValues[i][j + 5];
+            var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
+            var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
+            if (mainIsFormula && assistIsFormula) {
               continue;
             }
-            oldData.Modules[cell] = moduleLevel;
+            var moduleObj = {};
+            if (!mainIsFormula) {
+              moduleObj["main"] = moduleLevel;
+            }
+            if (!assistIsFormula) {
+              moduleObj["assist"] = assModLevel;
+            }
+            oldData.Modules[cell] = moduleObj;
           } else if (cell === "Rows Calculated") {
             var rowsCalculated = oldValues[i + 1][j];
             if (
@@ -1869,6 +1655,255 @@ const ePaths = {
     }
   },
 
+  getVersion4110321eEcon: function (
+    oldValues,
+    oldeEconLabValues,
+    oldeDiscountLabValues
+  ) {
+    try {
+      console.log("Called: ePaths.getVersion4110321eEcon");
+      var customData = ["Gold Bot - Cooldown"];
+      var modulesData = ["Generator"];
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (
+        oldeEconLabValues &&
+        oldeEconLabValues[1] &&
+        oldeEconLabValues[1][0] === "Running Time"
+      ) {
+        var eEconLabCost = oldeEconLabValues[0][0];
+        if (String(eEconLabCost)) {
+          oldData.eEconLabCost = eEconLabCost;
+        }
+        var eEconRunningTime = oldeEconLabValues[2][0];
+        if (String(eEconRunningTime)) {
+          oldData.eEconRunningTime = eEconRunningTime;
+        }
+      }
+      if (
+        oldeDiscountLabValues &&
+        oldeDiscountLabValues[1] &&
+        oldeDiscountLabValues[1][0] === "Running Time"
+      ) {
+        var eDiscountLabCost = oldeDiscountLabValues[0][0];
+        if (String(eDiscountLabCost)) {
+          oldData.eDiscountLabCost = eDiscountLabCost;
+        }
+        var eDiscountRunningTime = oldeDiscountLabValues[2][0];
+        if (String(eDiscountRunningTime)) {
+          oldData.eDiscountRunningTime = eDiscountRunningTime;
+        }
+      }
+
+      for (var i = 0; i < oldValues.length; i++) {
+        for (var j = 0; j < oldValues[i].length; j++) {
+          var cell = oldValues[i][j];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var customName = oldValues[k][j - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[k][j - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[i][j + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var k = i + 2; k < oldValues.length; k++) {
+              var perkName = oldValues[k][j];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              oldData.Perks[perkName] = oldValues[k][j + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var guessName = oldValues[k][j];
+              if (!guessName) break;
+              var guessValue = oldValues[k][j + 4];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                if (guessName.includes("GB Sync Current Ratio")) {
+                  guessName = "GB Sync Current Ratio";
+                } else {
+                  var parts = guessName.split(",");
+                  guessName = parts[parts.length - 2]
+                    .replace(/["\(\)]/g, "")
+                    .trim();
+                }
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[i][j + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            oldData.Modules[cell] = {"main": moduleLevel};
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[i + 1][j];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eEcon data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion4110321eEcon: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion4110321eEcon: " + error.message,
+      };
+    }
+  },
+
+  getVersion4110200eEcon: function (
+    oldValues,
+    oldeEconLabValues,
+    oldeDiscountLabValues
+  ) {
+    try {
+      console.log("Called: ePaths.getVersion4110200eEcon");
+      var customData = ["Gold Bot - Cooldown"];
+      var modulesData = ["Generator"];
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (
+        oldeEconLabValues &&
+        oldeEconLabValues[0] &&
+        oldeEconLabValues[0][0] === "Running Time"
+      ) {
+        var eEconRunningTime = oldeEconLabValues[1][0];
+        if (String(eEconRunningTime)) {
+          oldData.eEconRunningTime = eEconRunningTime;
+        }
+      }
+      if (
+        oldeDiscountLabValues &&
+        oldeDiscountLabValues[0] &&
+        oldeDiscountLabValues[0][0] === "Running Time"
+      ) {
+        var eDiscountRunningTime = oldeDiscountLabValues[1][0];
+        if (String(eDiscountRunningTime)) {
+          oldData.eDiscountRunningTime = eDiscountRunningTime;
+        }
+      }
+
+      for (var i = 0; i < oldValues.length; i++) {
+        for (var j = 0; j < oldValues[i].length; j++) {
+          var cell = oldValues[i][j];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var customName = oldValues[k][j - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[k][j - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[i][j + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var k = i + 2; k < oldValues.length; k++) {
+              var perkName = oldValues[k][j];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              oldData.Perks[perkName] = oldValues[k][j + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var k = i + 1; k < oldValues.length; k++) {
+              var guessName = oldValues[k][j];
+              if (!guessName) break;
+              var guessValue = oldValues[k][j + 4];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                if (guessName.includes("GB Sync Current Ratio")) {
+                  guessName = "GB Sync Current Ratio";
+                } else {
+                  var parts = guessName.split(",");
+                  guessName = parts[parts.length - 2]
+                    .replace(/["\(\)]/g, "")
+                    .trim();
+                }
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[i][j + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            oldData.Modules[cell] = moduleLevel;
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[i + 1][j];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eEcon data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion4110200eEcon: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion4110200eEcon: " + error.message,
+      };
+    }
+  },
+
+  //#endregion
   get convertVersionFunctions() {
     return {
       "v4.11.02.00": this.version4110200.bind(this),
