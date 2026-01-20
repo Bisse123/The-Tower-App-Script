@@ -804,21 +804,10 @@ const modules = {
               };
               for (
                 var substat = rowIdx + 4;
-                substat < oldModulesInventoryValues.length;
+                substat < rowIdx + 4 + 8;
                 substat++
               ) {
                 var substatRow = oldModulesInventoryValues[substat];
-                var substatName =
-                  substatRow && substatRow[col] != null
-                    ? String(substatRow[col]).trim()
-                    : "";
-                var substatRarity =
-                  substatRow && substatRow[col + 1] != null
-                    ? String(substatRow[col + 1]).trim()
-                    : "";
-                if (substatName === "" && substatRarity === "") {
-                  break;
-                }
                 var substatData = [
                   substatRow ? substatRow[col] : "",
                   substatRow ? substatRow[col + 1] : "",
@@ -1019,22 +1008,14 @@ const modules = {
               };
               for (
                 var substat = rowIdx + 4;
-                substat < oldModulesInventoryValues.length;
+                substat < rowIdx + 4 + 8;
                 substat++
               ) {
                 var substatRow = oldModulesInventoryValues[substat];
-                var substatName =
-                  substatRow && substatRow[col] != null
-                    ? String(substatRow[col]).trim()
-                    : "";
-                var substatRarity =
-                  substatRow && substatRow[col + 1] != null
-                    ? String(substatRow[col + 1]).trim()
-                    : "";
-                if (substatName === "" && substatRarity === "") {
-                  break;
-                }
-                var substatData = [substatName || "", substatRarity || ""];
+                var substatData = [
+                  substatRow ? substatRow[col] : "",
+                  substatRow ? substatRow[col + 1] : "",
+                ];
                 oldModulesInventory[moduleType][moduleName]["substats"].push(
                   substatData
                 );
