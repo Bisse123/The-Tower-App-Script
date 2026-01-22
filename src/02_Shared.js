@@ -171,28 +171,24 @@ const SheetsAPI = {
 };
 
 const shared = {
-  findSheetVersion: function (sheetID, sheetName, preLoadedValues) {
+  findSheetVersion: function (sheetID, sheetName, sheetType, preLoadedValues) {
     try {
+      // If sheetType is 'Effective Paths', delegate to getEPathsVersion
+      if (sheetType === "Effective Paths") {
+        return shared.getEPathsVersion(sheetID, sheetName, preLoadedValues);
+      }
       var values;
-
       // Use pre-loaded values if provided, otherwise fetch them
       if (preLoadedValues) {
         values = preLoadedValues;
       } else {
         var batchResult = SheetsAPI.batchGetValues(sheetID, [sheetName]);
-        if (
-          !batchResult ||
-          batchResult.length === 0 ||
-          !batchResult[0].values
-        ) {
-          console.log(
-            `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`
-          );
+        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
+          console.log(`No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`);
           return null;
         }
         values = batchResult[0].values;
       }
-
       var currentVersion = null;
       var latestVersion = null;
       for (var row = 0; row < values.length; row++) {
@@ -600,38 +596,18 @@ const shared = {
             }
           }
 
-          // Special handling for Effective Paths sheet type - use getEPathsVersion
-          if (sheetType === "Effective Paths" && !version) {
-            var ePathsVersionInfo = shared.getEPathsVersion(
-              sheetID,
-              sheetName,
-              valueData
-            );
-            if (ePathsVersionInfo && ePathsVersionInfo.latestVersion) {
-              version = ePathsVersionInfo.latestVersion;
-              console.log(`Effective Paths version found: ${version}`);
-            }
-          }
-
-          // Check if we have both templateID and version for Effective Paths, return immediately
-          if (sheetType === "Effective Paths" && templateID && version) {
-            return {
-              templateID: templateID,
-              templateVersion: version,
-            };
-          }
         }
-        if (templateID && sheetType !== "Effective Paths") {
-          break; // Break outer loop for non-Effective Paths sheets
+        if (templateID) {
+          break; // Break outer loop for all sheet types
         }
       }
 
       // If template ID was found, get version info and return result
-      if (templateID && sheetType !== "Effective Paths") {
-        // Standard version handling for all sheet types that reach here
+      if (templateID) {
         var currentSheetVersionInfo = shared.findSheetVersion(
           sheetID,
           sheetName,
+          sheetType,
           valueData
         );
         if (currentSheetVersionInfo && currentSheetVersionInfo.latestVersion) {
@@ -750,11 +726,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
     }
 
     var newVersionInfo;
-    if (sheetType === "Effective Paths") {
-      newVersionInfo = shared.getEPathsVersion(newSheetID, "Home Page");
-    } else {
-      newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page");
-    }
+    newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page", sheetType);
 
     if (!newVersionInfo || !newVersionInfo.currentVersion) {
       console.log(`Could not find new sheet version`);
@@ -764,8 +736,9 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
       };
     }
     var newVersion = newVersionInfo.currentVersion;
-    var oldVersion = oldFile.name.match(/v\d+(?:\.\d+)*/g);
+    var oldVersion = oldFile.name.match(/[vV]\d+(?:.\d+)*/g);
 
+    console.log(JSON.stringify(oldVersion));
     var newFileName = newFile.name;
     if (oldVersion && oldVersion.length > 0 && newVersion) {
       newFileName = oldFile.name.replace(oldVersion[0], newVersion);
@@ -991,19 +964,12 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
     // STEP 1: Check compatibility first (for early failure)
     var newVersionInfo;
-    if (sheetType === "Effective Paths") {
-      newVersionInfo = shared.getEPathsVersion(
-        newSheetID,
-        "Home Page",
-        newHomePageValues
-      );
-    } else {
-      newVersionInfo = shared.findSheetVersion(
-        newSheetID,
-        "Home Page",
-        newHomePageValues
-      );
-    }
+    newVersionInfo = shared.findSheetVersion(
+      newSheetID,
+      "Home Page",
+      sheetType,
+      newHomePageValues
+    );
 
     if (!newVersionInfo) {
       console.log(`Version not found in new ${sheetType} spreadsheet.`);
@@ -1080,19 +1046,12 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
     var versionDifference = "None";
     if (oldHomePageValues[1][1] !== "IDS Master") {
       var oldVersionInfo;
-      if (sheetType === "Effective Paths") {
-        oldVersionInfo = shared.getEPathsVersion(
-          oldSheetID,
-          "Home Page",
-          oldHomePageValues
-        );
-      } else {
-        oldVersionInfo = shared.findSheetVersion(
-          oldSheetID,
-          "Home Page",
-          oldHomePageValues
-        );
-      }
+      oldVersionInfo = shared.findSheetVersion(
+        oldSheetID,
+        "Home Page",
+        sheetType,
+        oldHomePageValues
+      );
 
       if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
         console.log(`Version not found in old ${sheetType} spreadsheet.`);
@@ -2204,38 +2163,19 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     var oldVersionInfo;
     var oldVersion;
 
-    if (sheetType === "Effective Paths") {
-      // Use the new getEPathsVersion function for Effective Paths
-      oldVersionInfo = shared.getEPathsVersion(
-        oldSheetID,
-        "Home Page",
-        oldHomePageValues
-      );
-      if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
-        return {
-          success: false,
-          message: `Current Version not found in old ${sheetType} spreadsheet.`,
-        };
-      }
-      oldVersion = oldVersionInfo.currentVersion;
-      console.log(`Effective Paths current version found: ${oldVersion}`);
-    } else {
-      // Standard version handling for all other sheet types
-      oldVersionInfo = shared.findSheetVersion(
-        oldSheetID,
-        "Home Page",
-        oldHomePageValues
-      );
-
-      if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
-        return {
-          success: false,
-          message: `Version not found in old ${sheetType} spreadsheet.`,
-        };
-      }
-
-      oldVersion = oldVersionInfo.currentVersion;
+    oldVersionInfo = shared.findSheetVersion(
+      oldSheetID,
+      "Home Page",
+      sheetType,
+      oldHomePageValues
+    );
+    if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
+      return {
+        success: false,
+        message: `Current Version not found in old ${sheetType} spreadsheet.`,
+      };
     }
+    oldVersion = oldVersionInfo.currentVersion;
 
     // Check compatibility using the sheetType's compatibility function
     var sheetTypeFunction = sheetVars(sheetType);
