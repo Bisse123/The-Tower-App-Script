@@ -220,22 +220,20 @@
         .catch(onSheetAccessCheckFailure);
       return;
     } else if (
-      sheetType === "Effective Paths" &&
-      idMasterID &&
-      oldSheetID &&
-      !newSheetID
-    ) {
-      checkMultipleSheetAccess([oldSheetID], userEmail)
-        .then(onSheetAccessCheckSuccess)
-        .catch(onSheetAccessCheckFailure);
-      return;
-    } else if (
       sheetType === "IDS Collection" &&
       newSheetID &&
       oldSheetID &&
       !idMasterID
     ) {
       checkCollectionsAccess();
+      return;
+    } else if (
+      oldSheetID &&
+      !newSheetID
+    ) {
+      checkMultipleSheetAccess([oldSheetID], userEmail)
+        .then(onSheetAccessCheckSuccess)
+        .catch(onSheetAccessCheckFailure);
       return;
     } else if (!newSheetID || !oldSheetID || !idMasterID || !sheetType) {
       console.log(
@@ -431,7 +429,7 @@
           `Access granted to ${documents.length} files. Rechecking access status...`
         );
 
-        var fileIds = [newSheetID, oldSheetID, idMasterID];
+        var fileIds = [newSheetID, oldSheetID, idMasterID].filter(id => id != null && id !== "");
         if (isUpdateSingleSheetFlow) {
           // We're in updateSingleSheet flow - automatically continue with template copy
           console.log(
@@ -497,10 +495,11 @@
             .then(onSheetAccessCheckSuccess)
             .catch(onSheetAccessCheckFailure);
           return;
-        } else if (sheetType === "IDS Collection") {
+        } else if (sheetType === "IDS Collection" && newSheetID && oldSheetID) {
           checkCollectionsAccess();
           return;
         }
+        console.log("Re-checking access for selected files:", fileIds);
         checkMultipleSheetAccess(fileIds, userEmail)
           .then(onSheetAccessCheckSuccess)
           .catch(onSheetAccessCheckFailure);

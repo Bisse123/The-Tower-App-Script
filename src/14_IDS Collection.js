@@ -1158,6 +1158,7 @@ const collection = {
         formulas: {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -1499,6 +1500,7 @@ const collection = {
         formulas: {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -1759,24 +1761,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion40ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion40ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -1876,6 +1882,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -2149,24 +2156,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -2266,6 +2277,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -2542,24 +2554,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -2659,6 +2675,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -2933,24 +2950,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -3050,6 +3071,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -3324,24 +3346,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -3441,6 +3467,7 @@ const collection = {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -3715,24 +3742,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
@@ -3832,6 +3863,7 @@ const collection = {
         formulas: {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 
@@ -4106,24 +4138,28 @@ const collection = {
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
+      var modulesTrackerFormulasResult = getBatchResult("Modules Tracker", "formulas");
       if (
         modulesInventoryResult &&
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
         modulesTrackerResult &&
-        modulesTrackerResult.values
+        modulesTrackerResult.values &&
+        modulesTrackerFormulasResult &&
+        modulesTrackerFormulasResult.values
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
+        var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion50ModulesInventory(
           modulesInventoryValues
         );
         var modulesPresetsData =
           modules.getVersion50ModulesPresets(modulesPresetsValues);
         var modulesTrackerData =
-          modules.getVersion47ModulesTracker(modulesTrackerValues);
+          modules.getVersion47ModulesTracker(modulesTrackerValues, modulesTrackerFormulas);
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
