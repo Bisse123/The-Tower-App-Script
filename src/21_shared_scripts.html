@@ -208,18 +208,8 @@
 
   function checkValidParameters() {
     console.log("Checking valid parameters...");
-    var fileIds = [];
+    var fileIds = [newSheetID, oldSheetID, idMasterID].filter(id => id != null && id !== "");
     if (
-      sheetType === "IDS Master" &&
-      !idMasterID &&
-      !newSheetID &&
-      oldSheetID
-    ) {
-      checkMultipleSheetAccess([oldSheetID], userEmail)
-        .then(onSheetAccessCheckSuccess)
-        .catch(onSheetAccessCheckFailure);
-      return;
-    } else if (
       sheetType === "IDS Collection" &&
       newSheetID &&
       oldSheetID &&
@@ -228,10 +218,19 @@
       checkCollectionsAccess();
       return;
     } else if (
+      sheetType === "Effective Paths" &&
       oldSheetID &&
       !newSheetID
     ) {
       checkMultipleSheetAccess([oldSheetID], userEmail)
+        .then(onSheetAccessCheckSuccess)
+        .catch(onSheetAccessCheckFailure);
+      return;
+    } else if (
+      oldSheetID &&
+      !newSheetID
+    ) {
+      checkMultipleSheetAccess(fileIds, userEmail)
         .then(onSheetAccessCheckSuccess)
         .catch(onSheetAccessCheckFailure);
       return;
@@ -265,7 +264,6 @@
       return;
     }
 
-    fileIds = [newSheetID, oldSheetID, idMasterID];
     showFileAccessSection();
     checkMultipleSheetAccess(fileIds, userEmail)
       .then(onSheetAccessCheckSuccess)
