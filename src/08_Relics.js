@@ -1,4 +1,5 @@
 const relics = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: relics.exportData");
@@ -31,6 +32,8 @@ const relics = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: relics.importData");
@@ -136,6 +139,8 @@ const relics = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateRelics: function (sheetName, oldRelics, newRelicsData) {
     try {
       console.log("Called: relics.updateRelics");
@@ -217,6 +222,8 @@ const relics = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version10: function () {
     try {
       console.log("Called: relics.version10");
@@ -259,6 +266,8 @@ const relics = {
     }
   },
 
+  // #endregion
+  // #region Get Relics
   getVersion10Relics: function (oldRelicsData) {
     try {
       console.log("Called: relics.getVersion10Relics");
@@ -315,12 +324,16 @@ const relics = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -339,4 +352,5 @@ const relics = {
 
     return null;
   },
+  // #endregion
 };

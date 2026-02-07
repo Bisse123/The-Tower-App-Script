@@ -1,4 +1,5 @@
 const guardians = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: guardians.exportData");
@@ -29,6 +30,8 @@ const guardians = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: guardians.importData");
@@ -180,6 +183,8 @@ const guardians = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateGuardianLevels: function (
     sheetName,
     oldGuardians,
@@ -320,6 +325,8 @@ const guardians = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version22: function () {
     try {
       console.log("Called: guardians.version22");
@@ -446,10 +453,12 @@ const guardians = {
     }
   },
 
-  getVersion10Guardians: function (oldGuardianLevelsData) {
+  // #endregion
+  // #region Get Guardians
+  getVersion22Guardians: function (oldGuardianLevelsData) {
     try {
-      console.log("Called: guardians.getVersion10Guardians");
-      var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
+      console.log("Called: guardians.getVersion22Guardians");
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
           (cell) =>
@@ -484,23 +493,22 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              value = (value - 1).toString().padStart(2, "0");
               guardian.props[key] = value;
             }
           }
-          guardianName = guardianName === "Steal" ? "Bounty" : guardianName;
           oldGuardians[guardianName] = guardian;
         }
       }
+
       return {
         success: true,
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion10Guardians: " + error.toString());
+      console.log("Error in getVersion22Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Guardians: " + error.message,
+        message: "Error in getVersion22Guardians: " + error.message,
       };
     }
   },
@@ -563,10 +571,20 @@ const guardians = {
     }
   },
 
-  getVersion22Guardians: function (oldGuardianLevelsData) {
+  // #endregion
+  // #region Convert Version Functions Getter
+  get convertVersionFunctions() {
+    return {
+      "v1.0": this.version10.bind(this),
+      "v2.1": this.version21.bind(this),
+      "v2.2": this.version22.bind(this),
+    };
+  },
+
+  getVersion10Guardians: function (oldGuardianLevelsData) {
     try {
-      console.log("Called: guardians.getVersion22Guardians");
-      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
+      console.log("Called: guardians.getVersion10Guardians");
+      var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
           (cell) =>
@@ -601,34 +619,29 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
+              value = (value - 1).toString().padStart(2, "0");
               guardian.props[key] = value;
             }
           }
+          guardianName = guardianName === "Steal" ? "Bounty" : guardianName;
           oldGuardians[guardianName] = guardian;
         }
       }
-
       return {
         success: true,
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion22Guardians: " + error.toString());
+      console.log("Error in getVersion10Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion22Guardians: " + error.message,
+        message: "Error in getVersion10Guardians: " + error.message,
       };
     }
   },
 
-  get convertVersionFunctions() {
-    return {
-      "v1.0": this.version10.bind(this),
-      "v2.1": this.version21.bind(this),
-      "v2.2": this.version22.bind(this),
-    };
-  },
-
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -647,4 +660,5 @@ const guardians = {
 
     return null;
   },
+  // #endregion
 };

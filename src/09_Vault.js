@@ -1,4 +1,5 @@
 const vault = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: vault.exportData");
@@ -31,6 +32,8 @@ const vault = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: vault.importData");
@@ -148,6 +151,8 @@ const vault = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateVault: function (sheetName, newVaultData, oldVault) {
     try {
       console.log("Called: vault.updateVault");
@@ -281,6 +286,8 @@ const vault = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version10: function () {
     try {
       console.log("Called: vault.version10");
@@ -337,6 +344,8 @@ const vault = {
     }
   },
 
+  // #endregion
+  // #region Get Vault
   getVersion10Vault: function (oldSheetData) {
     try {
       console.log("Called: vault.getVersion10Vault");
@@ -423,12 +432,16 @@ const vault = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -447,4 +460,5 @@ const vault = {
 
     return null;
   },
+  // #endregion
 };

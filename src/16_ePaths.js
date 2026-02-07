@@ -1,4 +1,5 @@
 const ePaths = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: ePaths.exportData");
@@ -29,6 +30,8 @@ const ePaths = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: ePaths.importData");
@@ -205,7 +208,8 @@ const ePaths = {
     }
   },
   
-  //#region Update Functions
+  // #endregion
+  // #region Update Functions
 
   updateEHP: function (
     sheetName,
@@ -745,9 +749,9 @@ const ePaths = {
       };
     }
   },
-  //#endregion
-
-  //#region Convert Versions
+  
+  // #endregion
+  // #region Convert Versions
   version5000104: function () {
     try {
       console.log("Called: ePaths.version5000104");
@@ -998,10 +1002,9 @@ const ePaths = {
       };
     }
   },
-  //#endregion
 
-  //#region Get eHP
-
+  // #endregion
+  // #region Get eHP
   getVersion4110321eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -1270,10 +1273,8 @@ const ePaths = {
     }
   },
 
-  //#endregion
-
-  //#region Get eDamage
-  
+  // #endregion
+  // #region Get eDamage
   getVersion4110321eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
       console.log("Called: ePaths.getVersion4110321eDamage");
@@ -1509,10 +1510,8 @@ const ePaths = {
     }
   },
 
-  //#endregion
-
-  //#region Get eEcon
-  
+  // #endregion
+  // #region Get eEcon
   getVersion5000104eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -1902,8 +1901,9 @@ const ePaths = {
       };
     }
   },
-
-  //#endregion
+  
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v4.11.02.00": this.version4110200.bind(this),
@@ -1911,7 +1911,9 @@ const ePaths = {
       "v5.00.01.04": this.version5000104.bind(this),
     };
   },
-
+  
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
@@ -1926,4 +1928,5 @@ const ePaths = {
     }
     return null;
   },
+  // #endregion
 };

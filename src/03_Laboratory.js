@@ -1,4 +1,5 @@
 const lab = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: lab.exportData");
@@ -31,6 +32,8 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: lab.importData");
@@ -162,6 +165,8 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateLabLevels: function (sheetName, oldLabLevels, masterSheetData) {
     try {
       console.log("Called: lab.updateLabLevels");
@@ -523,6 +528,8 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version10: function () {
     try {
       console.log("Called: lab.version10");
@@ -626,6 +633,8 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Get Lab Levels
   getVersion10LabLevels: function (oldLabLevelsValues) {
     try {
       console.log("Called: lab.getVersion10LabLevels");
@@ -661,6 +670,8 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Get Lab Planner
   getVersion10LabPlanner: function (
     oldLabPlannerValues,
     oldLabPlannerFormulas,
@@ -873,12 +884,16 @@ const lab = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: lab.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -898,4 +913,5 @@ const lab = {
 
     return null;
   },
+  // #endregion
 };

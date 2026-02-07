@@ -1,4 +1,5 @@
 const playerStuff = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: playerStuff.exportData");
@@ -31,6 +32,8 @@ const playerStuff = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: playerStuff.importData");
@@ -140,6 +143,8 @@ const playerStuff = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updatePlayerStuffData: function (
     sheetName,
     oldPlayerTierData,
@@ -249,6 +254,8 @@ const playerStuff = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version32: function () {
     try {
       console.log("Called: playerStuff.version32");
@@ -349,6 +356,8 @@ const playerStuff = {
     }
   },
 
+  // #endregion
+  // #region Get PlayerStuff Tiers
   getVersion20PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
       console.log("Called: playerStuff.getversion20PlayerStuffTiers");
@@ -384,6 +393,54 @@ const playerStuff = {
       return {
         success: false,
         message: "Error in getversion20PlayerStuffTiers: " + error.message,
+      };
+    }
+  },
+
+// #endregion
+// #region Get PlayerStuff Stats
+  getVersion32PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+    try {
+      console.log("Called: playerStuff.getVersion32PlayerStuffStats");
+
+      if (
+        !oldPlayerStuffStatsValues ||
+        oldPlayerStuffStatsValues.length === 0
+      ) {
+        console.log(`No data found in old player & stuff stat data`);
+        return {
+          success: false,
+          message: "No data found in old player & stuff stat data",
+        };
+      }
+      var oldPlayerStuffStatsData = {};
+      var header = "Stat";
+      oldPlayerStuffStatsData[header] = {};
+      for (var row = 0; row < oldPlayerStuffStatsValues.length; row++) {
+        var rowData = oldPlayerStuffStatsValues[row];
+        var name = rowData[0] || "";
+        var value = rowData[1] || "";
+        if (name === "Premium Packs" || name === "Premium Perk") {
+          header = "Premium Packs";
+          oldPlayerStuffStatsData[header] = {};
+          continue;
+        }
+        if (name) {
+          oldPlayerStuffStatsData[header][name] = {
+            value: value,
+          };
+        }
+      }
+      return {
+        success: true,
+        message: "Player & Stuff stats processed successfully",
+        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+      };
+    } catch (error) {
+      console.log("Error in getversion32PlayerStuffStats: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getversion32PlayerStuffStats: " + error.message,
       };
     }
   },
@@ -434,52 +491,8 @@ const playerStuff = {
     }
   },
 
-  getVersion32PlayerStuffStats: function (oldPlayerStuffStatsValues) {
-    try {
-      console.log("Called: playerStuff.getVersion32PlayerStuffStats");
-
-      if (
-        !oldPlayerStuffStatsValues ||
-        oldPlayerStuffStatsValues.length === 0
-      ) {
-        console.log(`No data found in old player & stuff stat data`);
-        return {
-          success: false,
-          message: "No data found in old player & stuff stat data",
-        };
-      }
-      var oldPlayerStuffStatsData = {};
-      var header = "Stat";
-      oldPlayerStuffStatsData[header] = {};
-      for (var row = 0; row < oldPlayerStuffStatsValues.length; row++) {
-        var rowData = oldPlayerStuffStatsValues[row];
-        var name = rowData[0] || "";
-        var value = rowData[1] || "";
-        if (name === "Premium Packs" || name === "Premium Perk") {
-          header = "Premium Packs";
-          oldPlayerStuffStatsData[header] = {};
-          continue;
-        }
-        if (name) {
-          oldPlayerStuffStatsData[header][name] = {
-            value: value,
-          };
-        }
-      }
-      return {
-        success: true,
-        message: "Player & Stuff stats processed successfully",
-        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
-      };
-    } catch (error) {
-      console.log("Error in getversion32PlayerStuffStats: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getversion32PlayerStuffStats: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v2.0": this.version20.bind(this),
@@ -487,6 +500,8 @@ const playerStuff = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -505,4 +520,5 @@ const playerStuff = {
 
     return null;
   },
+  // #endregion
 };
