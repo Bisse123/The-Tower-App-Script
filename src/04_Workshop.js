@@ -1,4 +1,5 @@
 const workshop = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: workshop.exportData");
@@ -31,6 +32,8 @@ const workshop = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: workshop.importData");
@@ -175,6 +178,8 @@ const workshop = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateWorkshopLevels: function (
     sheetName,
     oldWorkshopLevels,
@@ -438,6 +443,8 @@ const workshop = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version228: function () {
     try {
       console.log("Called: workshop.version228");
@@ -756,73 +763,8 @@ const workshop = {
     }
   },
 
-  getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
-    try {
-      console.log("Called: workshop.getVersion10WorkshopLevels");
-      var oldWorkshopLevels = { presetNames: [null], data: {} };
-      oldWorkshopLevelsValues.forEach(function (row) {
-        var hasData = row.some(function (cell) {
-          return (
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-          );
-        });
-        if (hasData && row[1]) {
-          oldWorkshopLevels.data[row[1]] = {
-            unlocked: row[0] || null,
-            levels: [row[2] || "", row[3] || null],
-          };
-        }
-      });
-
-      return {
-        success: true,
-        message: "Workshop levels processed successfully",
-        oldWorkshopLevels: oldWorkshopLevels,
-      };
-    } catch (error) {
-      console.log("Error in getVersion10WorkshopLevels: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion10WorkshopLevels: " + error.message,
-      };
-    }
-  },
-
-  getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
-    try {
-      console.log("Called: workshop.getVersion10WorkshopPlusLevels");
-      var oldWorkshopPlusLevels = { presetNames: [null], data: {} };
-      oldWorkshopPlusLevelsValues.forEach(function (row) {
-        var hasData = row.some(function (cell) {
-          return (
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-          );
-        });
-        if (hasData && row[0]) {
-          oldWorkshopPlusLevels.data[row[0]] = [row[2] || null];
-        }
-      });
-
-      return {
-        success: true,
-        message: "Workshop plus levels processed successfully",
-        oldWorkshopPlusLevels: oldWorkshopPlusLevels,
-      };
-    } catch (error) {
-      console.log(
-        "Error in getVersion10WorkshopPlusLevels: " + error.toString()
-      );
-      return {
-        success: false,
-        message: "Error in getVersion10WorkshopPlusLevels: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Get Workshop Levels
   getVersion20WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
       console.log("Called: workshop.getVersion20WorkshopLevels");
@@ -892,6 +834,42 @@ const workshop = {
     }
   },
 
+  getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
+    try {
+      console.log("Called: workshop.getVersion10WorkshopLevels");
+      var oldWorkshopLevels = { presetNames: [null], data: {} };
+      oldWorkshopLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
+        });
+        if (hasData && row[1]) {
+          oldWorkshopLevels.data[row[1]] = {
+            unlocked: row[0] || null,
+            levels: [row[2] || "", row[3] || null],
+          };
+        }
+      });
+
+      return {
+        success: true,
+        message: "Workshop levels processed successfully",
+        oldWorkshopLevels: oldWorkshopLevels,
+      };
+    } catch (error) {
+      console.log("Error in getVersion10WorkshopLevels: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion10WorkshopLevels: " + error.message,
+      };
+    }
+  },
+
+  // #endregion
+  // #region Get Workshop Plus Levels
   getVersion20WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
       console.log("Called: workshop.getVersion20WorkshopPlusLevels");
@@ -949,6 +927,97 @@ const workshop = {
       return {
         success: false,
         message: "Error in getVersion20WorkshopPlusLevels: " + error.message,
+      };
+    }
+  },
+
+  getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
+    try {
+      console.log("Called: workshop.getVersion10WorkshopPlusLevels");
+      var oldWorkshopPlusLevels = { presetNames: [null], data: {} };
+      oldWorkshopPlusLevelsValues.forEach(function (row) {
+        var hasData = row.some(function (cell) {
+          return (
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+          );
+        });
+        if (hasData && row[0]) {
+          oldWorkshopPlusLevels.data[row[0]] = [row[2] || null];
+        }
+      });
+
+      return {
+        success: true,
+        message: "Workshop plus levels processed successfully",
+        oldWorkshopPlusLevels: oldWorkshopPlusLevels,
+      };
+    } catch (error) {
+      console.log(
+        "Error in getVersion10WorkshopPlusLevels: " + error.toString()
+      );
+      return {
+        success: false,
+        message: "Error in getVersion10WorkshopPlusLevels: " + error.message,
+      };
+    }
+  },
+
+  // #endregion
+  // #region Get Workshop Plus Ratios
+  getVersion228WorkshopPlusRatios: function (
+    presetNames,
+    oldWorkshopPlusRatiosValues
+  ) {
+    try {
+      console.log("Called: workshop.getVersion228WorkshopPlusRatios");
+      var oldWorkshopPlusRatios = {};
+      var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
+      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
+        "Workshop Enhancement"
+      );
+      oldWorkshopPlusRatiosValues.splice(0, 1);
+      for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
+        var row = oldWorkshopPlusRatiosValues[i];
+        var workshopPresetIndex = row.indexOf("Workshop preset");
+        if (workshopPresetIndex !== -1) {
+          var presetValue = row[workshopPresetIndex + 1];
+          oldWorkshopPlusRatios["Workshop preset"] = presetNames.includes(
+            presetValue
+          )
+            ? presetValue
+            : null;
+        }
+        var enhancementName = row[workshopEnhancementNameCol];
+        if (enhancementName.includes("Order in between")) {
+          enhancementName = "Order in between";
+        }
+        if (enhancementName) {
+          var firstIndex = workshopEnhancementNameCol + 1;
+          var lastIndex = workshopEnhancementNameCol + 10;
+          oldWorkshopPlusRatios[enhancementName] = row
+            .slice(firstIndex, lastIndex + 1)
+            .map(function (cell) {
+              return cell || "";
+            });
+        }
+        if (enhancementName === "Order in between") {
+          break;
+        }
+      }
+      return {
+        success: true,
+        message: "Workshop plus ratios processed successfully",
+        oldWorkshopPlusRatios: oldWorkshopPlusRatios,
+      };
+    } catch (error) {
+      console.log(
+        "Error in getVersion228WorkshopPlusRatios: " + error.toString()
+      );
+      return {
+        success: false,
+        message: "Error in getVersion228WorkshopPlusRatios: " + error.message,
       };
     }
   },
@@ -1026,62 +1095,8 @@ const workshop = {
     }
   },
 
-  getVersion228WorkshopPlusRatios: function (
-    presetNames,
-    oldWorkshopPlusRatiosValues
-  ) {
-    try {
-      console.log("Called: workshop.getVersion228WorkshopPlusRatios");
-      var oldWorkshopPlusRatios = {};
-      var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
-      var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
-        "Workshop Enhancement"
-      );
-      oldWorkshopPlusRatiosValues.splice(0, 1);
-      for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
-        var row = oldWorkshopPlusRatiosValues[i];
-        var workshopPresetIndex = row.indexOf("Workshop preset");
-        if (workshopPresetIndex !== -1) {
-          var presetValue = row[workshopPresetIndex + 1];
-          oldWorkshopPlusRatios["Workshop preset"] = presetNames.includes(
-            presetValue
-          )
-            ? presetValue
-            : null;
-        }
-        var enhancementName = row[workshopEnhancementNameCol];
-        if (enhancementName.includes("Order in between")) {
-          enhancementName = "Order in between";
-        }
-        if (enhancementName) {
-          var firstIndex = workshopEnhancementNameCol + 1;
-          var lastIndex = workshopEnhancementNameCol + 10;
-          oldWorkshopPlusRatios[enhancementName] = row
-            .slice(firstIndex, lastIndex + 1)
-            .map(function (cell) {
-              return cell || "";
-            });
-        }
-        if (enhancementName === "Order in between") {
-          break;
-        }
-      }
-      return {
-        success: true,
-        message: "Workshop plus ratios processed successfully",
-        oldWorkshopPlusRatios: oldWorkshopPlusRatios,
-      };
-    } catch (error) {
-      console.log(
-        "Error in getVersion228WorkshopPlusRatios: " + error.toString()
-      );
-      return {
-        success: false,
-        message: "Error in getVersion228WorkshopPlusRatios: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
@@ -1091,6 +1106,8 @@ const workshop = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: workshop.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -1110,4 +1127,5 @@ const workshop = {
 
     return null;
   },
+  // #endregion
 };

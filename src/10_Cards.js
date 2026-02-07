@@ -1,4 +1,5 @@
 const cards = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: cards.exportData");
@@ -31,6 +32,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: cards.importData");
@@ -175,6 +178,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateCardsLevels: function (
     sheetName,
     oldCardsLevel,
@@ -538,6 +543,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version10: function () {
     try {
       console.log("Called: cards.version10");
@@ -593,6 +600,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Get Cards Tracker
   getVersion10CardsTracker: function (oldCardsTrackerData) {
     try {
       console.log("Called: cards.getVersion10CardsTracker");
@@ -658,6 +667,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Get Cards Preset
   getVersion10CardsPreset: function (oldCardsPresetData) {
     try {
       console.log("Called: cards.getVersion10CardsPreset");
@@ -734,6 +745,8 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Get Cards Level
   getVersion10CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
     try {
       console.log("Called: cards.getVersion10CardsLevel");
@@ -774,12 +787,16 @@ const cards = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -798,4 +815,5 @@ const cards = {
 
     return null;
   },
+  // #endregion
 };

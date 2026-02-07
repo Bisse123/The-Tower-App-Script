@@ -1,4 +1,5 @@
 const bots = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: bots.exportData");
@@ -31,6 +32,8 @@ const bots = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: bots.importData");
@@ -182,6 +185,8 @@ const bots = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateBotLevels: function (
     sheetName,
     oldBots,
@@ -341,6 +346,8 @@ const bots = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version20: function () {
     try {
       console.log("Called: bots.version20");
@@ -425,6 +432,68 @@ const bots = {
     }
   },
 
+  // #endregion
+  // #region Get Bots
+  getVersion20Bots: function (oldBotLevelsData) {
+    try {
+      console.log("Called: bots.getVersion20Bots");
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+      ];
+
+      var oldBotLevels = oldBotLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldBots = {};
+      for (var row = 0; row < oldBotLevels.length; row++) {
+        var botName = oldBotLevels[row][0];
+        // Only proceed if botName is in targetBots
+        if (botName && targetBots.includes(botName)) {
+          var unlocked = oldBotLevels[row + 3][0];
+          var bot = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
+            var nextRowData = oldBotLevels[nextRow];
+            if (nextRow !== row && targetBots.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              bot.props[key] = value;
+            }
+          }
+          oldBots[botName] = bot;
+        }
+      }
+
+      return {
+        success: true,
+        message: "Bots processed successfully",
+        oldBots: oldBots,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20Bots: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20Bots: " + error.message,
+      };
+    }
+  },
+
   getVersion10Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion10Bots");
@@ -493,66 +562,8 @@ const bots = {
     }
   },
 
-  getVersion20Bots: function (oldBotLevelsData) {
-    try {
-      console.log("Called: bots.getVersion20Bots");
-      var targetBots = [
-        "Flame Bot",
-        "Thunder Bot",
-        "Golden Bot",
-        "Amplify Bot",
-      ];
-
-      var oldBotLevels = oldBotLevelsData.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-
-      var oldBots = {};
-      for (var row = 0; row < oldBotLevels.length; row++) {
-        var botName = oldBotLevels[row][0];
-        // Only proceed if botName is in targetBots
-        if (botName && targetBots.includes(botName)) {
-          var unlocked = oldBotLevels[row + 3][0];
-          var bot = {
-            unlocked: unlocked,
-            props: {},
-          };
-
-          for (nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
-            var nextRowData = oldBotLevels[nextRow];
-            if (nextRow !== row && targetBots.includes(nextRowData[0])) {
-              row = nextRow - 1;
-              break;
-            }
-            var key = nextRowData[2];
-            var value = nextRowData[4];
-            if (key && value) {
-              bot.props[key] = value;
-            }
-          }
-          oldBots[botName] = bot;
-        }
-      }
-
-      return {
-        success: true,
-        message: "Bots processed successfully",
-        oldBots: oldBots,
-      };
-    } catch (error) {
-      console.log("Error in getVersion20Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion20Bots: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
@@ -560,6 +571,8 @@ const bots = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -578,4 +591,5 @@ const bots = {
 
     return null;
   },
+  // #endregion
 };

@@ -1,4 +1,5 @@
 const collection = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: collection.exportData");
@@ -31,6 +32,8 @@ const collection = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: collection.importData");
@@ -1122,6 +1125,8 @@ const collection = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version135: function () {
     try {
       console.log("Called collection.version135");
@@ -4183,6 +4188,8 @@ const collection = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.3.5": this.version135.bind(this),
@@ -4196,6 +4203,8 @@ const collection = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -4214,4 +4223,5 @@ const collection = {
 
     return null;
   },
+  // #endregion
 };

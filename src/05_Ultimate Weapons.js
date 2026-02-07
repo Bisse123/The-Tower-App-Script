@@ -1,4 +1,5 @@
 const ultimate = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: ultimate.exportData");
@@ -31,6 +32,8 @@ const ultimate = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: ultimate.importData");
@@ -236,6 +239,8 @@ const ultimate = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateUltimateLevels: function (
     sheetName,
     oldUltimate,
@@ -600,6 +605,8 @@ const ultimate = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version20: function () {
     try {
       console.log("Called: ultimate.version20");
@@ -762,6 +769,72 @@ const ultimate = {
     }
   },
 
+  // #endregion
+  // #region Get Ultimate Weapons
+  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
+    try {
+      console.log("Called: ultimate.getVersion20UltimateWeapons");
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
+      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      var oldUltimate = {};
+      for (var row = 0; row < oldUltimateLevels.length; row++) {
+        var weaponName = oldUltimateLevels[row][0];
+        // Process only weapons that are in our targetWeapons list
+        if (weaponName && targetWeapons.includes(weaponName)) {
+          var unlocked = oldUltimateLevels[row + 2][0];
+          var weapon = {
+            unlocked: unlocked,
+            props: {},
+          };
+
+          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
+            var nextRowData = oldUltimateLevels[nextRow];
+            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            var value = nextRowData[4];
+            if (key && value) {
+              weapon.props[key] = value;
+            }
+          }
+          oldUltimate[weaponName] = weapon;
+        }
+      }
+
+      return {
+        success: true,
+        "Ultimate Weapon": oldUltimate,
+      };
+    } catch (error) {
+      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion20UltimateWeapons: " + error.message,
+      };
+    }
+  },
+
   getVersion10UltimateWeapons: function (oldUltimateDataValues) {
     try {
       console.log("Called: ultimate.getVersion10UltimateWeapons");
@@ -838,6 +911,8 @@ const ultimate = {
     }
   },
 
+  // #endregion
+  // #region Get Cost Calculator
   getVersion10CostCalculator: function (oldUltimateCostCalculatorValues) {
     try {
       console.log("Called: ultimate.getVersion10CostCalculator");
@@ -999,70 +1074,8 @@ const ultimate = {
     }
   },
 
-  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
-    try {
-      console.log("Called: ultimate.getVersion20UltimateWeapons");
-      var targetWeapons = [
-        "Chain Lightning",
-        "Smart Missiles",
-        "Death Wave",
-        "Chrono Field",
-        "Inner Land Mines",
-        "Golden Tower",
-        "Poison Swamp",
-        "Black Hole",
-        "Spotlight",
-      ];
-
-      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-
-      var oldUltimate = {};
-      for (var row = 0; row < oldUltimateLevels.length; row++) {
-        var weaponName = oldUltimateLevels[row][0];
-        // Process only weapons that are in our targetWeapons list
-        if (weaponName && targetWeapons.includes(weaponName)) {
-          var unlocked = oldUltimateLevels[row + 2][0];
-          var weapon = {
-            unlocked: unlocked,
-            props: {},
-          };
-
-          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
-            var nextRowData = oldUltimateLevels[nextRow];
-            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
-              row = nextRow - 1;
-              break;
-            }
-            var key = nextRowData[2];
-            var value = nextRowData[4];
-            if (key && value) {
-              weapon.props[key] = value;
-            }
-          }
-          oldUltimate[weaponName] = weapon;
-        }
-      }
-
-      return {
-        success: true,
-        "Ultimate Weapon": oldUltimate,
-      };
-    } catch (error) {
-      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion20UltimateWeapons: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
@@ -1070,6 +1083,8 @@ const ultimate = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: ultimate.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -1089,4 +1104,5 @@ const ultimate = {
 
     return null;
   },
+  // #endregion
 };

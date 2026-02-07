@@ -1,4 +1,5 @@
 const master = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: master.exportData");
@@ -31,6 +32,8 @@ const master = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: master.importData");
@@ -115,6 +118,8 @@ const master = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateIDSData: function (oldIDSValues, newIDSData) {
     try {
       console.log("Called: master.updateIDSData");
@@ -157,6 +162,8 @@ const master = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version20: function () {
     try {
       console.log("Called: master.version20");
@@ -204,6 +211,8 @@ const master = {
     }
   },
 
+  // #endregion
+  // #region Get IDS Data
   getVersion20IDSData: function (idsValues) {
     try {
       console.log("Called: master.getVersion20IDSData");
@@ -252,12 +261,16 @@ const master = {
     }
   },
 
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v2.0": this.version20.bind(this),
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: master.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -277,4 +290,5 @@ const master = {
 
     return null;
   },
+  // #endregion
 };

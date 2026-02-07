@@ -1,4 +1,5 @@
 const themes = {
+  // #region Export Functions
   exportData: function (versionDifference) {
     try {
       console.log("Called: themes.exportData");
@@ -31,6 +32,8 @@ const themes = {
     }
   },
 
+  // #endregion
+  // #region Import Functions
   importData: function (data) {
     try {
       console.log("Called: themes.importData");
@@ -134,6 +137,8 @@ const themes = {
     }
   },
 
+  // #endregion
+  // #region Update Functions
   updateThemes: function (sheetName, oldThemesNames, newThemesData) {
     try {
       console.log("Called: themes.updateThemes");
@@ -237,6 +242,8 @@ const themes = {
     }
   },
 
+  // #endregion
+  // #region Convert Versions
   version216: function () {
     try {
       console.log("Called: themes.version216");
@@ -295,6 +302,68 @@ const themes = {
       return {
         success: false,
         message: "Error in version10: " + error.message,
+      };
+    }
+  },
+
+  // #endregion
+  // #region Get Themes
+  getversion216Themes: function (oldThemesData) {
+    try {
+      console.log("Called: themes.getversion216Themes");
+      var targetThemes = [
+        "Tower Skin",
+        "Background Skin",
+        "Songs",
+        "Guardians",
+        "Menu",
+        "Profile Banner",
+        "Milestone Skin",
+      ];
+
+      var oldThemesNames = {};
+
+      targetThemes.forEach(function (header) {
+        oldThemesNames[header] = [];
+      });
+      var currentHeader = null;
+      var headerCol = -1;
+      // Loop through each column first, then rows
+      for (var col = 1; col < oldThemesData[1].length; col++) {
+        for (var row = 0; row < oldThemesData.length; row++) {
+          var oldThemeUnlocked = oldThemesData[row][col];
+          if (oldThemeUnlocked === "Auto-fill from Player and Stuff") {
+            oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
+            continue;
+          }
+          // If cell is a header
+          if (
+            targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
+          ) {
+            currentHeader = String(oldThemeUnlocked || "").trim();
+            headerCol = col;
+            continue;
+          }
+          var isThemeUnlocked =
+            oldThemeUnlocked === true ||
+            oldThemeUnlocked === "TRUE" ||
+            oldThemeUnlocked === "true";
+          if (currentHeader && col === headerCol && isThemeUnlocked) {
+            var oldThemeName = oldThemesData[row][col + 1];
+            oldThemesNames[currentHeader].push(oldThemeName);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        oldThemesNames: oldThemesNames,
+      };
+    } catch (error) {
+      console.log("Error in getversion216Themes: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getversion216Themes: " + error.message,
       };
     }
   },
@@ -358,66 +427,8 @@ const themes = {
     }
   },
 
-  getversion216Themes: function (oldThemesData) {
-    try {
-      console.log("Called: themes.getversion216Themes");
-      var targetThemes = [
-        "Tower Skin",
-        "Background Skin",
-        "Songs",
-        "Guardians",
-        "Menu",
-        "Profile Banner",
-        "Milestone Skin",
-      ];
-
-      var oldThemesNames = {};
-
-      targetThemes.forEach(function (header) {
-        oldThemesNames[header] = [];
-      });
-      var currentHeader = null;
-      var headerCol = -1;
-      // Loop through each column first, then rows
-      for (var col = 1; col < oldThemesData[1].length; col++) {
-        for (var row = 0; row < oldThemesData.length; row++) {
-          var oldThemeUnlocked = oldThemesData[row][col];
-          if (oldThemeUnlocked === "Auto-fill from Player and Stuff") {
-            oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
-            continue;
-          }
-          // If cell is a header
-          if (
-            targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
-          ) {
-            currentHeader = String(oldThemeUnlocked || "").trim();
-            headerCol = col;
-            continue;
-          }
-          var isThemeUnlocked =
-            oldThemeUnlocked === true ||
-            oldThemeUnlocked === "TRUE" ||
-            oldThemeUnlocked === "true";
-          if (currentHeader && col === headerCol && isThemeUnlocked) {
-            var oldThemeName = oldThemesData[row][col + 1];
-            oldThemesNames[currentHeader].push(oldThemeName);
-          }
-        }
-      }
-
-      return {
-        success: true,
-        oldThemesNames: oldThemesNames,
-      };
-    } catch (error) {
-      console.log("Error in getversion216Themes: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getversion216Themes: " + error.message,
-      };
-    }
-  },
-
+  // #endregion
+  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version10.bind(this),
@@ -425,6 +436,8 @@ const themes = {
     };
   },
 
+  // #endregion
+  // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -443,4 +456,5 @@ const themes = {
 
     return null;
   },
+  // #endregion
 };
