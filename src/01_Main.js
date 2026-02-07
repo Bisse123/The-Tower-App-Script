@@ -268,42 +268,18 @@ function showUpdateDialog() {
     var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     var oldSheetID = oldSpreadsheet.getId();
 
+    var sheetType = oldSpreadsheet
+    .getSheetByName("Home Page")
+    .getRange("B2")
+    .getValue();
+
     var eHP = oldSpreadsheet.getSheetByName("eHP");
     var eDamage = oldSpreadsheet.getSheetByName("eDamage");
     var eEcon = oldSpreadsheet.getSheetByName("eEcon");
-    var IDS = oldSpreadsheet.getSheetByName("IDS");
     if (eHP && eDamage && eEcon) {
       sheetType = "Effective Paths";
-      var sheetIDs = findSheetIDs(IDS, sheetType, "IDS Master's ID");
-      var idMasterID = sheetIDs.idMasterID;
-      console.log(
-        "Effective Paths detected, showing import dialog with limited parameters"
-      );
-      var template = HtmlService.createTemplateFromFile("20_WebApp");
-      template.newSheetID = "";
-      template.oldSheetID = oldSheetID;
-      template.idMasterID = idMasterID;
-      template.sheetType = sheetType;
-      template.API_KEY =
-        PropertiesService.getScriptProperties().getProperty("API_KEY");
-      template.APP_ID =
-        PropertiesService.getScriptProperties().getProperty("APP_ID");
-      template.viewType = "sidebar";
-      template.accessRequired = false;
-
-      var html = template
-        .evaluate()
-        .addMetaTag("viewport", "width=device-width, initial-scale=1")
-        .setTitle("Import Data - Effective Paths");
-      SpreadsheetApp.getUi().showSidebar(html);
-      return;
     }
-
-    var sheetType = oldSpreadsheet
-      .getSheetByName("Home Page")
-      .getRange("B2")
-      .getValue();
-
+    
     // Special case for IDS Master
     if (sheetType === "IDS Master") {
       console.log(
@@ -325,10 +301,11 @@ function showUpdateDialog() {
       var html = template
         .evaluate()
         .addMetaTag("viewport", "width=device-width, initial-scale=1")
-        .setTitle("Import Data - IDS Master");
+        .setTitle("Import Data");
       SpreadsheetApp.getUi().showSidebar(html);
       return;
     }
+    
     if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
       sheetType = "IDS Collection";
     }

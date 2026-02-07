@@ -1790,12 +1790,12 @@
         importButton.style.display = "none";
         updateButton.style.display = "none";
         updateSingleSheetButton.style.display = "none";
-      } else if (sheetType === "Effective Paths") {
+      } else if (!newSheetID && oldSheetID && sheetType) {
         // We have access to all required files - show updateSingleSheetButton
-        setStatusText(`Ready to update Effective Paths.`);
+        setStatusText(`Ready to update ${sheetType}.`);
         updateSingleSheetButton.style.display = "inline-block";
         updateSingleSheetButton.disabled = false;
-        updateSingleSheetButton.innerText = `Update Effective Paths`;
+        updateSingleSheetButton.innerText = `Update ${sheetType}`;
         importButton.style.display = "none";
         updateButton.style.display = "none";
         copyButton.style.display = "none";

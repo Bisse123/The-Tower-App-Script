@@ -476,7 +476,6 @@ const cards = {
         };
       }
 
-      console.log("OLD:", JSON.stringify(oldCardsTracker));
       var batchUpdate = [];
       for (var i = 0; i < cardTrackerData.length; i++) {
         var row = cardTrackerData[i];
@@ -521,7 +520,6 @@ const cards = {
           break;
         }
       }
-      console.log("BATCH:", JSON.stringify(batchUpdate));
       if (batchUpdate.length !== 0) {
         return {
           success: true,
