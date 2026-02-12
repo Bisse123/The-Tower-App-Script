@@ -260,14 +260,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eRegenLabCost")) {
           var eRegenLabCostValue = oldData.eRegenLabCost;
           batchUpdate.push({
-            range: `${sheetName}!AA3`,
+            range: `${sheetName}!AH3`,
             values: [[eRegenLabCostValue]],
           });
         }
         if (oldData.hasOwnProperty("eRegenRunningTime")) {
           var eRegenRunningTimeValue = oldData.eRegenRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!AA5`,
+            range: `${sheetName}!AH5`,
             values: [[eRegenRunningTimeValue]],
           });
         }
