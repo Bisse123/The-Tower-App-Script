@@ -571,16 +571,6 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
-  get convertVersionFunctions() {
-    return {
-      "v1.0": this.version10.bind(this),
-      "v2.1": this.version21.bind(this),
-      "v2.2": this.version22.bind(this),
-    };
-  },
-
   getVersion10Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion10Guardians");
@@ -638,6 +628,16 @@ const guardians = {
         message: "Error in getVersion10Guardians: " + error.message,
       };
     }
+  },
+
+  // #endregion
+  // #region Convert Version Functions Getter
+  get convertVersionFunctions() {
+    return {
+      "v1.0": this.version10.bind(this),
+      "v2.1": this.version21.bind(this),
+      "v2.2": this.version22.bind(this),
+    };
   },
 
   // #endregion
