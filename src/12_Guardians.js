@@ -193,7 +193,7 @@ const guardians = {
   ) {
     try {
       console.log("Called: guardians.updateGuardianLevels");
-      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon", "Scout"];
       if (!masterSheetData || masterSheetData.length < 2) {
         return {
           success: false,
@@ -458,7 +458,7 @@ const guardians = {
   getVersion22Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion22Guardians");
-      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon"];
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon", "Scout"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
           (cell) =>
