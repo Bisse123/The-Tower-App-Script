@@ -74,6 +74,11 @@ const guardians = {
           Duration: "DVT_GAR_UG_SU_DUR",
           "Cash Bonus": "DVT_GAR_UG_SU_CAS",
         },
+        Scout: {
+          Cooldown: "DVT_GAR_UG_SC_COO",
+          "Range Bonus": "DVT_GAR_UG_SC_RAN",
+          Duration: "DVT_GAR_UG_SC_DUR",
+        },
       };
 
       Object.keys(dvtNamedRanges).forEach(function (guardian) {
