@@ -204,7 +204,7 @@ const collection = {
             sheetName: "Modules Tracker",
             range: "Modules Tracker",
           },
-          Guardian_MS: { sheetName: "Guardian_MS", range: "Guardian_MS" },
+          Guardians_MS: { sheetName: "Guardians_MS", range: "Guardians_MS" },
           player_MS: { sheetName: "player_MS", range: "player_MS" },
         },
         formulas: {
@@ -942,7 +942,7 @@ const collection = {
       if (data.Guardians) {
         try {
           var guardiansData = data.Guardians;
-          var guardiansMasterSheetData = getRangeData("Guardian_MS", "values");
+          var guardiansMasterSheetData = getRangeData("Guardians_MS", "values");
           var guardiansDVTData = buildDVTNamedRangesData(
             dvtNamedRangesGuardians,
           );
@@ -955,7 +955,7 @@ const collection = {
             guardiansDVTData
           ) {
             guardiansResult = guardians.updateGuardianLevels(
-              sheetRequiredRanges.values["Guardian_MS"].sheetName,
+              sheetRequiredRanges.values["Guardians_MS"].sheetName,
               guardiansData.oldGuardians,
               guardiansMasterSheetData,
               guardiansDVTData,
