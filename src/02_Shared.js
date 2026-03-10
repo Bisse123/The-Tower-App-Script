@@ -752,6 +752,21 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
       `Updating file name from "${oldFile.name}" to "${newFileName}"`
     );
 
+    parents = {};
+    if (typeof(oldFile.parents) == "undefined") {
+      console.log(`Could not find old file location.`);
+      return {
+        success: false,
+        message: `Could not find old file location.`,
+      };
+    }
+
+    parents["addParents"] = oldFile.parents.join(",");
+    
+    if (typeof(newFile.parents) != "undefined") {
+      parents["removeParents"] = newFile.parents.join(",");
+    }
+
     try {
       Drive.Files.update(
         {
@@ -759,10 +774,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
         },
         newSheetID,
         null,
-        {
-          addParents: oldFile.parents.join(","),
-          removeParents: newFile.parents.join(","),
-        }
+        parents
       );
     } catch (error) {
       console.log(`Error moving new sheet: ${error.toString()}`);
