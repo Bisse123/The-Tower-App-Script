@@ -746,7 +746,7 @@ const lab = {
 
             var lastNonEmptyRow = -1;
             for (var i = rowIndex + 3; i < oldLabPlannerFormulas.length; i++) {
-              if (oldLabPlannerFormulas[i][colIndex].trim() === "") {
+              if (!oldLabPlannerFormulas[i][colIndex] || oldLabPlannerFormulas[i][colIndex].trim() === "") {
                 break;
               }
 
