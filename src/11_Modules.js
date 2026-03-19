@@ -85,7 +85,7 @@ const modules = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -106,7 +106,7 @@ const modules = {
         var inventoryResult = this.updateModulesInventory(
           "Inventory",
           oldModulesInventory,
-          newModuleInventoryValues
+          newModuleInventoryValues,
         );
         if (!inventoryResult || !inventoryResult.success) {
           return {
@@ -124,7 +124,7 @@ const modules = {
           "Presets",
           oldModulesPresets,
           newModulePresetsValues,
-          dvtNamedRangesData
+          dvtNamedRangesData,
         );
         if (!presetsResult || !presetsResult.success) {
           return {
@@ -141,7 +141,7 @@ const modules = {
         var trackerResult = this.updateModulesTracker(
           "Tracker",
           oldModulesTracker,
-          newModulesTrackerValues
+          newModulesTrackerValues,
         );
         if (!trackerResult || !trackerResult.success) {
           return {
@@ -166,7 +166,7 @@ const modules = {
         "Modules",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -200,7 +200,7 @@ const modules = {
     sheetName,
     oldModulesPresets,
     newModulePresetsValues,
-    dvtNamedRangesData
+    dvtNamedRangesData,
   ) {
     try {
       console.log("Called: modules.updateModulesPresets");
@@ -214,7 +214,7 @@ const modules = {
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var newModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        newModulePresetsValues
+        newModulePresetsValues,
       );
       var batchUpdate = [];
       targetModuleTypes.forEach(function (moduleType) {
@@ -222,74 +222,74 @@ const modules = {
           var rowIdx = newModuleTypeIndex[moduleType] + 1;
           if (typeof rowIdx === "undefined") return;
           var row = newModulePresetsValues[rowIdx];
-          Object.keys(oldModulesPresets[moduleType]).forEach(function (
-            presetName
-          ) {
-            var presetCol = row.indexOf(presetName);
-            if (presetCol !== -1) {
-              if (presetName === "Assist Slot") {
-                var lockedRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 3
-                )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
-                  rowIdx + 1
-                }`;
-                var lockedValues = [
-                  [oldModulesPresets[moduleType][presetName].locked || ""],
-                ];
-                var rarityRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 2
-                )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
-                  rowIdx + 2
-                }`;
-                var rarityValues = [
-                  [oldModulesPresets[moduleType][presetName].rarity || ""],
-                ];
-                var multiSubRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 3
-                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
-                  rowIdx + 4
-                }`;
+          Object.keys(oldModulesPresets[moduleType]).forEach(
+            function (presetName) {
+              var presetCol = row.indexOf(presetName);
+              if (presetCol !== -1) {
+                if (presetName === "Assist Slot") {
+                  var lockedRange = `${sheetName}!${shared.columnToLetter(
+                    presetCol + 3,
+                  )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
+                    rowIdx + 1
+                  }`;
+                  var lockedValues = [
+                    [oldModulesPresets[moduleType][presetName].locked || ""],
+                  ];
+                  var rarityRange = `${sheetName}!${shared.columnToLetter(
+                    presetCol + 2,
+                  )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
+                    rowIdx + 2
+                  }`;
+                  var rarityValues = [
+                    [oldModulesPresets[moduleType][presetName].rarity || ""],
+                  ];
+                  var multiSubRange = `${sheetName}!${shared.columnToLetter(
+                    presetCol + 3,
+                  )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
+                    rowIdx + 4
+                  }`;
 
-                // Transform values using DVT
-                var dvtMultiplier = shared.getDVTValue(
-                  oldModulesPresets[moduleType][presetName].multiplier || "",
-                  dvtNamedRangesData["Assist Level"]
-                );
-                var dvtSubstat = shared.getDVTValue(
-                  oldModulesPresets[moduleType][presetName].substat || "",
-                  dvtNamedRangesData["Assist Level"]
-                );
+                  // Transform values using DVT
+                  var dvtMultiplier = shared.getDVTValue(
+                    oldModulesPresets[moduleType][presetName].multiplier || "",
+                    dvtNamedRangesData["Assist Level"],
+                  );
+                  var dvtSubstat = shared.getDVTValue(
+                    oldModulesPresets[moduleType][presetName].substat || "",
+                    dvtNamedRangesData["Assist Level"],
+                  );
 
-                var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
-                batchUpdate.push({
-                  range: lockedRange,
-                  values: lockedValues,
-                });
-                batchUpdate.push({
-                  range: rarityRange,
-                  values: rarityValues,
-                });
-                batchUpdate.push({
-                  range: multiSubRange,
-                  values: multiSubValues,
-                });
-              } else {
-                var range = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 2
-                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
-                  rowIdx + 4
-                }`;
-                var values = [
-                  [oldModulesPresets[moduleType][presetName].primary || ""],
-                  [oldModulesPresets[moduleType][presetName].secondary || ""],
-                ];
-                batchUpdate.push({
-                  range: range,
-                  values: values,
-                });
+                  var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
+                  batchUpdate.push({
+                    range: lockedRange,
+                    values: lockedValues,
+                  });
+                  batchUpdate.push({
+                    range: rarityRange,
+                    values: rarityValues,
+                  });
+                  batchUpdate.push({
+                    range: multiSubRange,
+                    values: multiSubValues,
+                  });
+                } else {
+                  var range = `${sheetName}!${shared.columnToLetter(
+                    presetCol + 2,
+                  )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
+                    rowIdx + 4
+                  }`;
+                  var values = [
+                    [oldModulesPresets[moduleType][presetName].primary || ""],
+                    [oldModulesPresets[moduleType][presetName].secondary || ""],
+                  ];
+                  batchUpdate.push({
+                    range: range,
+                    values: values,
+                  });
+                }
               }
-            }
-          });
+            },
+          );
         }
       });
       if (batchUpdate.length > 0) {
@@ -315,7 +315,7 @@ const modules = {
   updateModulesInventory: function (
     sheetName,
     oldModulesInventory,
-    newModuleInventoryValues
+    newModuleInventoryValues,
   ) {
     try {
       console.log("Called: modules.updateModulesInventory");
@@ -329,7 +329,7 @@ const modules = {
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var newModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        newModuleInventoryValues
+        newModuleInventoryValues,
       );
       var batchUpdate = [];
       var usedSpares = {};
@@ -430,7 +430,7 @@ const modules = {
   updateModulesTracker: function (
     sheetName,
     oldModulesTracker,
-    newModulesTrackerValues
+    newModulesTrackerValues,
   ) {
     try {
       console.log("Called: modules.updateModulesTracker");
@@ -476,39 +476,48 @@ const modules = {
           }
         }
 
-        if (oldModulesTracker.hasOwnProperty("summary") && rowData.some(cell => String(cell).toLowerCase().includes("summary"))) {
-          rowData.forEach(function(cell, idx) {
-              targetModuleTypes.forEach(function(type) {
-                if (oldModulesTracker["summary"].hasOwnProperty(type) &&
-                  String(cell).toLowerCase().includes(type) &&
-                  String(cell).toLowerCase().includes("summary")) {
-                    var summaryData = oldModulesTracker["summary"][type];
-                    for (var rowIdx = row + 2; rowIdx < newModulesTrackerValues.length; rowIdx++) {
-                      var summaryRowData = newModulesTrackerValues[rowIdx];
-                      var summaryModuleName = summaryRowData[idx] || null;
-                      if (summaryModuleName.toLowerCase().includes("total")) {
-                        break;
-                      }
-                      if (summaryData.hasOwnProperty(summaryModuleName)) {
-                        var summaryModuleCount = summaryData[summaryModuleName];
-                        batchUpdate.push({
-                          range: `${sheetName}!${shared.columnToLetter(idx + 2)}${rowIdx + 1}`,
-                          values: [[summaryModuleCount]],
-                        });
-                      }
-                    }  
+        if (
+          oldModulesTracker.hasOwnProperty("summary") &&
+          rowData.some((cell) => String(cell).toLowerCase().includes("summary"))
+        ) {
+          rowData.forEach(function (cell, idx) {
+            targetModuleTypes.forEach(function (type) {
+              if (
+                oldModulesTracker["summary"].hasOwnProperty(type) &&
+                String(cell).toLowerCase().includes(type) &&
+                String(cell).toLowerCase().includes("summary")
+              ) {
+                var summaryData = oldModulesTracker["summary"][type];
+                for (
+                  var rowIdx = row + 2;
+                  rowIdx < newModulesTrackerValues.length;
+                  rowIdx++
+                ) {
+                  var summaryRowData = newModulesTrackerValues[rowIdx];
+                  var summaryModuleName = summaryRowData[idx] || null;
+                  if (summaryModuleName.toLowerCase().includes("total")) {
+                    break;
                   }
-              });
+                  if (summaryData.hasOwnProperty(summaryModuleName)) {
+                    var summaryModuleCount = summaryData[summaryModuleName];
+                    batchUpdate.push({
+                      range: `${sheetName}!${shared.columnToLetter(idx + 2)}${rowIdx + 1}`,
+                      values: [[summaryModuleCount]],
+                    });
+                  }
+                }
+              }
+            });
           });
         }
 
         var colIdx = rowData.findIndex(
           (cell) =>
             targetModuleTypes.some((type) =>
-              String(cell).toLowerCase().includes(type)
+              String(cell).toLowerCase().includes(type),
             ) &&
             !String(cell).toLowerCase().includes("summary") &&
-            !String(cell).toLowerCase().includes("quantity")
+            !String(cell).toLowerCase().includes("quantity"),
         );
         if (colIdx === -1) {
           continue;
@@ -531,17 +540,27 @@ const modules = {
             var endRow =
               startRow + oldModulesTracker[targetModule][moduleName].length - 1;
             var range = `${sheetName}!${shared.columnToLetter(
-              rangeCol
+              rangeCol,
             )}${startRow}:${shared.columnToLetter(rangeCol)}${endRow}`;
             var values = oldModulesTracker[targetModule][moduleName].map(
               function (copy) {
                 return [copy || null];
-              }
+              },
             );
             batchUpdate.push({
               range: range,
               values: values,
             });
+            if (oldModulesTracker[targetModule].hasOwnProperty(moduleName + " Shattered")){
+              var shatteredRow = row + 9;
+              var shatteredCol = col + 3;
+              var shatteredRange = `${sheetName}!${shared.columnToLetter(shatteredCol)}${shatteredRow}`;
+              var shatteredValue = [[oldModulesTracker[targetModule][moduleName + " Shattered"] || null]];
+              batchUpdate.push({
+                range: shatteredRange,
+                values: shatteredValue,
+              });
+            }
           }
         }
       }
@@ -615,7 +634,10 @@ const modules = {
       var oldModulesTrackerValues = batchResult[2].values;
 
       var formulaRanges = ["Tracker"];
-      var formulaBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulaRanges);
+      var formulaBatchResult = SheetsAPI.batchGetFormulas(
+        oldSheetID,
+        formulaRanges,
+      );
       if (!formulaBatchResult || formulaBatchResult.length === 0) {
         console.log("Could not read module formulas from old spreadsheet");
         return {
@@ -626,14 +648,14 @@ const modules = {
       var oldModulesTrackerFormulas = formulaBatchResult[0].values;
 
       var inventoryData = this.getVersion50ModulesInventory(
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
       var presetsData = this.getVersion50ModulesPresets(
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
       var trackerData = this.getVersion47ModulesTracker(
         oldModulesTrackerValues,
-        oldModulesTrackerFormulas
+        oldModulesTrackerFormulas,
       );
 
       var success =
@@ -679,7 +701,10 @@ const modules = {
       var oldModulesTrackerValues = batchResult[2].values;
 
       var formulaRanges = ["Tracker"];
-      var formulaBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulaRanges);
+      var formulaBatchResult = SheetsAPI.batchGetFormulas(
+        oldSheetID,
+        formulaRanges,
+      );
       if (!formulaBatchResult || formulaBatchResult.length === 0) {
         console.log("Could not read module formulas from old spreadsheet");
         return {
@@ -690,14 +715,14 @@ const modules = {
       var oldModulesTrackerFormulas = formulaBatchResult[0].formulas;
 
       var inventoryData = this.getVersion50ModulesInventory(
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
       var presetsData = this.getVersion50ModulesPresets(
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
       var trackerData = this.getVersion47ModulesTracker(
         oldModulesTrackerValues,
-        oldModulesTrackerFormulas
+        oldModulesTrackerFormulas,
       );
 
       var success =
@@ -743,7 +768,10 @@ const modules = {
       var oldModulesTrackerValues = batchResult[2].values;
 
       var formulaRanges = ["Tracker"];
-      var formulaBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, formulaRanges);
+      var formulaBatchResult = SheetsAPI.batchGetFormulas(
+        oldSheetID,
+        formulaRanges,
+      );
       if (!formulaBatchResult || formulaBatchResult.length === 0) {
         console.log("Could not read module formulas from old spreadsheet");
         return {
@@ -754,14 +782,14 @@ const modules = {
       var oldModulesTrackerFormulas = formulaBatchResult[0].formulas;
 
       var inventoryData = this.getVersion40ModulesInventory(
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
       var presetsData = this.getVersion40ModulesPresets(
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
       var trackerData = this.getVersion47ModulesTracker(
         oldModulesTrackerValues,
-        oldModulesTrackerFormulas
+        oldModulesTrackerFormulas,
       );
 
       var success =
@@ -806,10 +834,10 @@ const modules = {
       var oldModulesPresetsValues = batchResult[1].values;
 
       var inventoryData = this.getVersion40ModulesInventory(
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
       var presetsData = this.getVersion40ModulesPresets(
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
 
       var success = inventoryData.success && presetsData.success;
@@ -839,7 +867,7 @@ const modules = {
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
 
       var oldModulesInventory = {};
@@ -884,7 +912,7 @@ const modules = {
                   substatRow ? substatRow[col + 1] : "",
                 ];
                 oldModulesInventory[moduleType][moduleName]["substats"].push(
-                  substatData
+                  substatData,
                 );
               }
             }
@@ -911,7 +939,7 @@ const modules = {
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        oldModulesInventoryValues
+        oldModulesInventoryValues,
       );
 
       var oldModulesInventory = {};
@@ -957,7 +985,7 @@ const modules = {
                   substatRow ? substatRow[col + 1] : "",
                 ];
                 oldModulesInventory[moduleType][moduleName]["substats"].push(
-                  substatData
+                  substatData,
                 );
               }
             }
@@ -978,15 +1006,15 @@ const modules = {
     }
   },
 
-// #endregion
-// #region Get Modules Presets
+  // #endregion
+  // #region Get Modules Presets
   getVersion50ModulesPresets: function (oldModulesPresetsValues) {
     try {
       console.log("Called: modules.getVersion50ModulesPresets");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
 
       var oldModulesPresets = {};
@@ -1018,13 +1046,13 @@ const modules = {
           var assistLocked = oldModulesPresetsValues[rowIdx][assistSlotCol + 2];
 
           var assistRarity = String(
-            oldModulesPresetsValues[rowIdx + 1][assistSlotCol + 1]
+            oldModulesPresetsValues[rowIdx + 1][assistSlotCol + 1],
           ).trim();
           var assistMultiplier = String(
-            oldModulesPresetsValues[rowIdx + 2][assistSlotCol + 2]
+            oldModulesPresetsValues[rowIdx + 2][assistSlotCol + 2],
           ).trim();
           var assistSubstat = String(
-            oldModulesPresetsValues[rowIdx + 3][assistSlotCol + 2]
+            oldModulesPresetsValues[rowIdx + 3][assistSlotCol + 2],
           ).trim();
           oldModulesPresets[moduleType]["Assist Slot"] = {
             locked: assistLocked,
@@ -1054,7 +1082,7 @@ const modules = {
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
-        oldModulesPresetsValues
+        oldModulesPresetsValues,
       );
 
       var oldModulesPresets = {};
@@ -1066,10 +1094,10 @@ const modules = {
         for (var col = 0; col < row.length; col++) {
           if (String(row[col]).trim() === "Module Name") {
             var presetName = String(
-              oldModulesPresetsValues[rowIdx - 1][col]
+              oldModulesPresetsValues[rowIdx - 1][col],
             ).trim();
             var moduleName = String(
-              oldModulesPresetsValues[rowIdx + 1][col]
+              oldModulesPresetsValues[rowIdx + 1][col],
             ).trim();
             if (presetName && moduleName) {
               oldModulesPresets[moduleType][presetName] = {
@@ -1094,9 +1122,12 @@ const modules = {
     }
   },
 
-// #endregion
-// #region Get Modules Tracker
-  getVersion47ModulesTracker: function (oldModulesTrackerValues, oldModulesTrackerFormulas) {
+  // #endregion
+  // #region Get Modules Tracker
+  getVersion47ModulesTracker: function (
+    oldModulesTrackerValues,
+    oldModulesTrackerFormulas,
+  ) {
     try {
       console.log("Called: modules.getVersion47ModulesTracker");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
@@ -1123,42 +1154,53 @@ const modules = {
           }
         }
 
-        if (rowData.some(cell => String(cell).toLowerCase().includes("summary"))) {
-          rowData.forEach(function(cell, idx) {
-              targetModuleTypes.forEach(function(type) {
-                if (String(cell).toLowerCase().includes(type) &&
-                 String(cell).toLowerCase().includes("summary")) {
-                  for (var rowIdx = row + 2; rowIdx < oldModulesTrackerFormulas.length; rowIdx++) {
-                    var summaryRowData = oldModulesTrackerFormulas[rowIdx];
-                    var summaryModuleName = summaryRowData[idx] || null;
-                    var summaryModuleCount = summaryRowData[idx + 1] || null;
-                    if (summaryModuleName.toLowerCase().includes("total")) {
-                      break;
+        if (
+          rowData.some((cell) => String(cell).toLowerCase().includes("summary"))
+        ) {
+          rowData.forEach(function (cell, idx) {
+            targetModuleTypes.forEach(function (type) {
+              if (
+                String(cell).toLowerCase().includes(type) &&
+                String(cell).toLowerCase().includes("summary")
+              ) {
+                for (
+                  var rowIdx = row + 2;
+                  rowIdx < oldModulesTrackerFormulas.length;
+                  rowIdx++
+                ) {
+                  var summaryRowData = oldModulesTrackerFormulas[rowIdx];
+                  var summaryModuleName = summaryRowData[idx] || null;
+                  var summaryModuleCount = summaryRowData[idx + 1] || null;
+                  if (summaryModuleName.toLowerCase().includes("total")) {
+                    break;
+                  }
+                  if (
+                    summaryModuleName &&
+                    !String(summaryModuleCount).trim().startsWith("=")
+                  ) {
+                    if (!oldModulesTracker["summary"]) {
+                      oldModulesTracker["summary"] = {};
                     }
-                    if (summaryModuleName && !String(summaryModuleCount).trim().startsWith("=")) {
-                      if (!oldModulesTracker["summary"]) {
-                        oldModulesTracker["summary"] = {}
-                      }
-                      if (!oldModulesTracker["summary"][type]) {
-                        oldModulesTracker["summary"][type] = {};
-                      }
-                      oldModulesTracker["summary"][type][summaryModuleName] = summaryModuleCount;
+                    if (!oldModulesTracker["summary"][type]) {
+                      oldModulesTracker["summary"][type] = {};
                     }
+                    oldModulesTracker["summary"][type][summaryModuleName] =
+                      summaryModuleCount;
                   }
                 }
-              });
-            }
-          );
+              }
+            });
+          });
         }
 
         var colIdx = rowData.findIndex(
           (cell) =>
             targetModuleTypes.some((type) =>
-              String(cell).toLowerCase().includes(type)
+              String(cell).toLowerCase().includes(type),
             ) &&
             !String(cell).toLowerCase().includes("summary") &&
             !String(cell).toLowerCase().includes("quantity") &&
-            !String(cell).toLowerCase().includes("score")
+            !String(cell).toLowerCase().includes("score"),
         );
         if (colIdx === -1) {
           continue;
@@ -1181,6 +1223,10 @@ const modules = {
 
               var copy = subRowData[col + 1] || null;
               oldModulesTracker[targetModule][moduleName].push(copy);
+            }
+            
+            if (oldModulesTrackerValues[row + 8][col] === "Shattered epic") {
+              oldModulesTracker[targetModule][moduleName + " Shattered"] = oldModulesTrackerValues[row + 8][col + 2] || null;
             }
           } else if (moduleName === "Fodders") {
             if (!oldModulesTracker[targetModule]) {
