@@ -163,12 +163,14 @@ const playerStuff = {
       var headerRow = masterSheetData[0] || [];
       var statCol = headerRow.indexOf("Stat");
       var tierCol = headerRow.indexOf("Tier");
+      var dissCol = headerRow.indexOf("Dissonant Runs");
+      var passCol = headerRow.indexOf("Pass");
 
-      if (statCol === -1 || tierCol === -1) {
-        console.log(`Stat or Tier column not found in master sheet`);
+      if (statCol === -1 || tierCol === -1 || passCol === -1 || dissCol === -1) {
+        console.log(`Stat, Tier, Pass, or Dissonant Runs column not found in master sheet`);
         return {
           success: false,
-          message: "Stat or Tier column not found in master sheet",
+          message: "Stat, Tier, Pass, or Dissonant Runs column not found in master sheet",
         };
       }
       var header = headerRow[statCol] || "";
@@ -176,6 +178,7 @@ const playerStuff = {
       var values = {
         Stat: [],
         Tier: [],
+        Pass: [],
         "Premium Packs": [],
       };
       for (var row = 1; row < masterSheetData.length; row++) {
@@ -189,7 +192,24 @@ const playerStuff = {
         if (oldPlayerTierData && oldPlayerTierData[tierValue]) {
           var wave = oldPlayerTierData[tierValue].wave || "";
           var premium = oldPlayerTierData[tierValue].premium || "";
-          values["Tier"].push([wave, premium]);
+          values.Tier.push([wave]);
+          values.Pass.push([premium]);
+          if (oldPlayerTierData[tierValue].diss) {
+
+            var dissAttack = oldPlayerTierData[tierValue].diss.Attack || "";
+            var dissDefense = oldPlayerTierData[tierValue].diss.Defense || "";
+            var dissUtility = oldPlayerTierData[tierValue].diss.Utility || "";
+            var dissUltimate = oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || "";
+            values.dissAttack = values.dissAttack || [];
+            values.dissDefense = values.dissDefense || [];
+            values.dissUtility = values.dissUtility || [];
+            values.dissUltimate = values.dissUltimate || [];
+            values.dissAttack.push([dissAttack]);
+            values.dissDefense.push([dissDefense]);
+            values.dissUtility.push([dissUtility]);
+            values.dissUltimate.push([dissUltimate]);
+          }
+
         }
 
         if (!statName) {
@@ -211,20 +231,47 @@ const playerStuff = {
       }
 
       var statColLetter = shared.columnToLetter(statCol + 2);
-      var tierStartColLetter = shared.columnToLetter(tierCol + 2);
-      var tierEndColLetter = shared.columnToLetter(tierCol + 3);
+      var tierColLetter = shared.columnToLetter(tierCol + 2);
+      var dissAttackColLetter = shared.columnToLetter(dissCol + 1);
+      var dissDefenseColLetter = shared.columnToLetter(dissCol + 3);
+      var dissUtilityColLetter = shared.columnToLetter(dissCol + 5);
+      var dissUltimateColLetter = shared.columnToLetter(dissCol + 7);
+      var passColLetter = shared.columnToLetter(passCol + 1);
       var batchUpdate = [];
       var ranges = {
         Stat: `${sheetName}!${statColLetter}2:${statColLetter}${
           2 + values.Stat.length - 1
         }`,
-        Tier: `${sheetName}!${tierStartColLetter}2:${tierEndColLetter}${
+        Tier: `${sheetName}!${tierColLetter}2:${tierColLetter}${
           2 + values.Tier.length - 1
+        }`,
+        Pass: `${sheetName}!${passColLetter}2:${passColLetter}${
+          2 + values.Pass.length - 1
         }`,
         "Premium Packs": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${
           perkRow + values["Premium Packs"].length - 1
         }`,
       };
+      if (values.dissAttack && values.dissAttack.length > 0) {
+        ranges.dissAttack = `${sheetName}!${dissAttackColLetter}2:${dissAttackColLetter}${
+          2 + values.dissAttack.length - 1
+        }`;
+      }
+      if (values.dissDefense && values.dissDefense.length > 0) {
+        ranges.dissDefense = `${sheetName}!${dissDefenseColLetter}2:${dissDefenseColLetter}${
+          2 + values.dissDefense.length - 1
+        }`;
+      }
+      if (values.dissUtility && values.dissUtility.length > 0) {
+        ranges.dissUtility = `${sheetName}!${dissUtilityColLetter}2:${dissUtilityColLetter}${
+          2 + values.dissUtility.length - 1
+        }`;
+      }
+      if (values.dissUltimate && values.dissUltimate.length > 0) {
+        ranges.dissUltimate = `${sheetName}!${dissUltimateColLetter}2:${dissUltimateColLetter}${
+          2 + values.dissUltimate.length - 1
+        }`;
+      }
       for (var key in values) {
         if (values[key].length > 0) {
           batchUpdate.push({
@@ -256,6 +303,56 @@ const playerStuff = {
 
   // #endregion
   // #region Convert Versions
+  version40: function () {
+    try {
+      console.log("Called: playerStuff.version40");
+      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+      var tierRange = "EXPORT!B3:H";
+      var statsRange = "EXPORT!J3:K";
+      var ranges = [tierRange, statsRange];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+      if (!batchResult || batchResult.length === 0) {
+        console.log(`Could not read old player & stuff data`);
+        return {
+          success: false,
+          message: `Could not read old player & stuff data`,
+        };
+      }
+      var oldPlayerStuffTierValues = batchResult[0].values;
+      var oldPlayerStuffStatsValues = batchResult[1].values;
+      var tierDataResult = this.getVersion40PlayerStuffTiers(
+        oldPlayerStuffTierValues
+      );
+      var statsDataResult = this.getVersion32PlayerStuffStats(
+        oldPlayerStuffStatsValues
+      );
+      success = tierDataResult.success && statsDataResult.success;
+      return {
+        success: success,
+        message: success
+          ? "Player & Stuff processed successfully"
+          : "Error processing Player & Stuff data",
+        oldPlayerStuffTierData: tierDataResult.oldPlayerStuffTierData,
+        oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
+      };
+    } catch (error) {
+      console.log("Error in version40: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version40: " + error.message,
+      };
+    }
+  },
+
   version32: function () {
     try {
       console.log("Called: playerStuff.version32");
@@ -358,6 +455,55 @@ const playerStuff = {
 
   // #endregion
   // #region Get PlayerStuff Tiers
+  getVersion40PlayerStuffTiers: function (oldPlayerStuffTierValues) {
+    try {
+      console.log("Called: playerStuff.getVersion40PlayerStuffTiers");
+
+      if (!oldPlayerStuffTierValues || oldPlayerStuffTierValues.length === 0) {
+        console.log(`No data found in old player & stuff tier data`);
+        return {
+          success: false,
+          message: "No data found in old player & stuff tier data",
+        };
+      }
+      var oldPlayerStuffTierData = {};
+      for (var row = 0; row < oldPlayerStuffTierValues.length; row++) {
+        var rowData = oldPlayerStuffTierValues[row];
+        var tier = rowData[0] || "";
+        var wave = rowData[1] || "";
+        var dissAttack = rowData[2] || "";
+        var dissDefense = rowData[3] || "";
+        var dissUtility = rowData[4] || "";
+        var dissUltimate = rowData[5] || "";
+        var premium = rowData[6] || "";
+        if (tier) {
+          oldPlayerStuffTierData[tier] = {
+            wave: wave,
+            diss: {
+              Attack: dissAttack,
+              Defense: dissDefense,
+              Utility: dissUtility,
+              "Ultimate Weapon": dissUltimate,
+            },
+            premium: premium,
+          };
+        }
+      }
+
+      return {
+        success: true,
+        message: "Player & Stuff tier processed successfully",
+        oldPlayerStuffTierData: oldPlayerStuffTierData,
+      };
+    } catch (error) {
+      console.log("Error in getVersion40PlayerStuffTiers: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion40PlayerStuffTiers: " + error.message,
+      };
+    }
+  },
+
   getVersion20PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
       console.log("Called: playerStuff.getversion20PlayerStuffTiers");
@@ -497,6 +643,7 @@ const playerStuff = {
     return {
       "v2.0": this.version20.bind(this),
       "v3.2": this.version32.bind(this),
+      "v4.0": this.version40.bind(this),
     };
   },
 
