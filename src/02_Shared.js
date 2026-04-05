@@ -1,6 +1,388 @@
+// Cache Manager - handles spreadsheet metadata and sheet values caching
+const CacheManager = {
+  userCache: CacheService.getUserCache(),
+  CHUNK_SIZE: 90000, // 90KB chunks (safe margin under 100KB limit)
+
+  /**
+   * Split a large string into chunks for storage
+   * @private
+   */
+  _chunkString: function(str, chunkSize = this.CHUNK_SIZE) {
+    const chunks = [];
+    for (let i = 0; i < str.length; i += chunkSize) {
+      chunks.push(str.substring(i, i + chunkSize));
+    }
+    return chunks;
+  },
+
+  /**
+   * Prepare cache data with automatic chunking for large values
+   * Splits values > CHUNK_SIZE into multiple keys with metadata
+   * @private
+   */
+  _prepareCacheData: function(cacheData) {
+    const result = {};
+    
+    for (const key in cacheData) {
+      const value = cacheData[key];
+      
+      if (value.length > this.CHUNK_SIZE) {
+        // Value is too large, split into chunks
+        const chunks = this._chunkString(value, this.CHUNK_SIZE);
+        
+        // Store each chunk with index suffix
+        for (let i = 0; i < chunks.length; i++) {
+          result[`${key}__chunk_${i}`] = chunks[i];
+        }
+        
+        // Store metadata indicating this key is chunked
+        result[`${key}__chunks`] = chunks.length.toString();
+        console.log(`Chunked ${key} into ${chunks.length} parts (${value.length} bytes total)`);
+      } else {
+        // Normal size, store as-is
+        result[key] = value;
+      }
+    }
+    
+    return result;
+  },
+
+  /**
+   * Retrieve a value, automatically combining chunks if needed
+   * @private
+   */
+  _retrieveValue: function(key) {
+    // Check if this key was chunked
+    const chunksCountStr = this.userCache.get(`${key}__chunks`);
+    
+    if (chunksCountStr) {
+      // Value is chunked, retrieve all parts
+      const chunkCount = parseInt(chunksCountStr);
+      let combinedValue = '';
+      
+      for (let i = 0; i < chunkCount; i++) {
+        const chunkKey = `${key}__chunk_${i}`;
+        const chunk = this.userCache.get(chunkKey);
+        if (chunk) {
+          combinedValue += chunk;
+        }
+      }
+      
+      return combinedValue;
+    } else {
+      // Normal value, retrieve directly
+      return this.userCache.get(key);
+    }
+  },
+
+  /**
+   * Store a single value, automatically chunking if needed
+   * @private
+   */
+  _putValue: function(key, value) {
+    if (value.length > this.CHUNK_SIZE) {
+      // Too large for single put, use chunking via putAll
+      const cacheData = this._prepareCacheData({ [key]: value });
+      this.userCache.putAll(cacheData);
+    } else {
+      // Normal size, use single put
+      this.userCache.put(key, value);
+    }
+  },
+
+  /**
+   * Get or fetch spreadsheet metadata with smart cache invalidation
+   * Stores by spreadsheet type name (e.g., "Laboratory oldSpreadsheet")
+   * Validates sheetID against cached value and overwrites if different
+   * Automatically handles chunking for large spreadsheet metadata
+   * @param {string} spreadsheetTypeName - e.g., "Laboratory oldSpreadsheet", "Workshop newSpreadsheet"
+   * @param {string} sheetID - Sheet ID to fetch/validate
+   * @returns {Object} { spreadsheet metadata, sheetID } or null
+   */
+  getSpreadsheet: function (spreadsheetTypeName, sheetID) {
+    if (!spreadsheetTypeName) {
+      console.log("No spreadsheet type name provided");
+      return null;
+    }
+
+    // Try to get cached entry (handles chunked data automatically)
+    const cached = this._retrieveValue(spreadsheetTypeName);
+    
+    if (cached) {
+      const cachedData = JSON.parse(cached);
+      
+      // If no new sheetID provided, use cached spreadsheet
+      if (!sheetID) {
+        console.log(
+          `Using cached ${spreadsheetTypeName} (sheetID: ${cachedData.sheetID})`
+        );
+        return cachedData.metadata;
+      }
+      
+      // If sheetID matches cache, return cached spreadsheet
+      if (cachedData.sheetID === sheetID) {
+        console.log(
+          `Cache hit for ${spreadsheetTypeName} (sheetID: ${sheetID})`
+        );
+        return cachedData.metadata;
+      }
+      
+      // SheetID mismatch - will fetch new data below
+      console.log(
+        `Cache invalidated for ${spreadsheetTypeName}: sheetID changed from ${cachedData.sheetID} to ${sheetID}`
+      );
+    }
+
+    // If still no sheetID at this point, we can't proceed
+    if (!sheetID) {
+      console.log(
+        `No cached entry and no sheetID provided for ${spreadsheetTypeName}`
+      );
+      return null;
+    }
+
+    // Fetch fresh spreadsheet metadata
+    console.log(`Fetching fresh ${spreadsheetTypeName} (sheetID: ${sheetID})`);
+    const metadata = SheetsAPI.fetchSpreadsheet(sheetID);
+
+    if (metadata) {
+      // Cache both metadata and sheetID together (handles chunking automatically)
+      const cacheData = {
+        metadata: metadata,
+        sheetID: sheetID,
+      };
+      this._putValue(spreadsheetTypeName, JSON.stringify(cacheData));
+      console.log(`Cached ${spreadsheetTypeName} (sheetID: ${sheetID})`);
+      return metadata;
+    }
+
+    return null;
+  },
+
+  /**
+   * Cache sheet values with key "sheetID|sheetName|VALUE"
+   * Handles partial caching - only fetches uncached ranges
+   * Automatically chunks large values into multiple keys
+   */
+  getSheetValues: function (spreadsheetId, ranges) {
+    const cachedData = [];
+    const uncachedRanges = [];
+    const uncachedIndices = [];
+    
+    const cacheKeys = ranges.map((range) => `${spreadsheetId}|${range}|VALUE`);
+
+    // Retrieve cached values (handles chunked data automatically)
+    for (let i = 0; i < cacheKeys.length; i++) {
+      const cached = this._retrieveValue(cacheKeys[i]);
+
+      if (cached) {
+        cachedData[i] = JSON.parse(cached);
+        console.log(`Cache hit for values: ${ranges[i]}`);
+      } else {
+        uncachedRanges.push(ranges[i]);
+        uncachedIndices.push(i);
+      }
+    }
+
+    let result = [...cachedData];
+
+    // Only fetch uncached ranges
+    if (uncachedRanges.length > 0) {
+      console.log(`Fetching uncached ranges: ${uncachedRanges.join(", ")}`);
+      const fetchedData = SheetsAPI.batchGetValues(spreadsheetId, uncachedRanges, false);
+
+      if (fetchedData) {
+        const cacheData = {};
+        for (let i = 0; i < fetchedData.length; i++) {
+          const cacheKey = `${spreadsheetId}|${uncachedRanges[i]}|VALUE`;
+          cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
+          result[uncachedIndices[i]] = fetchedData[i];
+        }
+        // Use prepared cache data with automatic chunking for large values
+        const chunkedCacheData = this._prepareCacheData(cacheData);
+        this.userCache.putAll(chunkedCacheData);
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * Cache sheet formulas with key "sheetID|sheetName|FORMULA"
+   * Automatically chunks large values into multiple keys
+   */
+  getSheetFormulas: function (spreadsheetId, ranges) {
+    const cachedData = [];
+    const uncachedRanges = [];
+    const uncachedIndices = [];
+
+    const cacheKeys = ranges.map((range) => `${spreadsheetId}|${range}|FORMULA`);
+
+    // Retrieve cached values (handles chunked data automatically)
+    for (let i = 0; i < cacheKeys.length; i++) {
+      const cached = this._retrieveValue(cacheKeys[i]);
+
+      if (cached) {
+        cachedData[i] = JSON.parse(cached);
+        console.log(`Cache hit for formulas: ${ranges[i]}`);
+      } else {
+        uncachedRanges.push(ranges[i]);
+        uncachedIndices.push(i);
+      }
+    }
+
+    let result = [...cachedData];
+
+    if (uncachedRanges.length > 0) {
+      console.log(`Fetching uncached formulas: ${uncachedRanges.join(", ")}`);
+      const fetchedData = SheetsAPI.batchGetFormulas(spreadsheetId, uncachedRanges, false);
+
+      if (fetchedData) {
+        const cacheData = {};
+        for (let i = 0; i < fetchedData.length; i++) {
+          const cacheKey = `${spreadsheetId}|${uncachedRanges[i]}|FORMULA`;
+          cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
+          result[uncachedIndices[i]] = fetchedData[i];
+        }
+        // Use prepared cache data with automatic chunking for large values
+        const chunkedCacheData = this._prepareCacheData(cacheData);
+        this.userCache.putAll(chunkedCacheData);
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * Clear cache for a specific spreadsheet type and all its sheet data
+   * Also removes chunked key variants (__chunk_0, __chunks, etc)
+   */
+  RemoveSpreadsheet: function (spreadsheetTypeName) {
+    try {
+      const cached = this.userCache.get(spreadsheetTypeName);
+      if (!cached) {
+        console.log(`No cache entry found for ${spreadsheetTypeName} to invalidate`);
+        return;
+      }
+
+      const cachedData = JSON.parse(cached);
+      const sheetID = cachedData.sheetID;
+      const metadata = cachedData.metadata;
+
+      // Build array of keys to remove
+      const keysToRemove = [spreadsheetTypeName];
+
+      // Add keys for all sheets in the spreadsheet
+      if (metadata && metadata.sheets) {
+        for (let i = 0; i < metadata.sheets.length; i++) {
+          const sheetName = metadata.sheets[i].properties.title;
+          const valueKey = `${sheetID}|${sheetName}|VALUE`;
+          const formulaKey = `${sheetID}|${sheetName}|FORMULA`;
+          
+          // Add original keys
+          keysToRemove.push(valueKey);
+          keysToRemove.push(formulaKey);
+          
+          // Also add potential chunk keys and metadata
+          const chunksCountValue = this.userCache.get(`${valueKey}__chunks`);
+          if (chunksCountValue) {
+            const chunkCount = parseInt(chunksCountValue);
+            for (let j = 0; j < chunkCount; j++) {
+              keysToRemove.push(`${valueKey}__chunk_${j}`);
+            }
+            keysToRemove.push(`${valueKey}__chunks`);
+          }
+          
+          const chunksCountFormula = this.userCache.get(`${formulaKey}__chunks`);
+          if (chunksCountFormula) {
+            const chunkCount = parseInt(chunksCountFormula);
+            for (let j = 0; j < chunkCount; j++) {
+              keysToRemove.push(`${formulaKey}__chunk_${j}`);
+            }
+            keysToRemove.push(`${formulaKey}__chunks`);
+          }
+        }
+      }
+
+      // Remove all keys at once (more efficient than multiple remove calls)
+      this.userCache.removeAll(keysToRemove);
+      console.log(`Invalidated cache for ${spreadsheetTypeName} and ${keysToRemove.length - 1} sheet entries`);
+    } catch (error) {
+      console.log(`Error invalidating cache: ${error}`);
+    }
+  },
+
+  /**
+   * Get or fetch file metadata from Drive with caching
+   * Caches all fields (id, name, parents, owners, trashed)
+   * Automatically handles chunking for large file metadata
+   * @param {string} fileID - File ID to fetch/cache
+   * @returns {Object} File metadata or null
+   */
+  getFile: function (fileID) {
+    if (!fileID) {
+      console.log("No file ID provided");
+      return null;
+    }
+
+    const cacheKey = `File|${fileID}`;
+    const cached = this._retrieveValue(cacheKey);
+
+    if (cached) {
+      console.log(`Cache hit for file: ${fileID}`);
+      return JSON.parse(cached);
+    }
+
+    // Fetch from Drive API with all possible fields union
+    // Union of all fields used across the codebase
+    const allFieldsNeeded = "id, name, parents, owners, trashed";
+    try {
+      const file = Drive.Files.get(fileID, { fields: allFieldsNeeded });
+
+      if (file) {
+        this._putValue(cacheKey, JSON.stringify(file));
+        console.log(`Cached file metadata: ${fileID}`);
+        return file;
+      }
+    } catch (error) {
+      console.error(`Error fetching file: ${error}`);
+    }
+
+    return null;
+  },
+
+  /**
+   * Clear cache for a specific file
+   * Also removes any chunked key variants
+   */
+  RemoveFile: function (fileID) {
+    if (!fileID) {
+      console.log("No file ID provided");
+      return;
+    }
+
+    const cacheKey = `File|${fileID}`;
+    const keysToRemove = [cacheKey];
+    
+    // Check if file metadata was chunked and remove chunk keys
+    const chunksCountStr = this.userCache.get(`${cacheKey}__chunks`);
+    if (chunksCountStr) {
+      const chunkCount = parseInt(chunksCountStr);
+      for (let i = 0; i < chunkCount; i++) {
+        keysToRemove.push(`${cacheKey}__chunk_${i}`);
+      }
+      keysToRemove.push(`${cacheKey}__chunks`);
+      console.log(`Removing ${keysToRemove.length} cache keys for file: ${fileID}`);
+    }
+    
+    this.userCache.removeAll(keysToRemove);
+    console.log(`Invalidated cache for file: ${fileID}`);
+  },
+};
+
 const SheetsAPI = {
-  // Get spreadsheet metadata and sheets
-  getSpreadsheet: function (spreadsheetId) {
+  // Fetch spreadsheet metadata and sheets (used by CacheManager internally)
+  fetchSpreadsheet: function (spreadsheetId) {
     try {
       const response = Sheets.Spreadsheets.get(spreadsheetId, {
         fields: "spreadsheetId,sheets(properties(sheetId,title,hidden))",
@@ -129,9 +511,12 @@ const SheetsAPI = {
     }
   },
 
-  // Batch get values from multiple ranges
-  batchGetValues: function (spreadsheetId, ranges) {
+  // Batch get values from multiple ranges (with caching via CacheManager)
+  batchGetValues: function (spreadsheetId, ranges, useCache = true) {
     try {
+      if (useCache) {
+        return CacheManager.getSheetValues(spreadsheetId, ranges);
+      }
       const response = Sheets.Spreadsheets.Values.batchGet(spreadsheetId, {
         ranges: ranges,
       });
@@ -142,9 +527,12 @@ const SheetsAPI = {
     }
   },
 
-  // Batch get formulas from multiple ranges
-  batchGetFormulas: function (spreadsheetId, ranges) {
+  // Batch get formulas from multiple ranges (with caching via CacheManager)
+  batchGetFormulas: function (spreadsheetId, ranges, useCache = true) {
     try {
+      if (useCache) {
+        return CacheManager.getSheetFormulas(spreadsheetId, ranges);
+      }
       const response = Sheets.Spreadsheets.Values.batchGet(spreadsheetId, {
         ranges: ranges,
         valueRenderOption: "FORMULA",
@@ -513,12 +901,15 @@ const shared = {
       return oldValue; // Return original if no data
     }
 
-    var oldLevel = oldValue.substring(0, 2);
+    var oldLevel = oldValue.split("|")[0].trim();
+
+    console.log(`Looking for DVT match for level: ${oldLevel}`);
     for (var i = 0; i < dvtNamedRangesData.length; i++) {
       var row = dvtNamedRangesData[i];
-      var val = row[0];
-      if (val && val.substring(0, 2) === oldLevel) {
-        return val; // Return matched value
+      var val = row[0] ? row[0].split("|")[0].trim() : null;
+      if (val && val === oldLevel) {
+
+        return row[0]; // Return matched value
       }
     }
     return oldValue; // Return original if no match found
@@ -715,8 +1106,8 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
       };
     }
 
-    var newFile = Drive.Files.get(newSheetID, { fields: "id, name, parents" });
-    var oldFile = Drive.Files.get(oldSheetID, { fields: "id, name, parents" });
+    var newFile = CacheManager.getFile(newSheetID);
+    var oldFile = CacheManager.getFile(oldSheetID);
     if (!newFile || !oldFile) {
       console.log(`Could not retrieve file information for new or old sheet.`);
       return {
@@ -793,6 +1184,10 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
         message: `Error deleting old sheet™: ${error.toString()}`,
       };
     }
+    CacheManager.RemoveSpreadsheet(`${sheetType} newSpreadsheet`);
+    CacheManager.RemoveSpreadsheet(`${sheetType} oldSpreadsheet`);
+    CacheManager.RemoveFile(newSheetID);
+    CacheManager.RemoveFile(oldSheetID);
 
     return {
       success: true,
@@ -872,6 +1267,8 @@ function updateIdsMaster(idMasterID, idDataEntries) {
         };
       }
     }
+
+    CacheManager.RemoveSpreadsheet("idMasterSpreadsheet");
     return {
       success: true,
       message: "New IDS Master set successfully",
@@ -1189,9 +1586,7 @@ function checkSheetAccess(sheetID, userEmail) {
     }
 
     try {
-      const file = Drive.Files.get(sheetID, {
-        fields: "name, owners",
-      });
+      const file = CacheManager.getFile(sheetID);
 
       const owners = file.owners || [];
       const isOwner = owners.some(
@@ -1464,9 +1859,7 @@ function checkTemplateAccess(templateID) {
     }
 
     try {
-      var file = Drive.Files.get(templateID, {
-        fields: "id, name",
-      });
+      var file = CacheManager.getFile(templateID);
 
       return {
         success: true,
@@ -1710,9 +2103,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
 
     // Check template access without creating a copy
     try {
-      var file = Drive.Files.get(templateID, {
-        fields: "id",
-      });
+      var file = CacheManager.getFile(templateID);
 
       // Template is accessible, return success with template information
       return {
@@ -2054,7 +2445,7 @@ function deleteOldSheet(sheetID) {
     // Get file information to verify it exists before deletion
     var fileInfo;
     try {
-      fileInfo = Drive.Files.get(sheetID, { fields: "id, name, trashed" });
+      fileInfo = CacheManager.getFile(sheetID);
     } catch (error) {
       console.log(
         `Sheet ${sheetID} not found or already deleted: ${error.toString()}`
