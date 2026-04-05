@@ -181,7 +181,9 @@ const playerStuff = {
         Pass: [],
         "Premium Packs": [],
       };
-      for (var row = 1; row < masterSheetData.length; row++) {
+
+      var firstRow = 3;
+      for (var row = firstRow - 1; row < masterSheetData.length; row++) {
         var rowData = masterSheetData[row];
         var statName = rowData[statCol] || "";
         var tierValue = rowData[tierCol] || "";
@@ -196,10 +198,10 @@ const playerStuff = {
           values.Pass.push([premium]);
           if (oldPlayerTierData[tierValue].diss) {
 
-            var dissAttack = oldPlayerTierData[tierValue].diss.Attack || "";
-            var dissDefense = oldPlayerTierData[tierValue].diss.Defense || "";
-            var dissUtility = oldPlayerTierData[tierValue].diss.Utility || "";
-            var dissUltimate = oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || "";
+            var dissAttack = oldPlayerTierData[tierValue].diss.Attack || null;
+            var dissDefense = oldPlayerTierData[tierValue].diss.Defense || null;
+            var dissUtility = oldPlayerTierData[tierValue].diss.Utility || null;
+            var dissUltimate = oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || null;
             values.dissAttack = values.dissAttack || [];
             values.dissDefense = values.dissDefense || [];
             values.dissUtility = values.dissUtility || [];
@@ -229,47 +231,54 @@ const playerStuff = {
           values[header].push([value]);
         }
       }
-
+      
       var statColLetter = shared.columnToLetter(statCol + 2);
       var tierColLetter = shared.columnToLetter(tierCol + 2);
-      var dissAttackColLetter = shared.columnToLetter(dissCol + 1);
-      var dissDefenseColLetter = shared.columnToLetter(dissCol + 3);
-      var dissUtilityColLetter = shared.columnToLetter(dissCol + 5);
-      var dissUltimateColLetter = shared.columnToLetter(dissCol + 7);
+      
+      var dissHeaderRow = masterSheetData[1] || [];
+      var dissAttackCol = dissHeaderRow.indexOf("Attack") + 1 || dissCol + 1;
+      var dissDefenseCol = dissHeaderRow.indexOf("Defense") + 1 || dissCol + 3;
+      var dissUtilityCol = dissHeaderRow.indexOf("Utility") + 1 || dissCol + 5;
+      var dissUltimateCol = dissHeaderRow.indexOf("Ultimate Weapon") + 1 || dissCol + 7;
+
+      var dissAttackColLetter = shared.columnToLetter(dissAttackCol);
+      var dissDefenseColLetter = shared.columnToLetter(dissDefenseCol);
+      var dissUtilityColLetter = shared.columnToLetter(dissUtilityCol);
+      var dissUltimateColLetter = shared.columnToLetter(dissUltimateCol);
       var passColLetter = shared.columnToLetter(passCol + 1);
       var batchUpdate = [];
       var ranges = {
-        Stat: `${sheetName}!${statColLetter}2:${statColLetter}${
-          2 + values.Stat.length - 1
+        Stat: `${sheetName}!${statColLetter}${firstRow}:${statColLetter}${
+          firstRow + values.Stat.length - 1
         }`,
-        Tier: `${sheetName}!${tierColLetter}2:${tierColLetter}${
-          2 + values.Tier.length - 1
+        Tier: `${sheetName}!${tierColLetter}${firstRow}:${tierColLetter}${
+          firstRow + values.Tier.length - 1
         }`,
-        Pass: `${sheetName}!${passColLetter}2:${passColLetter}${
-          2 + values.Pass.length - 1
+        Pass: `${sheetName}!${passColLetter}${firstRow}:${passColLetter}${
+          firstRow + values.Pass.length - 1
         }`,
         "Premium Packs": `${sheetName}!${statColLetter}${perkRow}:${statColLetter}${
           perkRow + values["Premium Packs"].length - 1
         }`,
       };
       if (values.dissAttack && values.dissAttack.length > 0) {
-        ranges.dissAttack = `${sheetName}!${dissAttackColLetter}2:${dissAttackColLetter}${
-          2 + values.dissAttack.length - 1
+        ranges.dissAttack = `${sheetName}!${dissAttackColLetter}${firstRow}:${dissAttackColLetter}${
+          firstRow + values.dissAttack.length - 1
         }`;
       }
       if (values.dissDefense && values.dissDefense.length > 0) {
-        ranges.dissDefense = `${sheetName}!${dissDefenseColLetter}2:${dissDefenseColLetter}${
-          2 + values.dissDefense.length - 1
+        ranges.dissDefense = `${sheetName}!${dissDefenseColLetter}${firstRow}:${dissDefenseColLetter}${
+          firstRow + values.dissDefense.length - 1
         }`;
       }
       if (values.dissUtility && values.dissUtility.length > 0) {
-        ranges.dissUtility = `${sheetName}!${dissUtilityColLetter}2:${dissUtilityColLetter}${
-          2 + values.dissUtility.length - 1
+        ranges.dissUtility = `${sheetName}!${dissUtilityColLetter}${firstRow}:${dissUtilityColLetter}${
+          firstRow + values.dissUtility.length - 1
         }`;
       }
       if (values.dissUltimate && values.dissUltimate.length > 0) {
-        ranges.dissUltimate = `${sheetName}!${dissUltimateColLetter}2:${dissUltimateColLetter}${
-          2 + values.dissUltimate.length - 1
+        ranges.dissUltimate = `${sheetName}!${dissUltimateColLetter}${firstRow}:${dissUltimateColLetter}${
+          firstRow + values.dissUltimate.length - 1
         }`;
       }
       for (var key in values) {
