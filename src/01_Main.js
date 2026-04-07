@@ -109,7 +109,7 @@ function onOpen(e) {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu("Import Data")
       .addItem("Get Started", "showGetStartedDialog")
-      .addItem("Import Data", "showImportDialog")
+      // .addItem("Import Data", "showImportDialog")
       .addItem("Update Sheet", "showUpdateDialog")
       .addToUi();
   } catch (error) {}
@@ -121,7 +121,8 @@ function onInstall(e) {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu("Import Data")
       .addItem("Get Started", "showGetStartedDialog")
-      .addItem("Import Data", "showImportDialog")
+      // .addItem("Import Data", "showImportDialog")
+      .addItem("Update Sheet", "showUpdateDialog")
       .addToUi();
   } catch (error) {}
 }
