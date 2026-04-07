@@ -20,30 +20,32 @@ const sheetVars = (sheetType) => {
 };
 
 const spreadsheets = (() => {
-  const storedSpreadsheets = {
-    newSpreadsheet: "",
-    oldSpreadsheet: "",
-    idMasterSpreadsheet: "",
-  };
-  return function (spreadsheet, sheetID) {
-    if (!spreadsheet) {
-      console.log(`No spreadsheet name provided.`);
+  // Wrapper function to maintain backward compatibility with CacheManager
+  return function (spreadsheetTypeName, sheetID) {
+    if (!spreadsheetTypeName) {
+      console.log(`No spreadsheet type name provided.`);
       return null;
     }
-    if (storedSpreadsheets[spreadsheet]) {
-      return storedSpreadsheets[spreadsheet];
-    }
-    if (!sheetID) {
-      console.log(`Spreadsheet not defined and no sheet ID provided.`);
+
+    // Use CacheManager to get or fetch spreadsheet metadata
+    // CacheManager handles:
+    // 1. Checking cache if sheetID matches
+    // 2. Overwriting cache if sheetID doesn't match
+    // 3. Using previously cached sheetID if none provided
+    const result = CacheManager.getSpreadsheet(spreadsheetTypeName, sheetID);
+
+    if (!result) {
+      if (!sheetID) {
+        console.log(
+          `Spreadsheet not found in cache and no sheet ID provided for: ${spreadsheetTypeName}`
+        );
+      } else {
+        console.log(`Spreadsheet not found with ID: ${sheetID}`);
+      }
       return null;
     }
-    var spreadsheetInfo = SheetsAPI.getSpreadsheet(sheetID);
-    if (!spreadsheetInfo) {
-      console.log(`Spreadsheet not found with ID: ${sheetID}`);
-      return null;
-    }
-    storedSpreadsheets[spreadsheet] = spreadsheetInfo;
-    return spreadsheetInfo;
+
+    return result;
   };
 })();
 

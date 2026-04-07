@@ -771,10 +771,13 @@ const workshop = {
       var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
       var oldWorkshopLevelsPresetNames = [];
       oldWorkshopLevelsHeaders.forEach(function (name, index) {
+        if (index < 2) {
+          return;
+        }
         var presetName = name && name.trim() !== "" ? name.trim() : null;
         if (presetName && presetName.startsWith("Preset")) {
           oldWorkshopLevelsPresetNames.push(null);
-        } else if (presetName && index > 1) {
+        } else if (presetName) {
           oldWorkshopLevelsPresetNames.push(presetName);
         }
       });
