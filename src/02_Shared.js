@@ -1,6 +1,20 @@
 // Cache Manager - handles spreadsheet metadata and sheet values caching
 const CacheManager = {
-  userCache: CacheService.getUserCache(),
+  _userCache: null,
+  
+  // Lazy getter for userCache to avoid authorization issues on script load
+  get userCache() {
+    if (!this._userCache) {
+      try {
+        this._userCache = CacheService.getUserCache();
+      } catch (error) {
+        console.error(`Failed to initialize userCache: ${error.message}`);
+        return null;
+      }
+    }
+    return this._userCache;
+  },
+  
   CHUNK_SIZE: 90000, // 90KB chunks (safe margin under 100KB limit)
 
   /**
@@ -49,9 +63,15 @@ const CacheManager = {
 
   /**
    * Retrieve a value, automatically combining chunks if needed
+   * Returns null if cache is unavailable
    * @private
    */
   _retrieveValue: function(key) {
+    if (!this.userCache) {
+      console.log(`Cache unavailable - cannot retrieve: ${key}`);
+      return null;
+    }
+
     // Check if this key was chunked
     const chunksCountStr = this.userCache.get(`${key}__chunks`);
     
@@ -77,9 +97,15 @@ const CacheManager = {
 
   /**
    * Store a single value, automatically chunking if needed
+   * Silently fails if cache is unavailable
    * @private
    */
   _putValue: function(key, value) {
+    if (!this.userCache) {
+      console.log(`Cache unavailable - cannot store: ${key}`);
+      return;
+    }
+
     if (value.length > this.CHUNK_SIZE) {
       // Too large for single put, use chunking via putAll
       const cacheData = this._prepareCacheData({ [key]: value });
@@ -258,6 +284,11 @@ const CacheManager = {
    * Also removes chunked key variants (__chunk_0, __chunks, etc)
    */
   RemoveSpreadsheet: function (spreadsheetTypeName) {
+    if (!this.userCache) {
+      console.log(`Cache unavailable - cannot remove: ${spreadsheetTypeName}`);
+      return;
+    }
+
     try {
       const cached = this.userCache.get(spreadsheetTypeName);
       if (!cached) {
@@ -358,6 +389,11 @@ const CacheManager = {
   RemoveFile: function (fileID) {
     if (!fileID) {
       console.log("No file ID provided");
+      return;
+    }
+
+    if (!this.userCache) {
+      console.log(`Cache unavailable - cannot remove file: ${fileID}`);
       return;
     }
 

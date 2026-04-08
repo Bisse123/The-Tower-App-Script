@@ -104,31 +104,22 @@ function include(filename) {
 }
 
 function onOpen(e) {
-  // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
-  try {
-    var ui = SpreadsheetApp.getUi();
-    ui.createMenu("Import Data")
-      .addItem("Get Started", "showGetStartedDialog")
-      // .addItem("Import Data", "showImportDialog")
-      .addItem("Update Sheet", "showUpdateDialog")
-      .addToUi();
-  } catch (error) {
-    console.log(`Error in onOpen: ${error.message}`);
-  }
+  createMenu();
 }
 
 function onInstall(e) {
-  // console.log(`onOpen called with event: ${JSON.stringify(e)}`);
-  try {
-    var ui = SpreadsheetApp.getUi();
-    ui.createMenu("Import Data")
-      .addItem("Get Started", "showGetStartedDialog")
-      // .addItem("Import Data", "showImportDialog")
-      .addItem("Update Sheet", "showUpdateDialog")
-      .addToUi();
-  } catch (error) {
-    console.log(`Error in onInstall: ${error.message}`);
-  }
+  createMenu();
+}
+
+function createMenu() {
+    try {
+        var ui = SpreadsheetApp.getUi();
+        ui.createMenu("Import Data")
+            .addItem("Get Started", "showGetStartedDialog")
+            // .addItem("Import Data", "showImportDialog")
+            .addItem("Update Sheet", "showUpdateDialog")
+            .addToUi();
+    } catch (error) {}
 }
 
 function showGetStartedDialog() {
