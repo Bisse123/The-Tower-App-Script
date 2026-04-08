@@ -112,7 +112,9 @@ function onOpen(e) {
       // .addItem("Import Data", "showImportDialog")
       .addItem("Update Sheet", "showUpdateDialog")
       .addToUi();
-  } catch (error) {}
+  } catch (error) {
+    console.log(`Error in onOpen: ${error.message}`);
+  }
 }
 
 function onInstall(e) {
@@ -124,7 +126,9 @@ function onInstall(e) {
       // .addItem("Import Data", "showImportDialog")
       .addItem("Update Sheet", "showUpdateDialog")
       .addToUi();
-  } catch (error) {}
+  } catch (error) {
+    console.log(`Error in onInstall: ${error.message}`);
+  }
 }
 
 function showGetStartedDialog() {
