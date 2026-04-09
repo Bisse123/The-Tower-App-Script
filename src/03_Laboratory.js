@@ -530,9 +530,9 @@ const lab = {
 
   // #endregion
   // #region Convert Versions
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: lab.version10");
+      console.log("Called: lab.version1_0");
       var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
@@ -589,7 +589,7 @@ const lab = {
       }
 
       // Process lab levels first
-      var labLevelsResult = this.getVersion10LabLevels(oldLabLevelsValues);
+      var labLevelsResult = this.getVersion1_0LabLevels(oldLabLevelsValues);
       if (!labLevelsResult || !labLevelsResult.success) {
         return labLevelsResult;
       }
@@ -598,7 +598,7 @@ const lab = {
       var oldLabMax = labLevelsResult.oldLabMax;
 
       // Process lab planner if data exists
-      var labPlannerResult = this.getVersion10LabPlanner(
+      var labPlannerResult = this.getVersion1_0LabPlanner(
         oldLabPlannerValues,
         oldLabPlannerFormulas,
         oldLabLevels,
@@ -625,19 +625,19 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Lab Levels
-  getVersion10LabLevels: function (oldLabLevelsValues) {
+  getVersion1_0LabLevels: function (oldLabLevelsValues) {
     try {
-      console.log("Called: lab.getVersion10LabLevels");
+      console.log("Called: lab.getVersion1_0LabLevels");
       var oldLabLevels = {};
       var oldLabMax = {};
       oldLabLevelsValues.forEach(function (row) {
@@ -662,24 +662,24 @@ const lab = {
         oldLabMax: oldLabMax,
       };
     } catch (error) {
-      console.log("Error in getVersion10LabLevels: " + error.toString());
+      console.log("Error in getVersion1_0LabLevels: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10LabLevels: " + error.message,
+        message: "Error in getVersion1_0LabLevels: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Lab Planner
-  getVersion10LabPlanner: function (
+  getVersion1_0LabPlanner: function (
     oldLabPlannerValues,
     oldLabPlannerFormulas,
     oldLabLevels,
     oldLabMax
   ) {
     try {
-      console.log("Called: lab.getVersion10LabPlanner");
+      console.log("Called: lab.getVersion1_0LabPlanner");
       if (!oldLabPlannerFormulas || !oldLabPlannerValues) {
         console.log(
           `No sheet containing "Lab Planner" found in old spreadsheet`
@@ -876,10 +876,10 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in getVersion10LabPlanner: " + error.toString());
+      console.log("Error in getVersion1_0LabPlanner: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10LabPlanner: " + error.message,
+        message: "Error in getVersion1_0LabPlanner: " + error.message,
       };
     }
   },
@@ -888,7 +888,7 @@ const lab = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v1.0": this.version1_0.bind(this),
     };
   },
 

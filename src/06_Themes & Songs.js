@@ -244,9 +244,9 @@ const themes = {
 
   // #endregion
   // #region Convert Versions
-  version216: function () {
+  version2_1_6: function () {
     try {
-      console.log("Called: themes.version216");
+      console.log("Called: themes.version2_1_6");
       var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -264,20 +264,20 @@ const themes = {
       }
       var oldThemesData = themesOldBatchResult[0].values;
 
-      var themesData = this.getversion216Themes(oldThemesData);
+      var themesData = this.getVersion2_1_6Themes(oldThemesData);
       return themesData;
     } catch (error) {
-      console.log("Error in version216: " + error.toString());
+      console.log("Error in version2_1_6: " + error.toString());
       return {
         success: false,
-        message: "Error in version216: " + error.message,
+        message: "Error in version2_1_6: " + error.message,
       };
     }
   },
 
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: themes.version10");
+      console.log("Called: themes.version1_0");
       var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -295,22 +295,22 @@ const themes = {
       }
       var oldThemesData = themesOldBatchResult[0].values;
 
-      var themesData = this.getVersion10Themes(oldThemesData);
+      var themesData = this.getVersion1_0Themes(oldThemesData);
       return themesData;
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Themes
-  getversion216Themes: function (oldThemesData) {
+  getVersion2_1_6Themes: function (oldThemesData) {
     try {
-      console.log("Called: themes.getversion216Themes");
+      console.log("Called: themes.getVersion2_1_6Themes");
       var targetThemes = [
         "Tower Skin",
         "Background Skin",
@@ -360,17 +360,17 @@ const themes = {
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in getversion216Themes: " + error.toString());
+      console.log("Error in getVersion2_1_6Themes: " + error.toString());
       return {
         success: false,
-        message: "Error in getversion216Themes: " + error.message,
+        message: "Error in getVersion2_1_6Themes: " + error.message,
       };
     }
   },
 
-  getVersion10Themes: function (oldThemesData) {
+  getVersion1_0Themes: function (oldThemesData) {
     try {
-      console.log("Called: themes.getVersion10Themes");
+      console.log("Called: themes.getVersion1_0Themes");
       var targetThemes = [
         "Tower Skin",
         "Background Skin",
@@ -419,10 +419,10 @@ const themes = {
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in getVersion10Themes: " + error.toString());
+      console.log("Error in getVersion1_0Themes: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Themes: " + error.message,
+        message: "Error in getVersion1_0Themes: " + error.message,
       };
     }
   },
@@ -431,8 +431,8 @@ const themes = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
-      "v2.1.6": this.version216.bind(this),
+      "v1.0": this.version1_0.bind(this),
+      "v2.1.6": this.version2_1_6.bind(this),
     };
   },
 

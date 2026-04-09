@@ -748,9 +748,9 @@ const ePaths = {
   
   // #endregion
   // #region Convert Versions
-  version5030000: function () {
+  version5_03_00_00: function () {
     try {
-      console.log("Called: ePaths.version5030000");
+      console.log("Called: ePaths.version5_03_00_00");
       var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (
@@ -802,17 +802,17 @@ const ePaths = {
       var eDiscountLabValues = batchResult[7].values;
       var cLDmgValues = batchResult[8].values;
 
-      var eHPData = this.getVersion5030000eHP(
+      var eHPData = this.getVersion5_03_00_00eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion4110321eDamage(
+      var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
         cLDmgValues
       );
-      var eEconData = this.getVersion5000104eEcon(
+      var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
         eDiscountLabValues
@@ -825,7 +825,7 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5030000: ${error.toString()}`);
+      console.log(`Error in ePaths.version5_03_00_00: ${error.toString()}`);
       return {
         success: false,
         message: "Error exporting Effective Paths data: " + error.message,
@@ -833,9 +833,9 @@ const ePaths = {
     }
   },
   
-  version5000104: function () {
+  version5_00_01_04: function () {
     try {
-      console.log("Called: ePaths.version5000104");
+      console.log("Called: ePaths.version5_00_01_04");
       var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (
@@ -887,17 +887,17 @@ const ePaths = {
       var eDiscountLabValues = batchResult[7].values;
       var cLDmgValues = batchResult[8].values;
 
-      var eHPData = this.getVersion4110321eHP(
+      var eHPData = this.getVersion4_11_03_21eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion4110321eDamage(
+      var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
         cLDmgValues
       );
-      var eEconData = this.getVersion5000104eEcon(
+      var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
         eDiscountLabValues
@@ -910,7 +910,7 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5000104: ${error.toString()}`);
+      console.log(`Error in ePaths.version5_00_01_04: ${error.toString()}`);
       return {
         success: false,
         message: "Error exporting Effective Paths data: " + error.message,
@@ -918,9 +918,9 @@ const ePaths = {
     }
   },
   
-  version4110321: function () {
+  version4_11_03_21: function () {
     try {
-      console.log("Called: ePaths.version4110321");
+      console.log("Called: ePaths.version4_11_03_21");
       var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (
@@ -972,17 +972,17 @@ const ePaths = {
       var eDiscountLabValues = batchResult[7].values;
       var cLDmgValues = batchResult[8].values;
 
-      var eHPData = this.getVersion4110321eHP(
+      var eHPData = this.getVersion4_11_03_21eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion4110321eDamage(
+      var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
         cLDmgValues
       );
-      var eEconData = this.getVersion4110321eEcon(
+      var eEconData = this.getVersion4_11_03_21eEcon(
         eEconValues,
         eEconLabValues,
         eDiscountLabValues
@@ -995,7 +995,7 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version4110321: ${error.toString()}`);
+      console.log(`Error in ePaths.version4_11_03_21: ${error.toString()}`);
       return {
         success: false,
         message: "Error exporting Effective Paths data: " + error.message,
@@ -1003,9 +1003,9 @@ const ePaths = {
     }
   },
 
-  version4110200: function () {
+  version4_11_02_00: function () {
     try {
-      console.log("Called: ePaths.version4110200");
+      console.log("Called: ePaths.version4_11_02_00");
       var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
       if (
@@ -1054,16 +1054,16 @@ const ePaths = {
       var eEconLabValues = batchResult[6].values;
       var eDiscountLabValues = batchResult[7].values;
 
-      var eHPData = this.getVersion4110200eHP(
+      var eHPData = this.getVersion4_11_02_00eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion4110200eDamage(
+      var eDamageData = this.getVersion4_11_02_00eDamage(
         eDamageValues,
         eDamageLabValues
       );
-      var eEconData = this.getVersion4110200eEcon(
+      var eEconData = this.getVersion4_11_02_00eEcon(
         eEconValues,
         eEconLabValues,
         eDiscountLabValues
@@ -1076,7 +1076,7 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version4110200: ${error.toString()}`);
+      console.log(`Error in ePaths.version4_11_02_00: ${error.toString()}`);
       return {
         success: false,
         message: "Error exporting Effective Paths data: " + error.message,
@@ -1086,13 +1086,13 @@ const ePaths = {
 
   // #endregion
   // #region Get eHP
-  getVersion5030000eHP: function (
+  getVersion5_03_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
     oldeRegenLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion5030000eHP");
+      console.log("Called: ePaths.getVersion5_03_00_00eHP");
       var customData = [
         "Wall Health",
         "Max Recovery",
@@ -1218,21 +1218,21 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5030000eHP: ${error.toString()}`);
+      console.log(`Error in getVersion5_03_00_00eHP: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion5030000eHP: " + error.message,
+        message: "Error in getVersion5_03_00_00eHP: " + error.message,
       };
     }
   },
 
-  getVersion4110321eHP: function (
+  getVersion4_11_03_21eHP: function (
     oldValues,
     oldeHPLabValues,
     oldeRegenLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion4110321eHP");
+      console.log("Called: ePaths.getVersion4_11_03_21eHP");
       var customData = [
         "Wall Health",
         "Max Recovery",
@@ -1356,21 +1356,21 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110321eHP: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_03_21eHP: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110321eHP: " + error.message,
+        message: "Error in getVersion4_11_03_21eHP: " + error.message,
       };
     }
   },
 
-  getVersion4110200eHP: function (
+  getVersion4_11_02_00eHP: function (
     oldValues,
     oldeHPLabValues,
     oldeRegenLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion4110200eHP");
+      console.log("Called: ePaths.getVersion4_11_02_00eHP");
       var customData = [
         "Wall Health",
         "Max Recovery",
@@ -1486,19 +1486,19 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110200eHP: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_02_00eHP: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110200eHP: " + error.message,
+        message: "Error in getVersion4_11_02_00eHP: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get eDamage
-  getVersion4110321eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
+  getVersion4_11_03_21eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
-      console.log("Called: ePaths.getVersion4110321eDamage");
+      console.log("Called: ePaths.getVersion4_11_03_21eDamage");
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
@@ -1609,17 +1609,17 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110321eDamage: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_03_21eDamage: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110321eDamage: " + error.message,
+        message: "Error in getVersion4_11_03_21eDamage: " + error.message,
       };
     }
   },
 
-  getVersion4110200eDamage: function (oldValues, oldeDamageLabValues) {
+  getVersion4_11_02_00eDamage: function (oldValues, oldeDamageLabValues) {
     try {
-      console.log("Called: ePaths.getVersion4110200eDamage");
+      console.log("Called: ePaths.getVersion4_11_02_00eDamage");
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
@@ -1723,23 +1723,23 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110200eDamage: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_02_00eDamage: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110200eDamage: " + error.message,
+        message: "Error in getVersion4_11_02_00eDamage: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get eEcon
-  getVersion5000104eEcon: function (
+  getVersion5_00_01_04eEcon: function (
     oldValues,
     oldeEconLabValues,
     oldeDiscountLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion5000104eEcon");
+      console.log("Called: ePaths.getVersion5_00_01_04eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
@@ -1867,21 +1867,21 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5000104eEcon: ${error.toString()}`);
+      console.log(`Error in getVersion5_00_01_04eEcon: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion5000104eEcon: " + error.message,
+        message: "Error in getVersion5_00_01_04eEcon: " + error.message,
       };
     }
   },
 
-  getVersion4110321eEcon: function (
+  getVersion4_11_03_21eEcon: function (
     oldValues,
     oldeEconLabValues,
     oldeDiscountLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion4110321eEcon");
+      console.log("Called: ePaths.getVersion4_11_03_21eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
@@ -1995,21 +1995,21 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110321eEcon: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_03_21eEcon: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110321eEcon: " + error.message,
+        message: "Error in getVersion4_11_03_21eEcon: " + error.message,
       };
     }
   },
 
-  getVersion4110200eEcon: function (
+  getVersion4_11_02_00eEcon: function (
     oldValues,
     oldeEconLabValues,
     oldeDiscountLabValues
   ) {
     try {
-      console.log("Called: ePaths.getVersion4110200eEcon");
+      console.log("Called: ePaths.getVersion4_11_02_00eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
       var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
@@ -2115,10 +2115,10 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4110200eEcon: ${error.toString()}`);
+      console.log(`Error in getVersion4_11_02_00eEcon: ${error.toString()}`);
       return {
         success: false,
-        message: "Error in getVersion4110200eEcon: " + error.message,
+        message: "Error in getVersion4_11_02_00eEcon: " + error.message,
       };
     }
   },
@@ -2127,10 +2127,10 @@ const ePaths = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v4.11.02.00": this.version4110200.bind(this),
-      "v4.11.03.21": this.version4110321.bind(this),
-      "v5.00.01.04": this.version5000104.bind(this),
-      "v5.03.00.00": this.version5030000.bind(this),
+      "v4.11.02.00": this.version4_11_02_00.bind(this),
+      "v4.11.03.21": this.version4_11_03_21.bind(this),
+      "v5.00.01.04": this.version5_00_01_04.bind(this),
+      "v5.03.00.00": this.version5_03_00_00.bind(this),
     };
   },
   

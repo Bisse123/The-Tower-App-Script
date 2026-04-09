@@ -288,9 +288,9 @@ const vault = {
 
   // #endregion
   // #region Convert Versions
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: vault.version10");
+      console.log("Called: vault.version1_0");
       var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -315,7 +315,7 @@ const vault = {
           ? oldVaultBatchResult[1].values
           : [];
 
-      var harmonyResult = this.getVersion10Vault(harmonyData);
+      var harmonyResult = this.getVersion1_0Vault(harmonyData);
       if (!harmonyResult || !harmonyResult.success) {
         console.log(
           `Error getting harmony vault data: ${harmonyResult.message}`
@@ -323,7 +323,7 @@ const vault = {
         return harmonyResult;
       }
 
-      var powerResult = this.getVersion10Vault(powerData);
+      var powerResult = this.getVersion1_0Vault(powerData);
       if (!powerResult || !powerResult.success) {
         console.log(`Error getting power vault data: ${powerResult.message}`);
         return powerResult;
@@ -336,19 +336,19 @@ const vault = {
         oldVaultPower: powerResult.oldVault,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Vault
-  getVersion10Vault: function (oldSheetData) {
+  getVersion1_0Vault: function (oldSheetData) {
     try {
-      console.log("Called: vault.getVersion10Vault");
+      console.log("Called: vault.getVersion1_0Vault");
       if (!oldSheetData || oldSheetData.length === 0) {
         console.log(`No sheet data provided for vault`);
         return { success: false, message: `No sheet data provided for vault` };
@@ -424,10 +424,10 @@ const vault = {
       }
       return { success: true, oldVault: oldVault };
     } catch (error) {
-      console.log("Error in getVersion10Vault: " + error.toString());
+      console.log("Error in getVersion1_0Vault: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Vault: " + error.message,
+        message: "Error in getVersion1_0Vault: " + error.message,
       };
     }
   },
@@ -436,7 +436,7 @@ const vault = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v1.0": this.version1_0.bind(this),
     };
   },
 

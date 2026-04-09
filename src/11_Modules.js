@@ -612,9 +612,9 @@ const modules = {
 
   // #endregion
   // #region Convert Versions
-  version521: function () {
+  version5_2_1: function () {
     try {
-      console.log("Called: modules.version521");
+      console.log("Called: modules.version5_2_1");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -647,13 +647,13 @@ const modules = {
       }
       var oldModulesTrackerFormulas = formulaBatchResult[0].values;
 
-      var inventoryData = this.getVersion50ModulesInventory(
+      var inventoryData = this.getVersion5_0ModulesInventory(
         oldModulesInventoryValues,
       );
-      var presetsData = this.getVersion50ModulesPresets(
+      var presetsData = this.getVersion5_0ModulesPresets(
         oldModulesPresetsValues,
       );
-      var trackerData = this.getVersion47ModulesTracker(
+      var trackerData = this.getVersion4_7ModulesTracker(
         oldModulesTrackerValues,
         oldModulesTrackerFormulas,
       );
@@ -671,17 +671,17 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version521: " + error.toString());
+      console.log("Error in version5_2_1: " + error.toString());
       return {
         success: false,
-        message: "Error in version521: " + error.message,
+        message: "Error in version5_2_1: " + error.message,
       };
     }
   },
 
-  version50: function () {
+  version5_0: function () {
     try {
-      console.log("Called: modules.version50");
+      console.log("Called: modules.version5_0");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -714,13 +714,13 @@ const modules = {
       }
       var oldModulesTrackerFormulas = formulaBatchResult[0].formulas;
 
-      var inventoryData = this.getVersion50ModulesInventory(
+      var inventoryData = this.getVersion5_0ModulesInventory(
         oldModulesInventoryValues,
       );
-      var presetsData = this.getVersion50ModulesPresets(
+      var presetsData = this.getVersion5_0ModulesPresets(
         oldModulesPresetsValues,
       );
-      var trackerData = this.getVersion47ModulesTracker(
+      var trackerData = this.getVersion4_7ModulesTracker(
         oldModulesTrackerValues,
         oldModulesTrackerFormulas,
       );
@@ -738,17 +738,17 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version50: " + error.toString());
+      console.log("Error in version5_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version50: " + error.message,
+        message: "Error in version5_0: " + error.message,
       };
     }
   },
 
-  version47: function () {
+  version4_7: function () {
     try {
-      console.log("Called: modules.version47");
+      console.log("Called: modules.version4_7");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -781,13 +781,13 @@ const modules = {
       }
       var oldModulesTrackerFormulas = formulaBatchResult[0].formulas;
 
-      var inventoryData = this.getVersion40ModulesInventory(
+      var inventoryData = this.getVersion4_0ModulesInventory(
         oldModulesInventoryValues,
       );
-      var presetsData = this.getVersion40ModulesPresets(
+      var presetsData = this.getVersion4_0ModulesPresets(
         oldModulesPresetsValues,
       );
-      var trackerData = this.getVersion47ModulesTracker(
+      var trackerData = this.getVersion4_7ModulesTracker(
         oldModulesTrackerValues,
         oldModulesTrackerFormulas,
       );
@@ -805,17 +805,17 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version47: " + error.toString());
+      console.log("Error in version4_7: " + error.toString());
       return {
         success: false,
-        message: "Error in version47: " + error.message,
+        message: "Error in version4_7: " + error.message,
       };
     }
   },
 
-  version40: function () {
+  version4_0: function () {
     try {
-      console.log("Called: modules.version40");
+      console.log("Called: modules.version4_0");
       var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -833,10 +833,10 @@ const modules = {
       var oldModulesInventoryValues = batchResult[0].values;
       var oldModulesPresetsValues = batchResult[1].values;
 
-      var inventoryData = this.getVersion40ModulesInventory(
+      var inventoryData = this.getVersion4_0ModulesInventory(
         oldModulesInventoryValues,
       );
-      var presetsData = this.getVersion40ModulesPresets(
+      var presetsData = this.getVersion4_0ModulesPresets(
         oldModulesPresetsValues,
       );
 
@@ -851,19 +851,19 @@ const modules = {
         oldModulesPresets: presetsData.oldModulesPresets || {},
       };
     } catch (error) {
-      console.log("Error in version40: " + error.toString());
+      console.log("Error in version4_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version40: " + error.message,
+        message: "Error in version4_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Modules Inventory
-  getVersion50ModulesInventory: function (oldModulesInventoryValues) {
+  getVersion5_0ModulesInventory: function (oldModulesInventoryValues) {
     try {
-      console.log("Called: modules.getVersion50ModulesInventory");
+      console.log("Called: modules.getVersion5_0ModulesInventory");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
@@ -925,17 +925,17 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log("Error in getVersion50ModulesInventory: " + error.toString());
+      console.log("Error in getVersion5_0ModulesInventory: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion50ModulesInventory: " + error.message,
+        message: "Error in getVersion5_0ModulesInventory: " + error.message,
       };
     }
   },
 
-  getVersion40ModulesInventory: function (oldModulesInventoryValues) {
+  getVersion4_0ModulesInventory: function (oldModulesInventoryValues) {
     try {
-      console.log("Called: modules.getVersion40ModulesInventory");
+      console.log("Called: modules.getVersion4_0ModulesInventory");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
@@ -998,19 +998,19 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log("Error in getVersion40ModulesInventory: " + error.toString());
+      console.log("Error in getVersion4_0ModulesInventory: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion40ModulesInventory: " + error.message,
+        message: "Error in getVersion4_0ModulesInventory: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Modules Presets
-  getVersion50ModulesPresets: function (oldModulesPresetsValues) {
+  getVersion5_0ModulesPresets: function (oldModulesPresetsValues) {
     try {
-      console.log("Called: modules.getVersion50ModulesPresets");
+      console.log("Called: modules.getVersion5_0ModulesPresets");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
@@ -1068,17 +1068,17 @@ const modules = {
         oldModulesPresets: oldModulesPresets,
       };
     } catch (error) {
-      console.log("Error in getVersion50ModulesPresets: " + error.toString());
+      console.log("Error in getVersion5_0ModulesPresets: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion50ModulesPresets: " + error.message,
+        message: "Error in getVersion5_0ModulesPresets: " + error.message,
       };
     }
   },
 
-  getVersion40ModulesPresets: function (oldModulesPresetsValues) {
+  getVersion4_0ModulesPresets: function (oldModulesPresetsValues) {
     try {
-      console.log("Called: modules.getVersion40ModulesPresets");
+      console.log("Called: modules.getVersion4_0ModulesPresets");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModuleTypeIndex = this.findModuleTypesRowIndex(
         targetModuleTypes,
@@ -1114,22 +1114,22 @@ const modules = {
         oldModulesPresets: oldModulesPresets,
       };
     } catch (error) {
-      console.log("Error in getVersion40ModulesPresets: " + error.toString());
+      console.log("Error in getVersion4_0ModulesPresets: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion40ModulesPresets: " + error.message,
+        message: "Error in getVersion4_0ModulesPresets: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Modules Tracker
-  getVersion47ModulesTracker: function (
+  getVersion4_7ModulesTracker: function (
     oldModulesTrackerValues,
     oldModulesTrackerFormulas,
   ) {
     try {
-      console.log("Called: modules.getVersion47ModulesTracker");
+      console.log("Called: modules.getVersion4_7ModulesTracker");
       var targetModuleTypes = ["cannon", "armor", "generator", "core"];
       var oldModulesTracker = {};
 
@@ -1250,10 +1250,10 @@ const modules = {
         oldModulesTracker: oldModulesTracker,
       };
     } catch (error) {
-      console.log("Error in getVersion47ModulesTracker: " + error.toString());
+      console.log("Error in getVersion4_7ModulesTracker: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion47ModulesTracker: " + error.message,
+        message: "Error in getVersion4_7ModulesTracker: " + error.message,
       };
     }
   },
@@ -1262,10 +1262,10 @@ const modules = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v4.0": this.version40.bind(this),
-      "v4.7": this.version47.bind(this),
-      "v5.0": this.version50.bind(this),
-      "v5.2.1": this.version521.bind(this),
+      "v4.0": this.version4_0.bind(this),
+      "v4.7": this.version4_7.bind(this),
+      "v5.0": this.version5_0.bind(this),
+      "v5.2.1": this.version5_2_1.bind(this),
     };
   },
 
