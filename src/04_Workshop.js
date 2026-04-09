@@ -445,9 +445,9 @@ const workshop = {
 
   // #endregion
   // #region Convert Versions
-  version228: function () {
+  version2_2_8: function () {
     try {
-      console.log("Called: workshop.version228");
+      console.log("Called: workshop.version2_2_8");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -489,7 +489,7 @@ const workshop = {
         updateWorkshopValuesBatchResult[2].values;
 
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion20WorkshopLevels(
+      var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
@@ -497,7 +497,7 @@ const workshop = {
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(
+      var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
@@ -505,7 +505,7 @@ const workshop = {
       }
 
       // Process workshop plus ratios
-      var workshopPlusRatiosResult = this.getVersion228WorkshopPlusRatios(
+      var workshopPlusRatiosResult = this.getVersion2_2_8WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
         oldWorkshopPlusRatiosValues
       );
@@ -521,17 +521,17 @@ const workshop = {
         oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
       };
     } catch (error) {
-      console.log("Error in version228: " + error.toString());
+      console.log("Error in version2_2_8: " + error.toString());
       return {
         success: false,
-        message: "Error in version228: " + error.message,
+        message: "Error in version2_2_8: " + error.message,
       };
     }
   },
 
-  version21: function () {
+  version2_1: function () {
     try {
-      console.log("Called: workshop.version21");
+      console.log("Called: workshop.version2_1");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -588,7 +588,7 @@ const workshop = {
         updateWorkshopFormulasBatchResult[0].values;
 
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion20WorkshopLevels(
+      var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
@@ -596,7 +596,7 @@ const workshop = {
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(
+      var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
@@ -604,7 +604,7 @@ const workshop = {
       }
 
       // Process workshop plus ratios
-      var workshopPlusRatiosResult = this.getVersion21WorkshopPlusRatios(
+      var workshopPlusRatiosResult = this.getVersion2_1WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
         oldWorkshopPlusRatiosValues
       );
@@ -620,17 +620,17 @@ const workshop = {
         oldWorkshopPlusRatios: workshopPlusRatiosResult.oldWorkshopPlusRatios,
       };
     } catch (error) {
-      console.log("Error in version21: " + error.toString());
+      console.log("Error in version2_1: " + error.toString());
       return {
         success: false,
-        message: "Error in version21: " + error.message,
+        message: "Error in version2_1: " + error.message,
       };
     }
   },
 
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: workshop.version20");
+      console.log("Called: workshop.version2_0");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -667,7 +667,7 @@ const workshop = {
         updateWorkshopValuesBatchResult[1].values;
 
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion20WorkshopLevels(
+      var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
@@ -675,7 +675,7 @@ const workshop = {
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion20WorkshopPlusLevels(
+      var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
@@ -688,17 +688,17 @@ const workshop = {
         oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in version20: " + error.toString());
+      console.log("Error in version2_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version20: " + error.message,
+        message: "Error in version2_0: " + error.message,
       };
     }
   },
 
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: workshop.version10");
+      console.log("Called: workshop.version1_0");
       var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -733,7 +733,7 @@ const workshop = {
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
 
       // Process workshop levels
-      var workshopLevelsResult = this.getVersion10WorkshopLevels(
+      var workshopLevelsResult = this.getVersion1_0WorkshopLevels(
         oldWorkshopLevelsValues
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
@@ -741,7 +741,7 @@ const workshop = {
       }
 
       // Process workshop plus levels
-      var workshopPlusLevelsResult = this.getVersion10WorkshopPlusLevels(
+      var workshopPlusLevelsResult = this.getVersion1_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
@@ -755,19 +755,19 @@ const workshop = {
         oldWorkshopPlusLevels: workshopPlusLevelsResult.oldWorkshopPlusLevels,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Workshop Levels
-  getVersion20WorkshopLevels: function (oldWorkshopLevelsValues) {
+  getVersion2_0WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
-      console.log("Called: workshop.getVersion20WorkshopLevels");
+      console.log("Called: workshop.getVersion2_0WorkshopLevels");
       var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
       var oldWorkshopLevelsPresetNames = [];
       oldWorkshopLevelsHeaders.forEach(function (name, index) {
@@ -829,17 +829,17 @@ const workshop = {
         oldWorkshopLevels: oldWorkshopLevels,
       };
     } catch (error) {
-      console.log("Error in getVersion20WorkshopLevels: " + error.toString());
+      console.log("Error in getVersion2_0WorkshopLevels: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20WorkshopLevels: " + error.message,
+        message: "Error in getVersion2_0WorkshopLevels: " + error.message,
       };
     }
   },
 
-  getVersion10WorkshopLevels: function (oldWorkshopLevelsValues) {
+  getVersion1_0WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
-      console.log("Called: workshop.getVersion10WorkshopLevels");
+      console.log("Called: workshop.getVersion1_0WorkshopLevels");
       var oldWorkshopLevels = { presetNames: [null], data: {} };
       oldWorkshopLevelsValues.forEach(function (row) {
         var hasData = row.some(function (cell) {
@@ -863,19 +863,19 @@ const workshop = {
         oldWorkshopLevels: oldWorkshopLevels,
       };
     } catch (error) {
-      console.log("Error in getVersion10WorkshopLevels: " + error.toString());
+      console.log("Error in getVersion1_0WorkshopLevels: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10WorkshopLevels: " + error.message,
+        message: "Error in getVersion1_0WorkshopLevels: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Workshop Plus Levels
-  getVersion20WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
+  getVersion2_0WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
-      console.log("Called: workshop.getVersion20WorkshopPlusLevels");
+      console.log("Called: workshop.getVersion2_0WorkshopPlusLevels");
       var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
       var oldWorkshopPlusPresetNames = [];
       oldWorkshopPlusLevelsHeaders.forEach(function (name, index) {
@@ -925,18 +925,18 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion20WorkshopPlusLevels: " + error.toString()
+        "Error in getVersion2_0WorkshopPlusLevels: " + error.toString()
       );
       return {
         success: false,
-        message: "Error in getVersion20WorkshopPlusLevels: " + error.message,
+        message: "Error in getVersion2_0WorkshopPlusLevels: " + error.message,
       };
     }
   },
 
-  getVersion10WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
+  getVersion1_0WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
-      console.log("Called: workshop.getVersion10WorkshopPlusLevels");
+      console.log("Called: workshop.getVersion1_0WorkshopPlusLevels");
       var oldWorkshopPlusLevels = { presetNames: [null], data: {} };
       oldWorkshopPlusLevelsValues.forEach(function (row) {
         var hasData = row.some(function (cell) {
@@ -958,23 +958,23 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion10WorkshopPlusLevels: " + error.toString()
+        "Error in getVersion1_0WorkshopPlusLevels: " + error.toString()
       );
       return {
         success: false,
-        message: "Error in getVersion10WorkshopPlusLevels: " + error.message,
+        message: "Error in getVersion1_0WorkshopPlusLevels: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Workshop Plus Ratios
-  getVersion228WorkshopPlusRatios: function (
+  getVersion2_2_8WorkshopPlusRatios: function (
     presetNames,
     oldWorkshopPlusRatiosValues
   ) {
     try {
-      console.log("Called: workshop.getVersion228WorkshopPlusRatios");
+      console.log("Called: workshop.getVersion2_2_8WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
       var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
@@ -1016,21 +1016,21 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion228WorkshopPlusRatios: " + error.toString()
+        "Error in getVersion2_2_8WorkshopPlusRatios: " + error.toString()
       );
       return {
         success: false,
-        message: "Error in getVersion228WorkshopPlusRatios: " + error.message,
+        message: "Error in getVersion2_2_8WorkshopPlusRatios: " + error.message,
       };
     }
   },
 
-  getVersion21WorkshopPlusRatios: function (
+  getVersion2_1WorkshopPlusRatios: function (
     presetNames,
     oldWorkshopPlusRatiosValues
   ) {
     try {
-      console.log("Called: workshop.getVersion21WorkshopPlusRatios");
+      console.log("Called: workshop.getVersion2_1WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
       var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
@@ -1089,11 +1089,11 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion21WorkshopPlusRatios: " + error.toString()
+        "Error in getVersion2_1WorkshopPlusRatios: " + error.toString()
       );
       return {
         success: false,
-        message: "Error in getVersion21WorkshopPlusRatios: " + error.message,
+        message: "Error in getVersion2_1WorkshopPlusRatios: " + error.message,
       };
     }
   },
@@ -1102,10 +1102,10 @@ const workshop = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
-      "v2.0": this.version20.bind(this),
-      "v2.1": this.version21.bind(this),
-      "v2.2.8": this.version228.bind(this),
+      "v1.0": this.version1_0.bind(this),
+      "v2.0": this.version2_0.bind(this),
+      "v2.1": this.version2_1.bind(this),
+      "v2.2.8": this.version2_2_8.bind(this),
     };
   },
 

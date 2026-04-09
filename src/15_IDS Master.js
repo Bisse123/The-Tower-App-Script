@@ -164,9 +164,9 @@ const master = {
 
   // #endregion
   // #region Convert Versions
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: master.version20");
+      console.log("Called: master.version2_0");
       var oldSpreadsheet = spreadsheets("IDS Master oldSpreadsheet");
       if (!oldSpreadsheet) {
         console.log(`Old spreadsheet not found`);
@@ -188,7 +188,7 @@ const master = {
       }
 
       var idsValues = idsResult[0].values;
-      var idsDataResult = this.getVersion20IDSData(idsValues);
+      var idsDataResult = this.getVersion2_0IDSData(idsValues);
 
       if (!idsDataResult.success) {
         console.log(`${idsDataResult.message}`);
@@ -203,19 +203,19 @@ const master = {
         message: "IDS Master v2.0 data exported successfully",
       };
     } catch (error) {
-      console.log("Error in version20: " + error.toString());
+      console.log("Error in version2_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version20: " + error.message,
+        message: "Error in version2_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get IDS Data
-  getVersion20IDSData: function (idsValues) {
+  getVersion2_0IDSData: function (idsValues) {
     try {
-      console.log("Called: master.getVersion20IDSData");
+      console.log("Called: master.getVersion2_0IDSData");
 
       // Extract all sheet references from the IDS sheet
       var sheetReferences = {};
@@ -253,10 +253,10 @@ const master = {
         message: "IDS Master data extracted successfully",
       };
     } catch (error) {
-      console.log("Error in getVersion20IDSData: " + error.toString());
+      console.log("Error in getVersion2_0IDSData: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20IDSData: " + error.message,
+        message: "Error in getVersion2_0IDSData: " + error.message,
       };
     }
   },
@@ -265,7 +265,7 @@ const master = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v2.0": this.version20.bind(this),
+      "v2.0": this.version2_0.bind(this),
     };
   },
 

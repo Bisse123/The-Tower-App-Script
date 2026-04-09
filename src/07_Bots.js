@@ -448,9 +448,9 @@ const bots = {
 
   // #endregion
   // #region Convert Versions
-  version30: function () {
+  version3_0: function () {
     try {
-      console.log("Called: bots.version30");
+      console.log("Called: bots.version3_0");
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -479,20 +479,20 @@ const bots = {
       }
       var oldBotLevelsData = botBatchResult[0].values;
 
-      var botsData = this.getVersion30Bots(oldBotLevelsData);
+      var botsData = this.getVersion3_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version30: " + error.toString());
+      console.log("Error in version3_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version30: " + error.message,
+        message: "Error in version3_0: " + error.message,
       };
     }
   },
 
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: bots.version20");
+      console.log("Called: bots.version2_0");
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -521,20 +521,20 @@ const bots = {
       }
       var oldBotLevelsData = botBatchResult[0].values;
 
-      var botsData = this.getVersion20Bots(oldBotLevelsData);
+      var botsData = this.getVersion2_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version20: " + error.toString());
+      console.log("Error in version2_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version20: " + error.message,
+        message: "Error in version2_0: " + error.message,
       };
     }
   },
 
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: bots.version10");
+      console.log("Called: bots.version1_0");
       var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -563,22 +563,22 @@ const bots = {
       }
       var oldBotLevelsData = botBatchResult[0].values;
 
-      var botsData = this.getVersion10Bots(oldBotLevelsData);
+      var botsData = this.getVersion1_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Bots
-  getVersion30Bots: function (oldBotLevelsData) {
+  getVersion3_0Bots: function (oldBotLevelsData) {
     try {
-      console.log("Called: bots.getVersion30Bots");
+      console.log("Called: bots.getVersion3_0Bots");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",
@@ -679,17 +679,17 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion30Bots: " + error.toString());
+      console.log("Error in getVersion3_0Bots: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion30Bots: " + error.message,
+        message: "Error in getVersion3_0Bots: " + error.message,
       };
     }
   },
 
-  getVersion20Bots: function (oldBotLevelsData) {
+  getVersion2_0Bots: function (oldBotLevelsData) {
     try {
-      console.log("Called: bots.getVersion20Bots");
+      console.log("Called: bots.getVersion2_0Bots");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",
@@ -747,17 +747,17 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion20Bots: " + error.toString());
+      console.log("Error in getVersion2_0Bots: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20Bots: " + error.message,
+        message: "Error in getVersion2_0Bots: " + error.message,
       };
     }
   },
 
-  getVersion10Bots: function (oldBotLevelsData) {
+  getVersion1_0Bots: function (oldBotLevelsData) {
     try {
-      console.log("Called: bots.getVersion10Bots");
+      console.log("Called: bots.getVersion1_0Bots");
       var targetBots = [
         "Flame Bot",
         "Thunder Bot",
@@ -823,10 +823,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion10Bots: " + error.toString());
+      console.log("Error in getVersion1_0Bots: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Bots: " + error.message,
+        message: "Error in getVersion1_0Bots: " + error.message,
       };
     }
   },
@@ -835,9 +835,9 @@ const bots = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
-      "v2.0": this.version20.bind(this),
-      "v3.0": this.version30.bind(this),
+      "v1.0": this.version1_0.bind(this),
+      "v2.0": this.version2_0.bind(this),
+      "v3.0": this.version3_0.bind(this),
     };
   },
 

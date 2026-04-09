@@ -1,4 +1,4 @@
-const playerStuff = {
+﻿const playerStuff = {
   // #region Export Functions
   exportData: function (versionDifference) {
     try {
@@ -312,9 +312,9 @@ const playerStuff = {
 
   // #endregion
   // #region Convert Versions
-  version40: function () {
+  version4_0: function () {
     try {
-      console.log("Called: playerStuff.version40");
+      console.log("Called: playerStuff.version4_0");
       var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -338,10 +338,10 @@ const playerStuff = {
       }
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
-      var tierDataResult = this.getVersion40PlayerStuffTiers(
+      var tierDataResult = this.getVersion4_0PlayerStuffTiers(
         oldPlayerStuffTierValues
       );
-      var statsDataResult = this.getVersion32PlayerStuffStats(
+      var statsDataResult = this.getVersion3_2PlayerStuffStats(
         oldPlayerStuffStatsValues
       );
       success = tierDataResult.success && statsDataResult.success;
@@ -354,17 +354,17 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version40: " + error.toString());
+      console.log("Error in version4_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version40: " + error.message,
+        message: "Error in version4_0: " + error.message,
       };
     }
   },
 
-  version32: function () {
+  version3_2: function () {
     try {
-      console.log("Called: playerStuff.version32");
+      console.log("Called: playerStuff.version3_2");
       var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -388,10 +388,10 @@ const playerStuff = {
       }
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
-      var tierDataResult = this.getVersion20PlayerStuffTiers(
+      var tierDataResult = this.getVersion2_0PlayerStuffTiers(
         oldPlayerStuffTierValues
       );
-      var statsDataResult = this.getVersion32PlayerStuffStats(
+      var statsDataResult = this.getVersion3_2PlayerStuffStats(
         oldPlayerStuffStatsValues
       );
       success = tierDataResult.success && statsDataResult.success;
@@ -404,17 +404,17 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version32: " + error.toString());
+      console.log("Error in version3_2: " + error.toString());
       return {
         success: false,
-        message: "Error in version32: " + error.message,
+        message: "Error in version3_2: " + error.message,
       };
     }
   },
 
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: playerStuff.version20");
+      console.log("Called: playerStuff.version2_0");
       var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -438,10 +438,10 @@ const playerStuff = {
       }
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
-      var tierDataResult = this.getVersion20PlayerStuffTiers(
+      var tierDataResult = this.getVersion2_0PlayerStuffTiers(
         oldPlayerStuffTierValues
       );
-      var statsDataResult = this.getVersion20PlayerStuffStats(
+      var statsDataResult = this.getVersion2_0PlayerStuffStats(
         oldPlayerStuffStatsValues
       );
       success = tierDataResult.success && statsDataResult.success;
@@ -454,19 +454,19 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version20: " + error.toString());
+      console.log("Error in version2_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version20: " + error.message,
+        message: "Error in version2_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get PlayerStuff Tiers
-  getVersion40PlayerStuffTiers: function (oldPlayerStuffTierValues) {
+  getVersion4_0PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
-      console.log("Called: playerStuff.getVersion40PlayerStuffTiers");
+      console.log("Called: playerStuff.getVersion4_0PlayerStuffTiers");
 
       if (!oldPlayerStuffTierValues || oldPlayerStuffTierValues.length === 0) {
         console.log(`No data found in old player & stuff tier data`);
@@ -505,17 +505,17 @@ const playerStuff = {
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log("Error in getVersion40PlayerStuffTiers: " + error.toString());
+      console.log("Error in getVersion4_0PlayerStuffTiers: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion40PlayerStuffTiers: " + error.message,
+        message: "Error in getVersion4_0PlayerStuffTiers: " + error.message,
       };
     }
   },
 
-  getVersion20PlayerStuffTiers: function (oldPlayerStuffTierValues) {
+  getVersion2_0PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
-      console.log("Called: playerStuff.getversion20PlayerStuffTiers");
+      console.log("Called: playerStuff.getVersion2_0PlayerStuffTiers");
 
       if (!oldPlayerStuffTierValues || oldPlayerStuffTierValues.length === 0) {
         console.log(`No data found in old player & stuff tier data`);
@@ -544,19 +544,19 @@ const playerStuff = {
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log("Error in getversion20PlayerStuffTiers: " + error.toString());
+      console.log("Error in getVersion2_0PlayerStuffTiers: " + error.toString());
       return {
         success: false,
-        message: "Error in getversion20PlayerStuffTiers: " + error.message,
+        message: "Error in getVersion2_0PlayerStuffTiers: " + error.message,
       };
     }
   },
 
 // #endregion
 // #region Get PlayerStuff Stats
-  getVersion32PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+  getVersion3_2PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
-      console.log("Called: playerStuff.getVersion32PlayerStuffStats");
+      console.log("Called: playerStuff.getVersion3_2PlayerStuffStats");
 
       if (
         !oldPlayerStuffStatsValues ||
@@ -592,17 +592,17 @@ const playerStuff = {
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in getversion32PlayerStuffStats: " + error.toString());
+      console.log("Error in getVersion3_2PlayerStuffStats: " + error.toString());
       return {
         success: false,
-        message: "Error in getversion32PlayerStuffStats: " + error.message,
+        message: "Error in getVersion3_2PlayerStuffStats: " + error.message,
       };
     }
   },
 
-  getVersion20PlayerStuffStats: function (oldPlayerStuffStatsValues) {
+  getVersion2_0PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
-      console.log("Called: playerStuff.getversion20PlayerStuffStats");
+      console.log("Called: playerStuff.getVersion2_0PlayerStuffStats");
 
       if (
         !oldPlayerStuffStatsValues ||
@@ -638,10 +638,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in getversion20PlayerStuffStats: " + error.toString());
+      console.log("Error in getVersion2_0PlayerStuffStats: " + error.toString());
       return {
         success: false,
-        message: "Error in getversion20PlayerStuffStats: " + error.message,
+        message: "Error in getVersion2_0PlayerStuffStats: " + error.message,
       };
     }
   },
@@ -650,9 +650,9 @@ const playerStuff = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v2.0": this.version20.bind(this),
-      "v3.2": this.version32.bind(this),
-      "v4.0": this.version40.bind(this),
+      "v2.0": this.version2_0.bind(this),
+      "v3.2": this.version3_2.bind(this),
+      "v4.0": this.version4_0.bind(this),
     };
   },
 

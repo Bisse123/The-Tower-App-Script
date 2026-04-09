@@ -607,9 +607,9 @@ const ultimate = {
 
   // #endregion
   // #region Convert Versions
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: ultimate.version20");
+      console.log("Called: ultimate.version2_0");
       var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -658,7 +658,7 @@ const ultimate = {
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
       // Process ultimate weapons data
-      var ultimateWeaponsData = this.getVersion20UltimateWeapons(
+      var ultimateWeaponsData = this.getVersion2_0UltimateWeapons(
         oldUltimateDataValues
       );
       if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
@@ -666,7 +666,7 @@ const ultimate = {
       }
 
       // Process cost calculator data
-      var costCalculatorData = this.getVersion10CostCalculator(
+      var costCalculatorData = this.getVersion1_0CostCalculator(
         oldUltimateCostCalculatorValues
       );
       if (!costCalculatorData || !costCalculatorData.success) {
@@ -680,17 +680,17 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version20: " + error.toString());
+      console.log("Error in version2_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version20: " + error.message,
+        message: "Error in version2_0: " + error.message,
       };
     }
   },
 
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: ultimate.version10");
+      console.log("Called: ultimate.version1_0");
       var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -739,7 +739,7 @@ const ultimate = {
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
       // Process ultimate weapons data
-      var ultimateWeaponsData = this.getVersion10UltimateWeapons(
+      var ultimateWeaponsData = this.getVersion1_0UltimateWeapons(
         oldUltimateDataValues
       );
       if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
@@ -747,7 +747,7 @@ const ultimate = {
       }
 
       // Process cost calculator data
-      var costCalculatorData = this.getVersion10CostCalculator(
+      var costCalculatorData = this.getVersion1_0CostCalculator(
         oldUltimateCostCalculatorValues
       );
       if (!costCalculatorData || !costCalculatorData.success) {
@@ -761,19 +761,19 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Ultimate Weapons
-  getVersion20UltimateWeapons: function (oldUltimateDataValues) {
+  getVersion2_0UltimateWeapons: function (oldUltimateDataValues) {
     try {
-      console.log("Called: ultimate.getVersion20UltimateWeapons");
+      console.log("Called: ultimate.getVersion2_0UltimateWeapons");
       var targetWeapons = [
         "Chain Lightning",
         "Smart Missiles",
@@ -827,17 +827,17 @@ const ultimate = {
         "Ultimate Weapon": oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion20UltimateWeapons: " + error.toString());
+      console.log("Error in getVersion2_0UltimateWeapons: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion20UltimateWeapons: " + error.message,
+        message: "Error in getVersion2_0UltimateWeapons: " + error.message,
       };
     }
   },
 
-  getVersion10UltimateWeapons: function (oldUltimateDataValues) {
+  getVersion1_0UltimateWeapons: function (oldUltimateDataValues) {
     try {
-      console.log("Called: ultimate.getVersion10UltimateWeapons");
+      console.log("Called: ultimate.getVersion1_0UltimateWeapons");
       var targetWeapons = [
         "Chain Lightning",
         "Smart Missiles",
@@ -903,19 +903,19 @@ const ultimate = {
         "Ultimate Weapon": oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion10UltimateWeapons: " + error.toString());
+      console.log("Error in getVersion1_0UltimateWeapons: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10UltimateWeapons: " + error.message,
+        message: "Error in getVersion1_0UltimateWeapons: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Cost Calculator
-  getVersion10CostCalculator: function (oldUltimateCostCalculatorValues) {
+  getVersion1_0CostCalculator: function (oldUltimateCostCalculatorValues) {
     try {
-      console.log("Called: ultimate.getVersion10CostCalculator");
+      console.log("Called: ultimate.getVersion1_0CostCalculator");
       var targetWeapons = [
         "Chain Lightning",
         "Smart Missiles",
@@ -1066,10 +1066,10 @@ const ultimate = {
         "UW Cost Calculator": oldUltimateCostCalculator,
       };
     } catch (error) {
-      console.log("Error in getVersion10CostCalculator: " + error.toString());
+      console.log("Error in getVersion1_0CostCalculator: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10CostCalculator: " + error.message,
+        message: "Error in getVersion1_0CostCalculator: " + error.message,
       };
     }
   },
@@ -1078,8 +1078,8 @@ const ultimate = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
-      "v2.0": this.version20.bind(this),
+      "v1.0": this.version1_0.bind(this),
+      "v2.0": this.version2_0.bind(this),
     };
   },
 

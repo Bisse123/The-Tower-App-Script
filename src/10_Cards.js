@@ -543,9 +543,9 @@ const cards = {
 
   // #endregion
   // #region Convert Versions
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: cards.version10");
+      console.log("Called: cards.version1_0");
       var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -562,17 +562,17 @@ const cards = {
       var oldCardsLevelData = oldBatchResult[2].values;
       var oldCardSlotsData = oldBatchResult[3].values;
 
-      var cardsPresetData = this.getVersion10CardsPreset(oldCardsPresetData);
+      var cardsPresetData = this.getVersion1_0CardsPreset(oldCardsPresetData);
       if (!cardsPresetData || !cardsPresetData.success) {
         return cardsPresetData;
       }
 
-      var cardsTrackerData = this.getVersion10CardsTracker(oldCardsTrackerData);
+      var cardsTrackerData = this.getVersion1_0CardsTracker(oldCardsTrackerData);
       if (!cardsTrackerData || !cardsTrackerData.success) {
         return cardsTrackerData;
       }
 
-      var cardsLevelData = this.getVersion10CardsLevel(
+      var cardsLevelData = this.getVersion1_0CardsLevel(
         oldCardsLevelData,
         oldCardSlotsData
       );
@@ -590,19 +590,19 @@ const cards = {
         shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Cards Tracker
-  getVersion10CardsTracker: function (oldCardsTrackerData) {
+  getVersion1_0CardsTracker: function (oldCardsTrackerData) {
     try {
-      console.log("Called: cards.getVersion10CardsTracker");
+      console.log("Called: cards.getVersion1_0CardsTracker");
       var ignoreprioValues = ["*", "Purchased"];
       var oldCardsTracker = {};
       for (
@@ -657,19 +657,19 @@ const cards = {
         oldCardsTracker: oldCardsTracker,
       };
     } catch (error) {
-      console.log("Error in getVersion10CardsTracker: " + error.toString());
+      console.log("Error in getVersion1_0CardsTracker: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10CardsTracker: " + error.message,
+        message: "Error in getVersion1_0CardsTracker: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Cards Preset
-  getVersion10CardsPreset: function (oldCardsPresetData) {
+  getVersion1_0CardsPreset: function (oldCardsPresetData) {
     try {
-      console.log("Called: cards.getVersion10CardsPreset");
+      console.log("Called: cards.getVersion1_0CardsPreset");
       var shouldRemoveUsedCards;
       var oldCardsPreset = {};
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
@@ -735,19 +735,19 @@ const cards = {
         shouldRemoveUsedCards: shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in getVersion10CardsPreset: " + error.toString());
+      console.log("Error in getVersion1_0CardsPreset: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10CardsPreset: " + error.message,
+        message: "Error in getVersion1_0CardsPreset: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Cards Level
-  getVersion10CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
+  getVersion1_0CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
     try {
-      console.log("Called: cards.getVersion10CardsLevel");
+      console.log("Called: cards.getVersion1_0CardsLevel");
       var oldCardSlots =
         oldCardSlotsData && oldCardSlotsData[0] && oldCardSlotsData[0][0]
           ? oldCardSlotsData[0][0]
@@ -777,10 +777,10 @@ const cards = {
         oldCardSlots: oldCardSlots,
       };
     } catch (error) {
-      console.log("Error in getVersion10CardsLevel: " + error.toString());
+      console.log("Error in getVersion1_0CardsLevel: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10CardsLevel: " + error.message,
+        message: "Error in getVersion1_0CardsLevel: " + error.message,
       };
     }
   },
@@ -789,7 +789,7 @@ const cards = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v1.0": this.version1_0.bind(this),
     };
   },
 

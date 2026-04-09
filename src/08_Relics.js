@@ -224,9 +224,9 @@ const relics = {
 
   // #endregion
   // #region Convert Versions
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: relics.version10");
+      console.log("Called: relics.version1_0");
       var oldSpreadsheet = spreadsheets("Relics oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -255,22 +255,22 @@ const relics = {
       }
       var oldRelicsData = oldRelicsBatchResult[0].values;
 
-      var relicsData = this.getVersion10Relics(oldRelicsData);
+      var relicsData = this.getVersion1_0Relics(oldRelicsData);
       return relicsData;
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Relics
-  getVersion10Relics: function (oldRelicsData) {
+  getVersion1_0Relics: function (oldRelicsData) {
     try {
-      console.log("Called: relics.getVersion10Relics");
+      console.log("Called: relics.getVersion1_0Relics");
       var oldRelicHeaderRow = -1;
       var relicNameIndex = -1;
       var relicUnlockedIndex = -1;
@@ -316,10 +316,10 @@ const relics = {
         oldRelics: oldRelics,
       };
     } catch (error) {
-      console.log("Error in getVersion10Relics: " + error.toString());
+      console.log("Error in getVersion1_0Relics: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Relics: " + error.message,
+        message: "Error in getVersion1_0Relics: " + error.message,
       };
     }
   },
@@ -328,7 +328,7 @@ const relics = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
+      "v1.0": this.version1_0.bind(this),
     };
   },
 

@@ -332,9 +332,9 @@ const guardians = {
 
   // #endregion
   // #region Convert Versions
-  version22: function () {
+  version2_2: function () {
     try {
-      console.log("Called: guardians.version22");
+      console.log("Called: guardians.version2_2");
       var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -363,20 +363,20 @@ const guardians = {
       }
       var oldGuardianLevelsData = guardianBatchResult[0].values;
 
-      var guardiansData = this.getVersion22Guardians(oldGuardianLevelsData);
+      var guardiansData = this.getVersion2_2Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version22: " + error.toString());
+      console.log("Error in version2_2: " + error.toString());
       return {
         success: false,
-        message: "Error in version22: " + error.message,
+        message: "Error in version2_2: " + error.message,
       };
     }
   },
 
-  version21: function () {
+  version2_1: function () {
     try {
-      console.log("Called: guardians.version21");
+      console.log("Called: guardians.version2_1");
       var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -405,20 +405,20 @@ const guardians = {
       }
       var oldGuardianLevelsData = guardianBatchResult[0].values;
 
-      var guardiansData = this.getVersion21Guardians(oldGuardianLevelsData);
+      var guardiansData = this.getVersion2_1Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version21: " + error.toString());
+      console.log("Error in version2_1: " + error.toString());
       return {
         success: false,
-        message: "Error in version21: " + error.message,
+        message: "Error in version2_1: " + error.message,
       };
     }
   },
 
-  version10: function () {
+  version1_0: function () {
     try {
-      console.log("Called: guardians.version10");
+      console.log("Called: guardians.version1_0");
       var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -447,22 +447,22 @@ const guardians = {
       }
       var oldGuardianLevelsData = guardianBatchResult[0].values;
 
-      var guardiansData = this.getVersion10Guardians(oldGuardianLevelsData);
+      var guardiansData = this.getVersion1_0Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version10: " + error.toString());
+      console.log("Error in version1_0: " + error.toString());
       return {
         success: false,
-        message: "Error in version10: " + error.message,
+        message: "Error in version1_0: " + error.message,
       };
     }
   },
 
   // #endregion
   // #region Get Guardians
-  getVersion22Guardians: function (oldGuardianLevelsData) {
+  getVersion2_2Guardians: function (oldGuardianLevelsData) {
     try {
-      console.log("Called: guardians.getVersion22Guardians");
+      console.log("Called: guardians.getVersion2_2Guardians");
       var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon", "Scout"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
@@ -510,17 +510,17 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion22Guardians: " + error.toString());
+      console.log("Error in getVersion2_2Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion22Guardians: " + error.message,
+        message: "Error in getVersion2_2Guardians: " + error.message,
       };
     }
   },
 
-  getVersion21Guardians: function (oldGuardianLevelsData) {
+  getVersion2_1Guardians: function (oldGuardianLevelsData) {
     try {
-      console.log("Called: guardians.getVersion21Guardians");
+      console.log("Called: guardians.getVersion2_1Guardians");
       var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
@@ -568,17 +568,17 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion21Guardians: " + error.toString());
+      console.log("Error in getVersion2_1Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion21Guardians: " + error.message,
+        message: "Error in getVersion2_1Guardians: " + error.message,
       };
     }
   },
 
-  getVersion10Guardians: function (oldGuardianLevelsData) {
+  getVersion1_0Guardians: function (oldGuardianLevelsData) {
     try {
-      console.log("Called: guardians.getVersion10Guardians");
+      console.log("Called: guardians.getVersion1_0Guardians");
       var targetGuardians = ["Attack", "Ally", "Steal", "Fetch"];
       var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
         row.some(
@@ -627,10 +627,10 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion10Guardians: " + error.toString());
+      console.log("Error in getVersion1_0Guardians: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion10Guardians: " + error.message,
+        message: "Error in getVersion1_0Guardians: " + error.message,
       };
     }
   },
@@ -639,9 +639,9 @@ const guardians = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.0": this.version10.bind(this),
-      "v2.1": this.version21.bind(this),
-      "v2.2": this.version22.bind(this),
+      "v1.0": this.version1_0.bind(this),
+      "v2.1": this.version2_1.bind(this),
+      "v2.2": this.version2_2.bind(this),
     };
   },
 

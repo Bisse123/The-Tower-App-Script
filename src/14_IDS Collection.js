@@ -1,4 +1,4 @@
-const collection = {
+﻿const collection = {
   // #region Export Functions
   exportData: function (versionDifference) {
     try {
@@ -1140,9 +1140,9 @@ const collection = {
 
   // #endregion
   // #region Convert Versions
-  version30: function () {
+  version3_0: function () {
     try {
-      console.log("Called: collection.version30");
+      console.log("Called: collection.version3_0");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -1253,8 +1253,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -1289,11 +1289,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion228WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -1328,8 +1328,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -1349,7 +1349,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getversion216Themes(themesValues);
+        var themesData = themes.getVersion2_1_6Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -1357,7 +1357,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion30Bots(botsValues);
+        var botsData = bots.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -1365,7 +1365,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -1381,8 +1381,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -1415,13 +1415,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -1465,12 +1465,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -1493,7 +1493,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion22Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_2Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -1509,9 +1509,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion40PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -1530,17 +1530,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version30: ${error.message}`);
+      console.log(`Error in IDS Collection version3_0: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version30: ${error.message}`,
+        message: `Error in IDS Collection version3_0: ${error.message}`,
       };
     }
   },
 
-  version2143: function () {
+  version2_1_4_3: function () {
     try {
-      console.log("Called: collection.version2143");
+      console.log("Called: collection.version2_1_4_3");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -1651,8 +1651,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -1687,11 +1687,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion228WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -1726,8 +1726,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -1747,7 +1747,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getversion216Themes(themesValues);
+        var themesData = themes.getVersion2_1_6Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -1755,7 +1755,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -1763,7 +1763,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -1779,8 +1779,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -1813,13 +1813,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -1863,12 +1863,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -1891,7 +1891,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion22Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_2Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -1907,9 +1907,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -1928,17 +1928,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2143: ${error.message}`);
+      console.log(`Error in IDS Collection version2_1_4_3: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version2143: ${error.message}`,
+        message: `Error in IDS Collection version2_1_4_3: ${error.message}`,
       };
     }
   },
 
-  version2131: function () {
+  version2_1_3_1: function () {
     try {
-      console.log("Called: collection.version2131");
+      console.log("Called: collection.version2_1_3_1");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -2049,8 +2049,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2085,11 +2085,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion228WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2124,8 +2124,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -2145,7 +2145,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getversion216Themes(themesValues);
+        var themesData = themes.getVersion2_1_6Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -2153,7 +2153,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -2161,7 +2161,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -2177,8 +2177,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -2211,13 +2211,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -2261,12 +2261,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -2289,7 +2289,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion22Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_2Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -2305,9 +2305,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2326,17 +2326,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2131: ${error.message}`);
+      console.log(`Error in IDS Collection version2_1_3_1: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version2131: ${error.message}`,
+        message: `Error in IDS Collection version2_1_3_1: ${error.message}`,
       };
     }
   },
 
-  version2118: function () {
+  version2_1_1_8: function () {
     try {
-      console.log("Called: collection.version2118");
+      console.log("Called: collection.version2_1_1_8");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -2447,8 +2447,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2486,11 +2486,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion21WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2525,8 +2525,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -2546,7 +2546,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getversion216Themes(themesValues);
+        var themesData = themes.getVersion2_1_6Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -2554,7 +2554,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -2562,7 +2562,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -2578,8 +2578,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -2612,13 +2612,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -2662,12 +2662,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -2690,7 +2690,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion22Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_2Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -2706,9 +2706,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -2727,17 +2727,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2118: ${error.message}`);
+      console.log(`Error in IDS Collection version2_1_1_8: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version2118: ${error.message}`,
+        message: `Error in IDS Collection version2_1_1_8: ${error.message}`,
       };
     }
   },
 
-  version2116: function () {
+  version2_1_1_6: function () {
     try {
-      console.log("Called: collection.version2116");
+      console.log("Called: collection.version2_1_1_6");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -2848,8 +2848,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2887,11 +2887,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion21WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2926,8 +2926,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -2947,7 +2947,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getversion216Themes(themesValues);
+        var themesData = themes.getVersion2_1_6Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -2955,7 +2955,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -2963,7 +2963,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -2979,8 +2979,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3013,13 +3013,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -3063,12 +3063,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3091,7 +3091,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion21Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_1Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -3107,9 +3107,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3128,17 +3128,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2116: ${error.message}`);
+      console.log(`Error in IDS Collection version2_1_1_6: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version2116: ${error.message}`,
+        message: `Error in IDS Collection version2_1_1_6: ${error.message}`,
       };
     }
   },
 
-  version21: function () {
+  version2_1: function () {
     try {
-      console.log("Called: collection.version21");
+      console.log("Called: collection.version2_1");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -3249,8 +3249,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -3288,11 +3288,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion21WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -3327,8 +3327,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -3348,7 +3348,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Themes(themesValues);
+        var themesData = themes.getVersion1_0Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -3356,7 +3356,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -3364,7 +3364,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -3380,8 +3380,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3414,13 +3414,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -3464,12 +3464,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3492,7 +3492,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion21Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_1Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -3508,9 +3508,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion32PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3529,17 +3529,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version21: ${error.message}`);
+      console.log(`Error in IDS Collection version2_1: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version21: ${error.message}`,
+        message: `Error in IDS Collection version2_1: ${error.message}`,
       };
     }
   },
 
-  version204: function () {
+  version2_0_4: function () {
     try {
-      console.log("Called: collection.version204");
+      console.log("Called: collection.version2_0_4");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -3650,8 +3650,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -3689,11 +3689,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion21WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -3728,8 +3728,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -3749,7 +3749,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Themes(themesValues);
+        var themesData = themes.getVersion1_0Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -3757,7 +3757,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -3765,7 +3765,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -3781,8 +3781,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3815,12 +3815,12 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
-        var cardsTrackerData = cards.getVersion20CardsTracker(
+        var cardsTrackerData = cards.getVersion2_0CardsTracker(
           cardsTrackerValues,
           cardsPresetData.oldCardsPreset,
         );
@@ -3867,12 +3867,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3895,7 +3895,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion21Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion2_1Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -3911,9 +3911,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3932,17 +3932,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version204: ${error.message}`);
+      console.log(`Error in IDS Collection version2_0_4: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version204: ${error.message}`,
+        message: `Error in IDS Collection version2_0_4: ${error.message}`,
       };
     }
   },
 
-  version20: function () {
+  version2_0: function () {
     try {
-      console.log("Called: collection.version20");
+      console.log("Called: collection.version2_0");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -4053,8 +4053,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4092,11 +4092,11 @@ const collection = {
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion20WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion20WorkshopPlusLevels(
+          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion21WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -4131,8 +4131,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion20UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4152,7 +4152,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Themes(themesValues);
+        var themesData = themes.getVersion1_0Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -4160,7 +4160,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion20Bots(botsValues);
+        var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -4168,7 +4168,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -4184,8 +4184,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -4218,12 +4218,12 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
-        var cardsTrackerData = cards.getVersion20CardsTracker(
+        var cardsTrackerData = cards.getVersion2_0CardsTracker(
           cardsTrackerValues,
           cardsPresetData.oldCardsPreset,
         );
@@ -4267,12 +4267,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion50ModulesInventory(
+        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion50ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -4295,7 +4295,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion1_0Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -4311,9 +4311,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -4332,17 +4332,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version20: ${error.message}`);
+      console.log(`Error in IDS Collection version2_0: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version20: ${error.message}`,
+        message: `Error in IDS Collection version2_0: ${error.message}`,
       };
     }
   },
 
-  version1417: function () {
+  version1_4_1_7: function () {
     try {
-      console.log("Called: collection.version1417");
+      console.log("Called: collection.version1_4_1_7");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -4451,8 +4451,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4483,8 +4483,8 @@ const collection = {
         var workshopPlusLevelsValues = workshopPlusResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion10WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(
+          workshop.getVersion1_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion1_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
 
@@ -4516,8 +4516,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion10UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion1_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4537,7 +4537,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Themes(themesValues);
+        var themesData = themes.getVersion1_0Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -4545,7 +4545,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion10Bots(botsValues);
+        var botsData = bots.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -4553,7 +4553,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -4569,8 +4569,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -4603,13 +4603,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -4653,12 +4653,12 @@ const collection = {
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion40ModulesInventory(
+        var modulesInventoryData = modules.getVersion4_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion40ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion47ModulesTracker(
+          modules.getVersion4_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -4681,7 +4681,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion1_0Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -4697,9 +4697,9 @@ const collection = {
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion20PlayerStuffTiers(playerTierValues);
+          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion20PlayerStuffStats(playerStatValues);
+          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -4718,17 +4718,17 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version1417: ${error.message}`);
+      console.log(`Error in IDS Collection version1_4_1_7: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version1417: ${error.message}`,
+        message: `Error in IDS Collection version1_4_1_7: ${error.message}`,
       };
     }
   },
 
-  version135: function () {
+  version1_3_5: function () {
     try {
-      console.log("Called collection.version135");
+      console.log("Called: collection.version1_3_5");
       var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -4835,8 +4835,8 @@ const collection = {
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion10LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion10LabPlanner(
+        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = lab.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4867,8 +4867,8 @@ const collection = {
         var workshopPlusLevelsValues = workshopPlusResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion10WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion10WorkshopPlusLevels(
+          workshop.getVersion1_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshop.getVersion1_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
 
@@ -4900,8 +4900,8 @@ const collection = {
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion10UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion10CostCalculator(
+          ultimate.getVersion1_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4921,7 +4921,7 @@ const collection = {
       var themesResult = getBatchResult("Themes & Songs", "values");
       if (themesResult && themesResult.values) {
         var themesValues = themesResult.values;
-        var themesData = themes.getVersion10Themes(themesValues);
+        var themesData = themes.getVersion1_0Themes(themesValues);
         collectedData["Themes & Songs"] = themesData;
       }
 
@@ -4929,7 +4929,7 @@ const collection = {
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion10Bots(botsValues);
+        var botsData = bots.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -4937,7 +4937,7 @@ const collection = {
       var relicsResult = getBatchResult("Relics", "values");
       if (relicsResult && relicsResult.values) {
         var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion10Relics(relicsValues);
+        var relicsData = relics.getVersion1_0Relics(relicsValues);
         collectedData.Relics = relicsData;
       }
 
@@ -4953,8 +4953,8 @@ const collection = {
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion10Vault(harmonyValues);
-        var powerVaultData = vault.getVersion10Vault(powerValues);
+        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vault.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -4987,13 +4987,13 @@ const collection = {
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion10CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion10CardsLevel(
+        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cards.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion10CardsTracker(cardsTrackerValues);
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -5026,11 +5026,11 @@ const collection = {
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
-        var modulesInventoryData = modules.getVersion40ModulesInventory(
+        var modulesInventoryData = modules.getVersion4_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion40ModulesPresets(modulesPresetsValues);
+          modules.getVersion4_0ModulesPresets(modulesPresetsValues);
         var modulesSuccess =
           modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
@@ -5047,7 +5047,7 @@ const collection = {
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
-        var guardiansData = guardians.getVersion10Guardians(guardiansValues);
+        var guardiansData = guardians.getVersion1_0Guardians(guardiansValues);
         collectedData.Guardians = guardiansData;
       }
 
@@ -5057,10 +5057,10 @@ const collection = {
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version135: ${error.message}`);
+      console.log(`Error in IDS Collection version1_3_5: ${error.message}`);
       return {
         success: false,
-        message: `Error in IDS Collection version135: ${error.message}`,
+        message: `Error in IDS Collection version1_3_5: ${error.message}`,
       };
     }
   },
@@ -5069,16 +5069,16 @@ const collection = {
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
-      "v1.3.5": this.version135.bind(this),
-      "v1.4.17": this.version1417.bind(this),
-      "v2.0": this.version20.bind(this),
-      "v2.0.4": this.version204.bind(this),
-      "v2.1": this.version21.bind(this),
-      "v2.1.16": this.version2116.bind(this),
-      "v2.1.18": this.version2118.bind(this),
-      "v2.1.31": this.version2131.bind(this),
-      "v2.1.43": this.version2143.bind(this),
-      "v3.0": this.version30.bind(this),
+      "v1.3.5": this.version1_3_5.bind(this),
+      "v1.4.17": this.version1_4_1_7.bind(this),
+      "v2.0": this.version2_0.bind(this),
+      "v2.0.4": this.version2_0_4.bind(this),
+      "v2.1": this.version2_1.bind(this),
+      "v2.1.16": this.version2_1_1_6.bind(this),
+      "v2.1.18": this.version2_1_1_8.bind(this),
+      "v2.1.31": this.version2_1_3_1.bind(this),
+      "v2.1.43": this.version2_1_4_3.bind(this),
+      "v3.0": this.version3_0.bind(this),
     };
   },
 
@@ -5104,3 +5104,7 @@ const collection = {
   },
   // #endregion
 };
+
+
+
+
