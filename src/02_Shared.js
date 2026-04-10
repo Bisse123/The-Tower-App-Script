@@ -731,7 +731,7 @@ const shared = {
 
   compareVersions: function (oldVersion, newVersion) {
     function parseVersion(v) {
-      v = v.replace(/^[^\d]*/, "");
+      v = v.replace(/[^\d.]/g, "");
       return v.split(".").map(Number);
     }
 
