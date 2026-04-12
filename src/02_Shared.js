@@ -1598,15 +1598,40 @@ function getOAuthToken() {
     return {
       success: true,
       token: token,
+      authorizationUrl: "",
       message: "Token retrieved successfully",
     };
   } catch (error) {
     console.error("Error getting OAuth token:", error);
+
     return {
       success: false,
       token: null,
+      authorizationUrl: getScopeAuthorizationUrl(),
       message: error.toString(),
     };
+  }
+}
+
+function getScopeAuthorizationUrl() {
+  try {
+    return (
+      ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL)
+        .getAuthorizationUrl() || ""
+    );
+  } catch (authInfoError) {
+    console.error("Error getting authorization URL:", authInfoError);
+    return "";
+  }
+}
+
+function checkScopePermissions() {
+  try {
+    ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
+    return true;
+  } catch (error) {
+    console.error("Scope permission check failed:", error);
+    return false;
   }
 }
 

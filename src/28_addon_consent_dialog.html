@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <?!= include('27_consent_styles'); ?>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #f7f9fc;
+      }
+
+      .consentModalBackground {
+        display: flex !important;
+        position: static;
+        width: 100%;
+        height: auto;
+        padding: 0;
+        background: transparent;
+        backdrop-filter: none;
+      }
+
+      .consentModalSection {
+        width: 100%;
+        max-width: none;
+        box-shadow: none;
+        animation: none;
+      }
+    </style>
+  </head>
+  <body>
+    <?!= include('27_consent_section'); ?>
+
+    <script>
+      const viewType = "addon-consent-dialog";
+      const ADDON_INITIAL_AUTHORIZATION_URL =
+        "<?= authorizationUrl ? authorizationUrl : '' ?>";
+
+      function setStatusWithSpinner(message) {
+        if (typeof setConsentModalStatus === "function") {
+          setConsentModalStatus("Checking scope access", message);
+        }
+      }
+
+      function setStatusText(message) {
+        if (typeof setConsentModalStatus !== "function") {
+          return;
+        }
+
+        const lowered = String(message || "").toLowerCase();
+        if (
+          lowered.indexOf("error") !== -1 ||
+          lowered.indexOf("failed") !== -1
+        ) {
+          setConsentModalStatus("Automatic check failed", message);
+          return;
+        }
+
+        setConsentModalStatus("Additional permissions are required", message);
+      }
+    </script>
+
+    <?!= include('27_consent_scripts'); ?>
+
+    <script>
+      function markConsentReadyAndCloseDialog() {
+        google.script.run
+          .withSuccessHandler(function () {
+            google.script.host.close();
+          })
+          .withFailureHandler(function (error) {
+            console.error("Unable to mark consent as ready:", error);
+            google.script.host.close();
+          })
+          .markAddonConsentReadySignal();
+      }
+
+      authorizeAndContinue = async function () {
+        try {
+          const hasAllScopes = await requestScopePermissionsFromServer();
+
+          if (hasAllScopes) {
+            consentScopeCheckOutcome = "granted";
+            markConsentReadyAndCloseDialog();
+            return true;
+          }
+
+          consentScopeCheckOutcome = "missing_scopes";
+          const authorizationUrl =
+            await requestScopeAuthorizationUrlFromServer();
+
+          showConsentModal(
+            authorizationUrl || ADDON_INITIAL_AUTHORIZATION_URL || "",
+          );
+          return false;
+        } catch (error) {
+          consentScopeCheckOutcome = "error";
+          setStatusText("Authorization error: " + (error.message || error));
+          return false;
+        }
+      };
+
+      function initializeAddonConsentDialog() {
+        showConsentModal(ADDON_INITIAL_AUTHORIZATION_URL || "");
+
+        if (ADDON_INITIAL_AUTHORIZATION_URL) {
+          setConsentModalStatus(
+            "Additional permissions are required",
+            "Open the authorization page, approve scope access, then close that tab.",
+          );
+          return;
+        }
+
+        setConsentAuthorizeLinkDisabled(true);
+        setConsentRecheckButtonVisible(true);
+        setConsentModalStatus(
+          "Automatic check failed",
+          "Authorization URL is unavailable. If you already approved access, click Recheck scope access.",
+        );
+      }
+
+      initializeAddonConsentDialog();
+    </script>
+  </body>
+</html>

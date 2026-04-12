@@ -49,6 +49,8 @@ const spreadsheets = (() => {
   };
 })();
 
+const ADDON_CONSENT_READY_SIGNAL_KEY = "ADDON_CONSENT_READY_SIGNAL";
+
 function doGet(e) {
   // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
   var template = HtmlService.createTemplateFromFile("20_WebApp");
@@ -101,6 +103,42 @@ function doGet(e) {
 
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function showAddonConsentDialog(authorizationUrl) {
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+
+  var template = HtmlService.createTemplateFromFile("28_addon_consent_dialog");
+  template.authorizationUrl = authorizationUrl || "";
+
+  var html = template
+    .evaluate()
+    .setWidth(560)
+    .setHeight(280)
+    .addMetaTag("viewport", "width=device-width, initial-scale=1");
+
+  SpreadsheetApp.getUi().showModalDialog(html, "Additional Permissions Required");
+}
+
+function markAddonConsentReadySignal() {
+  PropertiesService.getUserProperties().setProperty(
+    ADDON_CONSENT_READY_SIGNAL_KEY,
+    String(Date.now())
+  );
+  return true;
+}
+
+function consumeAddonConsentReadySignal() {
+  var userProperties = PropertiesService.getUserProperties();
+  var signal = userProperties.getProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+
+  if (!signal) {
+    return false;
+  }
+
+  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+  return true;
 }
 
 function onOpen(e) {

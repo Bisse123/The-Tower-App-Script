@@ -1,0 +1,28 @@
+<div id="consentModalBackground" class="consentModalBackground">
+  <div class="section consentModalSection">
+    <span class="consentModalBadge">Additional permissions are required</span>
+    <h3 id="consentModalTitle">Missing scope permissions</h3>
+    <p id="consentModalMessage">
+      Open the authorization page, approve scope access, then recheck access.
+    </p>
+    <div class="consentModalActions">
+      <a
+        id="consentAuthorizeLink"
+        class="consentAuthorizeLink"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open authorization page
+      </a>
+      <button
+        type="button"
+        id="consentRecheckButton"
+        class="consentRecheckButton hidden"
+        onclick="recheckAccessToken()"
+      >
+        Recheck scope access
+      </button>
+    </div>
+  </div>
+</div>
