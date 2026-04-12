@@ -94,6 +94,7 @@ function doGet(e) {
 
   template.viewType = "webapp";
   template.accessRequired = false;
+  template.contextRecovery = "webapp";
 
   return template
     .evaluate()
@@ -166,6 +167,7 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = false;
+      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -213,6 +215,7 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = false;
+      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -233,6 +236,7 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = true;
+      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -254,6 +258,7 @@ function showImportDialog() {
 
     template.viewType = "sidebar";
     template.accessRequired = false;
+    template.contextRecovery = "webapp";
 
     var html = template
       .evaluate()
@@ -274,6 +279,8 @@ function showUpdateDialog() {
     template.sheetType = updateDialogParameters.sheetType || "";
     if (updateDialogParameters.accessRequired) {
       template.contextRecovery = "update";
+    } else {
+      template.contextRecovery = "webapp";
     }
 
     template.API_KEY =
@@ -304,6 +311,7 @@ function showUpdateDialog() {
 
     template.viewType = "sidebar";
     template.accessRequired = false;
+    template.contextRecovery = "webapp";
 
     var html = template
       .evaluate()
