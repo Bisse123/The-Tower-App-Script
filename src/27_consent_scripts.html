@@ -281,8 +281,10 @@
 
   async function requestOAuthTokenFromServer() {
     const hasAllScopes = await requestScopePermissionsFromServer();
+    console.log("Scope permissions check result:", hasAllScopes);
     if (!hasAllScopes) {
       const authorizationUrl = await requestScopeAuthorizationUrlFromServer();
+      console.log("Authorization URL from server:", authorizationUrl);
       return {
         success: false,
         token: null,
@@ -315,6 +317,71 @@
         .withFailureHandler(reject)
         .getScopeAuthorizationUrl();
     });
+  }
+
+  function requestUpdateDialogParametersFromServer() {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .getUpdateDialogParameters();
+    });
+  }
+
+  async function recoverSidebarUpdateContextIfNeeded() {
+    if (!isAddonSidebarView()) {
+      return true;
+    }
+
+    if (contextRecovery !== "update") {
+      return true;
+    }
+
+    const hasContext = Boolean(sheetType && (newSheetID || oldSheetID || idMasterID));
+    console.log("Checking if update context is already available:", {
+      hasContext,
+      newSheetID,
+      oldSheetID,
+      idMasterID,
+      sheetType,
+    });
+    if (hasContext) {
+      return true;
+    }
+
+    setStatusWithSpinner("Recovering update context...");
+    try {
+      const recovery = await requestUpdateDialogParametersFromServer();
+      console.log("Update context recovery result:", recovery);
+
+      if (!recovery || !recovery.success) {
+        setStatusText(
+          `Could not recover update context: ${(recovery && recovery.message) || "Unknown error"}`
+        );
+        return false;
+      }
+
+      newSheetID = recovery.newSheetID || "";
+      oldSheetID = recovery.oldSheetID || "";
+      idMasterID = recovery.idMasterID || "";
+      sheetType = recovery.sheetType || "";
+
+      const recoveredContextIsValid = Boolean(
+        sheetType && (newSheetID || oldSheetID || idMasterID)
+      );
+      if (!recoveredContextIsValid) {
+        setStatusText(
+          "Recovered context is incomplete. Please close and click Update Sheet again."
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Update context recovery failed:", error);
+      setStatusText(`Could not recover update context: ${error.message || error}`);
+      return false;
+    }
   }
 
   async function getOAuthToken() {
@@ -363,6 +430,11 @@
     if (accessRequired && newSheetID) {
       console.log("Access required for new sheet:", newSheetID);
       await findAndGrantNewSheet(newSheetID, userEmail);
+    }
+
+    const isContextReady = await recoverSidebarUpdateContextIfNeeded();
+    if (!isContextReady) {
+      return false;
     }
 
     checkValidParameters();

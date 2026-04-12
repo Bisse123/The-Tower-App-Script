@@ -141,6 +141,92 @@ function consumeAddonConsentReadySignal() {
   return true;
 }
 
+function getUpdateDialogParameters() {
+  try {
+    var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var oldSheetID = oldSpreadsheet.getId();
+
+    var homePageSheet = oldSpreadsheet.getSheetByName("Home Page");
+    if (!homePageSheet) {
+      throw new Error("Home Page sheet not found in the active spreadsheet.");
+    }
+
+    var sheetType = homePageSheet.getRange("B2").getValue();
+
+    var eHP = oldSpreadsheet.getSheetByName("eHP");
+    var eDamage = oldSpreadsheet.getSheetByName("eDamage");
+    var eEcon = oldSpreadsheet.getSheetByName("eEcon");
+    if (eHP && eDamage && eEcon) {
+      sheetType = "Effective Paths";
+    }
+
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      sheetType = "IDS Collection";
+    }
+
+    if (sheetType === "IDS Master") {
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: "",
+        sheetType: sheetType,
+        accessRequired: false,
+      };
+    }
+
+    if (!sheetVars(sheetType)) {
+      throw new Error("Sheet type not found in the active spreadsheet.");
+    }
+
+    var sheetName = "IDS";
+    var searchValue = "IDS Master's ID";
+    if (sheetType === "IDS Collection") {
+      sheetName = "Home Page";
+      searchValue = "Load your file here";
+    }
+
+    var sheet = oldSpreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      throw new Error("IDS sheet not found in the active spreadsheet.");
+    }
+
+    try {
+      var sheetIDs = findSheetIDs(sheet, sheetType, searchValue);
+
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: sheetIDs.idMasterID,
+        sheetType: sheetType,
+        accessRequired: false,
+      };
+    } catch (error) {
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: "",
+        sheetType: sheetType,
+        accessRequired: true,
+        message: error.message || error.toString(),
+      };
+    }
+  } catch (error) {
+    console.log(`Error in getUpdateDialogParameters: ${error.message}`);
+    return {
+      success: false,
+      newSheetID: "",
+      oldSheetID: "",
+      idMasterID: "",
+      sheetType: "",
+      accessRequired: true,
+      message: error.message || error.toString(),
+    };
+  }
+}
+
 function onOpen(e) {
   createMenu();
 }
@@ -301,119 +387,38 @@ function showImportDialog() {
 
 function showUpdateDialog() {
   try {
-    var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    var oldSheetID = oldSpreadsheet.getId();
+    var updateDialogParameters = getUpdateDialogParameters();
 
-    var sheetType = oldSpreadsheet
-    .getSheetByName("Home Page")
-    .getRange("B2")
-    .getValue();
-
-    var eHP = oldSpreadsheet.getSheetByName("eHP");
-    var eDamage = oldSpreadsheet.getSheetByName("eDamage");
-    var eEcon = oldSpreadsheet.getSheetByName("eEcon");
-    if (eHP && eDamage && eEcon) {
-      sheetType = "Effective Paths";
-    }
-    
-    // Special case for IDS Master
-    if (sheetType === "IDS Master") {
-      console.log(
-        "IDS Master detected, showing import dialog with limited parameters"
-      );
-      var template = HtmlService.createTemplateFromFile("20_WebApp");
-      template.newSheetID = "";
-      template.oldSheetID = oldSheetID;
-      template.idMasterID = "";
-      template.sheetType = sheetType;
-      template.API_KEY =
-        PropertiesService.getScriptProperties().getProperty("API_KEY");
-      template.APP_ID =
-        PropertiesService.getScriptProperties().getProperty("APP_ID");
-
-      template.viewType = "sidebar";
-      template.accessRequired = false;
-
-      var html = template
-        .evaluate()
-        .addMetaTag("viewport", "width=device-width, initial-scale=1")
-        .setTitle("Import Data");
-      SpreadsheetApp.getUi().showSidebar(html);
-      return;
-    }
-    
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
-      sheetType = "IDS Collection";
+    var template = HtmlService.createTemplateFromFile("20_WebApp");
+    template.newSheetID = updateDialogParameters.newSheetID || "";
+    template.oldSheetID = updateDialogParameters.oldSheetID || "";
+    template.idMasterID = updateDialogParameters.idMasterID || "";
+    template.sheetType = updateDialogParameters.sheetType || "";
+    if (updateDialogParameters.accessRequired) {
+      template.contextRecovery = "update";
     }
 
-    if (!sheetVars(sheetType)) {
-      console.log(`Sheet type not found in the new spreadsheet.`);
-      throw new Error("Sheet type not found in the new spreadsheet.");
-    }
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
 
-    var sheetName = "IDS";
-    var searchValue = "IDS Master's ID";
-    if (sheetType === "IDS Collection") {
-      sheetName = "Home Page";
-      searchValue = "Load your file here";
-    }
-    // Regular processing for individual sheet types
-    var sheet = oldSpreadsheet.getSheetByName(sheetName);
-    if (!sheet) {
-      console.log(`IDS sheet not found in the new spreadsheet.`);
-      throw new Error("IDS sheet not found in the new spreadsheet.");
-    }
-    try {
-      var sheetIDs = findSheetIDs(sheet, sheetType, searchValue);
+    template.viewType = "sidebar";
+    template.accessRequired = Boolean(updateDialogParameters.accessRequired);
 
-      var idMasterID = sheetIDs.idMasterID;
-
-      var template = HtmlService.createTemplateFromFile("20_WebApp");
-      template.newSheetID = "";
-      template.oldSheetID = oldSheetID;
-      template.idMasterID = idMasterID;
-      template.sheetType = sheetType;
-      template.API_KEY =
-        PropertiesService.getScriptProperties().getProperty("API_KEY");
-      template.APP_ID =
-        PropertiesService.getScriptProperties().getProperty("APP_ID");
-
-      template.viewType = "sidebar";
-      template.accessRequired = false;
-
-      var html = template
-        .evaluate()
-        .addMetaTag("viewport", "width=device-width, initial-scale=1")
-        .setTitle("Import Data");
-      SpreadsheetApp.getUi().showSidebar(html);
-    } catch (error) {
-      console.log(`Error in showImportDialog: ${error.message}`);
-      var template = HtmlService.createTemplateFromFile("20_WebApp");
-      template.newSheetID = "";
-      template.oldSheetID = oldSheetID;
-      template.idMasterID = "";
-      template.sheetType = sheetType;
-      template.API_KEY =
-        PropertiesService.getScriptProperties().getProperty("API_KEY");
-      template.APP_ID =
-        PropertiesService.getScriptProperties().getProperty("APP_ID");
-
-      template.viewType = "sidebar";
-      template.accessRequired = true;
-
-      var html = template
-        .evaluate()
-        .addMetaTag("viewport", "width=device-width, initial-scale=1")
-        .setTitle("Import Data");
-      SpreadsheetApp.getUi().showSidebar(html);
-    }
+    var html = template
+      .evaluate()
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setTitle("Import Data");
+    SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
-    console.log(`Error in showImportDialog: ${error.message}`);
+    console.log(`Error in showUpdateDialog: ${error.message}`);
     var template = HtmlService.createTemplateFromFile("20_WebApp");
     template.newSheetID = "";
     template.oldSheetID = "";
     template.idMasterID = "";
     template.sheetType = "";
+    template.contextRecovery = "update";
     template.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     template.APP_ID =
