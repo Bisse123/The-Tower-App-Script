@@ -94,7 +94,6 @@ function doGet(e) {
 
   template.viewType = "webapp";
   template.accessRequired = false;
-  template.contextRecovery = "webapp";
 
   return template
     .evaluate()
@@ -167,7 +166,6 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = false;
-      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -215,7 +213,6 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = false;
-      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -236,7 +233,6 @@ function showImportDialog() {
 
       template.viewType = "sidebar";
       template.accessRequired = true;
-      template.contextRecovery = "webapp";
 
       var html = template
         .evaluate()
@@ -258,7 +254,6 @@ function showImportDialog() {
 
     template.viewType = "sidebar";
     template.accessRequired = false;
-    template.contextRecovery = "webapp";
 
     var html = template
       .evaluate()
@@ -270,18 +265,11 @@ function showImportDialog() {
 
 function showUpdateDialog() {
   try {
-    var updateDialogParameters = getUpdateDialogParameters();
-
     var template = HtmlService.createTemplateFromFile("20_WebApp");
-    template.newSheetID = updateDialogParameters.newSheetID || "";
-    template.oldSheetID = updateDialogParameters.oldSheetID || "";
-    template.idMasterID = updateDialogParameters.idMasterID || "";
-    template.sheetType = updateDialogParameters.sheetType || "";
-    if (updateDialogParameters.accessRequired) {
-      template.contextRecovery = "update";
-    } else {
-      template.contextRecovery = "webapp";
-    }
+    template.newSheetID = "";
+    template.oldSheetID = "";
+    template.idMasterID = "";
+    template.sheetType = "";
 
     template.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
@@ -289,7 +277,7 @@ function showUpdateDialog() {
       PropertiesService.getScriptProperties().getProperty("APP_ID");
 
     template.viewType = "sidebar";
-    template.accessRequired = Boolean(updateDialogParameters.accessRequired);
+    template.accessRequired = false;
 
     var html = template
       .evaluate()
@@ -303,7 +291,6 @@ function showUpdateDialog() {
     template.oldSheetID = "";
     template.idMasterID = "";
     template.sheetType = "";
-    template.contextRecovery = "update";
     template.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     template.APP_ID =
@@ -311,7 +298,6 @@ function showUpdateDialog() {
 
     template.viewType = "sidebar";
     template.accessRequired = false;
-    template.contextRecovery = "webapp";
 
     var html = template
       .evaluate()
