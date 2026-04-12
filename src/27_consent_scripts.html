@@ -1,0 +1,390 @@
+<script>
+  let consentAuthorizationWindow = null;
+  let consentAuthorizationCloseWatcher = null;
+  let consentAuthorizeLinkHandlerAttached = false;
+  let consentScopeCheckOutcome = "idle";
+  let addonConsentReadyPollingId = null;
+  let addonConsentReadyPollingInFlight = false;
+
+  const CONSENT_BADGE_DEFAULT = "Additional permissions are required";
+  const CONSENT_MESSAGE_DEFAULT =
+    "Open the authorization page and approve scope access.";
+  const CONSENT_BADGE_WAITING = "Waiting for authorization tab";
+  const CONSENT_MESSAGE_WAITING =
+    "After approving permissions, close the authorization tab.";
+  const CONSENT_BADGE_CHECKING = "Checking scope access";
+  const CONSENT_MESSAGE_CHECKING =
+    "Rechecking permissions. This may take a few seconds.";
+  const CONSENT_BADGE_MANUAL_RECHECK = "Permissions still missing";
+  const CONSENT_MESSAGE_MANUAL_RECHECK =
+    "Automatic scope check failed. If you already approved access, click Recheck scope access.";
+
+  function getConsentElements() {
+    return {
+      modalBackground: document.getElementById("consentModalBackground"),
+      badge: document.querySelector(".consentModalBadge"),
+      message: document.getElementById("consentModalMessage"),
+      authorizeLink: document.getElementById("consentAuthorizeLink"),
+      recheckButton: document.getElementById("consentRecheckButton"),
+    };
+  }
+
+  function setConsentModalStatus(badgeText, messageText) {
+    const { badge, message } = getConsentElements();
+    if (badge && badgeText) {
+      badge.innerText = badgeText;
+    }
+    if (message && messageText) {
+      message.innerText = messageText;
+    }
+  }
+
+  function setConsentAuthorizeLinkDisabled(isDisabled) {
+    const { authorizeLink } = getConsentElements();
+    if (!authorizeLink) {
+      return;
+    }
+
+    authorizeLink.classList.toggle("disabled", isDisabled);
+    authorizeLink.setAttribute("aria-disabled", isDisabled ? "true" : "false");
+  }
+
+  function setConsentRecheckButtonVisible(isVisible) {
+    const { recheckButton } = getConsentElements();
+    if (!recheckButton) {
+      return;
+    }
+
+    recheckButton.classList.toggle("hidden", !isVisible);
+    if (isVisible) {
+      recheckButton.disabled = false;
+    }
+  }
+
+  function isAddonSidebarView() {
+    return viewType === "sidebar";
+  }
+
+  function stopAddonConsentReadyPolling() {
+    if (addonConsentReadyPollingId) {
+      clearInterval(addonConsentReadyPollingId);
+      addonConsentReadyPollingId = null;
+    }
+    addonConsentReadyPollingInFlight = false;
+  }
+
+  function startAddonConsentReadyPolling() {
+    if (addonConsentReadyPollingId) {
+      return;
+    }
+
+    addonConsentReadyPollingId = window.setInterval(() => {
+      if (addonConsentReadyPollingInFlight) {
+        return;
+      }
+
+      addonConsentReadyPollingInFlight = true;
+      google.script.run
+        .withSuccessHandler(async (isReady) => {
+          addonConsentReadyPollingInFlight = false;
+          if (!isReady) {
+            return;
+          }
+
+          stopAddonConsentReadyPolling();
+          setStatusWithSpinner("Permissions granted. Continuing...");
+          await authorizeAndContinue(true);
+        })
+        .withFailureHandler((error) => {
+          addonConsentReadyPollingInFlight = false;
+          console.error("Error polling add-on consent state:", error);
+        })
+        .consumeAddonConsentReadySignal();
+    }, 1200);
+  }
+
+  function openAddonConsentDialog(authorizationUrl) {
+    google.script.run
+      .withSuccessHandler(() => {
+        setStatusWithSpinner("Consent dialog opened. Waiting for permissions...");
+      })
+      .withFailureHandler((error) => {
+        console.error("Unable to open add-on consent dialog:", error);
+        setStatusText(
+          `Unable to open consent dialog: ${error.message || error}`
+        );
+      })
+      .showAddonConsentDialog(authorizationUrl || "");
+  }
+
+  function stopAuthorizationCloseWatcher() {
+    if (consentAuthorizationCloseWatcher) {
+      clearInterval(consentAuthorizationCloseWatcher);
+      consentAuthorizationCloseWatcher = null;
+    }
+    consentAuthorizationWindow = null;
+  }
+
+  function startAuthorizationCloseWatcher(openedWindow) {
+    stopAuthorizationCloseWatcher();
+    consentAuthorizationWindow = openedWindow;
+
+    consentAuthorizationCloseWatcher = window.setInterval(() => {
+      if (!consentAuthorizationWindow || !consentAuthorizationWindow.closed) {
+        return;
+      }
+
+      stopAuthorizationCloseWatcher();
+      recheckAccessToken(true).catch((error) => {
+        console.error("Automatic scope recheck failed:", error);
+      });
+    }, 700);
+  }
+
+  function onConsentAuthorizeLinkClick(event) {
+    const authorizationUrl = event.currentTarget.href;
+    if (!authorizationUrl || authorizationUrl === "#") {
+      return;
+    }
+
+    const openedWindow = window.open(authorizationUrl, "_blank");
+    if (!openedWindow) {
+      setConsentRecheckButtonVisible(true);
+      setConsentModalStatus(
+        CONSENT_BADGE_MANUAL_RECHECK,
+        CONSENT_MESSAGE_MANUAL_RECHECK
+      );
+      return;
+    }
+
+    event.preventDefault();
+    setConsentRecheckButtonVisible(false);
+    setConsentAuthorizeLinkDisabled(true);
+    setConsentModalStatus(CONSENT_BADGE_WAITING, CONSENT_MESSAGE_WAITING);
+    setStatusWithSpinner("Waiting for authorization tab to close...");
+    startAuthorizationCloseWatcher(openedWindow);
+  }
+
+  function showConsentModal(authorizationUrl) {
+    const { modalBackground, authorizeLink, recheckButton } = getConsentElements();
+
+    if (
+      !modalBackground ||
+      !authorizeLink ||
+      !recheckButton
+    ) {
+      console.error("Consent modal elements not found.");
+      return;
+    }
+
+    if (!consentAuthorizeLinkHandlerAttached) {
+      authorizeLink.addEventListener("click", onConsentAuthorizeLinkClick);
+      consentAuthorizeLinkHandlerAttached = true;
+    }
+    
+    const hasAuthorizationUrl = Boolean(authorizationUrl && authorizationUrl !== "#");
+
+    if (hasAuthorizationUrl) {
+      authorizeLink.href = authorizationUrl;
+      authorizeLink.classList.add("visible");
+    } else {
+      authorizeLink.href = "#";
+      authorizeLink.classList.remove("visible");
+    }
+
+    if (hasAuthorizationUrl) {
+      setConsentModalStatus(CONSENT_BADGE_DEFAULT, CONSENT_MESSAGE_DEFAULT);
+      setConsentAuthorizeLinkDisabled(false);
+      setConsentRecheckButtonVisible(false);
+    } else {
+      setConsentModalStatus(
+        CONSENT_BADGE_MANUAL_RECHECK,
+        CONSENT_MESSAGE_MANUAL_RECHECK
+      );
+      setConsentAuthorizeLinkDisabled(true);
+      setConsentRecheckButtonVisible(true);
+    }
+
+    recheckButton.disabled = false;
+    modalBackground.style.display = "flex";
+  }
+
+  function hideConsentModal() {
+    stopAuthorizationCloseWatcher();
+
+    const modalBackground = document.getElementById("consentModalBackground");
+    if (modalBackground) {
+      modalBackground.style.display = "none";
+    }
+  }
+
+  function promptForMissingScopes(result) {
+    const authorizationUrl = result.authorizationUrl || "";
+
+    setStatusText("Additional permissions are required.");
+
+    if (isAddonSidebarView()) {
+      openAddonConsentDialog(authorizationUrl);
+      startAddonConsentReadyPolling();
+      return;
+    }
+
+    showConsentModal(authorizationUrl);
+  }
+
+  async function recheckAccessToken(isAutomaticRecheck = false) {
+    const { recheckButton: recheckAuthorizationButton } = getConsentElements();
+
+    if (recheckAuthorizationButton) {
+      recheckAuthorizationButton.disabled = true;
+    }
+
+    setConsentAuthorizeLinkDisabled(true);
+    setConsentModalStatus(CONSENT_BADGE_CHECKING, CONSENT_MESSAGE_CHECKING);
+    setStatusWithSpinner("Checking scope access permissions...");
+
+    let authSuccess = false;
+    try {
+      authSuccess = await authorizeAndContinue(true);
+    } catch (error) {
+      consentScopeCheckOutcome = "error";
+      console.error("Scope recheck failed with an error:", error);
+      setStatusText(`Automatic scope check error: ${error.message || error}`);
+    }
+
+    if (authSuccess) {
+      stopAuthorizationCloseWatcher();
+      return true;
+    }
+
+    if (consentScopeCheckOutcome === "missing_scopes") {
+      // Missing scopes is an expected result. Keep the manual button hidden.
+      setConsentRecheckButtonVisible(false);
+      setConsentAuthorizeLinkDisabled(false);
+      return false;
+    }
+
+    setConsentAuthorizeLinkDisabled(false);
+    setConsentRecheckButtonVisible(true);
+    setConsentModalStatus(CONSENT_BADGE_MANUAL_RECHECK, CONSENT_MESSAGE_MANUAL_RECHECK);
+
+    if (recheckAuthorizationButton) {
+      recheckAuthorizationButton.disabled = false;
+    }
+
+    if (isAutomaticRecheck) {
+      setStatusText("Automatic scope check failed. Use Recheck scope access.");
+    }
+
+    return false;
+  }
+
+  async function requestOAuthTokenFromServer() {
+    const hasAllScopes = await requestScopePermissionsFromServer();
+    if (!hasAllScopes) {
+      const authorizationUrl = await requestScopeAuthorizationUrlFromServer();
+      return {
+        success: false,
+        token: null,
+        authorizationUrl: authorizationUrl || "",
+        message: "Required scopes are not granted.",
+      };
+    }
+
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .getOAuthToken();
+    });
+  }
+
+  function requestScopePermissionsFromServer() {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .checkScopePermissions();
+    });
+  }
+
+  function requestScopeAuthorizationUrlFromServer() {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .getScopeAuthorizationUrl();
+    });
+  }
+
+  async function getOAuthToken() {
+    setStatusWithSpinner("Requesting authorization...");
+
+    try {
+      const result = await requestOAuthTokenFromServer();
+      console.log("OAuth token result from server:", result);
+      if (result.success) {
+        stopAddonConsentReadyPolling();
+        consentScopeCheckOutcome = "granted";
+        accessToken = result.token;
+        await getUserEmailFromToken(accessToken);
+        hideConsentModal();
+        return true;
+      }
+
+      if (result.authorizationUrl) {
+        consentScopeCheckOutcome = "missing_scopes";
+        promptForMissingScopes(result);
+      } else {
+        consentScopeCheckOutcome = "error";
+        setStatusText(`Authorization failed: ${result.message}`);
+      }
+
+      return false;
+    } catch (error) {
+      consentScopeCheckOutcome = "error";
+      setStatusText(`Authorization error: ${error.message || error}`);
+      return false;
+    }
+  }
+
+  async function authorizeAndContinue(forceTokenRefresh = false) {
+    setStatusWithSpinner("Checking scope access permissions...");
+
+    if (!accessToken || forceTokenRefresh) {
+      const authSuccess = await getOAuthToken();
+      if (!authSuccess) {
+        return false;
+      }
+    }
+
+    hideConsentModal();
+
+    if (accessRequired && newSheetID) {
+      console.log("Access required for new sheet:", newSheetID);
+      await findAndGrantNewSheet(newSheetID, userEmail);
+    }
+
+    checkValidParameters();
+    return true;
+  }
+
+  function getUserEmailFromToken(token) {
+    return fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("User email fetched:", data);
+        console.log("User email:", data.email);
+        userEmail = data.email || "";
+        return userEmail;
+      })
+      .catch((error) => {
+        console.error("Error fetching user email:", error);
+        return null;
+      });
+  }
+</script>
