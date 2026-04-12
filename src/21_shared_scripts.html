@@ -143,6 +143,12 @@
   function checkValidParameters() {
     setStatusWithSpinner("Checking file access...");
     console.log("Checking valid parameters...");
+    console.log("Current parameters:", {
+      newSheetID,
+      oldSheetID,
+      idMasterID,
+      sheetType,
+    });
     var fileIds = [newSheetID, oldSheetID, idMasterID].filter(id => id != null && id !== "");
     if (
       sheetType === "IDS Collection" &&
