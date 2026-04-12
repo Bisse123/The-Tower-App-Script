@@ -105,128 +105,6 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-function showAddonConsentDialog(authorizationUrl) {
-  var userProperties = PropertiesService.getUserProperties();
-  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
-
-  var template = HtmlService.createTemplateFromFile("28_addon_consent_dialog");
-  template.authorizationUrl = authorizationUrl || "";
-
-  var html = template
-    .evaluate()
-    .setWidth(560)
-    .setHeight(280)
-    .addMetaTag("viewport", "width=device-width, initial-scale=1");
-
-  SpreadsheetApp.getUi().showModalDialog(html, "Additional Permissions Required");
-}
-
-function markAddonConsentReadySignal() {
-  PropertiesService.getUserProperties().setProperty(
-    ADDON_CONSENT_READY_SIGNAL_KEY,
-    String(Date.now())
-  );
-  return true;
-}
-
-function consumeAddonConsentReadySignal() {
-  var userProperties = PropertiesService.getUserProperties();
-  var signal = userProperties.getProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
-
-  if (!signal) {
-    return false;
-  }
-
-  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
-  return true;
-}
-
-function getUpdateDialogParameters() {
-  try {
-    var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    var oldSheetID = oldSpreadsheet.getId();
-
-    var homePageSheet = oldSpreadsheet.getSheetByName("Home Page");
-    if (!homePageSheet) {
-      throw new Error("Home Page sheet not found in the active spreadsheet.");
-    }
-
-    var sheetType = homePageSheet.getRange("B2").getValue();
-
-    var eHP = oldSpreadsheet.getSheetByName("eHP");
-    var eDamage = oldSpreadsheet.getSheetByName("eDamage");
-    var eEcon = oldSpreadsheet.getSheetByName("eEcon");
-    if (eHP && eDamage && eEcon) {
-      sheetType = "Effective Paths";
-    }
-
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
-      sheetType = "IDS Collection";
-    }
-
-    if (sheetType === "IDS Master") {
-      return {
-        success: true,
-        newSheetID: "",
-        oldSheetID: oldSheetID,
-        idMasterID: "",
-        sheetType: sheetType,
-        accessRequired: false,
-      };
-    }
-
-    if (!sheetVars(sheetType)) {
-      throw new Error("Sheet type not found in the active spreadsheet.");
-    }
-
-    var sheetName = "IDS";
-    var searchValue = "IDS Master's ID";
-    if (sheetType === "IDS Collection") {
-      sheetName = "Home Page";
-      searchValue = "Load your file here";
-    }
-
-    var sheet = oldSpreadsheet.getSheetByName(sheetName);
-    if (!sheet) {
-      throw new Error("IDS sheet not found in the active spreadsheet.");
-    }
-
-    try {
-      var sheetIDs = findSheetIDs(sheet, sheetType, searchValue);
-
-      return {
-        success: true,
-        newSheetID: "",
-        oldSheetID: oldSheetID,
-        idMasterID: sheetIDs.idMasterID,
-        sheetType: sheetType,
-        accessRequired: false,
-      };
-    } catch (error) {
-      return {
-        success: true,
-        newSheetID: "",
-        oldSheetID: oldSheetID,
-        idMasterID: "",
-        sheetType: sheetType,
-        accessRequired: true,
-        message: error.message || error.toString(),
-      };
-    }
-  } catch (error) {
-    console.log(`Error in getUpdateDialogParameters: ${error.message}`);
-    return {
-      success: false,
-      newSheetID: "",
-      oldSheetID: "",
-      idMasterID: "",
-      sheetType: "",
-      accessRequired: true,
-      message: error.message || error.toString(),
-    };
-  }
-}
-
 function onOpen(e) {
   createMenu();
 }
@@ -432,6 +310,128 @@ function showUpdateDialog() {
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
+  }
+}
+
+function showAddonConsentDialog(authorizationUrl) {
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+
+  var template = HtmlService.createTemplateFromFile("28_addon_consent_dialog");
+  template.authorizationUrl = authorizationUrl || "";
+
+  var html = template
+    .evaluate()
+    .setWidth(560)
+    .setHeight(280)
+    .addMetaTag("viewport", "width=device-width, initial-scale=1");
+
+  SpreadsheetApp.getUi().showModalDialog(html, "Additional Permissions Required");
+}
+
+function markAddonConsentReadySignal() {
+  PropertiesService.getUserProperties().setProperty(
+    ADDON_CONSENT_READY_SIGNAL_KEY,
+    String(Date.now())
+  );
+  return true;
+}
+
+function consumeAddonConsentReadySignal() {
+  var userProperties = PropertiesService.getUserProperties();
+  var signal = userProperties.getProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+
+  if (!signal) {
+    return false;
+  }
+
+  userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
+  return true;
+}
+
+function getUpdateDialogParameters() {
+  try {
+    var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var oldSheetID = oldSpreadsheet.getId();
+
+    var homePageSheet = oldSpreadsheet.getSheetByName("Home Page");
+    if (!homePageSheet) {
+      throw new Error("Home Page sheet not found in the active spreadsheet.");
+    }
+
+    var sheetType = homePageSheet.getRange("B2").getValue();
+
+    var eHP = oldSpreadsheet.getSheetByName("eHP");
+    var eDamage = oldSpreadsheet.getSheetByName("eDamage");
+    var eEcon = oldSpreadsheet.getSheetByName("eEcon");
+    if (eHP && eDamage && eEcon) {
+      sheetType = "Effective Paths";
+    }
+
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      sheetType = "IDS Collection";
+    }
+
+    if (sheetType === "IDS Master") {
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: "",
+        sheetType: sheetType,
+        accessRequired: false,
+      };
+    }
+
+    if (!sheetVars(sheetType)) {
+      throw new Error("Sheet type not found in the active spreadsheet.");
+    }
+
+    var sheetName = "IDS";
+    var searchValue = "IDS Master's ID";
+    if (sheetType === "IDS Collection") {
+      sheetName = "Home Page";
+      searchValue = "Load your file here";
+    }
+
+    var sheet = oldSpreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      throw new Error("IDS sheet not found in the active spreadsheet.");
+    }
+
+    try {
+      var sheetIDs = findSheetIDs(sheet, sheetType, searchValue);
+
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: sheetIDs.idMasterID,
+        sheetType: sheetType,
+        accessRequired: false,
+      };
+    } catch (error) {
+      return {
+        success: true,
+        newSheetID: "",
+        oldSheetID: oldSheetID,
+        idMasterID: "",
+        sheetType: sheetType,
+        accessRequired: true,
+        message: error.message || error.toString(),
+      };
+    }
+  } catch (error) {
+    console.log(`Error in getUpdateDialogParameters: ${error.message}`);
+    return {
+      success: false,
+      newSheetID: "",
+      oldSheetID: "",
+      idMasterID: "",
+      sheetType: "",
+      accessRequired: true,
+      message: error.message || error.toString(),
+    };
   }
 }
 
