@@ -328,35 +328,19 @@
     });
   }
 
-  async function recoverSidebarUpdateContextIfNeeded() {
+  async function getSideBarUpdateContext() {
     if (!isAddonSidebarView()) {
       return true;
     }
 
-    if (contextRecovery !== "update") {
-      return true;
-    }
-
-    const hasContext = Boolean(sheetType && (newSheetID || oldSheetID || idMasterID));
-    console.log("Checking if update context is already available:", {
-      hasContext,
-      newSheetID,
-      oldSheetID,
-      idMasterID,
-      sheetType,
-    });
-    if (hasContext) {
-      return true;
-    }
-
-    setStatusWithSpinner("Recovering update context...");
+    setStatusWithSpinner("Loading update details from your active sheet...");
     try {
       const recovery = await requestUpdateDialogParametersFromServer();
-      console.log("Update context recovery result:", recovery);
+      console.log("Sidebar update context response:", recovery);
 
       if (!recovery || !recovery.success) {
         setStatusText(
-          `Could not recover update context: ${(recovery && recovery.message) || "Unknown error"}`
+          `Unable to load update details: ${(recovery && recovery.message) || "Unknown error"}`
         );
         return false;
       }
@@ -371,15 +355,15 @@
       );
       if (!recoveredContextIsValid) {
         setStatusText(
-          "Recovered context is incomplete. Please close and click Update Sheet again."
+          "Update details are incomplete. Please close and click Update Sheet again."
         );
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Update context recovery failed:", error);
-      setStatusText(`Could not recover update context: ${error.message || error}`);
+      console.error("Sidebar update context load failed:", error);
+      setStatusText(`Unable to load update details: ${error.message || error}`);
       return false;
     }
   }
@@ -432,7 +416,7 @@
       await findAndGrantNewSheet(newSheetID, userEmail);
     }
 
-    const isContextReady = await recoverSidebarUpdateContextIfNeeded();
+    const isContextReady = await getSideBarUpdateContext();
     if (!isContextReady) {
       return false;
     }
