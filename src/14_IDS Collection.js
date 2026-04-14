@@ -579,7 +579,7 @@
             themesMasterSheetData
           ) {
             themesResult = themes.updateThemes(
-              "Themes & Songs",
+              sheetRequiredRanges.values["Themes & Songs"].sheetName,
               themesData.oldThemesNames,
               themesMasterSheetData,
             );
@@ -1157,7 +1157,7 @@
           "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
           "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
           "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:L", // Bots data
+          Bots: "EXPORT_Bots!C4:L", // Bots data
           Relics: "Relics", // Relics data (full sheet)
           "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
           "Vault Power": "Vault_Power", // Vault power data (full sheet)
