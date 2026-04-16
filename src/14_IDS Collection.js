@@ -4757,7 +4757,6 @@
         formulas: {
           "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
           "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
         },
       };
 

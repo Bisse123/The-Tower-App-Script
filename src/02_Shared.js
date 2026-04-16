@@ -888,8 +888,9 @@ const shared = {
 
   extractSheetId: function (input) {
     input = input.trim();
-    var idPattern = /^[a-zA-Z0-9-_]{20,}$/;
-    var urlPattern = /\/spreadsheets\/d\/([a-zA-Z0-9-_]{20,})/;
+    var idPattern = /^[a-zA-Z0-9_-]{20,}$/;
+    var urlPattern =
+      /\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]{20,})(?:[\/?#]|$)/;
 
     if (idPattern.test(input)) {
       return input;
