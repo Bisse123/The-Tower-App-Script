@@ -50,9 +50,9 @@ const ePaths = {
         };
       }
 
-      var eHPRange = "eHP!AJ1:AX35";
-      var eDamageRange = "eDamage!AI1:AX75";
-      var eEconRange = "eEcon!AI1:AW55";
+      var eHPRange = "eHP!AJ1:AX50";
+      var eDamageRange = "eDamage!AI1:AX100";
+      var eEconRange = "eEcon!AI1:AW65";
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
@@ -273,18 +273,18 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < eHPData.length; i++) {
-        for (var j = 0; j < eHPData[i].length; j++) {
-          var cell = eHPData[i][j];
+      for (var row = 0; row < eHPData.length; row++) {
+        for (var column = 0; column < eHPData[row].length; column++) {
+          var cell = eHPData[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names to update
-            for (var k = i + 1; k < eHPData.length; k++) {
-              var customName = eHPData[k][j - 2];
+            for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
+              var customName = eHPData[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (j - 1) + 1);
-                var cellAddress = `${cellCol}${k + 1}`;
+                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+                var cellAddress = `${cellCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${cellAddress}`,
                   values: [[newValue]],
@@ -294,15 +294,15 @@ const ePaths = {
           } else if (cell === "Perks") {
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + j + 5);
-              var perksCellAddress = `${perksCol}${i + 1}`;
+              var perksCol = shared.columnToLetter(columnOffset + column + 5);
+              var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
                 values: [[perksAreActive]],
               });
             }
-            for (var k = i + 2; k < eHPData.length; k++) {
-              var perkName = eHPData[k][j];
+            for (var nextRow = row + 2; nextRow < eHPData.length; nextRow++) {
+              var perkName = eHPData[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
@@ -310,8 +310,8 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + j + 5);
-                var perkCellAddress = `${perkCol}${k + 1}`;
+                var perkCol = shared.columnToLetter(columnOffset + column + 5);
+                var perkCellAddress = `${perkCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -319,8 +319,8 @@ const ePaths = {
               }
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < eHPData.length; k++) {
-              var guessName = eHPData[k][j];
+            for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
+              var guessName = eHPData[nextRow][column];
               if (!guessName) break;
               if (guessName.startsWith("=")) {
                 var parts = guessName.split(",");
@@ -333,8 +333,8 @@ const ePaths = {
                 oldData.UserGuess.hasOwnProperty(guessName)
               ) {
                 var guessValue = oldData.UserGuess[guessName];
-                var guessCol = shared.columnToLetter(columnOffset + j + 5);
-                var guessCellAddress = `${guessCol}${k + 1}`;
+                var guessCol = shared.columnToLetter(columnOffset + column + 5);
+                var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${guessCellAddress}`,
                   values: [[guessValue]],
@@ -344,8 +344,8 @@ const ePaths = {
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + j + 1);
-              var rowsCalculatedCellAddress = `${rowsCol}${i + 2}`;
+              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
                 values: [[rowsCalculatedValue]],
@@ -354,8 +354,8 @@ const ePaths = {
           } else if (cell === "Total Lab Time") {
             if (oldData.hasOwnProperty("Preset")) {
               var presetValue = oldData.Preset;
-              var presetCol = shared.columnToLetter(columnOffset + j + 3);
-              var presetCellAddress = `${presetCol}${i + 1}`;
+              var presetCol = shared.columnToLetter(columnOffset + column + 3);
+              var presetCellAddress = `${presetCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${presetCellAddress}`,
                 values: [[presetValue]],
@@ -427,18 +427,18 @@ const ePaths = {
         });
       }
 
-      for (var i = 0; i < eDamageData.length; i++) {
-        for (var j = 0; j < eDamageData[i].length; j++) {
-          var cell = eDamageData[i][j];
+      for (var row = 0; row < eDamageData.length; row++) {
+        for (var column = 0; column < eDamageData[row].length; column++) {
+          var cell = eDamageData[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names to update
-            for (var k = i + 1; k < eDamageData.length; k++) {
-              var customName = eDamageData[k][j - 2];
+            for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+              var customName = eDamageData[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (j - 1) + 1);
-                var cellAddress = `${cellCol}${k + 1}`;
+                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+                var cellAddress = `${cellCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${cellAddress}`,
                   values: [[newValue]],
@@ -448,15 +448,15 @@ const ePaths = {
           } else if (cell === "Perks") {
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + j + 5);
-              var perksCellAddress = `${perksCol}${i + 1}`;
+              var perksCol = shared.columnToLetter(columnOffset + column + 5);
+              var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
                 values: [[perksAreActive]],
               });
             }
-            for (var k = i + 2; k < eDamageData.length; k++) {
-              var perkName = eDamageData[k][j];
+            for (var nextRow = row + 2; nextRow < eDamageData.length; nextRow++) {
+              var perkName = eDamageData[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
@@ -464,8 +464,8 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + j + 5);
-                var perkCellAddress = `${perkCol}${k + 1}`;
+                var perkCol = shared.columnToLetter(columnOffset + column + 5);
+                var perkCellAddress = `${perkCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -473,8 +473,8 @@ const ePaths = {
               }
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < eDamageData.length; k++) {
-              var guessName = eDamageData[k][j];
+            for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+              var guessName = eDamageData[nextRow][column];
               if (!guessName) break;
               if (guessName.startsWith("=")) {
                 var parts = guessName.split(",");
@@ -487,8 +487,12 @@ const ePaths = {
                 oldData.UserGuess.hasOwnProperty(guessName)
               ) {
                 var guessValue = oldData.UserGuess[guessName];
-                var guessCol = shared.columnToLetter(columnOffset + j + 5);
-                var guessCellAddress = `${guessCol}${k + 1}`;
+                var guessValueIndex = 5;
+                if (["Run Type", "Simulated Tier"].includes(guessName)) {
+                  guessValueIndex -= 1;
+                }
+                var guessCol = shared.columnToLetter(columnOffset + column + guessValueIndex);
+                var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${guessCellAddress}`,
                   values: [[guessValue]],
@@ -497,8 +501,8 @@ const ePaths = {
             }
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
-            var moduleCol = shared.columnToLetter(columnOffset + j + 2);
-            var moduleCellAddress = `${moduleCol}${i + 1}`;
+            var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+            var moduleCellAddress = `${moduleCol}${row + 1}`;
             batchUpdate.push({
               range: `${sheetName}!${moduleCellAddress}`,
               values: [[moduleValue]],
@@ -506,28 +510,35 @@ const ePaths = {
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + j + 1);
-              var rowsCalculatedCellAddress = `${rowsCol}${i + 2}`;
+              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
                 values: [[rowsCalculatedValue]],
               });
             }
-          } else if (cell === "Total Lab Time") {
-            if (oldData.hasOwnProperty("Preset")) {
-              var presetValue = oldData.Preset;
-              var presetCol = shared.columnToLetter(columnOffset + j + 3);
-              var presetCellAddress = `${presetCol}${i + 1}`;
-              batchUpdate.push({
-                range: `${sheetName}!${presetCellAddress}`,
-                values: [[presetValue]],
-              });
+          } else if (cell === "Presets") {
+            if (oldData.hasOwnProperty("Presets")) {
+              var presetValues = oldData.Presets;
+              var presetCol = shared.columnToLetter(columnOffset + column + 4);
+              for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+                var presetName = eDamageData[nextRow][column];
+                if (!presetName) break;
+                if (presetValues.hasOwnProperty(presetName)) {
+                  var presetValue = presetValues[presetName];
+                  var presetCellAddress = `${presetCol}${nextRow + 1}`;
+                  batchUpdate.push({
+                    range: `${sheetName}!${presetCellAddress}`,
+                    values: [[presetValue]],
+                  });
+                }
+              }
             }
           } else if (cell === "PS Beta Testing") {
             if (oldData.hasOwnProperty("PSBeta")) {
               var psBetaValue = oldData.PSBeta;
-              var psBetaCol = shared.columnToLetter(columnOffset + j + 1);
-              var psBetaCellAddress = `${psBetaCol}${i}`;
+              var psBetaCol = shared.columnToLetter(columnOffset + column + 1);
+              var psBetaCellAddress = `${psBetaCol}${row}`;
               batchUpdate.push({
                 range: `${sheetName}!${psBetaCellAddress}`,
                 values: [[psBetaValue]],
@@ -612,18 +623,18 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < eEconData.length; i++) {
-        for (var j = 0; j < eEconData[i].length; j++) {
-          var cell = eEconData[i][j];
+      for (var row = 0; row < eEconData.length; row++) {
+        for (var column = 0; column < eEconData[row].length; column++) {
+          var cell = eEconData[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names to update
-            for (var k = i + 1; k < eEconData.length; k++) {
-              var customName = eEconData[k][j - 2];
+            for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
+              var customName = eEconData[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (j - 1) + 1);
-                var cellAddress = `${cellCol}${k + 1}`;
+                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+                var cellAddress = `${cellCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${cellAddress}`,
                   values: [[newValue]],
@@ -633,15 +644,15 @@ const ePaths = {
           } else if (cell === "Perks") {
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + j + 5);
-              var perksCellAddress = `${perksCol}${i + 1}`;
+              var perksCol = shared.columnToLetter(columnOffset + column + 5);
+              var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
                 values: [[perksAreActive]],
               });
             }
-            for (var k = i + 2; k < eEconData.length; k++) {
-              var perkName = eEconData[k][j];
+            for (var nextRow = row + 2; nextRow < eEconData.length; nextRow++) {
+              var perkName = eEconData[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
@@ -649,8 +660,8 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + j + 5);
-                var perkCellAddress = `${perkCol}${k + 1}`;
+                var perkCol = shared.columnToLetter(columnOffset + column + 5);
+                var perkCellAddress = `${perkCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -658,8 +669,8 @@ const ePaths = {
               }
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < eEconData.length; k++) {
-              var guessName = eEconData[k][j];
+            for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
+              var guessName = eEconData[nextRow][column];
               if (!guessName) break;
               if (guessName.startsWith("=")) {
                 if (guessName.includes("GB Sync Current Ratio")) {
@@ -678,10 +689,10 @@ const ePaths = {
                 if (guessName === "Turn off Labs in Coin Path") {
                   var guessValueFirst = oldData.UserGuess[guessName];
                   var guessValueSecond = oldData.UserGuess["Ignore Target Levels"];
-                  var guessColFirst = shared.columnToLetter(columnOffset + j + 2);
-                  var guessColSecond = shared.columnToLetter(columnOffset + j + 5);
-                  var guessCellAddressFirst = `${guessColFirst}${k + 1}`;
-                  var guessCellAddressSecond = `${guessColSecond}${k + 1}`;
+                  var guessColFirst = shared.columnToLetter(columnOffset + column + 2);
+                  var guessColSecond = shared.columnToLetter(columnOffset + column + 5);
+                  var guessCellAddressFirst = `${guessColFirst}${nextRow + 1}`;
+                  var guessCellAddressSecond = `${guessColSecond}${nextRow + 1}`;
                   batchUpdate.push({
                     range: `${sheetName}!${guessCellAddressFirst}`,
                     values: [[guessValueFirst]],
@@ -693,8 +704,8 @@ const ePaths = {
                   continue;
                 }
                 var guessValue = oldData.UserGuess[guessName];
-                var guessCol = shared.columnToLetter(columnOffset + j + 5);
-                var guessCellAddress = `${guessCol}${k + 1}`;
+                var guessCol = shared.columnToLetter(columnOffset + column + 5);
+                var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${guessCellAddress}`,
                   values: [[guessValue]],
@@ -704,16 +715,16 @@ const ePaths = {
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
             if (moduleValue.main !== undefined) {
-              var moduleCol = shared.columnToLetter(columnOffset + j + 2);
-              var moduleCellAddress = `${moduleCol}${i + 1}`;
+              var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+              var moduleCellAddress = `${moduleCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${moduleCellAddress}`,
                 values: [[moduleValue.main]],
               });
             }
             if (moduleValue.assist !== undefined) {
-              var assistCol = shared.columnToLetter(columnOffset + j + 6);
-              var assistCellAddress = `${assistCol}${i + 1}`;
+              var assistCol = shared.columnToLetter(columnOffset + column + 6);
+              var assistCellAddress = `${assistCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${assistCellAddress}`,
                 values: [[moduleValue.assist]],
@@ -722,8 +733,8 @@ const ePaths = {
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + j + 1);
-              var rowsCalculatedCellAddress = `${rowsCol}${i + 2}`;
+              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
                 values: [[rowsCalculatedValue]],
@@ -748,6 +759,91 @@ const ePaths = {
   
   // #endregion
   // #region Convert Versions
+  version5_05_00_00: function () {
+    try {
+      console.log("Called: ePaths.version5_05_00_00");
+      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+      if (
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
+      ) {
+        return {
+          success: false,
+          message:
+            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
+        };
+      }
+
+      var eHPRange = "eHP!AJ1:AX50";
+      var eDamageRange = "eDamage!AI1:AX100";
+      var eEconRange = "eEcon!AI1:AW65";
+      var eHPLabRange = "eHP!L3:L5";
+      var eRegenLabRange = "eHP!AH3:AH5";
+      var eDamageLabRange = "eDamage!L3:L5";
+      var eEconLabRange = "eEcon!L3:L5";
+      var eDiscountLabRange = "eEcon!AG3:AG5";
+      var CLDmgRange = "eDamage!AL149:AM149";
+      var ranges = [
+        eHPRange,
+        eDamageRange,
+        eEconRange,
+        eHPLabRange,
+        eRegenLabRange,
+        eDamageLabRange,
+        eEconLabRange,
+        eDiscountLabRange,
+        CLDmgRange,
+      ];
+      var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
+      if (!batchResult || !batchResult.length === 0) {
+        return {
+          success: false,
+          message: "Failed to fetch data from old spreadsheet™.",
+        };
+      }
+      var eHPValues = batchResult[0].values;
+      var eDamageValues = batchResult[1].values;
+      var eEconValues = batchResult[2].values;
+      var eHPLabValues = batchResult[3].values;
+      var eRegenLabValues = batchResult[4].values;
+      var eDamageLabValues = batchResult[5].values;
+      var eEconLabValues = batchResult[6].values;
+      var eDiscountLabValues = batchResult[7].values;
+      var cLDmgValues = batchResult[8].values;
+
+      var eHPData = this.getVersion5_03_00_00eHP(
+        eHPValues,
+        eHPLabValues,
+        eRegenLabValues
+      );
+      var eDamageData = this.getVersion5_05_00_00eDamage(
+        eDamageValues,
+        eDamageLabValues,
+        cLDmgValues
+      );
+      var eEconData = this.getVersion5_00_01_04eEcon(
+        eEconValues,
+        eEconLabValues,
+        eDiscountLabValues
+      );
+
+      return {
+        success: true,
+        eHP: eHPData,
+        eDamage: eDamageData,
+        eEcon: eEconData,
+      };
+    } catch (error) {
+      console.log(`Error in ePaths.version5_05_00_00: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting Effective Paths data: " + error.message,
+      };
+    }
+  },
+
   version5_03_00_00: function () {
     try {
       console.log("Called: ePaths.version5_03_00_00");
@@ -765,9 +861,9 @@ const ePaths = {
         };
       }
 
-      var eHPRange = "eHP!AJ1:AX35";
-      var eDamageRange = "eDamage!AI1:AX90";
-      var eEconRange = "eEcon!AI1:AW55";
+      var eHPRange = "eHP!AJ1:AX50";
+      var eDamageRange = "eDamage!AI1:AX100";
+      var eEconRange = "eEcon!AI1:AW65";
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
@@ -1133,16 +1229,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1153,27 +1249,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1186,13 +1282,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1201,14 +1297,14 @@ const ePaths = {
             }
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
+            var runningTime = oldValues[row + 1][column];
             console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
-            oldData.Preset = oldValues[i][j + 2];
+            oldData.Preset = oldValues[row][column + 2];
           }
         }
       }
@@ -1273,16 +1369,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1293,27 +1389,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1326,13 +1422,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1341,7 +1437,7 @@ const ePaths = {
             }
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
+            var runningTime = oldValues[row + 1][column];
             console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
@@ -1403,16 +1499,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1423,27 +1519,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1456,13 +1552,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1471,7 +1567,7 @@ const ePaths = {
             }
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
+            var runningTime = oldValues[row + 1][column];
             console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
@@ -1496,6 +1592,135 @@ const ePaths = {
 
   // #endregion
   // #region Get eDamage
+  getVersion5_05_00_00eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
+    try {
+      console.log("Called: ePaths.getVersion5_05_00_00eDamage");
+
+      var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
+      var modulesData = ["Cannon", "Core"];
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (
+        oldeDamageLabValues &&
+        oldeDamageLabValues[1] &&
+        oldeDamageLabValues[1][0] === "Running Time"
+      ) {
+        var eDamageLabCost = oldeDamageLabValues[0][0];
+        if (String(eDamageLabCost)) {
+          oldData.eDamageLabCost = eDamageLabCost;
+        }
+        var eDamageRunningTime = oldeDamageLabValues[2][0];
+        if (String(eDamageRunningTime)) {
+          oldData.eDamageRunningTime = eDamageRunningTime;
+        }
+      }
+      if (cLDmgValues && cLDmgValues[0] && cLDmgValues[0][0] !== null) {
+        oldData.CLDamage = cLDmgValues[0][1];
+      }
+
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[nextRow][column - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[row][column + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
+              if (!guessName) break;
+              var guessValueIndex = 4;
+              if (["Run Type", "Simulated Tier"].includes(guessName)) {
+                guessValueIndex -= 1;
+              }
+              var guessValue = oldValues[nextRow][column + guessValueIndex];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                var parts = guessName.split(",");
+                guessName = parts[parts.length - 2]
+                  .replace(/["\(\)]/g, "")
+                  .trim();
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[row][column + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            oldData.Modules[cell] = moduleLevel;
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[row + 1][column];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[row + 1][column];
+            console.log("Found running time:", runningTime);
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
+          } else if (cell = "Presets") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var presetName = oldValues[nextRow][column];
+              if (!presetName) break;
+              oldData.Presets[presetName] = oldValues[nextRow][column + 3];
+            }
+          } else if (cell === "PS Beta Testing") {
+            oldData.PSBeta = oldValues[row - 1][column];
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eDamage data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion5_05_00_00eDamage: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion5_05_00_00eDamage: " + error.message,
+      };
+    }
+  },
+
   getVersion4_11_03_21eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
       console.log("Called: ePaths.getVersion4_11_03_21eDamage");
@@ -1522,16 +1747,16 @@ const ePaths = {
         oldData.CLDamage = cLDmgValues[0][1];
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1542,27 +1767,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1575,13 +1800,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1590,16 +1815,17 @@ const ePaths = {
             }
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
+            var runningTime = oldValues[row + 1][column];
             console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
-            oldData.Preset = oldValues[i][j + 2];
+            var preset = oldValues[row][column + 2];
+            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
           } else if (cell === "PS Beta Testing") {
-            oldData.PSBeta = oldValues[i - 1][j];
+            oldData.PSBeta = oldValues[row - 1][column];
           }
         }
       }
@@ -1636,16 +1862,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1656,27 +1882,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1689,13 +1915,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1704,16 +1930,17 @@ const ePaths = {
             }
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
-            var runningTime = oldValues[i + 1][j];
+            var runningTime = oldValues[row + 1][column];
             console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
-            oldData.Preset = oldValues[i][j + 2];
+            var preset = oldValues[row][column + 2];
+            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
           } else if (cell === "PS Beta Testing") {
-            oldData.PSBeta = oldValues[i - 1][j];
+            oldData.PSBeta = oldValues[row - 1][column];
           }
         }
       }
@@ -1773,16 +2000,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1793,27 +2020,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1829,13 +2056,13 @@ const ePaths = {
               }
               if (guessName === "Turn off Labs in Coin Path") {
                 oldData.UserGuess["Ignore Target Levels"] = guessValue;
-                guessValue = oldValues[k][j + 1];
+                guessValue = oldValues[nextRow][column + 1];
               }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
-            var assModLevel = oldValues[i][j + 5];
+            var moduleLevel = oldValues[row][column + 1];
+            var assModLevel = oldValues[row][column + 5];
             var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
             var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
             if (mainIsFormula && assistIsFormula) {
@@ -1850,7 +2077,7 @@ const ePaths = {
             }
             oldData.Modules[cell] = moduleObj;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -1915,16 +2142,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -1935,27 +2162,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -1972,13 +2199,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = {"main": moduleLevel};
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -2035,16 +2262,16 @@ const ePaths = {
         }
       }
 
-      for (var i = 0; i < oldValues.length; i++) {
-        for (var j = 0; j < oldValues[i].length; j++) {
-          var cell = oldValues[i][j];
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var customName = oldValues[k][j - 2];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (customData.includes(customName)) {
-                var customValue = oldValues[k][j - 1];
+                var customValue = oldValues[nextRow][column - 1];
                 if (
                   !String(customValue) ||
                   String(customValue).startsWith("=")
@@ -2055,27 +2282,27 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
-            var perksAreActive = oldValues[i][j + 4];
+            var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
               oldData.Perks["Active"] = perksAreActive;
             }
-            for (var k = i + 2; k < oldValues.length; k++) {
-              var perkName = oldValues[k][j];
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
               }
-              oldData.Perks[perkName] = oldValues[k][j + 4];
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
           } else if (cell === "User Specific Guesses") {
-            for (var k = i + 1; k < oldValues.length; k++) {
-              var guessName = oldValues[k][j];
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
               if (!guessName) break;
-              var guessValue = oldValues[k][j + 4];
+              var guessValue = oldValues[nextRow][column + 4];
               if (!String(guessValue) || String(guessValue).startsWith("=")) {
                 continue;
               }
@@ -2092,13 +2319,13 @@ const ePaths = {
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
-            var moduleLevel = oldValues[i][j + 1];
+            var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
-            var rowsCalculated = oldValues[i + 1][j];
+            var rowsCalculated = oldValues[row + 1][column];
             if (
               !String(rowsCalculated) ||
               String(rowsCalculated).startsWith("=")
@@ -2131,6 +2358,7 @@ const ePaths = {
       "v4.11.03.21": this.version4_11_03_21.bind(this),
       "v5.00.01.04": this.version5_00_01_04.bind(this),
       "v5.03.00.00": this.version5_03_00_00.bind(this),
+      "v5.05.00.00": this.version5_05_00_00.bind(this),
     };
   },
   
@@ -2141,8 +2369,8 @@ const ePaths = {
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
       return shared.compareVersions(b, a) === "newer" ? 1 : -1;
     });
-    for (var i = 0; i < sortedThresholds.length; i++) {
-      var threshold = sortedThresholds[i];
+    for (var key = 0; key < sortedThresholds.length; key++) {
+      var threshold = sortedThresholds[key];
       var compareResult = shared.compareVersions(oldVersion, threshold);
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
