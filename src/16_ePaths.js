@@ -1298,7 +1298,6 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
@@ -1438,7 +1437,6 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
@@ -1568,7 +1566,6 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
@@ -1598,7 +1595,7 @@ const ePaths = {
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {}, Presets: {} };
 
       if (
         oldeDamageLabValues &&
@@ -1691,12 +1688,11 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
             oldData.runningTime = runningTime;
-          } else if (cell = "Presets") {
+          } else if (cell === "Presets") {
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var presetName = oldValues[nextRow][column];
               if (!presetName) break;
@@ -1816,7 +1812,6 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
@@ -1931,7 +1926,6 @@ const ePaths = {
             oldData.rowsCalculated = rowsCalculated;
           } else if (cell === "Running Time") {
             var runningTime = oldValues[row + 1][column];
-            console.log("Found running time:", runningTime);
             if (!String(runningTime)) {
               continue;
             }
