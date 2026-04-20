@@ -351,15 +351,22 @@ const ePaths = {
                 values: [[rowsCalculatedValue]],
               });
             }
-          } else if (cell === "Total Lab Time") {
-            if (oldData.hasOwnProperty("Preset")) {
-              var presetValue = oldData.Preset;
-              var presetCol = shared.columnToLetter(columnOffset + column + 3);
-              var presetCellAddress = `${presetCol}${row + 1}`;
-              batchUpdate.push({
-                range: `${sheetName}!${presetCellAddress}`,
-                values: [[presetValue]],
-              });
+          } else if (cell === "Presets") {
+            if (oldData.hasOwnProperty("Presets")) {
+              var presetValues = oldData.Presets;
+              var presetCol = shared.columnToLetter(columnOffset + column + 4);
+              for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
+                var presetName = eHPData[nextRow][column];
+                if (!presetName) break;
+                if (presetValues.hasOwnProperty(presetName)) {
+                  var presetValue = presetValues[presetName];
+                  var presetCellAddress = `${presetCol}${nextRow + 1}`;
+                  batchUpdate.push({
+                    range: `${sheetName}!${presetCellAddress}`,
+                    values: [[presetValue]],
+                  });
+                }
+              }
             }
           }
         }
@@ -759,6 +766,91 @@ const ePaths = {
   
   // #endregion
   // #region Convert Versions
+  version5_05_01_00: function () {
+    try {
+      console.log("Called: ePaths.version5_05_01_00");
+      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+      if (
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
+      ) {
+        return {
+          success: false,
+          message:
+            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
+        };
+      }
+
+      var eHPRange = "eHP!AJ1:AX50";
+      var eDamageRange = "eDamage!AI1:AX100";
+      var eEconRange = "eEcon!AI1:AW65";
+      var eHPLabRange = "eHP!L3:L5";
+      var eRegenLabRange = "eHP!AH3:AH5";
+      var eDamageLabRange = "eDamage!L3:L5";
+      var eEconLabRange = "eEcon!L3:L5";
+      var eDiscountLabRange = "eEcon!AG3:AG5";
+      var CLDmgRange = "eDamage!AL149:AM149";
+      var ranges = [
+        eHPRange,
+        eDamageRange,
+        eEconRange,
+        eHPLabRange,
+        eRegenLabRange,
+        eDamageLabRange,
+        eEconLabRange,
+        eDiscountLabRange,
+        CLDmgRange,
+      ];
+      var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
+      if (!batchResult || !batchResult.length === 0) {
+        return {
+          success: false,
+          message: "Failed to fetch data from old spreadsheet™.",
+        };
+      }
+      var eHPValues = batchResult[0].values;
+      var eDamageValues = batchResult[1].values;
+      var eEconValues = batchResult[2].values;
+      var eHPLabValues = batchResult[3].values;
+      var eRegenLabValues = batchResult[4].values;
+      var eDamageLabValues = batchResult[5].values;
+      var eEconLabValues = batchResult[6].values;
+      var eDiscountLabValues = batchResult[7].values;
+      var cLDmgValues = batchResult[8].values;
+
+      var eHPData = this.getVersion5_05_01_00eHP(
+        eHPValues,
+        eHPLabValues,
+        eRegenLabValues
+      );
+      var eDamageData = this.getVersion5_05_00_00eDamage(
+        eDamageValues,
+        eDamageLabValues,
+        cLDmgValues
+      );
+      var eEconData = this.getVersion5_00_01_04eEcon(
+        eEconValues,
+        eEconLabValues,
+        eDiscountLabValues
+      );
+
+      return {
+        success: true,
+        eHP: eHPData,
+        eDamage: eDamageData,
+        eEcon: eEconData,
+      };
+    } catch (error) {
+      console.log(`Error in ePaths.version5_05_01_00: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting Effective Paths data: " + error.message,
+      };
+    }
+  },
+
   version5_05_00_00: function () {
     try {
       console.log("Called: ePaths.version5_05_00_00");
@@ -1182,6 +1274,149 @@ const ePaths = {
 
   // #endregion
   // #region Get eHP
+  getVersion5_05_01_00eHP: function (
+    oldValues,
+    oldeHPLabValues,
+    oldeRegenLabValues
+  ) {
+    try {
+      console.log("Called: ePaths.getVersion5_05_01_00eHP");
+      var customData = [
+        "Wall Health",
+        "Max Recovery",
+        "Chrono Field ⚠️",
+        "Death Wave Health",
+        "Chain Thunder ⚠️",
+      ];
+      var modulesData = ["Armor"];
+
+      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+
+      if (
+        oldeHPLabValues &&
+        oldeHPLabValues[1] &&
+        oldeHPLabValues[1][0] === "Running Time"
+      ) {
+        var eHPLabCost = oldeHPLabValues[0][0];
+        if (String(eHPLabCost)) {
+          oldData.eHPLabCost = eHPLabCost;
+        }
+        var eHPRunningTime = oldeHPLabValues[2][0];
+        if (String(eHPRunningTime)) {
+          oldData.eHPRunningTime = eHPRunningTime;
+        }
+      }
+      if (
+        oldeRegenLabValues &&
+        oldeRegenLabValues[1] &&
+        oldeRegenLabValues[1][0] === "Running Time"
+      ) {
+        var eRegenLabCost = oldeRegenLabValues[0][0];
+        if (String(eRegenLabCost)) {
+          oldData.eRegenLabCost = eRegenLabCost;
+        }
+        var eRegenRunningTime = oldeRegenLabValues[2][0];
+        if (String(eRegenRunningTime)) {
+          oldData.eRegenRunningTime = eRegenRunningTime;
+        }
+      }
+
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[nextRow][column - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[row][column + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
+              if (!guessName) break;
+              var guessValue = oldValues[nextRow][column + 4];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                var parts = guessName.split(",");
+                guessName = parts[parts.length - 2]
+                  .replace(/["\(\)]/g, "")
+                  .trim();
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[row][column + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            oldData.Modules[cell] = moduleLevel;
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[row + 1][column];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[row + 1][column];
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
+          } else if (cell === "Presets") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var presetName = oldValues[nextRow][column];
+              if (!presetName) break;
+              oldData.Presets[presetName] = oldValues[nextRow][column + 3];
+            }
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eHP data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion5_05_01_00eHP: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion5_05_01_00eHP: " + error.message,
+      };
+    }
+  },
+
   getVersion5_03_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -1303,7 +1538,8 @@ const ePaths = {
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
-            oldData.Preset = oldValues[row][column + 2];
+            var preset = oldValues[row][column + 2];
+            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
           }
         }
       }
@@ -2353,6 +2589,7 @@ const ePaths = {
       "v5.00.01.04": this.version5_00_01_04.bind(this),
       "v5.03.00.00": this.version5_03_00_00.bind(this),
       "v5.05.00.00": this.version5_05_00_00.bind(this),
+      "v5.05.01.00": this.version5_05_01_00.bind(this),
     };
   },
   
