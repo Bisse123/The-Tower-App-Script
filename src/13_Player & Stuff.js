@@ -66,7 +66,7 @@
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -93,11 +93,11 @@
           "Master Sheet",
           oldPlayerStuffTierData,
           oldPlayerStuffStatsData,
-          masterSheetData
+          masterSheetData,
         );
         if (!playerStuffResult || !playerStuffResult.success) {
           console.log(
-            `Error updating player data: ${playerStuffResult.message}`
+            `Error updating player data: ${playerStuffResult.message}`,
           );
           return playerStuffResult;
         }
@@ -118,7 +118,7 @@
         "Player & Stuff",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -149,7 +149,7 @@
     sheetName,
     oldPlayerTierData,
     oldPlayerStatsData,
-    masterSheetData
+    masterSheetData,
   ) {
     try {
       console.log("Called: playerStuff.updatePlayerStuffData");
@@ -166,11 +166,19 @@
       var dissCol = headerRow.indexOf("Dissonant Runs");
       var passCol = headerRow.indexOf("Pass");
 
-      if (statCol === -1 || tierCol === -1 || passCol === -1 || dissCol === -1) {
-        console.log(`Stat, Tier, Pass, or Dissonant Runs column not found in master sheet`);
+      if (
+        statCol === -1 ||
+        tierCol === -1 ||
+        passCol === -1 ||
+        dissCol === -1
+      ) {
+        console.log(
+          `Stat, Tier, Pass, or Dissonant Runs column not found in master sheet`,
+        );
         return {
           success: false,
-          message: "Stat, Tier, Pass, or Dissonant Runs column not found in master sheet",
+          message:
+            "Stat, Tier, Pass, or Dissonant Runs column not found in master sheet",
         };
       }
       var header = headerRow[statCol] || "";
@@ -182,7 +190,43 @@
         "Premium Packs": [],
       };
 
-      var firstRow = 3;
+      var firstRow = -1;
+      var dissAttackCol = -1;
+      var dissDefenseCol = -1;
+      var dissUtilityCol = -1;
+      var dissUltimateCol = -1;
+      for (var row = 0; row < masterSheetData.length; row++) {
+        var dissHeaderRow = masterSheetData[row] || [];
+        var dissAttackIndex = dissHeaderRow.indexOf("Attack");
+        var dissDefenseIndex = dissHeaderRow.indexOf("Defense");
+        var dissUtilityIndex = dissHeaderRow.indexOf("Utility");
+        var dissUltimateIndex = dissHeaderRow.indexOf("Ultimate Weapon");
+        if (
+          dissAttackIndex !== -1 &&
+          dissDefenseIndex !== -1 &&
+          dissUtilityIndex !== -1 &&
+          dissUltimateIndex !== -1
+        ) {
+          firstRow = row + 2;
+          dissAttackCol =
+            dissHeaderRow.indexOf("Attack") + 1 || dissCol + 1;
+          dissDefenseCol =
+            dissHeaderRow.indexOf("Defense") + 1 || dissCol + 3;
+          dissUtilityCol =
+            dissHeaderRow.indexOf("Utility") + 1 || dissCol + 5;
+          dissUltimateCol =
+            dissHeaderRow.indexOf("Ultimate Weapon") + 1 || dissCol + 7;
+            break;
+        }
+      }
+      if (firstRow === -1) {
+        console.log(`Could not find Dissonant Runs subheader row in master sheet`);
+        return {
+          success: false,
+          message: "Could not find Dissonant Runs subheader row in master sheet",
+        };
+      }
+
       for (var row = firstRow - 1; row < masterSheetData.length; row++) {
         var rowData = masterSheetData[row];
         var statName = rowData[statCol] || "";
@@ -197,11 +241,11 @@
           values.Tier.push([wave]);
           values.Pass.push([premium]);
           if (oldPlayerTierData[tierValue].diss) {
-
             var dissAttack = oldPlayerTierData[tierValue].diss.Attack || null;
             var dissDefense = oldPlayerTierData[tierValue].diss.Defense || null;
             var dissUtility = oldPlayerTierData[tierValue].diss.Utility || null;
-            var dissUltimate = oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || null;
+            var dissUltimate =
+              oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || null;
             values.dissAttack = values.dissAttack || [];
             values.dissDefense = values.dissDefense || [];
             values.dissUtility = values.dissUtility || [];
@@ -211,7 +255,6 @@
             values.dissUtility.push([dissUtility]);
             values.dissUltimate.push([dissUltimate]);
           }
-
         }
 
         if (!statName) {
@@ -231,15 +274,9 @@
           values[header].push([value]);
         }
       }
-      
+
       var statColLetter = shared.columnToLetter(statCol + 2);
       var tierColLetter = shared.columnToLetter(tierCol + 2);
-      
-      var dissHeaderRow = masterSheetData[1] || [];
-      var dissAttackCol = dissHeaderRow.indexOf("Attack") + 1 || dissCol + 1;
-      var dissDefenseCol = dissHeaderRow.indexOf("Defense") + 1 || dissCol + 3;
-      var dissUtilityCol = dissHeaderRow.indexOf("Utility") + 1 || dissCol + 5;
-      var dissUltimateCol = dissHeaderRow.indexOf("Ultimate Weapon") + 1 || dissCol + 7;
 
       var dissAttackColLetter = shared.columnToLetter(dissAttackCol);
       var dissDefenseColLetter = shared.columnToLetter(dissDefenseCol);
@@ -339,10 +376,10 @@
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
       var tierDataResult = this.getVersion4_0PlayerStuffTiers(
-        oldPlayerStuffTierValues
+        oldPlayerStuffTierValues,
       );
       var statsDataResult = this.getVersion3_2PlayerStuffStats(
-        oldPlayerStuffStatsValues
+        oldPlayerStuffStatsValues,
       );
       success = tierDataResult.success && statsDataResult.success;
       return {
@@ -389,10 +426,10 @@
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
       var tierDataResult = this.getVersion2_0PlayerStuffTiers(
-        oldPlayerStuffTierValues
+        oldPlayerStuffTierValues,
       );
       var statsDataResult = this.getVersion3_2PlayerStuffStats(
-        oldPlayerStuffStatsValues
+        oldPlayerStuffStatsValues,
       );
       success = tierDataResult.success && statsDataResult.success;
       return {
@@ -439,10 +476,10 @@
       var oldPlayerStuffTierValues = batchResult[0].values;
       var oldPlayerStuffStatsValues = batchResult[1].values;
       var tierDataResult = this.getVersion2_0PlayerStuffTiers(
-        oldPlayerStuffTierValues
+        oldPlayerStuffTierValues,
       );
       var statsDataResult = this.getVersion2_0PlayerStuffStats(
-        oldPlayerStuffStatsValues
+        oldPlayerStuffStatsValues,
       );
       success = tierDataResult.success && statsDataResult.success;
       return {
@@ -505,7 +542,9 @@
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log("Error in getVersion4_0PlayerStuffTiers: " + error.toString());
+      console.log(
+        "Error in getVersion4_0PlayerStuffTiers: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion4_0PlayerStuffTiers: " + error.message,
@@ -544,7 +583,9 @@
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log("Error in getVersion2_0PlayerStuffTiers: " + error.toString());
+      console.log(
+        "Error in getVersion2_0PlayerStuffTiers: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion2_0PlayerStuffTiers: " + error.message,
@@ -552,8 +593,8 @@
     }
   },
 
-// #endregion
-// #region Get PlayerStuff Stats
+  // #endregion
+  // #region Get PlayerStuff Stats
   getVersion3_2PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
       console.log("Called: playerStuff.getVersion3_2PlayerStuffStats");
@@ -592,7 +633,9 @@
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in getVersion3_2PlayerStuffStats: " + error.toString());
+      console.log(
+        "Error in getVersion3_2PlayerStuffStats: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion3_2PlayerStuffStats: " + error.message,
@@ -638,7 +681,9 @@
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in getVersion2_0PlayerStuffStats: " + error.toString());
+      console.log(
+        "Error in getVersion2_0PlayerStuffStats: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion2_0PlayerStuffStats: " + error.message,
