@@ -1290,7 +1290,7 @@ const ePaths = {
       ];
       var modulesData = ["Armor"];
 
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeHPLabValues &&
@@ -1337,6 +1337,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -1346,6 +1349,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -1354,6 +1360,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -1371,12 +1380,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -1398,6 +1413,9 @@ const ePaths = {
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var presetName = oldValues[nextRow][column];
               if (!presetName) break;
+              if (!oldData.hasOwnProperty("Presets")) {
+                oldData.Presets = {};
+              }
               oldData.Presets[presetName] = oldValues[nextRow][column + 3];
             }
           }
@@ -1433,7 +1451,7 @@ const ePaths = {
       ];
       var modulesData = ["Armor"];
 
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeHPLabValues &&
@@ -1480,6 +1498,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -1489,6 +1510,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -1497,6 +1521,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -1514,12 +1541,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -1573,7 +1606,7 @@ const ePaths = {
       ];
       var modulesData = ["Armor"];
 
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeHPLabValues &&
@@ -1620,6 +1653,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -1629,6 +1665,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -1637,6 +1676,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -1654,12 +1696,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -1710,7 +1758,7 @@ const ePaths = {
       ];
       var modulesData = ["Armor"];
 
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeHPLabValues &&
@@ -1749,6 +1797,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -1758,6 +1809,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -1766,6 +1820,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -1783,12 +1840,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -1831,7 +1894,7 @@ const ePaths = {
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {}, Presets: {} };
+      var oldData = {};
 
       if (
         oldeDamageLabValues &&
@@ -1867,6 +1930,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -1876,6 +1942,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -1884,6 +1953,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -1905,12 +1977,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -1932,6 +2010,9 @@ const ePaths = {
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var presetName = oldValues[nextRow][column];
               if (!presetName) break;
+              if (!oldData.hasOwnProperty("Presets")) {
+                oldData.Presets = {};
+              }
               oldData.Presets[presetName] = oldValues[nextRow][column + 3];
             }
           } else if (cell === "PS Beta Testing") {
@@ -1959,7 +2040,7 @@ const ePaths = {
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeDamageLabValues &&
@@ -1995,6 +2076,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -2004,6 +2088,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -2012,6 +2099,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -2029,12 +2119,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -2080,7 +2176,7 @@ const ePaths = {
 
       var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
       var modulesData = ["Cannon", "Core"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeDamageLabValues &&
@@ -2109,6 +2205,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -2118,6 +2217,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -2126,6 +2228,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -2143,12 +2248,18 @@ const ePaths = {
                   .replace(/["\(\)]/g, "")
                   .trim();
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
@@ -2199,7 +2310,7 @@ const ePaths = {
       console.log("Called: ePaths.getVersion5_00_01_04eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeEconLabValues &&
@@ -2246,6 +2357,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -2255,6 +2369,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -2263,6 +2380,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -2284,6 +2404,9 @@ const ePaths = {
                     .trim();
                 }
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               if (guessName === "Turn off Labs in Coin Path") {
                 oldData.UserGuess["Ignore Target Levels"] = guessValue;
                 guessValue = oldValues[nextRow][column + 1];
@@ -2304,6 +2427,9 @@ const ePaths = {
             }
             if (!assistIsFormula) {
               moduleObj["assist"] = assModLevel;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleObj;
           } else if (cell === "Rows Calculated") {
@@ -2341,7 +2467,7 @@ const ePaths = {
       console.log("Called: ePaths.getVersion4_11_03_21eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeEconLabValues &&
@@ -2388,6 +2514,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -2397,6 +2526,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -2405,6 +2537,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -2426,12 +2561,18 @@ const ePaths = {
                     .trim();
                 }
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = {"main": moduleLevel};
           } else if (cell === "Rows Calculated") {
@@ -2469,7 +2610,7 @@ const ePaths = {
       console.log("Called: ePaths.getVersion4_11_02_00eEcon");
       var customData = ["Gold Bot - Cooldown"];
       var modulesData = ["Generator"];
-      var oldData = { Custom: {}, Perks: {}, UserGuess: {}, Modules: {} };
+      var oldData = {};
 
       if (
         oldeEconLabValues &&
@@ -2508,6 +2649,9 @@ const ePaths = {
                 ) {
                   continue;
                 }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
                 oldData.Custom[customName] = customValue;
               }
             }
@@ -2517,6 +2661,9 @@ const ePaths = {
               String(perksAreActive) &&
               !String(perksAreActive).startsWith("=")
             ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
               oldData.Perks["Active"] = perksAreActive;
             }
             for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
@@ -2525,6 +2672,9 @@ const ePaths = {
               if (perkName.startsWith("=")) {
                 var parts = perkName.split("&");
                 perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
               }
               oldData.Perks[perkName] = oldValues[nextRow][column + 4];
             }
@@ -2546,12 +2696,18 @@ const ePaths = {
                     .trim();
                 }
               }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             if (!moduleLevel || moduleLevel.startsWith("=")) {
               continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
             }
             oldData.Modules[cell] = moduleLevel;
           } else if (cell === "Rows Calculated") {
