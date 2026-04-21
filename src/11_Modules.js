@@ -222,71 +222,97 @@ const modules = {
           var rowIdx = newModuleTypeIndex[moduleType] + 1;
           if (typeof rowIdx === "undefined") return;
           var row = newModulePresetsValues[rowIdx];
+          var usedPresets = [];
           Object.keys(oldModulesPresets[moduleType]).forEach(
             function (presetName) {
               var presetCol = row.indexOf(presetName);
-              if (presetCol !== -1) {
-                if (presetName === "Assist Slot") {
-                  var lockedRange = `${sheetName}!${shared.columnToLetter(
-                    presetCol + 3,
-                  )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
-                    rowIdx + 1
-                  }`;
-                  var lockedValues = [
-                    [oldModulesPresets[moduleType][presetName].locked || ""],
-                  ];
-                  var rarityRange = `${sheetName}!${shared.columnToLetter(
-                    presetCol + 2,
-                  )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
-                    rowIdx + 2
-                  }`;
-                  var rarityValues = [
-                    [oldModulesPresets[moduleType][presetName].rarity || ""],
-                  ];
-                  var multiSubRange = `${sheetName}!${shared.columnToLetter(
-                    presetCol + 3,
-                  )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
-                    rowIdx + 4
-                  }`;
-
-                  // Transform values using DVT
-                  var dvtMultiplier = shared.getDVTValue(
-                    oldModulesPresets[moduleType][presetName].multiplier || "",
-                    dvtNamedRangesData["Assist Level"],
-                  );
-                  var dvtSubstat = shared.getDVTValue(
-                    oldModulesPresets[moduleType][presetName].substat || "",
-                    dvtNamedRangesData["Assist Level"],
-                  );
-
-                  var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
-                  batchUpdate.push({
-                    range: lockedRange,
-                    values: lockedValues,
-                  });
-                  batchUpdate.push({
-                    range: rarityRange,
-                    values: rarityValues,
-                  });
-                  batchUpdate.push({
-                    range: multiSubRange,
-                    values: multiSubValues,
-                  });
-                } else {
-                  var range = `${sheetName}!${shared.columnToLetter(
-                    presetCol + 2,
-                  )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
-                    rowIdx + 4
-                  }`;
-                  var values = [
-                    [oldModulesPresets[moduleType][presetName].primary || ""],
-                    [oldModulesPresets[moduleType][presetName].secondary || ""],
-                  ];
-                  batchUpdate.push({
-                    range: range,
-                    values: values,
-                  });
+              if (presetName === "") {
+                return;
+              }
+              var presetData = oldModulesPresets[moduleType][presetName];
+              if (!presetData) {
+                return;
+              }
+              if (presetCol === -1) {
+                presetCol = row.findIndex(
+                  (cell) =>
+                    String(cell).toLowerCase().includes("preset") &&
+                    !String(cell).toLowerCase().includes("module") &&
+                    !usedPresets.includes(cell) &&
+                    !oldModulesPresets[moduleType].hasOwnProperty(cell)
+                );
+                if (presetCol === -1) {
+                  return;
                 }
+              }
+              usedPresets.push(row[presetCol]);
+              if (presetName === "Assist Slot") {
+                var lockedRange = `${sheetName}!${shared.columnToLetter(
+                  presetCol + 3,
+                )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
+                  rowIdx + 1
+                }`;
+                var lockedValues = [
+                  [presetData.locked || ""],
+                ];
+                var rarityRange = `${sheetName}!${shared.columnToLetter(
+                  presetCol + 2,
+                )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
+                  rowIdx + 2
+                }`;
+                var rarityValues = [
+                  [presetData.rarity || ""],
+                ];
+                var multiSubRange = `${sheetName}!${shared.columnToLetter(
+                  presetCol + 3,
+                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
+                  rowIdx + 4
+                }`;
+
+                // Transform values using DVT
+                var dvtMultiplier = shared.getDVTValue(
+                  presetData.multiplier || "",
+                  dvtNamedRangesData["Assist Level"],
+                );
+                var dvtSubstat = shared.getDVTValue(
+                  presetData.substat || "",
+                  dvtNamedRangesData["Assist Level"],
+                );
+
+                var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
+                batchUpdate.push({
+                  range: lockedRange,
+                  values: lockedValues,
+                });
+                batchUpdate.push({
+                  range: rarityRange,
+                  values: rarityValues,
+                });
+                batchUpdate.push({
+                  range: multiSubRange,
+                  values: multiSubValues,
+                });
+              } else {
+                var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1,)}${rowIdx + 1}`;
+                var presetNameValues = [[presetName]];
+                batchUpdate.push({
+                  range: presetNameRange,
+                  values: presetNameValues,
+                });
+
+                var presetModuleRange = `${sheetName}!${shared.columnToLetter(
+                  presetCol + 2,
+                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
+                  rowIdx + 4
+                }`;
+                var presetModuleValues = [
+                  [presetData.primary || ""],
+                  [presetData.secondary || ""],
+                ];
+                batchUpdate.push({
+                  range: presetModuleRange,
+                  values: presetModuleValues,
+                });
               }
             },
           );
@@ -551,11 +577,20 @@ const modules = {
               range: range,
               values: values,
             });
-            if (oldModulesTracker[targetModule].hasOwnProperty(moduleName + " Shattered")){
+            if (
+              oldModulesTracker[targetModule].hasOwnProperty(
+                moduleName + " Shattered",
+              )
+            ) {
               var shatteredRow = row + 9;
               var shatteredCol = col + 3;
               var shatteredRange = `${sheetName}!${shared.columnToLetter(shatteredCol)}${shatteredRow}`;
-              var shatteredValue = [[oldModulesTracker[targetModule][moduleName + " Shattered"] || null]];
+              var shatteredValue = [
+                [
+                  oldModulesTracker[targetModule][moduleName + " Shattered"] ||
+                    null,
+                ],
+              ];
               batchUpdate.push({
                 range: shatteredRange,
                 values: shatteredValue,
@@ -925,7 +960,9 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log("Error in getVersion5_0ModulesInventory: " + error.toString());
+      console.log(
+        "Error in getVersion5_0ModulesInventory: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion5_0ModulesInventory: " + error.message,
@@ -998,7 +1035,9 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log("Error in getVersion4_0ModulesInventory: " + error.toString());
+      console.log(
+        "Error in getVersion4_0ModulesInventory: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion4_0ModulesInventory: " + error.message,
@@ -1028,6 +1067,9 @@ const modules = {
             var presetName = oldModulesPresetsValues[rowIdx][col]
               ? String(oldModulesPresetsValues[rowIdx][col]).trim()
               : "";
+            if (!presetName) {
+              continue;
+            }
             var primaryName = oldModulesPresetsValues[rowIdx + 2][col + 1]
               ? String(oldModulesPresetsValues[rowIdx + 2][col + 1]).trim()
               : "";
@@ -1224,9 +1266,10 @@ const modules = {
               var copy = subRowData[col + 1] || null;
               oldModulesTracker[targetModule][moduleName].push(copy);
             }
-            
+
             if (oldModulesTrackerValues[row + 8][col] === "Shattered epic") {
-              oldModulesTracker[targetModule][moduleName + " Shattered"] = oldModulesTrackerValues[row + 8][col + 2] || null;
+              oldModulesTracker[targetModule][moduleName + " Shattered"] =
+                oldModulesTrackerValues[row + 8][col + 2] || null;
             }
           } else if (moduleName === "Fodders") {
             if (!oldModulesTracker[targetModule]) {
