@@ -124,7 +124,6 @@
                 .withSuccessHandler(copyFileTemplateSuccess)
                 .withFailureHandler(copyFileTemplateFailure)
                 .copyFileTemplate(
-                  idMasterID,
                   result.templateID,
                   sheetType,
                   result.templateVersion
@@ -146,7 +145,6 @@
           .withSuccessHandler(copyFileTemplateSuccess)
           .withFailureHandler(copyFileTemplateFailure)
           .copyFileTemplate(
-            idMasterID,
             result.templateID,
             sheetType,
             result.templateVersion

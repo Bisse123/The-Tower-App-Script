@@ -31,39 +31,6 @@
   let isCombinedUpdate = false; // Flag to track if we're in combined update flow
   let hasSubsheetsToUpdate = false; // Flag to track if there are subsheets to update in combined flow
 
-  // Detect mobile devices with enhanced touch detection
-  function detectMobile() {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const mobileKeywords = [
-      "mobile",
-      "android",
-      "iphone",
-      "ipad",
-      "ipod",
-      "blackberry",
-      "windows phone",
-    ];
-    const isMobileUA = mobileKeywords.some((keyword) =>
-      userAgent.includes(keyword)
-    );
-    const isTouchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const isSmallScreen = window.innerWidth <= 768;
-
-    return isMobileUA || (isTouchDevice && isSmallScreen);
-  }
-
-  // Check if device is touch-only (no mouse/trackpad)
-  function isTouchOnlyDevice() {
-    return (
-      "ontouchstart" in window && !window.matchMedia("(pointer: fine)").matches
-    );
-  }
-
-  // Initialize mobile detection
-  isMobile = detectMobile();
-  console.log("Mobile device detected:", isMobile);
-
   // Show appropriate instructions immediately based on device type
   if (isMobile) {
     document.getElementById("desktopInstructions").style.display = "none";
@@ -71,35 +38,6 @@
   } else {
     document.getElementById("desktopInstructions").style.display = "block";
     document.getElementById("mobileInstructions").style.display = "none";
-  }
-
-  // Helper functions for status text with spinner
-  function setStatusWithSpinner(message) {
-    document.getElementById("statusText").innerHTML = `
-        <span class="spinner spinner-small"></span>
-        ${message}
-      `;
-  }
-
-  function setStatusText(message) {
-    if (isMobile) {
-      const mobileMessages = {
-        "Opening picker with files that need access...":
-          "Opening file picker...",
-        "Select the files you want to grant access to": "Tap files to select",
-        "Access granted to files. Rechecking access status...":
-          "Files selected. Checking...",
-        "Picker loaded successfully": "Picker ready",
-        "File selection cancelled": "Selection cancelled",
-      };
-      const shortMessage = mobileMessages[message];
-      if (shortMessage) {
-        document.getElementById("statusText").innerText = shortMessage;
-        return;
-      }
-    }
-
-    document.getElementById("statusText").innerText = message;
   }
 
   // Google API initialization
@@ -212,7 +150,6 @@
   }
 
   function hideAllSections() {
-    document.getElementById("getStartedSection").style.display = "none";
     document.getElementById("selectImportSection").style.display = "none";
     document.getElementById("fileAccessSection").style.display = "none";
     document.getElementById("instructionsSection").style.display = "none";

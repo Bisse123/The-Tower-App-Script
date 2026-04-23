@@ -1,16 +1,1218 @@
 <script>
   // Get Started section functions
-  
-  function showGetStartedSection() {
-    if (viewType === "sidebar") {
-      google.script.run.showGetStartedDialog();
+  let GET_STARTED_TEMPLATE_CONFIG = {
+    "effective-paths": [
+      {
+        sheetType: "Effective Paths",
+        templateID: "1YwZtKP6B4WYhRba5T6APJ1YxKNdfnIGQnprgnxmO7zc",
+      },
+    ],
+    "ids-collection": [
+      {
+        sheetType: "IDS Collection",
+        templateID: "1QwlXL4Y1QxvHHaZZLFMszSg5yEkPlt3dmtNukvH3rFk",
+      },
+    ],
+    "master-and-subsheets": [
+      {
+        sheetType: "IDS Master",
+        templateID: "1osjoqKmMwtOWs7Up3e21-3ofN1RHOjsgKV6y3dc6rgE",
+      },
+      {
+        sheetType: "Laboratory",
+        templateID: "165-JujisYPpKi3RWew9O5gptDJ6rgr-71BbyoQafoaU",
+      },
+      {
+        sheetType: "Workshop",
+        templateID: "1GRVlWERQmvfHgsWytiY6gJn8-7oDDnGbg1Bsb5x4TS8",
+      },
+      {
+        sheetType: "Ultimate Weapon",
+        templateID: "1T9_3YekZ2jbcebtu0MbuKU5IhI8zUFAR4UvlLklEajw",
+      },
+      {
+        sheetType: "Themes & Songs",
+        templateID: "1I890hoosDHS0WGwvGpfMTSmlChEFcjvts9seiEygCbQ",
+      },
+      {
+        sheetType: "Bots",
+        templateID: "1i35r-Tlfx5o1QIdtAYqgVkK2Hep9lH0PQ9Y7BtlyOBQ",
+      },
+      {
+        sheetType: "Relics",
+        templateID: "13psLga5xkYIcUiupK9tHmlSsZapFD-IS96aCuUvfjP4",
+      },
+      {
+        sheetType: "Vault",
+        templateID: "1fkPvE2s9rYjIqB5_uU4DS5Pc6N3eUx5-2imBmpdJvcY",
+      },
+      {
+        sheetType: "Cards",
+        templateID: "1wVLlvWfmcjHRkAnQJzAQu_YZo_eW1FXMVTfYYQnF7Xc",
+      },
+      {
+        sheetType: "Modules",
+        templateID: "1KCxnSAvhstAbFdBSYSO_3bKUPtCFX42Eb7Z13agPU9s",
+      },
+      {
+        sheetType: "Guardians",
+        templateID: "1Q8dhx05NIzgk1JNbZkdL-Y6cX07U09AiFkct4p1tZg4",
+      },
+      {
+        sheetType: "Player & Stuff",
+        templateID: "1kExWaxZpSizb0KPoFtZdGZI0iBOszTG0LwK-248Saak",
+      },
+    ],
+  };
+  let accessToken = null;
+  let getStartedPickerReady = false;
+  let getStartedSelectedFolder = {
+    id: "",
+    name: "",
+    url: "",
+  };
+
+  // Persistent state across retries
+  let allCreatedFiles = [];
+  let allFailedCopyFiles = [];
+  let allFailedIDUpdateFiles = [];
+  let lastFailedCopyTemplates = [];
+  let lastFailedIDUpdateFiles = [];
+  let getStartedLastCopyMode = "master-and-subsheets";
+
+  function renderGetStartedTemplateLinks() {
+    var linksContainer = document.getElementById("getStartedTemplateLinks");
+    if (!linksContainer) {
+      return;
+    }
+
+    var htmlParts = [];
+    htmlParts.push("<ul>");
+
+    for (var category in GET_STARTED_TEMPLATE_CONFIG) {
+      var templates = GET_STARTED_TEMPLATE_CONFIG[category];
+      if (templates && templates.length > 0) {
+        templates.forEach((template) => {
+          var safeName = template.sheetType || "Sheet";
+          htmlParts.push(
+            `<li><a href="https://docs.google.com/spreadsheets/d/${template.templateID}/copy" target="_blank">${safeName} Sheet™</a></li>`,
+          );
+        });
+      }
+    }
+
+    htmlParts.push("</ul>");
+    linksContainer.innerHTML = htmlParts.join("");
+  }
+
+  function continueGetStarted() {
+    var getStartedSection = document.getElementById("getStartedSection");
+    if (getStartedSection) {
+      getStartedSection.style.display = "block";
+    }
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    if (copyButton) {
+      copyButton.disabled = false;
+    }
+    setStatusText("Ready to copy templates");
+  }
+
+  async function getOrCreateGetStartedFolder() {
+    var folderResult = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (result.id) {
+            resolve(result);
+          } else if (result.error) {
+            reject(new Error(result.error));
+          } else {
+            reject(new Error("Failed to get or create The Tower folder"));
+          }
+        })
+        .withFailureHandler(function (error) {
+          reject(error);
+        })
+        .getOrCreateGetStartedFolder();
+    });
+
+    if (folderResult && folderResult.success && folderResult.id) {
+      getStartedSelectedFolder = {
+        id: folderResult.id,
+        name: folderResult.name || "The Tower",
+        url: folderResult.url,
+      };
+      updateGetStartedSelectedFolderDisplay();
     } else {
-      document.getElementById("selectImportSection").style.display = "none";
-      document.getElementById("fileAccessSection").style.display = "none";
-      document.getElementById("instructionsSection").style.display = "none";
-      document.getElementById("getStartedSection").style.display = "block";
-      document.getElementById("statusText").innerText =
-        "Review setup instructions below";
+      throw new Error("Invalid folder result: " + JSON.stringify(folderResult));
+    }
+  }
+
+  function updateGetStartedSelectedFolderDisplay() {
+    var folderElement = document.getElementById("getStartedSelectedFolder");
+    if (!folderElement) {
+      return;
+    }
+
+    if (!getStartedSelectedFolder || !getStartedSelectedFolder.id) {
+      folderElement.hidden = true;
+      return;
+    }
+
+    var safeName = getStartedSelectedFolder.name || "loading folder...";
+    folderElement.hidden = false;
+    folderElement.innerHTML = `Destination: <a href="${getStartedSelectedFolder.url}" target="_blank">${safeName}</a>`;
+  }
+
+  function getStartedGapiLoaded() {
+    console.log("Get Started GAPI script loaded, loading client and picker...");
+    gapi.load("client:picker", {
+      callback: initializeGetStartedPicker,
+      onerror: function () {
+        console.error("Failed to load GAPI client:picker for Get Started");
+        setStatusText("Failed to load Google™ APIs");
+      },
+    });
+  }
+
+  async function initializeGetStartedPicker() {
+    try {
+      console.log("Initializing Get Started GAPI client...");
+
+      if (!API_KEY || !APP_ID) {
+        throw new Error("Missing API_KEY or APP_ID for folder picker.");
+      }
+
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        ],
+      });
+
+      console.log("Get Started GAPI client initialized successfully");
+      console.log(
+        "Get Started Picker API available:",
+        typeof google.picker !== "undefined",
+      );
+
+      getStartedPickerReady = true;
+      renderGetStartedTemplateLinks();
+      authorizeGetStarted();
+    } catch (error) {
+      console.error("Error initializing Get Started GAPI client:", error);
+      setStatusText(`Initialization error: ${error.message}`);
+    }
+  }
+
+  function renderGetStartedCopyResult(result) {
+    var resultElement = document.getElementById("getStartedCopyResult");
+    if (!resultElement) return;
+
+    // Merge new results with previous ones
+    var createdFiles = (result && result.createdFiles) || [];
+    var failedCopies = (result && (result.failedCopies)) || [];
+    var failedIDUpdates = (result && result.failedIDUpdates) || [];
+    var successfulIDUpdates = (result && result.successfulIDUpdates) || [];
+
+    // Add or refresh created files
+    createdFiles.forEach(function (newFile) {
+      if (!newFile || !newFile.fileId) {
+        return;
+      }
+
+      var existingCreated = allCreatedFiles.find(function (file) {
+        return file.fileId === newFile.fileId;
+      });
+
+      if (existingCreated) {
+        if (newFile.fileName) existingCreated.fileName = newFile.fileName;
+        if (newFile.fileUrl) existingCreated.fileUrl = newFile.fileUrl;
+        if (newFile.sheetType) existingCreated.sheetType = newFile.sheetType;
+      } else {
+        allCreatedFiles.push(newFile);
+      }
+    });
+
+    // Track copy failures separately
+    failedCopies.forEach(function (newFail) {
+      if (!newFail || !newFail.templateID) {
+        return;
+      }
+
+      if (
+        allCreatedFiles.some(function (file) {
+          return file.sheetType === newFail.sheetType;
+        })
+      ) {
+        return;
+      }
+
+      var existingCopyFailure = allFailedCopyFiles.find(function (file) {
+        return (
+          file.sheetType === newFail.sheetType &&
+          file.templateID === newFail.templateID
+        );
+      });
+
+      if (existingCopyFailure) {
+        if (newFail.error) existingCopyFailure.error = newFail.error;
+        if (newFail.copyUrl) existingCopyFailure.copyUrl = newFail.copyUrl;
+        if (newFail.templateVersion) {
+          existingCopyFailure.templateVersion = newFail.templateVersion;
+        }
+      } else {
+        allFailedCopyFiles.push(newFail);
+      }
+    });
+
+    // Remove copy failures that are now created
+    allFailedCopyFiles = allFailedCopyFiles.filter(function (fail) {
+      return !allCreatedFiles.some(function (created) {
+        return created.sheetType === fail.sheetType;
+      });
+    });
+
+    // Track ID update failures separately
+    failedIDUpdates.forEach(function (newFail) {
+      if (!newFail || !newFail.fileId) {
+        return;
+      }
+
+      if (
+        !allCreatedFiles.some(function (created) {
+          return created.fileId === newFail.fileId;
+        })
+      ) {
+        return;
+      }
+
+      var existingIDFailure = allFailedIDUpdateFiles.find(function (file) {
+        return file.fileId === newFail.fileId;
+      });
+
+      if (existingIDFailure) {
+        if (newFail.error) existingIDFailure.error = newFail.error;
+        if (newFail.fileName) existingIDFailure.fileName = newFail.fileName;
+        if (newFail.fileUrl) existingIDFailure.fileUrl = newFail.fileUrl;
+        if (newFail.sheetType) existingIDFailure.sheetType = newFail.sheetType;
+      } else {
+        allFailedIDUpdateFiles.push(newFail);
+      }
+    });
+
+    // Remove ID update failures that succeeded on retry
+    allFailedIDUpdateFiles = allFailedIDUpdateFiles.filter(function (fail) {
+      var stillCreated = allCreatedFiles.some(function (created) {
+        return created.fileId === fail.fileId;
+      });
+
+      if (!stillCreated) {
+        return false;
+      }
+
+      return !successfulIDUpdates.some(function (success) {
+        return success.fileId === fail.fileId;
+      });
+    });
+
+    // Store pending retries
+    lastFailedCopyTemplates = allFailedCopyFiles.map(function (file) {
+      return {
+        sheetType: file.sheetType,
+        templateID: file.templateID,
+        templateVersion: file.templateVersion || "",
+      };
+    });
+
+    lastFailedIDUpdateFiles = allFailedIDUpdateFiles.map(function (file) {
+      return {
+        sheetType: file.sheetType,
+        fileId: file.fileId,
+        fileName: file.fileName,
+        fileUrl: file.fileUrl,
+        error: file.error,
+      };
+    });
+
+    // Build HTML
+    var htmlParts = [];
+    if (allCreatedFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultSuccess">');
+      htmlParts.push(`<strong>Created files (${allCreatedFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allCreatedFiles.forEach(function (created) {
+        var createdName = created.fileName || `${created.sheetType} copy`;
+        var createdType = created.sheetType || "Sheet";
+        var createdUrl = sanitizeGetStartedUrl(created.fileUrl);
+        if (createdUrl) {
+          htmlParts.push(`<li><a href="${createdUrl}" target="_blank">${createdName}</a> (${createdType})</li>`);
+        } else {
+          htmlParts.push(`<li>${createdName} (${createdType})</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (allFailedCopyFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultFailure">');
+      htmlParts.push(`<strong>Could not create automatically (${allFailedCopyFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allFailedCopyFiles.forEach(function (failed) {
+        var failedType = failed.sheetType || "Sheet";
+        var failedError = failed.error || "Unknown error";
+        var manualUrl = sanitizeGetStartedUrl(failed.copyUrl);
+        if (manualUrl) {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}<br><a href="${manualUrl}" target="_blank">Open ${failedType} copy link</a></li>`);
+        } else {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (allFailedIDUpdateFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultFailure">');
+      htmlParts.push(`<strong>Copied but failed ID setup (${allFailedIDUpdateFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allFailedIDUpdateFiles.forEach(function (failed) {
+        var failedType = failed.sheetType || "Sheet";
+        var failedError = failed.error || "Unknown error";
+        var failedUrl = sanitizeGetStartedUrl(failed.fileUrl);
+        if (failedUrl) {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}<br><a href="${failedUrl}" target="_blank">Open copied file</a></li>`);
+        } else {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (htmlParts.length === 0) {
+      htmlParts.push("No files were created.");
+    }
+    resultElement.innerHTML = htmlParts.join("");
+
+    // Hide copy button and dropdown, show retry button if needed
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var modeSelectLabel = document.getElementById("getStartedCopyModeLabel");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+    if (copyButton) copyButton.style.display = "none";
+    if (modeSelect) modeSelect.style.display = "none";
+    if (modeSelectLabel) modeSelectLabel.style.display = "none";
+    if (retryBtn) {
+      retryBtn.style.display =
+        allFailedCopyFiles.length > 0 || allFailedIDUpdateFiles.length > 0
+          ? "inline-block"
+          : "none";
+    }
+  }
+
+  function copyGetStartedTemplateAsync(template, parentFolderID) {
+    return new Promise(function (resolve) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          resolve({
+            success: !!(result && result.success && result.fileId),
+            result: result,
+            sheetType: template.sheetType,
+            templateID: template.templateID,
+            templateVersion: template.templateVersion || "",
+          });
+        })
+        .withFailureHandler(function (error) {
+          resolve({
+            success: false,
+            result: null,
+            error: error,
+            sheetType: template.sheetType,
+            templateID: template.templateID,
+            templateVersion: template.templateVersion || "",
+          });
+        })
+        .copyFileTemplate(
+          template.templateID,
+          template.sheetType,
+          template.templateVersion || "",
+          parentFolderID || "",
+        );
+    });
+  }
+
+  async function checkGetStartedTemplateAccess(templates) {
+    try {
+      if (!Array.isArray(templates) || templates.length === 0) {
+        return {
+          success: true,
+          accessibleTemplates: [],
+          inaccessibleTemplates: [],
+          message: "No templates to check.",
+        };
+      }
+
+      console.log(
+        `Checking access to ${templates.length} Get Started templates`,
+      );
+
+      // Create promises for all template access checks
+      const promises = templates.map((template) => {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve({ template, result }))
+            .withFailureHandler((error) => reject({ template, error }))
+            .checkTemplateAccess(template.templateID);
+        });
+      });
+
+      // Wait for all access checks to complete
+      const results = await Promise.allSettled(promises);
+
+      // Process results
+      const accessibleTemplates = [];
+      const inaccessibleTemplates = [];
+
+      results.forEach((promiseResult) => {
+        if (promiseResult.status === "fulfilled") {
+          const { template, result } = promiseResult.value;
+
+          if (result.accessible) {
+            accessibleTemplates.push(template);
+          } else {
+            inaccessibleTemplates.push({
+              sheetType: template.sheetType,
+              templateID: template.templateID,
+            });
+          }
+        } else {
+          console.error(
+            "Template access check failed for",
+            promiseResult.reason.template.templateID,
+            ":",
+            promiseResult.reason.error,
+          );
+          inaccessibleTemplates.push({
+            sheetType: promiseResult.reason.template.sheetType,
+            templateID: promiseResult.reason.template.templateID,
+          });
+        }
+      });
+
+      const message =
+        inaccessibleTemplates.length > 0
+          ? `${inaccessibleTemplates.length} template(s) are not accessible.`
+          : "All templates are accessible.";
+
+      console.log(
+        `Template access check complete: ${accessibleTemplates.length} accessible, ${inaccessibleTemplates.length} inaccessible`,
+      );
+
+      return {
+        success: inaccessibleTemplates.length === 0,
+        accessibleTemplates: accessibleTemplates,
+        inaccessibleTemplates: inaccessibleTemplates,
+        message: message,
+      };
+    } catch (error) {
+      console.error("Template access check error:", error);
+      return {
+        success: false,
+        accessibleTemplates: [],
+        inaccessibleTemplates: templates,
+        message: `Error checking template access: ${error.message || error}`,
+      };
+    }
+  }
+
+  async function openGetStartedAccessPicker(failedTemplates) {
+    if (
+      !getStartedPickerReady ||
+      typeof google === "undefined" ||
+      !google.picker
+    ) {
+      throw new Error("Google Picker API not ready. Please try again.");
+    }
+
+    if (!Array.isArray(failedTemplates) || failedTemplates.length === 0) {
+      throw new Error("No templates to grant access to.");
+    }
+
+    return new Promise(function (resolve, reject) {
+      try {
+        // Extract template IDs from failed templates
+        var failedTemplateIds = failedTemplates
+          .map(function (template) {
+            return template.templateID;
+          })
+          .filter(function (id) {
+            return typeof id === "string" && id.length > 0;
+          });
+
+        if (failedTemplateIds.length === 0) {
+          reject(new Error("No valid template IDs found."));
+          return;
+        }
+
+        console.log(
+          "Opening Get Started access picker for templates:",
+          failedTemplateIds,
+        );
+
+        var fileIdsString = failedTemplateIds.join(",");
+        var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEET)
+          .setFileIds(fileIdsString)
+          .setIncludeFolders(false)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+        var pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        var picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              console.log(
+                "Get Started access picker: files selected, rechecking access",
+              );
+              resolve(true);
+            } else if (data.action === google.picker.Action.CANCEL) {
+              console.log("Get Started access picker: cancelled");
+              resolve(false);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        var builtPicker = picker.build();
+        builtPicker.setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async function executeGetStartedTemplateCopies(templates, parentFolderID) {
+    // Execute the actual template copying in parallel
+    var copyResponses = await Promise.all(
+      templates.map(function (template) {
+        return copyGetStartedTemplateAsync(template, parentFolderID);
+      }),
+    );
+
+    return copyResponses;
+  }
+
+  async function applyGetStartedIDUpdates(createdFiles, copyMode) {
+    // Apply ID updates to all created files after copying
+    // This links sheets to their IDS Master or IDS Collection references
+    try {
+      if (!Array.isArray(createdFiles) || createdFiles.length === 0) {
+        return { success: true, updateResults: [] };
+      }
+
+      console.log(
+        `Applying ID updates for ${copyMode} mode to ${createdFiles.length} file(s)`,
+      );
+
+      var masterFile = null;
+      var masterRelatedIDs = [];
+      var knownCreatedFiles = [];
+      var knownCreatedFileMap = {};
+
+      function mergeKnownCreatedFile(file) {
+        if (!file || !file.fileId) {
+          return;
+        }
+
+        var existing = knownCreatedFileMap[file.fileId];
+        if (!existing) {
+          existing = {
+            fileId: file.fileId,
+            sheetType: file.sheetType,
+            fileName: file.fileName,
+            fileUrl: file.fileUrl,
+          };
+          knownCreatedFileMap[file.fileId] = existing;
+          knownCreatedFiles.push(existing);
+          return;
+        }
+
+        if (file.sheetType) existing.sheetType = file.sheetType;
+        if (file.fileName) existing.fileName = file.fileName;
+        if (file.fileUrl) existing.fileUrl = file.fileUrl;
+      }
+
+      if (Array.isArray(allCreatedFiles)) {
+        allCreatedFiles.forEach(mergeKnownCreatedFile);
+      }
+      if (Array.isArray(createdFiles)) {
+        createdFiles.forEach(mergeKnownCreatedFile);
+      }
+
+      if (copyMode === "master-and-subsheets") {
+        masterFile =
+          createdFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          }) ||
+          knownCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          });
+
+        masterRelatedIDs = knownCreatedFiles
+          .filter(function (file) {
+            return (
+              file.sheetType !== "IDS Master" &&
+              file.sheetType !== "Effective Paths" &&
+              !!file.fileId
+            );
+          })
+          .map(function (file) {
+            return {
+              sheetType: file.sheetType,
+              sheetID: file.fileId,
+            };
+          });
+      } else if (copyMode === "ids-collection") {
+        masterFile =
+          createdFiles.find(function (file) {
+            return file.sheetType === "IDS Collection";
+          }) ||
+          knownCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Collection";
+          });
+      }
+
+      var updatePromises = createdFiles.map(function (file) {
+        return new Promise(function (resolve) {
+          try {
+            var relatedSheetIDs = [];
+            if (masterFile && file.sheetType === masterFile.sheetType) {
+              relatedSheetIDs = masterRelatedIDs;
+            } else if (masterFile) {
+              relatedSheetIDs.push({
+                sheetType: "IDS Master",
+                sheetID: masterFile.fileId,
+              });
+            }
+
+            console.log(
+              `Updating ${file.sheetType} (${file.fileId}) with related IDs:`,
+              relatedSheetIDs,
+            );
+
+            google.script.run
+              .withSuccessHandler(function (result) {
+                console.log(`ID update result for ${file.sheetType}:`, result);
+                resolve(result);
+              })
+              .withFailureHandler(function (error) {
+                console.error(
+                  `Failed to update IDs for ${file.sheetType}:`,
+                  error,
+                );
+                resolve({ success: false, error: error });
+              })
+              .updateGetStartedSheetIdsAndReferences(
+                file.fileId,
+                file.sheetType,
+                relatedSheetIDs,
+              );
+          } catch (error) {
+            console.error(`Error updating IDs for ${file.sheetType}:`, error);
+            resolve({ success: false, error: error });
+          }
+        });
+      });
+
+      var updateResults = await Promise.all(updatePromises);
+
+      return { success: true, updateResults: updateResults };
+    } catch (error) {
+      console.error("Error applying ID updates:", error);
+      return { success: false, error: error };
+    }
+  }
+
+  function processGetStartedIDUpdateResults(createdFiles, idUpdateResult) {
+    var successfulIDUpdates = [];
+    var failedIDUpdates = [];
+
+    if (!Array.isArray(createdFiles) || createdFiles.length === 0) {
+      return {
+        successfulIDUpdates: successfulIDUpdates,
+        failedIDUpdates: failedIDUpdates,
+      };
+    }
+
+    var updateResults = (idUpdateResult && idUpdateResult.updateResults) || [];
+    var globalError =
+      idUpdateResult && idUpdateResult.success === false
+        ? idUpdateResult.error
+        : null;
+
+    createdFiles.forEach(function (file, index) {
+      var updateResult = updateResults[index];
+
+      if (updateResult && updateResult.fileName) {
+        file.fileName = updateResult.fileName;
+      }
+
+      var updateSucceeded = false;
+      if (!globalError && updateResult) {
+        if (typeof updateResult.success === "boolean") {
+          updateSucceeded = updateResult.success;
+        } else {
+          updateSucceeded = !updateResult.error;
+        }
+      }
+
+      if (updateSucceeded) {
+        successfulIDUpdates.push({
+          sheetType: file.sheetType,
+          fileId: file.fileId,
+          fileName: file.fileName,
+          fileUrl: file.fileUrl,
+        });
+        return;
+      }
+
+      var errorMessage = "Unknown ID update error";
+      if (globalError) {
+        errorMessage = globalError.message || String(globalError);
+      } else if (updateResult && updateResult.error) {
+        errorMessage = updateResult.error.message || String(updateResult.error);
+      } else if (updateResult && updateResult.message) {
+        errorMessage = updateResult.message;
+      } else if (!updateResult) {
+        errorMessage = "No response from ID update operation.";
+      }
+
+      failedIDUpdates.push({
+        sheetType: file.sheetType,
+        fileId: file.fileId,
+        fileName: file.fileName,
+        fileUrl: file.fileUrl,
+        error: errorMessage,
+      });
+    });
+
+    return {
+      successfulIDUpdates: successfulIDUpdates,
+      failedIDUpdates: failedIDUpdates,
+    };
+  }
+
+  function processGetStartedCopyResults(copyResponses) {
+    // Process copy responses and build result summary
+    var createdFiles = [];
+    var failedCopies = [];
+
+    copyResponses.forEach(function (response) {
+      if (response.success) {
+        createdFiles.push({
+          sheetType: response.sheetType,
+          fileId: response.result.fileId,
+          fileName: response.result.fileName || `Copy of ${response.sheetType}`,
+          fileUrl: response.result.fileUrl,
+        });
+        return;
+      }
+
+      var errorMessage = "Unknown error";
+      if (response.result && response.result.message) {
+        errorMessage = response.result.message;
+      } else if (response.error) {
+        errorMessage = response.error.message || String(response.error);
+      }
+      failedCopies.push({
+        sheetType: response.sheetType,
+        templateID: response.templateID,
+        templateVersion: response.templateVersion || "",
+        copyUrl: response.result ? response.result.copyUrl : "",
+        error: errorMessage,
+      });
+    });
+
+    var completeSuccess = failedCopies.length === 0;
+    var partialSuccess = createdFiles.length > 0 && failedCopies.length > 0;
+    var success = createdFiles.length > 0;
+
+    var message = "";
+    if (completeSuccess) {
+      message = `Successfully created ${createdFiles.length} file(s).`;
+    } else if (partialSuccess) {
+      message = `Created ${createdFiles.length} file(s), but ${failedCopies.length} failed.`;
+    } else {
+      message =
+        "Could not create any files automatically. Use manual copy links below.";
+    }
+
+    return {
+      success: success,
+      message: message,
+      createdFiles: createdFiles,
+      failedCopies: failedCopies,
+    };
+  }
+
+  async function performGetStartedAccessCheckAndCopy(
+    templates,
+    parentFolderID,
+    destinationLabel,
+    copyMode,
+  ) {
+    // Perform the full flow: check access -> handle picker -> copy -> update IDs -> process results
+    try {
+      // Check access to all templates before attempting to copy
+      var accessCheckResult = await checkGetStartedTemplateAccess(templates);
+
+      if (
+        !accessCheckResult.success &&
+        accessCheckResult.inaccessibleTemplates.length > 0
+      ) {
+        console.log(
+          "Access check failed, opening picker for:",
+          accessCheckResult.inaccessibleTemplates,
+        );
+
+        setStatusWithSpinner(
+          `Opening file picker to grant access to ${accessCheckResult.inaccessibleTemplates.length} template(s)...`,
+        );
+
+        try {
+          var pickerResult = await openGetStartedAccessPicker(
+            accessCheckResult.inaccessibleTemplates,
+          );
+
+          if (pickerResult) {
+            // User granted access, retry the entire flow
+            console.log("Get Started access granted, retrying template copy");
+            setStatusWithSpinner(
+              "Access granted. Rechecking template access and retrying...",
+            );
+
+            // Retry the access check and copy flow
+            return await performGetStartedAccessCheckAndCopy(
+              templates,
+              parentFolderID,
+              destinationLabel,
+              copyMode,
+            );
+          } else {
+            // User cancelled the picker
+            setStatusText(
+              "File access picker cancelled. Please grant access to continue.",
+            );
+            return null;
+          }
+        } catch (pickerError) {
+          console.error("Error opening access picker:", pickerError);
+          setStatusText(
+            `Error opening file picker: ${pickerError.message || pickerError}`,
+          );
+          return null;
+        }
+      }
+
+      // All templates are accessible, proceed with copying
+      setStatusWithSpinner(
+        `Copying ${templates.length} templates to ${destinationLabel}...`,
+      );
+
+      var copyResponses = await executeGetStartedTemplateCopies(
+        templates,
+        parentFolderID,
+      );
+      var copyResult = processGetStartedCopyResults(copyResponses);
+      var finalResult = {
+        createdFiles: copyResult.createdFiles,
+        failedCopies: copyResult.failedCopies,
+        failedIDUpdates: [],
+        successfulIDUpdates: [],
+        message: copyResult.message,
+      };
+
+      if (copyResult.createdFiles.length > 0) {
+        setStatusWithSpinner(`Setting sheet™ connections...`);
+
+        var idUpdateResult = await applyGetStartedIDUpdates(
+          copyResult.createdFiles,
+          copyMode,
+        );
+
+        var idUpdateSummary = processGetStartedIDUpdateResults(
+          copyResult.createdFiles,
+          idUpdateResult,
+        );
+        finalResult.successfulIDUpdates = idUpdateSummary.successfulIDUpdates;
+        finalResult.failedIDUpdates = idUpdateSummary.failedIDUpdates;
+      }
+
+      var statusParts = [];
+      if (finalResult.createdFiles.length > 0) {
+        statusParts.push(`Created ${finalResult.createdFiles.length} file(s)`);
+      }
+      if (finalResult.failedCopies.length > 0) {
+        statusParts.push(
+          `${finalResult.failedCopies.length} file(s) failed to copy`,
+        );
+      }
+      if (finalResult.failedIDUpdates.length > 0) {
+        statusParts.push(
+          `${finalResult.failedIDUpdates.length} file(s) failed ID setup`,
+        );
+      }
+
+      if (finalResult.createdFiles.length === 0 && finalResult.failedCopies.length > 0) {
+        finalResult.message =
+          "Could not create any files automatically. Use manual copy links below.";
+      } else if (statusParts.length > 0) {
+        finalResult.message = statusParts.join(", ") + ".";
+      }
+
+      setStatusText(finalResult.message);
+      renderGetStartedCopyResult(finalResult);
+
+      return finalResult;
+    } catch (error) {
+      console.error("Error in access check and copy flow:", error);
+      setStatusText(`Error: ${error.message || error}`);
+      return null;
+    }
+  }
+
+  async function createGetStartedCopies() {
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    var resultElement = document.getElementById("getStartedCopyResult");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+
+    if (!modeSelect || !copyButton) return;
+
+    // Reset persistent state for a new copy flow
+    allCreatedFiles = [];
+    allFailedCopyFiles = [];
+    allFailedIDUpdateFiles = [];
+    lastFailedCopyTemplates = [];
+    lastFailedIDUpdateFiles = [];
+
+    var copyMode = modeSelect.value || "master-and-subsheets";
+    getStartedLastCopyMode = copyMode;
+    var effectivePaths = GET_STARTED_TEMPLATE_CONFIG["effective-paths"] || [];
+    var selectedTemplates = GET_STARTED_TEMPLATE_CONFIG[copyMode] || [];
+    var templates = effectivePaths.concat(selectedTemplates);
+
+    if (!templates || templates.length === 0) {
+      setStatusText("Invalid copy mode selected.");
+      return;
+    }
+
+    // Disable controls and clear previous results
+    copyButton.disabled = true;
+    modeSelect.disabled = true;
+    if (resultElement) resultElement.innerHTML = "";
+    if (retryBtn) retryBtn.style.display = "none";
+
+    setStatusWithSpinner(`Checking access to ${templates.length} templates...`);
+
+    try {
+      // Use the auto-detected destination folder
+      if (!getStartedSelectedFolder || !getStartedSelectedFolder.id) {
+        await getOrCreateGetStartedFolder();
+      }
+      var parentFolderID = getStartedSelectedFolder.id;
+      var destinationLabel = getStartedSelectedFolder.name;
+
+      // Perform the access check and copy flow
+      await performGetStartedAccessCheckAndCopy(
+        templates,
+        parentFolderID,
+        destinationLabel,
+        copyMode,
+      );
+    } catch (error) {
+      console.error("Error in copy flow:", error);
+      setStatusText(`Error: ${error.message || error}. Please try again.`);
+    } finally {
+      // Always re-enable button when done (but hide it, see renderGetStartedCopyResult)
+      copyButton.disabled = false;
+      modeSelect.disabled = false;
+    }
+  }
+
+  // Retry logic for failed copy and ID setup operations
+  async function retryFailedCopies() {
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+    var pendingCopyRetries = lastFailedCopyTemplates.length;
+    var pendingIDUpdateRetries = lastFailedIDUpdateFiles.length;
+
+    if (pendingCopyRetries === 0 && pendingIDUpdateRetries === 0) {
+      setStatusText("There are no failed steps to retry.");
+      return;
+    }
+
+    var copyMode =
+      modeSelect && modeSelect.value ? modeSelect.value : getStartedLastCopyMode;
+    getStartedLastCopyMode = copyMode;
+
+    if (retryBtn) retryBtn.disabled = true;
+
+    var retryTargets = [];
+    if (pendingCopyRetries > 0) {
+      retryTargets.push(`${pendingCopyRetries} copy operation(s)`);
+    }
+    if (pendingIDUpdateRetries > 0) {
+      retryTargets.push(`${pendingIDUpdateRetries} ID update(s)`);
+    }
+
+    setStatusWithSpinner(`Retrying ${retryTargets.join(" and ")}...`);
+
+    try {
+      var parentFolderID = getStartedSelectedFolder.id;
+      if (!parentFolderID) {
+        await getOrCreateGetStartedFolder();
+        parentFolderID = getStartedSelectedFolder.id;
+      }
+
+      var retryResult = {
+        createdFiles: [],
+        failedCopies: [],
+        failedIDUpdates: [],
+        successfulIDUpdates: [],
+      };
+
+      var newCreatedFiles = [];
+      if (pendingCopyRetries > 0) {
+        var copyResponses = await Promise.all(
+          lastFailedCopyTemplates.map(function (template) {
+            return copyGetStartedTemplateAsync(template, parentFolderID);
+          }),
+        );
+
+        var copyResult = processGetStartedCopyResults(copyResponses);
+        retryResult.createdFiles = copyResult.createdFiles;
+        retryResult.failedCopies = copyResult.failedCopies;
+        newCreatedFiles = copyResult.createdFiles;
+      }
+
+      var idUpdateTargets = [];
+      if (pendingIDUpdateRetries > 0) {
+        idUpdateTargets = idUpdateTargets.concat(lastFailedIDUpdateFiles);
+      }
+      if (newCreatedFiles.length > 0) {
+        idUpdateTargets = idUpdateTargets.concat(newCreatedFiles);
+      }
+
+      var uniqueIDUpdateTargets = [];
+      idUpdateTargets.forEach(function (file) {
+        if (!file || !file.fileId) {
+          return;
+        }
+
+        var exists = uniqueIDUpdateTargets.some(function (existing) {
+          return existing.fileId === file.fileId;
+        });
+
+        if (!exists) {
+          uniqueIDUpdateTargets.push(file);
+        }
+      });
+
+      if (copyMode === "master-and-subsheets") {
+        var masterCreatedFile =
+          allCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          }) ||
+          newCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          });
+
+        var hasSubsheetTarget = uniqueIDUpdateTargets.some(function (file) {
+          return (
+            file.sheetType !== "IDS Master" &&
+            file.sheetType !== "Effective Paths"
+          );
+        });
+
+        if (masterCreatedFile && hasSubsheetTarget) {
+          var hasMasterTarget = uniqueIDUpdateTargets.some(function (file) {
+            return file.fileId === masterCreatedFile.fileId;
+          });
+
+          if (!hasMasterTarget) {
+            uniqueIDUpdateTargets.push(masterCreatedFile);
+          }
+        }
+      }
+
+      if (uniqueIDUpdateTargets.length > 0) {
+        setStatusWithSpinner(
+          `Retrying ID setup for ${uniqueIDUpdateTargets.length} file(s)...`,
+        );
+
+        var idUpdateResult = await applyGetStartedIDUpdates(
+          uniqueIDUpdateTargets,
+          copyMode,
+        );
+        var idUpdateSummary = processGetStartedIDUpdateResults(
+          uniqueIDUpdateTargets,
+          idUpdateResult,
+        );
+        retryResult.successfulIDUpdates = idUpdateSummary.successfulIDUpdates;
+        retryResult.failedIDUpdates = idUpdateSummary.failedIDUpdates;
+      }
+
+      var statusParts = [];
+      if (retryResult.createdFiles.length > 0) {
+        statusParts.push(`Created ${retryResult.createdFiles.length} file(s)`);
+      }
+      if (retryResult.failedCopies.length > 0) {
+        statusParts.push(
+          `${retryResult.failedCopies.length} file(s) still failed to copy`,
+        );
+      }
+      if (retryResult.successfulIDUpdates.length > 0) {
+        statusParts.push(
+          `Updated IDs for ${retryResult.successfulIDUpdates.length} file(s)`,
+        );
+      }
+      if (retryResult.failedIDUpdates.length > 0) {
+        statusParts.push(
+          `${retryResult.failedIDUpdates.length} file(s) still failed ID setup`,
+        );
+      }
+
+      retryResult.message =
+        statusParts.length > 0
+          ? statusParts.join(", ") + "."
+          : "Nothing changed during retry.";
+
+      setStatusText(retryResult.message);
+      renderGetStartedCopyResult(retryResult);
+    } catch (error) {
+      setStatusText(`Retry error: ${error.message || error}`);
+    } finally {
+      if (retryBtn) retryBtn.disabled = false;
     }
   }
 </script>

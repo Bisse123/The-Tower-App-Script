@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link
-      rel="icon"
-      type="image/png"
-      href="https://drive.google.com/file/d/1pzyXGsAXyR7Lc1N4Y7G4NwQq5CzAXeml/view?usp=sharing"
-    />
     <?!= include('21_shared_styles'); ?>
+    <?!= include('22_status_styles'); ?>
     <?!= include('23_getStarted_styles'); ?>
+    <?!= include('27_consent_styles'); ?>
 
-    <title>
-      <img
-      src="https://drive.google.com/file/d/1pzyXGsAXyR7Lc1N4Y7G4NwQq5CzAXeml/view?usp=sharing"
-      alt="App Icon" style="width:48px;height:48px;"> The Tower Import Data
-    </title>
+    <title>The Tower Import Data</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -22,9 +15,21 @@
   </head>
   <body>
     <?!= include('21_header'); ?>
+    <?!= include('22_status_section'); ?>
     <?!= include('23_getStarted_section'); ?>
+    <?!= include('27_consent_section'); ?>
+    <script>
+      const API_KEY = "<?= API_KEY ?>";
+      const APP_ID = "<?= APP_ID ?>";
+      const viewType = "<?= viewType ? viewType : 'webapp' ?>";
+      const getStarted = true;
+    </script>
+    <?!= include('22_status_scripts'); ?>
+    <?!= include('23_getStarted_scripts'); ?>
+    <?!= include('27_consent_scripts'); ?>
+    <script
+      src="https://apis.google.com/js/api.js"
+      onload="getStartedGapiLoaded()"
+    ></script>
   </body>
-  <script>
-    document.getElementById("getStartedSection").style.display = "block";
-  </script>
 </html>

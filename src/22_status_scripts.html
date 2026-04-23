@@ -1,0 +1,75 @@
+<script>
+  // Detect mobile devices with enhanced touch detection
+  function detectMobile() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = [
+      "mobile",
+      "android",
+      "iphone",
+      "ipad",
+      "ipod",
+      "blackberry",
+      "windows phone",
+    ];
+    const isMobileUA = mobileKeywords.some((keyword) =>
+      userAgent.includes(keyword)
+    );
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+
+    return isMobileUA || (isTouchDevice && isSmallScreen);
+  }
+
+  // Check if device is touch-only (no mouse/trackpad)
+  function isTouchOnlyDevice() {
+    return (
+      "ontouchstart" in window && !window.matchMedia("(pointer: fine)").matches
+    );
+  }
+
+  // Initialize mobile detection
+  isMobile = detectMobile();
+  console.log("Mobile device detected:", isMobile);
+
+  function sanitizeGetStartedUrl(url) {
+    if (typeof url === "string") {
+      if (
+        url.indexOf("https://docs.google.com/spreadsheets/d/") === 0 ||
+        url.indexOf("https://drive.google.com/drive/folders/") === 0
+      ) {
+        return url;
+      }
+    }
+    return "";
+  }
+
+  function setStatusWithSpinner(message) {
+    document.getElementById("statusText").innerHTML = `
+        <span class="spinner spinner-small"></span>
+        ${message}
+      `;
+  }
+
+  function setStatusText(message) {
+    if (isMobile) {
+      const mobileMessages = {
+        "Opening picker with files that need access...":
+          "Opening file picker...",
+        "Select the files you want to grant access to": "Tap files to select",
+        "Access granted to files. Rechecking access status...":
+          "Files selected. Checking...",
+        "Picker loaded successfully": "Picker ready",
+        "File selection cancelled": "Selection cancelled",
+      };
+      const shortMessage = mobileMessages[message];
+      if (shortMessage) {
+        document.getElementById("statusText").innerText =
+          shortMessage;
+        return;
+      }
+    }
+
+    document.getElementById("statusText").innerText = message;
+  }
+</script>

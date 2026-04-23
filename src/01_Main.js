@@ -52,15 +52,36 @@ const spreadsheets = (() => {
 const ADDON_CONSENT_READY_SIGNAL_KEY = "ADDON_CONSENT_READY_SIGNAL";
 
 function doGet(e) {
-  // console.log(`doGet called with parameters: ${JSON.stringify(e.parameter)}`);
-  var template = HtmlService.createTemplateFromFile("20_WebApp");
-  if (e.parameter.newSheetID === "<Script loading...>") {
-    e.parameter.newSheetID = "";
+  var params = (e && e.parameter) ? e.parameter : {};
+  // console.log(`doGet called with parameters: ${JSON.stringify(params)}`);
+
+  var targetPage = (params.page || "").toString().toLowerCase();
+  var openGetStarted =
+    targetPage === "getstarted" ||
+    targetPage === "get-started" ||
+    params.getStarted === "true";
+
+  if (openGetStarted) {
+    var getStartedTemplate = HtmlService.createTemplateFromFile("20_getStartedApp");
+    getStartedTemplate.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    getStartedTemplate.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+    getStartedTemplate.viewType = "webapp";
+    return getStartedTemplate
+      .evaluate()
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setTitle("Get Started");
   }
-  var newSheetID = e.parameter.newSheetID || "";
-  var oldSheetID = e.parameter.oldSheetID || "";
-  var idMasterID = e.parameter.idMasterID || "";
-  var sheetType = e.parameter.sheetType || "";
+
+  var template = HtmlService.createTemplateFromFile("20_WebApp");
+  if (params.newSheetID === "<Script loading...>") {
+    params.newSheetID = "";
+  }
+  var newSheetID = params.newSheetID || "";
+  var oldSheetID = params.oldSheetID || "";
+  var idMasterID = params.idMasterID || "";
+  var sheetType = params.sheetType || "";
 
   // Special case for IDS Master - same logic as showImportDialog
   if (sheetType === "IDS Master") {
@@ -77,7 +98,7 @@ function doGet(e) {
     template.idMasterID = "";
     template.sheetType = sheetType;
   } else {
-    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+    if (typeof sheetType === "string" && sheetType.includes("IDS Collection")) {
       sheetType = "IDS Collection";
     }
     // Regular processing for individual sheet types
@@ -127,6 +148,11 @@ function createMenu() {
 function showGetStartedDialog() {
   try {
     var template = HtmlService.createTemplateFromFile("20_getStartedApp");
+    template.API_KEY =
+      PropertiesService.getScriptProperties().getProperty("API_KEY");
+    template.APP_ID =
+      PropertiesService.getScriptProperties().getProperty("APP_ID");
+    template.viewType = "sidebar";
     var html = template
       .evaluate()
       .setWidth(1200)
@@ -353,13 +379,16 @@ function getUpdateDialogParameters() {
       throw new Error("Home Page sheet not found in the active spreadsheet.");
     }
 
-    var sheetType = homePageSheet.getRange("B2").getValue();
+    var sheetType = "";
 
-    var eHP = oldSpreadsheet.getSheetByName("eHP");
-    var eDamage = oldSpreadsheet.getSheetByName("eDamage");
-    var eEcon = oldSpreadsheet.getSheetByName("eEcon");
-    if (eHP && eDamage && eEcon) {
+    if (oldSpreadsheet.getSheetByName("eHP") || oldSpreadsheet.getSheetByName("eDamage") || oldSpreadsheet.getSheetByName("eEcon")) {
       sheetType = "Effective Paths";
+    } else {
+      sheetType = homePageSheet.getRange("B2").getValue();
+    }
+    
+    if (!sheetType) {
+      throw new Error("Sheet type not found in the active spreadsheet.");
     }
 
     if (sheetType === "IDS Collection - all IDS-Sheets on one file") {

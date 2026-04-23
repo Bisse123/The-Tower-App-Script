@@ -1,8 +1,7 @@
 // Cache Manager - handles spreadsheet metadata and sheet values caching
 const CacheManager = {
   _userCache: null,
-  
-  // Lazy getter for userCache to avoid authorization issues on script load
+
   get userCache() {
     if (!this._userCache) {
       try {
@@ -14,14 +13,14 @@ const CacheManager = {
     }
     return this._userCache;
   },
-  
-  CHUNK_SIZE: 90000, // 90KB chunks (safe margin under 100KB limit)
+
+  CHUNK_SIZE: 90000,
 
   /**
    * Split a large string into chunks for storage
    * @private
    */
-  _chunkString: function(str, chunkSize = this.CHUNK_SIZE) {
+  _chunkString: function (str, chunkSize = this.CHUNK_SIZE) {
     const chunks = [];
     for (let i = 0; i < str.length; i += chunkSize) {
       chunks.push(str.substring(i, i + chunkSize));
@@ -34,30 +33,28 @@ const CacheManager = {
    * Splits values > CHUNK_SIZE into multiple keys with metadata
    * @private
    */
-  _prepareCacheData: function(cacheData) {
+  _prepareCacheData: function (cacheData) {
     const result = {};
-    
+
     for (const key in cacheData) {
       const value = cacheData[key];
-      
+
       if (value.length > this.CHUNK_SIZE) {
-        // Value is too large, split into chunks
         const chunks = this._chunkString(value, this.CHUNK_SIZE);
-        
-        // Store each chunk with index suffix
+
         for (let i = 0; i < chunks.length; i++) {
           result[`${key}__chunk_${i}`] = chunks[i];
         }
-        
-        // Store metadata indicating this key is chunked
+
         result[`${key}__chunks`] = chunks.length.toString();
-        console.log(`Chunked ${key} into ${chunks.length} parts (${value.length} bytes total)`);
+        console.log(
+          `Chunked ${key} into ${chunks.length} parts (${value.length} bytes total)`,
+        );
       } else {
-        // Normal size, store as-is
         result[key] = value;
       }
     }
-    
+
     return result;
   },
 
@@ -66,20 +63,18 @@ const CacheManager = {
    * Returns null if cache is unavailable
    * @private
    */
-  _retrieveValue: function(key) {
+  _retrieveValue: function (key) {
     if (!this.userCache) {
       console.log(`Cache unavailable - cannot retrieve: ${key}`);
       return null;
     }
 
-    // Check if this key was chunked
     const chunksCountStr = this.userCache.get(`${key}__chunks`);
-    
+
     if (chunksCountStr) {
-      // Value is chunked, retrieve all parts
       const chunkCount = parseInt(chunksCountStr);
-      let combinedValue = '';
-      
+      let combinedValue = "";
+
       for (let i = 0; i < chunkCount; i++) {
         const chunkKey = `${key}__chunk_${i}`;
         const chunk = this.userCache.get(chunkKey);
@@ -87,10 +82,9 @@ const CacheManager = {
           combinedValue += chunk;
         }
       }
-      
+
       return combinedValue;
     } else {
-      // Normal value, retrieve directly
       return this.userCache.get(key);
     }
   },
@@ -100,18 +94,16 @@ const CacheManager = {
    * Silently fails if cache is unavailable
    * @private
    */
-  _putValue: function(key, value) {
+  _putValue: function (key, value) {
     if (!this.userCache) {
       console.log(`Cache unavailable - cannot store: ${key}`);
       return;
     }
 
     if (value.length > this.CHUNK_SIZE) {
-      // Too large for single put, use chunking via putAll
       const cacheData = this._prepareCacheData({ [key]: value });
       this.userCache.putAll(cacheData);
     } else {
-      // Normal size, use single put
       this.userCache.put(key, value);
     }
   },
@@ -131,48 +123,41 @@ const CacheManager = {
       return null;
     }
 
-    // Try to get cached entry (handles chunked data automatically)
     const cached = this._retrieveValue(spreadsheetTypeName);
-    
+
     if (cached) {
       const cachedData = JSON.parse(cached);
-      
-      // If no new sheetID provided, use cached spreadsheet
+
       if (!sheetID) {
         console.log(
-          `Using cached ${spreadsheetTypeName} (sheetID: ${cachedData.sheetID})`
+          `Using cached ${spreadsheetTypeName} (sheetID: ${cachedData.sheetID})`,
         );
         return cachedData.metadata;
       }
-      
-      // If sheetID matches cache, return cached spreadsheet
+
       if (cachedData.sheetID === sheetID) {
         console.log(
-          `Cache hit for ${spreadsheetTypeName} (sheetID: ${sheetID})`
+          `Cache hit for ${spreadsheetTypeName} (sheetID: ${sheetID})`,
         );
         return cachedData.metadata;
       }
-      
-      // SheetID mismatch - will fetch new data below
+
       console.log(
-        `Cache invalidated for ${spreadsheetTypeName}: sheetID changed from ${cachedData.sheetID} to ${sheetID}`
+        `Cache invalidated for ${spreadsheetTypeName}: sheetID changed from ${cachedData.sheetID} to ${sheetID}`,
       );
     }
 
-    // If still no sheetID at this point, we can't proceed
     if (!sheetID) {
       console.log(
-        `No cached entry and no sheetID provided for ${spreadsheetTypeName}`
+        `No cached entry and no sheetID provided for ${spreadsheetTypeName}`,
       );
       return null;
     }
 
-    // Fetch fresh spreadsheet metadata
     console.log(`Fetching fresh ${spreadsheetTypeName} (sheetID: ${sheetID})`);
     const metadata = SheetsAPI.fetchSpreadsheet(sheetID);
 
     if (metadata) {
-      // Cache both metadata and sheetID together (handles chunking automatically)
       const cacheData = {
         metadata: metadata,
         sheetID: sheetID,
@@ -194,10 +179,9 @@ const CacheManager = {
     const cachedData = [];
     const uncachedRanges = [];
     const uncachedIndices = [];
-    
+
     const cacheKeys = ranges.map((range) => `${spreadsheetId}|${range}|VALUE`);
 
-    // Retrieve cached values (handles chunked data automatically)
     for (let i = 0; i < cacheKeys.length; i++) {
       const cached = this._retrieveValue(cacheKeys[i]);
 
@@ -212,10 +196,13 @@ const CacheManager = {
 
     let result = [...cachedData];
 
-    // Only fetch uncached ranges
     if (uncachedRanges.length > 0) {
       console.log(`Fetching uncached ranges: ${uncachedRanges.join(", ")}`);
-      const fetchedData = SheetsAPI.batchGetValues(spreadsheetId, uncachedRanges, false);
+      const fetchedData = SheetsAPI.batchGetValues(
+        spreadsheetId,
+        uncachedRanges,
+        false,
+      );
 
       if (fetchedData) {
         const cacheData = {};
@@ -224,7 +211,6 @@ const CacheManager = {
           cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
           result[uncachedIndices[i]] = fetchedData[i];
         }
-        // Use prepared cache data with automatic chunking for large values
         const chunkedCacheData = this._prepareCacheData(cacheData);
         this.userCache.putAll(chunkedCacheData);
       }
@@ -242,9 +228,10 @@ const CacheManager = {
     const uncachedRanges = [];
     const uncachedIndices = [];
 
-    const cacheKeys = ranges.map((range) => `${spreadsheetId}|${range}|FORMULA`);
+    const cacheKeys = ranges.map(
+      (range) => `${spreadsheetId}|${range}|FORMULA`,
+    );
 
-    // Retrieve cached values (handles chunked data automatically)
     for (let i = 0; i < cacheKeys.length; i++) {
       const cached = this._retrieveValue(cacheKeys[i]);
 
@@ -261,7 +248,11 @@ const CacheManager = {
 
     if (uncachedRanges.length > 0) {
       console.log(`Fetching uncached formulas: ${uncachedRanges.join(", ")}`);
-      const fetchedData = SheetsAPI.batchGetFormulas(spreadsheetId, uncachedRanges, false);
+      const fetchedData = SheetsAPI.batchGetFormulas(
+        spreadsheetId,
+        uncachedRanges,
+        false,
+      );
 
       if (fetchedData) {
         const cacheData = {};
@@ -270,7 +261,6 @@ const CacheManager = {
           cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
           result[uncachedIndices[i]] = fetchedData[i];
         }
-        // Use prepared cache data with automatic chunking for large values
         const chunkedCacheData = this._prepareCacheData(cacheData);
         this.userCache.putAll(chunkedCacheData);
       }
@@ -292,7 +282,9 @@ const CacheManager = {
     try {
       const cached = this.userCache.get(spreadsheetTypeName);
       if (!cached) {
-        console.log(`No cache entry found for ${spreadsheetTypeName} to invalidate`);
+        console.log(
+          `No cache entry found for ${spreadsheetTypeName} to invalidate`,
+        );
         return;
       }
 
@@ -300,21 +292,17 @@ const CacheManager = {
       const sheetID = cachedData.sheetID;
       const metadata = cachedData.metadata;
 
-      // Build array of keys to remove
       const keysToRemove = [spreadsheetTypeName];
 
-      // Add keys for all sheets in the spreadsheet
       if (metadata && metadata.sheets) {
         for (let i = 0; i < metadata.sheets.length; i++) {
           const sheetName = metadata.sheets[i].properties.title;
           const valueKey = `${sheetID}|${sheetName}|VALUE`;
           const formulaKey = `${sheetID}|${sheetName}|FORMULA`;
-          
-          // Add original keys
+
           keysToRemove.push(valueKey);
           keysToRemove.push(formulaKey);
-          
-          // Also add potential chunk keys and metadata
+
           const chunksCountValue = this.userCache.get(`${valueKey}__chunks`);
           if (chunksCountValue) {
             const chunkCount = parseInt(chunksCountValue);
@@ -323,8 +311,10 @@ const CacheManager = {
             }
             keysToRemove.push(`${valueKey}__chunks`);
           }
-          
-          const chunksCountFormula = this.userCache.get(`${formulaKey}__chunks`);
+
+          const chunksCountFormula = this.userCache.get(
+            `${formulaKey}__chunks`,
+          );
           if (chunksCountFormula) {
             const chunkCount = parseInt(chunksCountFormula);
             for (let j = 0; j < chunkCount; j++) {
@@ -335,9 +325,10 @@ const CacheManager = {
         }
       }
 
-      // Remove all keys at once (more efficient than multiple remove calls)
       this.userCache.removeAll(keysToRemove);
-      console.log(`Invalidated cache for ${spreadsheetTypeName} and ${keysToRemove.length - 1} sheet entries`);
+      console.log(
+        `Invalidated cache for ${spreadsheetTypeName} and ${keysToRemove.length - 1} sheet entries`,
+      );
     } catch (error) {
       console.log(`Error invalidating cache: ${error}`);
     }
@@ -364,8 +355,6 @@ const CacheManager = {
       return JSON.parse(cached);
     }
 
-    // Fetch from Drive API with all possible fields union
-    // Union of all fields used across the codebase
     const allFieldsNeeded = "id, name, parents, owners, trashed";
     try {
       const file = Drive.Files.get(fileID, { fields: allFieldsNeeded });
@@ -399,8 +388,7 @@ const CacheManager = {
 
     const cacheKey = `File|${fileID}`;
     const keysToRemove = [cacheKey];
-    
-    // Check if file metadata was chunked and remove chunk keys
+
     const chunksCountStr = this.userCache.get(`${cacheKey}__chunks`);
     if (chunksCountStr) {
       const chunkCount = parseInt(chunksCountStr);
@@ -408,16 +396,17 @@ const CacheManager = {
         keysToRemove.push(`${cacheKey}__chunk_${i}`);
       }
       keysToRemove.push(`${cacheKey}__chunks`);
-      console.log(`Removing ${keysToRemove.length} cache keys for file: ${fileID}`);
+      console.log(
+        `Removing ${keysToRemove.length} cache keys for file: ${fileID}`,
+      );
     }
-    
+
     this.userCache.removeAll(keysToRemove);
     console.log(`Invalidated cache for file: ${fileID}`);
   },
 };
 
 const SheetsAPI = {
-  // Fetch spreadsheet metadata and sheets (used by CacheManager internally)
   fetchSpreadsheet: function (spreadsheetId) {
     try {
       const response = Sheets.Spreadsheets.get(spreadsheetId, {
@@ -431,11 +420,10 @@ const SheetsAPI = {
     }
   },
 
-  // Get sheet by name from spreadsheet
   getSheetByName: function (spreadsheet, sheetName) {
     try {
       const sheet = spreadsheet.sheets.find(
-        (s) => s.properties.title === sheetName
+        (s) => s.properties.title === sheetName,
       );
       return sheet ? sheet.properties : null;
     } catch (error) {
@@ -444,11 +432,10 @@ const SheetsAPI = {
     }
   },
 
-  // Find sheet by substring in name from spreadsheet
   getSheetBySubstring: function (spreadsheet, substring) {
     try {
       const sheet = spreadsheet.sheets.find((s) =>
-        s.properties.title.toLowerCase().includes(substring.toLowerCase())
+        s.properties.title.toLowerCase().includes(substring.toLowerCase()),
       );
       return sheet ? sheet.properties : null;
     } catch (error) {
@@ -457,7 +444,6 @@ const SheetsAPI = {
     }
   },
 
-  // Apply sheet visibility using provided visibility data
   applySheetVisibility: function (newSpreadsheet, sheetVisibility) {
     try {
       if (!newSpreadsheet) {
@@ -487,18 +473,15 @@ const SheetsAPI = {
       var requests = [];
       var processedSheets = [];
 
-      // Process each sheet in the new spreadsheet
       for (var i = 0; i < newSpreadsheet.sheets.length; i++) {
         var newSheet = newSpreadsheet.sheets[i];
         var newSheetName = newSheet.properties.title;
         var newSheetId = newSheet.properties.sheetId;
 
-        // Check if we have visibility data for this sheet
         if (sheetVisibility.hasOwnProperty(newSheetName)) {
           var targetHidden = sheetVisibility[newSheetName];
           var currentHidden = newSheet.properties.hidden || false;
 
-          // Only update if visibility states are different
           if (targetHidden !== currentHidden) {
             requests.push({
               updateSheetProperties: {
@@ -517,13 +500,12 @@ const SheetsAPI = {
         }
       }
 
-      // Execute batch update if there are requests
       if (requests.length > 0) {
         Sheets.Spreadsheets.batchUpdate(
           {
             requests: requests,
           },
-          newSpreadsheet.spreadsheetId
+          newSpreadsheet.spreadsheetId,
         );
 
         return {
@@ -547,7 +529,6 @@ const SheetsAPI = {
     }
   },
 
-  // Batch get values from multiple ranges (with caching via CacheManager)
   batchGetValues: function (spreadsheetId, ranges, useCache = true) {
     try {
       if (useCache) {
@@ -563,7 +544,6 @@ const SheetsAPI = {
     }
   },
 
-  // Batch get formulas from multiple ranges (with caching via CacheManager)
   batchGetFormulas: function (spreadsheetId, ranges, useCache = true) {
     try {
       if (useCache) {
@@ -597,18 +577,22 @@ const SheetsAPI = {
 const shared = {
   findSheetVersion: function (sheetID, sheetName, sheetType, preLoadedValues) {
     try {
-      // If sheetType is 'Effective Paths', delegate to getEPathsVersion
       if (sheetType === "Effective Paths") {
         return shared.getEPathsVersion(sheetID, sheetName, preLoadedValues);
       }
       var values;
-      // Use pre-loaded values if provided, otherwise fetch them
       if (preLoadedValues) {
         values = preLoadedValues;
       } else {
         var batchResult = SheetsAPI.batchGetValues(sheetID, [sheetName]);
-        if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
-          console.log(`No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`);
+        if (
+          !batchResult ||
+          batchResult.length === 0 ||
+          !batchResult[0].values
+        ) {
+          console.log(
+            `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`,
+          );
           return null;
         }
         values = batchResult[0].values;
@@ -620,15 +604,15 @@ const shared = {
           (cell) =>
             typeof cell === "string" &&
             ["version change", "this version", "version check"].some((w) =>
-              cell.toLowerCase().includes(w)
-            )
+              cell.toLowerCase().includes(w),
+            ),
         );
         var latestVersionCol = values[row].findIndex(
           (cell) =>
             typeof cell === "string" &&
             ["latest remote version", "latest version"].some((w) =>
-              cell.toLowerCase().includes(w)
-            )
+              cell.toLowerCase().includes(w),
+            ),
         );
         if (currentVersionCol !== -1 && !currentVersion) {
           currentVersion = values[row + 1][currentVersionCol];
@@ -650,12 +634,10 @@ const shared = {
     }
   },
 
-  // Get Effective Paths version information (both current and latest)
   getEPathsVersion: function (sheetID, sheetName, preLoadedValues) {
     try {
       var values;
 
-      // Use pre-loaded values if provided, otherwise fetch them
       if (preLoadedValues) {
         values = preLoadedValues;
       } else {
@@ -666,7 +648,7 @@ const shared = {
           !batchResult[0].values
         ) {
           console.log(
-            `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`
+            `No data found in sheet: ${sheetName} in spreadsheet: ${sheetID}`,
           );
           return null;
         }
@@ -676,12 +658,10 @@ const shared = {
       var currentVersion = null;
       var latestVersion = null;
 
-      // Search for version information in the sheet
       for (var i = 0; i < values.length; i++) {
         for (var j = 0; j < values[i].length; j++) {
           var cellValue = values[i] && values[i][j] ? values[i][j] : "";
 
-          // Look for "Current Version:" and concatenate next 2 cells
           if (
             cellValue &&
             typeof cellValue === "string" &&
@@ -695,7 +675,6 @@ const shared = {
             currentVersion = currentPart1 + currentPart2;
           }
 
-          // Look for "Latest Version:" and concatenate next 2 cells
           if (
             cellValue &&
             typeof cellValue === "string" &&
@@ -709,7 +688,6 @@ const shared = {
             latestVersion = latestPart1 + latestPart2;
           }
 
-          // If we found both versions, break out of loops
           if (currentVersion && latestVersion) {
             break;
           }
@@ -752,19 +730,18 @@ const shared = {
     spreadsheetId,
     sheetName,
     sheetType,
-    preLoadedValues
+    preLoadedValues,
   ) {
     var sheetType = sheetType || "IDS Master's";
     var values;
 
-    // Use pre-loaded values if provided, otherwise fetch them
     if (preLoadedValues) {
       values = preLoadedValues;
     } else {
       var batchResult = SheetsAPI.batchGetValues(spreadsheetId, [sheetName]);
       if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log(
-          `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`
+          `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`,
         );
         return null;
       }
@@ -779,7 +756,6 @@ const shared = {
           var accessA1 = shared.columnToLetter(j + 4) + (i + 1);
           var importedA1 = shared.columnToLetter(j + 4) + (i + 2);
 
-          // Get access and import status values from the same pre-fetched data
           var accessValue = "";
           var importValue = "";
 
@@ -820,19 +796,18 @@ const shared = {
     spreadsheetId,
     sheetName,
     sheetType,
-    preLoadedValues
+    preLoadedValues,
   ) {
     var sheetType = sheetType || "IDS Master's";
     var values;
 
-    // Use pre-loaded values if provided, otherwise fetch them
     if (preLoadedValues) {
       values = preLoadedValues;
     } else {
       var batchResult = SheetsAPI.batchGetValues(spreadsheetId, [sheetName]);
       if (!batchResult || batchResult.length === 0 || !batchResult[0].values) {
         console.log(
-          `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`
+          `No data found in sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`,
         );
         return null;
       }
@@ -913,18 +888,15 @@ const shared = {
     return letter;
   },
 
-  // Extract URL from HYPERLINK formula
   extractUrlFromHyperlink: function (formula) {
     if (!formula || typeof formula !== "string") {
       return null;
     }
 
-    // Check if formula starts with "="
     if (!formula.startsWith("=")) {
       return null;
     }
 
-    // Match HYPERLINK function anywhere in the formula: HYPERLINK("url", "text")
     var hyperlinkMatch = formula.match(/HYPERLINK\s*\(\s*"([^"]+)"/i);
     if (hyperlinkMatch && hyperlinkMatch[1]) {
       return hyperlinkMatch[1];
@@ -935,7 +907,7 @@ const shared = {
 
   getDVTValue: function (oldValue, dvtNamedRangesData) {
     if (!oldValue || !dvtNamedRangesData) {
-      return oldValue; // Return original if no data
+      return oldValue;
     }
 
     var oldLevel = oldValue.split("|")[0].trim();
@@ -945,17 +917,16 @@ const shared = {
       var row = dvtNamedRangesData[i];
       var val = row[0] ? row[0].split("|")[0].trim() : null;
       if (val && val === oldLevel) {
-
-        return row[0]; // Return matched value
+        return row[0];
       }
     }
-    return oldValue; // Return original if no match found
+    return oldValue;
   },
 
   findSheetTemplateID: function (sheetID, sheetName, sheetType) {
     try {
       console.log(
-        `Finding template ID for sheet: ${sheetID}, sheet name: ${sheetName}, type: ${sheetType}`
+        `Finding template ID for sheet: ${sheetID}, sheet name: ${sheetName}, type: ${sheetType}`,
       );
 
       var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, sheetID);
@@ -970,8 +941,6 @@ const shared = {
         return null;
       }
 
-      // Get all data from the sheet to search for HYPERLINK formulas
-      // Use batch API calls for better performance
       var formulas = SheetsAPI.batchGetFormulas(sheetID, [sheetName]);
       var values = SheetsAPI.batchGetValues(sheetID, [sheetName]);
 
@@ -989,18 +958,16 @@ const shared = {
       var valueData = values[0].values;
 
       console.log(
-        `Searching ${formulaData.length} rows for template HYPERLINK formulas`
+        `Searching ${formulaData.length} rows for template HYPERLINK formulas`,
       );
 
       var templateID = null;
       var version = null;
 
-      // Search for template HYPERLINK formula
       for (var i = 0; i < formulaData.length; i++) {
         for (var j = 0; j < formulaData[i].length; j++) {
           var formula = formulaData[i][j];
 
-          // Check if this cell contains a HYPERLINK formula with "copy" text
           if (
             formula &&
             typeof formula === "string" &&
@@ -1010,37 +977,33 @@ const shared = {
             console.log(
               `Found potential template link in row ${i + 1}, col ${
                 j + 1
-              }: ${formula}`
+              }: ${formula}`,
             );
 
-            // Extract URL from the HYPERLINK formula
             var templateUrl = shared.extractUrlFromHyperlink(formula);
             if (templateUrl) {
-              // Extract sheet ID from the URL
               templateID = shared.extractSheetId(templateUrl);
               if (templateID) {
                 console.log(`Found template ID: ${templateID}`);
               }
             }
           }
-
         }
         if (templateID) {
-          break; // Break outer loop for all sheet types
+          break;
         }
       }
 
-      // If template ID was found, get version info and return result
       if (templateID) {
         var currentSheetVersionInfo = shared.findSheetVersion(
           sheetID,
           sheetName,
           sheetType,
-          valueData
+          valueData,
         );
         if (currentSheetVersionInfo && currentSheetVersionInfo.latestVersion) {
           console.log(
-            `Template version (from latest): ${currentSheetVersionInfo.latestVersion}`
+            `Template version (from latest): ${currentSheetVersionInfo.latestVersion}`,
           );
           return {
             templateID: templateID,
@@ -1050,7 +1013,7 @@ const shared = {
       }
 
       console.log(
-        `No template HYPERLINK with "copy" found in sheet: ${sheetName}`
+        `No template HYPERLINK with "copy" found in sheet: ${sheetName}`,
       );
       return null;
     } catch (error) {
@@ -1059,20 +1022,15 @@ const shared = {
     }
   },
 
-  // Utility function to extract column offset from a range string
   getColumnOffsetFromRange: function (range) {
-    // Extract the range part after the sheet name (e.g., "AC1:AN35" from "eHP!AC1:AN35")
     var rangePart = range.split("!")[1];
     if (!rangePart) return 0;
 
-    // Extract the starting column (e.g., "AC" from "AC1:AN35")
     var startCell = rangePart.split(":")[0];
     if (!startCell) return 0;
 
-    // Extract column letters (remove numbers)
     var columnLetters = startCell.replace(/[0-9]/g, "");
 
-    // Convert column letters to 0-based index
     var columnIndex = 0;
     for (var i = 0; i < columnLetters.length; i++) {
       columnIndex =
@@ -1080,34 +1038,31 @@ const shared = {
         (columnLetters.charCodeAt(i) - "A".charCodeAt(0) + 1);
     }
 
-    return columnIndex - 1; // Convert to 0-based index
+    return columnIndex - 1;
   },
 
-  // Helper function to add sheet ID and IDS Master ID updates to batch
   addIDUpdatesToBatch: function (
     batchUpdate,
     sheetType,
     newSheetID,
     idsData,
-    idMasterID
+    idMasterID,
   ) {
     try {
       if (newSheetID && idMasterID) {
-        // Find the "This Sheet ID" and "IDS Master's" entries
         var thisSheetInfo = shared.findSheetTypeID(
           newSheetID,
           "IDS",
           "This Sheet ID",
-          idsData
+          idsData,
         );
         var idMasterInfo = shared.findSheetTypeID(
           newSheetID,
           "IDS",
           "IDS Master's",
-          idsData
+          idsData,
         );
 
-        // Add ID updates to batch if entries are found
         if (thisSheetInfo && thisSheetInfo.cell && thisSheetInfo.cell.range) {
           batchUpdate.push({
             range: thisSheetInfo.cell.range,
@@ -1124,7 +1079,7 @@ const shared = {
       return batchUpdate;
     } catch (error) {
       console.log(`Error adding ID updates to batch: ${error.toString()}`);
-      return batchUpdate; // Return original batch if error occurs
+      return batchUpdate;
     }
   },
 };
@@ -1133,7 +1088,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
   try {
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
-      newSheetID
+      newSheetID,
     );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
@@ -1154,7 +1109,11 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
     }
 
     var newVersionInfo;
-    newVersionInfo = shared.findSheetVersion(newSheetID, "Home Page", sheetType);
+    newVersionInfo = shared.findSheetVersion(
+      newSheetID,
+      "Home Page",
+      sheetType,
+    );
 
     if (!newVersionInfo || !newVersionInfo.currentVersion) {
       console.log(`Could not find new sheet version`);
@@ -1177,11 +1136,11 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
       newFileName = newFileName.replace("IDS Master", "IDS Collection");
     }
     console.log(
-      `Updating file name from "${oldFile.name}" to "${newFileName}"`
+      `Updating file name from "${oldFile.name}" to "${newFileName}"`,
     );
 
     parents = {};
-    if (typeof(oldFile.parents) == "undefined") {
+    if (typeof oldFile.parents == "undefined") {
       console.log(`Could not find old file location.`);
       return {
         success: false,
@@ -1190,8 +1149,8 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
     }
 
     parents["addParents"] = oldFile.parents.join(",");
-    
-    if (typeof(newFile.parents) != "undefined") {
+
+    if (typeof newFile.parents != "undefined") {
       parents["removeParents"] = newFile.parents.join(",");
     }
 
@@ -1202,7 +1161,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
         },
         newSheetID,
         null,
-        parents
+        parents,
       );
     } catch (error) {
       console.log(`Error moving new sheet: ${error.toString()}`);
@@ -1262,36 +1221,41 @@ function updateIdsMaster(idMasterID, idDataEntries) {
     var batchUpdate = [];
     var idsMasterData = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
     var idsMasterValues = idsMasterData[0].values;
-    for (var i = 0; i < idDataEntries.length; i++) {
-      var idData = idDataEntries[i];
-      var sheetType = idData.sheetType;
+    var thisSheetInfo = shared.findSheetTypeID(
+      idMasterID,
+      "IDS",
+      "This Sheet ID",
+      idsMasterValues,
+    );
+    if (thisSheetInfo && thisSheetInfo.cell && thisSheetInfo.cell.range) {
+      batchUpdate.push({
+        range: thisSheetInfo.cell.range,
+        values: [[idMasterID]],
+      });
+    }
+
+    idDataEntries.forEach((entry) => {
+      var sheetType = entry.sheetType;
       if (sheetType === "IDS Master") {
-        continue; // Skip IDS Master entries
+        return;
       }
       var idMasterSpreadsheetInfo = shared.findSheetTypeID(
         idMasterID,
         "IDS",
         sheetType,
-        idsMasterValues
+        idsMasterValues,
       );
       if (
-        !idMasterSpreadsheetInfo ||
-        !idMasterSpreadsheetInfo.cell ||
-        !idMasterSpreadsheetInfo.cell.range
+        idMasterSpreadsheetInfo &&
+        idMasterSpreadsheetInfo.cell &&
+        idMasterSpreadsheetInfo.cell.range
       ) {
-        console.log(`IDS Master cell range not found`);
-        return {
-          success: false,
-          message: `IDS Master cell range not found`,
-        };
+        batchUpdate.push({
+          range: idMasterSpreadsheetInfo.cell.range,
+          values: [[entry.newSheetID]],
+        });
       }
-      var cellRange = idMasterSpreadsheetInfo.cell.range;
-      var values = [[idData.newSheetID]];
-      batchUpdate.push({
-        range: cellRange,
-        values: values,
-      });
-    }
+    });
 
     if (batchUpdate.length > 0) {
       try {
@@ -1325,7 +1289,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
   try {
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
-      newSheetID
+      newSheetID,
     );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
@@ -1336,7 +1300,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    // Determine sheet configuration based on sheet type
     var sheetName = "IDS";
     var searchName = "IDS Master's";
     var requiresIDSSheet = true;
@@ -1347,7 +1310,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       requiresIDSSheet = false;
     }
 
-    // Check for required sheets based on sheet type
     if (requiresIDSSheet) {
       var newIdSheet = SheetsAPI.getSheetByName(newSpreadsheet, "IDS");
       if (!newIdSheet) {
@@ -1360,7 +1322,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       }
     }
 
-    // Check for Effective Paths specific sheets
     if (sheetType === "Effective Paths") {
       var eHPSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eHP");
       var eDamageSheet = SheetsAPI.getSheetByName(newSpreadsheet, "eDamage");
@@ -1368,7 +1329,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
       if (!eHPSheet || !eDamageSheet || !eEconSheet) {
         console.log(
-          `Required Effective Paths sheets not found in new spreadsheet.`
+          `Required Effective Paths sheets not found in new spreadsheet.`,
         );
         return {
           success: false,
@@ -1380,7 +1341,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
     var newHomePageSheet = SheetsAPI.getSheetByName(
       newSpreadsheet,
-      "Home Page"
+      "Home Page",
     );
     if (!newHomePageSheet) {
       console.log(`Home Page sheet not found in new ${sheetType} spreadsheet`);
@@ -1391,7 +1352,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    // Batch fetch all required data from new sheet in one API call
     var ranges = requiresIDSSheet ? ["IDS", "Home Page"] : ["Home Page"];
     var newSheetData = SheetsAPI.batchGetValues(newSheetID, ranges);
     if (!newSheetData || newSheetData.length < ranges.length) {
@@ -1408,13 +1368,12 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       ? newSheetData[1].values
       : newSheetData[0].values;
 
-    // STEP 1: Check compatibility first (for early failure)
     var newVersionInfo;
     newVersionInfo = shared.findSheetVersion(
       newSheetID,
       "Home Page",
       sheetType,
-      newHomePageValues
+      newHomePageValues,
     );
 
     if (!newVersionInfo) {
@@ -1430,7 +1389,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
     var latestVersion = newVersionInfo.latestVersion;
     if (!newVersion || !latestVersion) {
       console.log(
-        `Version information is incomplete in new ${sheetType} spreadsheet.`
+        `Version information is incomplete in new ${sheetType} spreadsheet.`,
       );
       return {
         success: false,
@@ -1441,7 +1400,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
     if (newVersion !== latestVersion) {
       console.log(
-        `The version of the new sheet (${newVersion}) is not the latest version (${latestVersion}). Please update before importing.`
+        `The version of the new sheet (${newVersion}) is not the latest version (${latestVersion}). Please update before importing.`,
       );
       return {
         success: false,
@@ -1450,10 +1409,9 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    // Check old sheet compatibility
     var oldSpreadsheet = spreadsheets(
       `${sheetType} oldSpreadsheet`,
-      oldSheetID
+      oldSheetID,
     );
     if (!oldSpreadsheet) {
       console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
@@ -1466,7 +1424,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
     var oldHomePageSheet = SheetsAPI.getSheetByName(
       oldSpreadsheet,
-      "Home Page"
+      "Home Page",
     );
     if (!oldHomePageSheet) {
       console.log(`Home Page sheet not found in old ${sheetType} spreadsheet`);
@@ -1477,7 +1435,6 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       };
     }
 
-    // Fetch old sheet Home Page data
     var oldHomePageData = SheetsAPI.batchGetValues(oldSheetID, ["Home Page"]);
     if (!oldHomePageData || oldHomePageData.length === 0) {
       console.log(`Could not fetch Home Page data from old sheet`);
@@ -1496,7 +1453,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         oldSheetID,
         "Home Page",
         sheetType,
-        oldHomePageValues
+        oldHomePageValues,
       );
 
       if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
@@ -1513,7 +1470,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
 
       if (compareVersions === "newer") {
         console.log(
-          `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`
+          `The version of the old sheet (${oldVersion}) is newer than the new sheet (${newVersion}). Import aborted.`,
         );
         return {
           success: false,
@@ -1527,7 +1484,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
         if (!versionDifference) {
           console.log(
-            `Old version of ${sheetType} is incompatible for import (${oldVersion})`
+            `Old version of ${sheetType} is incompatible for import (${oldVersion})`,
           );
           return {
             success: false,
@@ -1537,7 +1494,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
         }
       } else {
         console.log(
-          `No compatibility function found for ${sheetType}. Assuming incompatible.`
+          `No compatibility function found for ${sheetType}. Assuming incompatible.`,
         );
         return {
           success: false,
@@ -1547,12 +1504,11 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
       }
     }
 
-    // STEP 2: If compatible, check import status
     var newSpreadsheetInfo = shared.findSheetTypeID(
       newSheetID,
       sheetName,
       searchName,
-      newIDSValues
+      newIDSValues,
     );
     if (!newSpreadsheetInfo || !newSpreadsheetInfo.importStatus) {
       console.log(`Can not find import cell in the new IDS sheet.`);
@@ -1583,7 +1539,7 @@ function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
     }
   } catch (error) {
     console.log(
-      `Error checking import status and compatibility: ${error.message}`
+      `Error checking import status and compatibility: ${error.message}`,
     );
     return {
       success: false,
@@ -1617,8 +1573,9 @@ function getOAuthToken() {
 function getScopeAuthorizationUrl() {
   try {
     return (
-      ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL)
-        .getAuthorizationUrl() || ""
+      ScriptApp.getAuthorizationInfo(
+        ScriptApp.AuthMode.FULL,
+      ).getAuthorizationUrl() || ""
     );
   } catch (authInfoError) {
     console.error("Error getting authorization URL:", authInfoError);
@@ -1654,7 +1611,7 @@ function checkSheetAccess(sheetID, userEmail) {
       const isOwner = owners.some(
         (owner) =>
           owner.emailAddress &&
-          owner.emailAddress.toLowerCase() === userEmail.toLowerCase()
+          owner.emailAddress.toLowerCase() === userEmail.toLowerCase(),
       );
 
       return {
@@ -1705,10 +1662,9 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
 
     copyMode = copyMode || "all";
     console.log(
-      `Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`
+      `Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`,
     );
 
-    // Fetch IDS Master data once
     var idsMasterData = fetchIdsMasterData(idMasterID);
     if (!idsMasterData.success) {
       console.log(`Error fetching IDS Master data: ${idsMasterData.message}`);
@@ -1722,18 +1678,16 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
     var templateInfo = [];
     var sheetIds = [idMasterID];
 
-    // Process all sheet types using the pre-fetched data
     for (var i = 0; i < sheetTypes.length; i++) {
       var sheetType = sheetTypes[i];
       try {
         var templateResult = getTemplateInfo(
           idsMasterData,
           sheetType,
-          copyMode
+          copyMode,
         );
 
         if (templateResult && templateResult.success) {
-          // Skip if version filtering excluded this template
           if (templateResult.versionFiltered) {
             console.log(`Skipping ${sheetType} - version filtering applied`);
             continue;
@@ -1747,7 +1701,6 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
             oldSheetID: templateResult.oldSheetID,
           });
 
-          // Collect old sheet IDs
           if (templateResult.oldSheetID) {
             sheetIds.push(templateResult.oldSheetID);
           }
@@ -1755,12 +1708,12 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
           console.log(
             `Error getting template info for ${sheetType}: ${
               templateResult ? templateResult.message : "Unknown error"
-            }`
+            }`,
           );
         }
       } catch (templateError) {
         console.log(
-          `Error processing template for ${sheetType}: ${templateError.toString()}`
+          `Error processing template for ${sheetType}: ${templateError.toString()}`,
         );
       }
     }
@@ -1773,7 +1726,7 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
     };
   } catch (error) {
     console.log(
-      `Error getting template and old sheet IDs: ${error.toString()}`
+      `Error getting template and old sheet IDs: ${error.toString()}`,
     );
     return {
       success: false,
@@ -1782,7 +1735,6 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
   }
 }
 
-// Helper function to get template information without checking access
 function getTemplateInfo(idsMasterData, sheetType, copyMode) {
   try {
     var values = idsMasterData.values;
@@ -1794,7 +1746,7 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
       idMasterID,
       "IDS",
       sheetType,
-      values
+      values,
     );
 
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
@@ -1807,7 +1759,7 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
 
     if (!spreadsheetInfo.id) {
       console.log(
-        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
       );
       return {
         success: false,
@@ -1827,11 +1779,10 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
 
-    // Version filtering logic - only process if 'update' mode and template is newer
     if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
         console.log(
-          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`
+          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`,
         );
         return {
           success: true,
@@ -1842,11 +1793,11 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
 
       var versionComparison = shared.compareVersions(
         oldVersion,
-        templateVersion
+        templateVersion,
       );
       if (versionComparison !== "older") {
         console.log(
-          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`
+          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`,
         );
         return {
           success: true,
@@ -1856,14 +1807,13 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
       }
 
       console.log(
-        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`
+        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`,
       );
     }
 
-    var templateRow = spreadsheetInfo.template.row - 1; // Convert to 0-based
-    var templateCol = spreadsheetInfo.template.col - 1; // Convert to 0-based
+    var templateRow = spreadsheetInfo.template.row - 1;
+    var templateCol = spreadsheetInfo.template.col - 1;
 
-    // Get template URL from pre-fetched formulas
     var templateUrl = "";
     if (
       formulas &&
@@ -1871,7 +1821,7 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
       formulas[templateRow][templateCol]
     ) {
       templateUrl = shared.extractUrlFromHyperlink(
-        formulas[templateRow][templateCol]
+        formulas[templateRow][templateCol],
       );
     }
 
@@ -1903,13 +1853,12 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
     };
   } catch (error) {
     console.error(
-      `Error getting template info for ${sheetType}: ${error.toString()}`
+      `Error getting template info for ${sheetType}: ${error.toString()}`,
     );
     return { success: false, message: `${error.toString()}` };
   }
 }
 
-// Simplified function to check access for a single template
 function checkTemplateAccess(templateID) {
   try {
     if (!templateID) {
@@ -1932,7 +1881,7 @@ function checkTemplateAccess(templateID) {
       };
     } catch (error) {
       console.log(
-        `Template access denied for ${templateID}: ${error.toString()}`
+        `Template access denied for ${templateID}: ${error.toString()}`,
       );
 
       return {
@@ -1961,7 +1910,7 @@ function findSheetIdAndType(sheetID, sheetType) {
   var spreadsheetInfo = shared.findSheetTypeID(sheetID, "IDS", sheetType);
   if (!spreadsheetInfo || !spreadsheetInfo.id) {
     console.log(
-      `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+      `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
     );
     return {
       success: false,
@@ -1989,7 +1938,6 @@ function findSheetIdAndType(sheetID, sheetType) {
   };
 }
 
-// Optimized function that fetches all IDS Master data in one API call
 function fetchIdsMasterData(idMasterID) {
   try {
     if (!idMasterID) {
@@ -2019,7 +1967,6 @@ function fetchIdsMasterData(idMasterID) {
       };
     }
 
-    // Two API calls to get both values and formulas from IDS sheet
     var idsValues = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
     var idsFormulas = SheetsAPI.batchGetFormulas(idMasterID, ["IDS"]);
 
@@ -2053,7 +2000,6 @@ function fetchIdsMasterData(idMasterID) {
   }
 }
 
-// Process template access for a single sheet type using pre-fetched data
 function processTemplateAccess(idsMasterData, sheetType, copyMode) {
   try {
     var values = idsMasterData.values;
@@ -2065,7 +2011,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       idMasterID,
       "IDS",
       sheetType,
-      values
+      values,
     );
 
     if (!spreadsheetInfo || !spreadsheetInfo.template) {
@@ -2078,7 +2024,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
 
     if (!spreadsheetInfo.id) {
       console.log(
-        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`
+        `Could not find sheet ID for ${sheetType}. Please check that ${sheetType} ID is set in the IDS Master sheet.`,
       );
       return {
         success: false,
@@ -2098,11 +2044,10 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
 
-    // Version filtering logic - only process if 'update' mode and template is newer
     if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
         console.log(
-          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`
+          `Version information missing for ${sheetType} - template: ${templateVersion}, old: ${oldVersion}`,
         );
         return {
           success: true,
@@ -2113,11 +2058,11 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
 
       var versionComparison = shared.compareVersions(
         oldVersion,
-        templateVersion
+        templateVersion,
       );
       if (versionComparison !== "older") {
         console.log(
-          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`
+          `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}, skipping`,
         );
         return {
           success: true,
@@ -2127,14 +2072,13 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       }
 
       console.log(
-        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`
+        `${sheetType} template version ${templateVersion} is newer than old version ${oldVersion}, including`,
       );
     }
 
-    var templateRow = spreadsheetInfo.template.row - 1; // Convert to 0-based
-    var templateCol = spreadsheetInfo.template.col - 1; // Convert to 0-based
+    var templateRow = spreadsheetInfo.template.row - 1;
+    var templateCol = spreadsheetInfo.template.col - 1;
 
-    // Get template URL from pre-fetched formulas instead of making API call
     var templateUrl = "";
     if (
       formulas &&
@@ -2142,7 +2086,7 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       formulas[templateRow][templateCol]
     ) {
       templateUrl = shared.extractUrlFromHyperlink(
-        formulas[templateRow][templateCol]
+        formulas[templateRow][templateCol],
       );
     }
 
@@ -2163,11 +2107,9 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       };
     }
 
-    // Check template access without creating a copy
     try {
       var file = CacheManager.getFile(templateID);
 
-      // Template is accessible, return success with template information
       return {
         success: true,
         message: `Template access verified for ${sheetType}.`,
@@ -2181,11 +2123,10 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       };
     } catch (error) {
       console.log(
-        `Error retrieving template file information: ${error.toString()}`
+        `Error retrieving template file information: ${error.toString()}`,
       );
       console.log(`Template ID: ${templateID}, Sheet Type: ${sheetType}`);
 
-      // Template access denied, return information needed for granting access
       return {
         success: true,
         message: `Template access check completed. Access needed for ${sheetType} template.`,
@@ -2200,14 +2141,13 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
     }
   } catch (error) {
     console.error(
-      `Error processing template access for ${sheetType}: ${error.toString()}`
+      `Error processing template access for ${sheetType}: ${error.toString()}`,
     );
     return { success: false, message: `${error.toString()}` };
   }
 }
 
 function checkFileTemplateAccess(idMasterID, sheetType) {
-  // For backward compatibility, use the optimized approach for single calls
   var idsMasterData = fetchIdsMasterData(idMasterID);
   if (!idsMasterData.success) {
     return idsMasterData;
@@ -2216,11 +2156,23 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
   return processTemplateAccess(idsMasterData, sheetType, "all");
 }
 
-function copyFileTemplate(templateID, sheetType, templateVersion) {
+function copyFileTemplate(
+  templateID,
+  sheetType,
+  templateVersion,
+  parentFolderID,
+) {
   try {
-    var fileName = `Copy of ${sheetType} ${templateVersion}`;
+    var resolvedTemplateVersion = templateVersion || "";
+    var fileName = `Copy of ${sheetType} ${resolvedTemplateVersion}`.trim();
+    var templateCopyUrl = `https://docs.google.com/spreadsheets/d/${templateID}/copy`;
+    var copyRequest = { name: fileName };
 
-    var newFile = Drive.Files.copy({ name: fileName }, templateID, {
+    if (parentFolderID != null && parentFolderID !== "") {
+      copyRequest.parents = [parentFolderID];
+    }
+
+    var newFile = Drive.Files.copy(copyRequest, templateID, {
       fields: "id",
     });
 
@@ -2229,89 +2181,53 @@ function copyFileTemplate(templateID, sheetType, templateVersion) {
       return {
         success: false,
         message: `Error copying ${sheetType} template: no file returned`,
+        copyUrl: templateCopyUrl,
       };
     }
+
+    var fileUrl = `https://docs.google.com/spreadsheets/d/${newFile.id}/edit`;
 
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
-      newFile.id
-    );
-
-    if (sheetType === "IDS Master") {
-      console.log(`Copied IDS Master template, no further setup needed.`);
-      return {
-        success: true,
-        message: `Successfully copied IDS Master template.`,
-        fileId: newFile.id,
-        fileName: fileName,
-        gid: "",
-      };
-    }
-
-    var newSheet = SheetsAPI.getSheetByName(newSpreadsheet, "IDS");
-    if (!newSheet) {
-      console.log(`IDS sheet not found in Copy of ${sheetType} spreadsheet.`);
-      return {
-        success: true,
-        message: `IDS sheet™ not found in Copy of ${sheetType} spreadsheet™.`,
-        fileId: newFile.id,
-        fileName: fileName,
-        gid: "",
-      };
-    }
-
-    // Single API call to get all IDS sheet data at once
-    var idsValues = SheetsAPI.batchGetValues(newFile.id, ["IDS"]);
-    if (!idsValues || !idsValues[0] || !idsValues[0].values) {
-      console.log(
-        `Could not read IDS sheet data from new ${sheetType} template`
-      );
-      return {
-        success: true,
-        message: `Could not read IDS sheet data from new ${sheetType} template`,
-        fileId: newFile.id,
-        fileName: fileName,
-        gid: newSheet.sheetId,
-      };
-    }
-
-    var values = idsValues[0].values;
-
-    var thisSheetInfo = shared.findSheetTypeID(
       newFile.id,
-      "IDS",
-      "This Sheet ID",
-      values
     );
 
-    if (!thisSheetInfo || !thisSheetInfo.cell) {
-      console.log(
-        `Could not find 'This Sheet ID' entry in new ${sheetType} template`
-      );
-      return {
-        success: true,
-        message: `Could not find 'This Sheet ID' entry in new ${sheetType} template`,
-        fileId: newFile.id,
-        fileName: fileName,
-        gid: newSheet.sheetId,
-      };
+    idSheet = "IDS";
+    if (sheetType === "IDS Collection") {
+      idSheet = "Home Page";
     }
 
-    // Note: ID setting is now handled in importData to reduce API calls during copying
-    console.log(
-      `Successfully copied ${sheetType} template, IDs will be set during import.`
-    );
-
+    var newSheet = SheetsAPI.getSheetByName(newSpreadsheet, idSheet);
+    if (!newSheet) {
+      console.log(`${idSheet} sheet not found in ${fileName}`);
+      return {
+        success: true,
+        message: `${idSheet} sheet™ not found in ${fileName}`,
+        fileId: newFile.id,
+        fileName: fileName,
+        fileUrl: fileUrl,
+        copyUrl: templateCopyUrl,
+        gid: "",
+      };
+    }
     return {
       success: true,
       message: `Successfully copied ${sheetType} template.`,
       fileId: newFile.id,
       fileName: fileName,
+      fileUrl: fileUrl,
+      copyUrl: templateCopyUrl,
       gid: newSheet.sheetId,
     };
   } catch (error) {
     console.error(`Error copying ${sheetType} template: ${error.toString()}`);
-    return { success: false, message: `${error.toString()}` };
+    return {
+      success: false,
+      message: `${error.toString()}`,
+      copyUrl: templateID
+        ? "https://docs.google.com/spreadsheets/d/" + templateID + "/copy"
+        : "",
+    };
   }
 }
 
@@ -2324,7 +2240,7 @@ function checkNewSheetReference(newSheetID, sheetType) {
 
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
-      newSheetID
+      newSheetID,
     );
     if (!newSpreadsheet) {
       console.log(`New spreadsheet not found with ID: ${newSheetID}`);
@@ -2370,15 +2286,13 @@ function checkNewSheetReference(newSheetID, sheetType) {
   }
 }
 
-// Prepare data for IDS Master import to be executed in parallel on client side
 function prepareImportData(
   idMasterID,
   copiedTemplateFiles,
   importedFilesFailed,
-  exportedFilesFailed
+  exportedFilesFailed,
 ) {
   try {
-    // Ensure all arrays exist and combine them
     copiedTemplateFiles = copiedTemplateFiles || [];
     importedFilesFailed = importedFilesFailed || [];
     exportedFilesFailed = exportedFilesFailed || [];
@@ -2388,10 +2302,9 @@ function prepareImportData(
       .concat(exportedFilesFailed);
 
     console.log(
-      `Preparing parallel IDS Master import data for ${allTemplateFiles.length} template files (${copiedTemplateFiles.length} copied + ${importedFilesFailed.length} import failed + ${exportedFilesFailed.length} export failed)`
+      `Preparing parallel IDS Master import data for ${allTemplateFiles.length} template files (${copiedTemplateFiles.length} copied + ${importedFilesFailed.length} import failed + ${exportedFilesFailed.length} export failed)`,
     );
 
-    // Get the IDS Master data once (single API call for values)
     var idsValues = SheetsAPI.batchGetValues(idMasterID, ["IDS"]);
     if (!idsValues || !idsValues[0] || !idsValues[0].values) {
       return {
@@ -2406,18 +2319,16 @@ function prepareImportData(
     var succeededTasks = [];
     var failedTasks = [];
 
-    // Prepare all import tasks with required information
     for (var i = 0; i < allTemplateFiles.length; i++) {
       var templateFile = allTemplateFiles[i];
       var sheetType = templateFile.sheetType;
       var newSheetID = templateFile.fileId;
 
-      // Get the sheet type info using pre-loaded values
       var sheetTypeInfo = shared.findSheetTypeURL(
         idMasterID,
         "IDS",
         sheetType,
-        values
+        values,
       );
       if (!sheetTypeInfo || !sheetTypeInfo.id) {
         failedTasks.push({
@@ -2442,13 +2353,13 @@ function prepareImportData(
       var templateVersion = sheetTypeInfo.version.value;
 
       console.log(
-        `oldVersion: ${oldVersion}, templateVersion: ${templateVersion}`
+        `oldVersion: ${oldVersion}, templateVersion: ${templateVersion}`,
       );
       var versionDifference = null;
       if (oldVersion && templateVersion) {
         var versionComparison = shared.compareVersions(
           oldVersion,
-          templateVersion
+          templateVersion,
         );
         if (versionComparison === "newer") {
           failedTasks.push({
@@ -2459,7 +2370,6 @@ function prepareImportData(
           continue;
         }
 
-        // Get version difference from sheet type function
         var sheetTypeFunction = sheetVars(sheetType);
         if (sheetTypeFunction) {
           versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
@@ -2504,13 +2414,12 @@ function deleteOldSheet(sheetID) {
   try {
     console.log(`Attempting to delete sheet with ID: ${sheetID}`);
 
-    // Get file information to verify it exists before deletion
     var fileInfo;
     try {
       fileInfo = CacheManager.getFile(sheetID);
     } catch (error) {
       console.log(
-        `Sheet ${sheetID} not found or already deleted: ${error.toString()}`
+        `Sheet ${sheetID} not found or already deleted: ${error.toString()}`,
       );
       return {
         success: true,
@@ -2518,7 +2427,6 @@ function deleteOldSheet(sheetID) {
       };
     }
 
-    // Check if file is already trashed
     if (fileInfo.trashed) {
       console.log(`Sheet ${sheetID} (${fileInfo.name}) is already trashed`);
       return {
@@ -2527,8 +2435,7 @@ function deleteOldSheet(sheetID) {
       };
     }
 
-    // Delete the file by moving it to trash
-    Drive.Files.update({ trashed: true }, sheetID);
+    Drive.Files.trash(sheetID);
 
     console.log(`Successfully deleted sheet: ${fileInfo.name} (${sheetID})`);
     return {
@@ -2557,7 +2464,7 @@ function getTemplateIdForSingleSheet(sheetID, sheetType) {
     var spreadsheetInfo = shared.findSheetTemplateID(
       sheetID,
       "Home Page",
-      sheetType
+      sheetType,
     );
     if (
       !spreadsheetInfo ||
@@ -2578,7 +2485,7 @@ function getTemplateIdForSingleSheet(sheetID, sheetType) {
     };
   } catch (error) {
     console.error(
-      `Error getting template ID for single sheet: ${error.toString()}`
+      `Error getting template ID for single sheet: ${error.toString()}`,
     );
     return { success: false, message: `${error.toString()}` };
   }
@@ -2595,7 +2502,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
 
     var oldSpreadsheet = spreadsheets(
       `${sheetType} oldSpreadsheet`,
-      oldSheetID
+      oldSheetID,
     );
     if (!oldSpreadsheet) {
       return {
@@ -2606,7 +2513,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
 
     var oldHomePageSheet = SheetsAPI.getSheetByName(
       oldSpreadsheet,
-      "Home Page"
+      "Home Page",
     );
     if (!oldHomePageSheet) {
       return {
@@ -2615,7 +2522,6 @@ function checkExportCompatibility(oldSheetID, sheetType) {
       };
     }
 
-    // Fetch old sheet Home Page data
     var oldHomePageData = SheetsAPI.batchGetValues(oldSheetID, ["Home Page"]);
     if (!oldHomePageData || oldHomePageData.length === 0) {
       return {
@@ -2632,7 +2538,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
       oldSheetID,
       "Home Page",
       sheetType,
-      oldHomePageValues
+      oldHomePageValues,
     );
     if (!oldVersionInfo || !oldVersionInfo.currentVersion) {
       return {
@@ -2642,7 +2548,6 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     }
     oldVersion = oldVersionInfo.currentVersion;
 
-    // Check compatibility using the sheetType's compatibility function
     var sheetTypeFunction = sheetVars(sheetType);
     if (sheetTypeFunction) {
       var versionDifference = sheetTypeFunction.isCompatibleVersion(oldVersion);
@@ -2710,7 +2615,7 @@ function updateSheetID(spreadsheetID, sheetID, sheetType) {
       spreadsheetID,
       "IDS",
       "IDS Master",
-      values
+      values,
     );
     if (!sheetTypeInfo || !sheetTypeInfo.cell) {
       return {
@@ -2741,5 +2646,253 @@ function updateSheetID(spreadsheetID, sheetID, sheetType) {
       success: false,
       message: `Error updating sheet ID: ${error.toString()}`,
     };
+  }
+}
+
+function getOrCreateGetStartedFolder() {
+  try {
+    // Search for a folder named "The Tower" in the user's Drive
+    var query =
+      'name="The Tower" and mimeType="application/vnd.google-apps.folder" and trashed=false';
+    var folderList = Drive.Files.list({
+      q: query,
+      spaces: "drive",
+      fields: "files(id, name)",
+      pageSize: 1,
+    });
+
+    if (folderList.files && folderList.files.length > 0) {
+      // Folder exists, use it
+      var folder = folderList.files[0];
+      console.log(`Found existing "The Tower" folder: ${folder.id}`);
+      return {
+        success: true,
+        id: folder.id,
+        name: folder.name,
+        url: `https://drive.google.com/drive/folders/${folder.id}`,
+      };
+    }
+
+    // Folder doesn't exist, create it
+    var fileMetadata = {
+      name: "The Tower",
+      mimeType: "application/vnd.google-apps.folder",
+    };
+
+    var newFolder = Drive.Files.create(fileMetadata, null, {
+      fields: "id, name",
+    });
+
+    Drive.Permissions.create(
+      {
+        role: "reader",
+        type: "anyone",
+      },
+      newFolder.id,
+    );
+
+    console.log(`Created new "The Tower" folder: ${newFolder.id}`);
+    return {
+      success: true,
+      id: newFolder.id,
+      name: newFolder.name,
+      url: `https://drive.google.com/drive/folders/${newFolder.id}`,
+    };
+  } catch (error) {
+    console.error(
+      `Error getting or creating The Tower folder: ${error.toString()}`,
+    );
+    return {
+      success: false,
+      id: "",
+      name: "",
+      url: "",
+      error: `Error locating or creating The Tower folder: ${error.toString()}`,
+    };
+  }
+}
+
+function updateGetStartedSheetIdsAndReferences(
+  sheetID,
+  sheetType,
+  relatedSheetIDs,
+) {
+  try {
+    console.log(
+      `Updating IDs for ${sheetType} (${sheetID}) with related IDs:`,
+      relatedSheetIDs,
+    );
+
+    var fileName = null;
+    var updatedCount = 0;
+
+    if (sheetType === "IDS Collection") {
+      var idsResult = SheetsAPI.batchGetValues(sheetID, ["Home Page"]);
+      if (!idsResult || !idsResult[0] || !idsResult[0].values) {
+        console.log(`Could not fetch Home Page from ${sheetType}`);
+        return { success: false, message: "Could not fetch Home Page" };
+      }
+
+      var idsData = idsResult[0].values;
+      var ownSheetInfo = shared.findSheetTypeID(
+        sheetID,
+        "Home Page",
+        "Your ID:",
+        idsData,
+      );
+
+      if (!ownSheetInfo || !ownSheetInfo.cell || !ownSheetInfo.cell.range) {
+        return {
+          success: false,
+          message: "Could not find 'Your ID:' in IDS Collection",
+        };
+      }
+
+      var batchUpdate = [
+        {
+          range: ownSheetInfo.cell.range,
+          values: [[sheetID]],
+        },
+      ];
+
+      SheetsAPI.batchUpdateValues(sheetID, batchUpdate);
+      updatedCount = 1;
+
+      try {
+        var sheetInfo = shared.findSheetVersion(
+          sheetID,
+          "Home Page",
+          sheetType,
+          idsData,
+        );
+
+        if (sheetInfo && sheetInfo.currentVersion) {
+          fileName = `${sheetType} ${sheetInfo.currentVersion}`;
+          Drive.Files.update(
+            {
+              name: fileName,
+            },
+            sheetID,
+          );
+        }
+      } catch (error) {
+        console.log(
+          `Could not update file name with version info: ${error.toString()}`,
+        );
+      }
+
+      return {
+        success: true,
+        message: "Updated IDS Collection ID",
+        updatedCount: updatedCount,
+        fileName: fileName,
+      };
+    } else if (sheetType === "IDS Master") {
+      var idDataEntries = [];
+      relatedSheetIDs.forEach((entry) => {
+        idDataEntries.push({
+          sheetType: entry.sheetType,
+          newSheetID: entry.sheetID,
+        });
+      });
+
+      var idsResult = SheetsAPI.batchGetValues(sheetID, ["Home Page", "IDS"]);
+      var homePageData = idsResult[0].values;
+      var masterResult = updateIdsMaster(sheetID, idDataEntries);
+      updatedCount = idDataEntries.length;
+
+      try {
+        var sheetInfo = shared.findSheetVersion(
+          sheetID,
+          "Home Page",
+          sheetType,
+          homePageData,
+        );
+
+        if (sheetInfo && sheetInfo.currentVersion) {
+          fileName = `${sheetType} ${sheetInfo.currentVersion}`;
+          Drive.Files.update(
+            {
+              name: fileName,
+            },
+            sheetID,
+          );
+        }
+      } catch (error) {
+        console.log(
+          `Could not update file name with version info: ${error.toString()}`,
+        );
+      }
+
+      return {
+        success: masterResult.success,
+        message: masterResult.message,
+        updatedCount: updatedCount,
+        fileName: fileName,
+      };
+    }
+
+    var idsResult = SheetsAPI.batchGetValues(sheetID, ["Home Page", "IDS"]);
+    if (!idsResult || !idsResult[0] || !idsResult[0].values) {
+      console.log(`Could not fetch IDS sheet from ${sheetType}`);
+      return { success: false, message: "Could not fetch IDS sheet" };
+    }
+
+    var homePageData = idsResult[0].values;
+    var idsData = idsResult[1].values;
+    var batchUpdate = [];
+
+    var idsMasterId = relatedSheetIDs
+      .filter((entry) => entry.sheetType === "IDS Master")
+      .map((entry) => entry.sheetID)[0];
+
+    batchUpdate = shared.addIDUpdatesToBatch(
+      batchUpdate,
+      sheetType,
+      sheetID,
+      idsData,
+      idsMasterId,
+    );
+
+    if (batchUpdate.length > 0) {
+      SheetsAPI.batchUpdateValues(sheetID, batchUpdate);
+      updatedCount = batchUpdate.length;
+    }
+
+    try {
+      var sheetInfo = shared.findSheetVersion(
+        sheetID,
+        "Home Page",
+        sheetType,
+        homePageData,
+      );
+
+      if (sheetInfo && sheetInfo.currentVersion) {
+        fileName = `${sheetType} ${sheetInfo.currentVersion}`;
+        Drive.Files.update(
+          {
+            name: fileName,
+          },
+          sheetID,
+        );
+      }
+    } catch (error) {
+      console.log(
+        `Could not update file name with version info: ${error.toString()}`,
+      );
+    }
+
+    return {
+      success: true,
+      message:
+        updatedCount > 0
+          ? `Updated ${updatedCount} ID(s)`
+          : "No IDs needed updating",
+      updatedCount: updatedCount,
+      fileName: fileName,
+    };
+  } catch (error) {
+    console.error(`Error updating sheet IDs: ${error.toString()}`);
+    return { success: false, message: error.toString() };
   }
 }

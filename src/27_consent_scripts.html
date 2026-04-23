@@ -93,6 +93,10 @@
 
           stopAddonConsentReadyPolling();
           setStatusWithSpinner("Permissions granted. Continuing...");
+          if (getStarted) {
+            await authorizeGetStarted(true);
+            return;
+          }
           await authorizeAndContinue(true);
         })
         .withFailureHandler((error) => {
@@ -245,7 +249,11 @@
 
     let authSuccess = false;
     try {
-      authSuccess = await authorizeAndContinue(true);
+      if (getStarted) {
+        authSuccess = await authorizeGetStarted(true);
+      } else {
+        authSuccess = await authorizeAndContinue(true);
+      }
     } catch (error) {
       consentScopeCheckOutcome = "error";
       console.error("Scope recheck failed with an error:", error);
@@ -422,6 +430,21 @@
     }
 
     checkValidParameters();
+    return true;
+  }
+
+async function authorizeGetStarted(forceTokenRefresh = false) {
+    setStatusWithSpinner("Checking scope access permissions...");
+
+    if (!accessToken || forceTokenRefresh) {
+      const authSuccess = await getOAuthToken();
+      if (!authSuccess) {
+        return false;
+      }
+    }
+
+    hideConsentModal();
+    continueGetStarted();
     return true;
   }
 
