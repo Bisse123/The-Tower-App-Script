@@ -1,16 +1,83 @@
 <style>
+  html,
+  body {
+    height: 95vh;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .getStartedSection {
     background-color: #f3e5f5;
     border-color: #9c27b0;
+    flex-direction: column;
+    flex: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .getStartedSection button {
     background-color: #9c27b0;
   }
+
   .getStartedContent {
     display: block;
     background: #e1bee7;
     border-color: #ba68c8;
+  }
+
+  .getStartedQuickSetup {
+    display: block;
+    background: #f7ecfa;
+    border-color: #ce93d8;
+  }
+
+  .getStartedQuickTitle {
+    margin-bottom: 10px;
+  }
+
+  .getStartedQuickSetup select,
+  .getStartedQuickSetup button {
+    margin-left: 0;
+    margin-right: 10px;
+    margin-bottom: 10px;
+  }
+
+  .getStartedSelectedFolder {
+    margin-top: 4px;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    color: #5d275d;
+  }
+
+  .getStartedCopyResult {
+    margin-top: 10px;
+  }
+
+  .copyResultBlock {
+    border-radius: 6px;
+    border: 1px solid;
+    padding: 10px 12px;
+    margin-top: 8px;
+  }
+
+  .copyResultSuccess {
+    background: #edf7ed;
+    border-color: #9ccc65;
+  }
+
+  .copyResultFailure {
+    background: #fdecea;
+    border-color: #ef9a9a;
+  }
+
+  .copyResultBlock ul {
+    margin-top: 8px;
+    margin-bottom: 0;
   }
 
   .getStartedTitle {
@@ -19,5 +86,16 @@
 
   .getStartedSection a {
     color: #9c27b0;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      padding: 10px;
+    }
+
+    .getStartedQuickSetup select,
+    .getStartedQuickSetup button {
+      margin-right: 0;
+    }
   }
 </style>
