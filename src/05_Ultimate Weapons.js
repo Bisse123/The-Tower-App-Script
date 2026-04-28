@@ -107,8 +107,8 @@ const ultimate = {
         },
       };
       Object.keys(dvtNamedRanges).forEach(function (weapon) {
-        Object.keys(dvtNamedRanges[weapon]).forEach(function (prop) {
-          requiredRanges.push(dvtNamedRanges[weapon][prop]);
+        Object.keys(dvtNamedRanges[weapon]).forEach(function (level) {
+          requiredRanges.push(dvtNamedRanges[weapon][level]);
         });
       });
 
@@ -128,11 +128,11 @@ const ultimate = {
       var dvtNamedRangesData = {};
       Object.keys(dvtNamedRanges).forEach(function (weapon) {
         dvtNamedRangesData[weapon] = {};
-        Object.keys(dvtNamedRanges[weapon]).forEach(function (prop) {
+        Object.keys(dvtNamedRanges[weapon]).forEach(function (level) {
           if (batchResults[dvtIndex]) {
-            dvtNamedRangesData[weapon][prop] = batchResults[dvtIndex].values;
+            dvtNamedRangesData[weapon][level] = batchResults[dvtIndex].values;
           } else {
-            dvtNamedRangesData[weapon][prop] = [];
+            dvtNamedRangesData[weapon][level] = [];
           }
           dvtIndex++;
         });
@@ -143,7 +143,7 @@ const ultimate = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -166,11 +166,11 @@ const ultimate = {
           "Master Sheet",
           oldUltimate,
           masterSheetData,
-          dvtNamedRangesData
+          dvtNamedRangesData,
         );
         if (!ultimateResult || !ultimateResult.success) {
           console.log(
-            `Error updating ultimate weapon levels: ${ultimateResult.message}`
+            `Error updating ultimate weapon levels: ${ultimateResult.message}`,
           );
           return ultimateResult;
         }
@@ -183,19 +183,19 @@ const ultimate = {
         var ultimateCostCalculatorResult = this.updateUltimateCostCalculator(
           "UW Cost Calculator v3",
           oldUltimateCostCalculator,
-          ultimateCostCalculatorData
+          ultimateCostCalculatorData,
         );
         if (
           !ultimateCostCalculatorResult ||
           !ultimateCostCalculatorResult.success
         ) {
           console.log(
-            `Error updating ultimate cost calculator: ${ultimateCostCalculatorResult.message}`
+            `Error updating ultimate cost calculator: ${ultimateCostCalculatorResult.message}`,
           );
           return ultimateCostCalculatorResult;
         }
         batchUpdate = batchUpdate.concat(
-          ultimateCostCalculatorResult.batchUpdate || []
+          ultimateCostCalculatorResult.batchUpdate || [],
         );
       }
 
@@ -213,7 +213,7 @@ const ultimate = {
         "Ultimate Weapon",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       // Apply all updates (including ID setting and import status)
@@ -245,7 +245,7 @@ const ultimate = {
     sheetName,
     oldUltimate,
     masterSheetData,
-    dvtNamedRangesData
+    dvtNamedRangesData,
   ) {
     try {
       console.log("Called: ultimate.updateUltimateLevels");
@@ -282,9 +282,9 @@ const ultimate = {
 
       // Extract current ultimate weapons data from pre-fetched data
       var startCol = ultimateCol + 1; // Column after "Ultimate Weapon" (1-based)
-      var endCol = ultimateCol + 5; // 5 columns after "Ultimate Weapon"
+      var endCol = ultimateCol + 6; // 5 columns after "Ultimate Weapon"
 
-      var newUltimateDataValues = masterSheetData
+      var newUltimateData = masterSheetData
         .slice(1) // Skip header row
         .map(function (row) {
           return row.slice(startCol - 1, endCol); // Extract columns (convert to 0-based)
@@ -299,23 +299,13 @@ const ultimate = {
           });
         });
 
-      if (!newUltimateDataValues || newUltimateDataValues.length === 0) {
+      if (!newUltimateData || newUltimateData.length === 0) {
         console.log(`Could not read ultimate weapons data from Master Sheet`);
         return {
           success: false,
           message: `Could not read ultimate weapons data from Master Sheet`,
         };
       }
-
-      // Filter out empty rows
-      var newUltimateData = newUltimateDataValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
 
       var newUltimateUnlocked = [];
       var newUltimateLevel = [];
@@ -335,16 +325,35 @@ const ultimate = {
               row = nextRow - 2;
               break;
             }
-            var newWeaponProp = nextRowData[2];
-            if (oldWeapon.props.hasOwnProperty(newWeaponProp)) {
-              var dvtPropValue = shared.getDVTValue(
-                oldWeapon.props[newWeaponProp],
-                dvtNamedRangesData[weaponName][newWeaponProp]
+            var newWeaponAttribute = nextRowData[2];
+            var newValues = [];
+            if (
+              oldWeapon.hasOwnProperty("levels") &&
+              oldWeapon.levels.hasOwnProperty(newWeaponAttribute)
+            ) {
+              var dvtLevelValue = shared.getDVTValue(
+                oldWeapon.levels[newWeaponAttribute],
+                dvtNamedRangesData[weaponName][newWeaponAttribute],
               );
-              newUltimateLevel.push([dvtPropValue]);
+              newValues.push(dvtLevelValue);
             } else {
-              newUltimateLevel.push([nextRowData[4]]);
+              newValues.push(nextRowData[4]);
             }
+
+            if (
+              oldWeapon.hasOwnProperty("targets") &&
+              oldWeapon.targets.hasOwnProperty(newWeaponAttribute)
+            ) {
+              var dvtTargetValue = shared.getDVTValue(
+                oldWeapon.targets[newWeaponAttribute],
+                dvtNamedRangesData[weaponName][newWeaponAttribute],
+              );
+              newValues.push(dvtTargetValue);
+            } else {
+              newValues.push(nextRowData[5]);
+            }
+            newUltimateLevel.push(newValues);
+
             if (nextRow == newUltimateData.length - 1) {
               row = nextRow;
             }
@@ -370,7 +379,8 @@ const ultimate = {
       // Update the level column (5 columns after Ultimate Weapon)
       if (newUltimateLevel.length > 0) {
         var levelCol = shared.columnToLetter(ultimateCol + 5);
-        var levelRange = `${sheetName}!${levelCol}2:${levelCol}${
+        var targetCol = shared.columnToLetter(ultimateCol + 6);
+        var levelRange = `${sheetName}!${levelCol}2:${targetCol}${
           newUltimateLevel.length + 1
         }`;
         batchUpdate.push({
@@ -403,7 +413,7 @@ const ultimate = {
   updateUltimateCostCalculator: function (
     sheetName,
     oldUltimateCostCalculator,
-    ultimateCostCalculatorData
+    ultimateCostCalculatorData,
   ) {
     try {
       console.log("Called: ultimate.updateUltimateCostCalculator");
@@ -460,7 +470,7 @@ const ultimate = {
         ) {
           batchUpdate.push({
             range: `${sheetName}!${shared.columnToLetter(
-              uwPlusWantedIndex + 3
+              uwPlusWantedIndex + 3,
             )}${row + 1}`,
             values: [[oldUltimateCostCalculator["# Of UW+ Wanted"]]],
           });
@@ -520,7 +530,7 @@ const ultimate = {
                     targetWeapons.includes(
                       subRowData[weaponColIndex]
                         ? subRowData[weaponColIndex].toString().trim()
-                        : ""
+                        : "",
                     )
                   ) {
                     break;
@@ -533,7 +543,7 @@ const ultimate = {
                     // Update current value
                     if (subValues.hasOwnProperty("currentValue")) {
                       var currentCol = shared.columnToLetter(
-                        currentValueIndex + 1
+                        currentValueIndex + 1,
                       );
                       var currentRange = `${sheetName}!${currentCol}${
                         subRow + 1
@@ -547,7 +557,7 @@ const ultimate = {
                     // Update target value
                     if (subValues.hasOwnProperty("targetValue")) {
                       var targetCol = shared.columnToLetter(
-                        targetValueIndex + 1
+                        targetValueIndex + 1,
                       );
                       var targetRange = `${sheetName}!${targetCol}${
                         subRow + 1
@@ -607,6 +617,87 @@ const ultimate = {
 
   // #endregion
   // #region Convert Versions
+  version3_1: function () {
+    try {
+      console.log("Called: ultimate.version3_1");
+      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(
+          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
+        );
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old ultimate weapons spreadsheet",
+        };
+      }
+
+      var ultimateLevelsRange = "EXPORT!C5:H";
+      var ultimateBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        ultimateLevelsRange,
+      ]);
+      if (
+        !ultimateBatchResult ||
+        ultimateBatchResult.length === 0 ||
+        !ultimateBatchResult[0].values
+      ) {
+        console.log(`Could not read old ultimate weapons data`);
+        return {
+          success: false,
+          message: `Could not read old ultimate weapons data`,
+        };
+      }
+      var oldUltimateDataValues = ultimateBatchResult[0].values;
+
+      var ultimateCostCalculatorRange = "UW Cost Calculator v3";
+      var costCalculatorBatchResult = SheetsAPI.batchGetFormulas(oldSheetID, [
+        ultimateCostCalculatorRange,
+      ]);
+      if (
+        !costCalculatorBatchResult ||
+        costCalculatorBatchResult.length === 0 ||
+        !costCalculatorBatchResult[0].values
+      ) {
+        console.log(`Could not read old ultimate weapons cost calculator data`);
+        return {
+          success: false,
+          message: `Could not read old ultimate weapons cost calculator data`,
+        };
+      }
+      var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
+
+      // Process ultimate weapons data
+      var ultimateWeaponsData = this.getVersion3_1UltimateWeapons(
+        oldUltimateDataValues,
+      );
+      if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
+        return ultimateWeaponsData;
+      }
+
+      // Process cost calculator data
+      var costCalculatorData = this.getVersion1_0CostCalculator(
+        oldUltimateCostCalculatorValues,
+      );
+      if (!costCalculatorData || !costCalculatorData.success) {
+        return costCalculatorData;
+      }
+
+      return {
+        success: true,
+        message: "Ultimate weapons processed successfully",
+        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
+      };
+    } catch (error) {
+      console.log("Error in version3_1: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version3_1: " + error.message,
+      };
+    }
+  },
+
   version2_0: function () {
     try {
       console.log("Called: ultimate.version2_0");
@@ -615,7 +706,7 @@ const ultimate = {
 
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(
-          `EXPORT sheet not found in old ultimate weapons spreadsheet`
+          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
         );
         return {
           success: false,
@@ -659,7 +750,7 @@ const ultimate = {
 
       // Process ultimate weapons data
       var ultimateWeaponsData = this.getVersion2_0UltimateWeapons(
-        oldUltimateDataValues
+        oldUltimateDataValues,
       );
       if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
         return ultimateWeaponsData;
@@ -667,7 +758,7 @@ const ultimate = {
 
       // Process cost calculator data
       var costCalculatorData = this.getVersion1_0CostCalculator(
-        oldUltimateCostCalculatorValues
+        oldUltimateCostCalculatorValues,
       );
       if (!costCalculatorData || !costCalculatorData.success) {
         return costCalculatorData;
@@ -696,7 +787,7 @@ const ultimate = {
 
       if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
         console.log(
-          `EXPORT sheet not found in old ultimate weapons spreadsheet`
+          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
         );
         return {
           success: false,
@@ -740,7 +831,7 @@ const ultimate = {
 
       // Process ultimate weapons data
       var ultimateWeaponsData = this.getVersion1_0UltimateWeapons(
-        oldUltimateDataValues
+        oldUltimateDataValues,
       );
       if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
         return ultimateWeaponsData;
@@ -748,7 +839,7 @@ const ultimate = {
 
       // Process cost calculator data
       var costCalculatorData = this.getVersion1_0CostCalculator(
-        oldUltimateCostCalculatorValues
+        oldUltimateCostCalculatorValues,
       );
       if (!costCalculatorData || !costCalculatorData.success) {
         return costCalculatorData;
@@ -771,6 +862,82 @@ const ultimate = {
 
   // #endregion
   // #region Get Ultimate Weapons
+  getVersion3_1UltimateWeapons: function (oldUltimateDataValues) {
+    try {
+      console.log("Called: ultimate.getVersion3_1UltimateWeapons");
+      var targetWeapons = [
+        "Chain Lightning",
+        "Smart Missiles",
+        "Death Wave",
+        "Chrono Field",
+        "Inner Land Mines",
+        "Golden Tower",
+        "Poison Swamp",
+        "Black Hole",
+        "Spotlight",
+      ];
+
+      var oldUltimateLevels = oldUltimateDataValues.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== "",
+        ),
+      );
+
+      var oldUltimate = {};
+      for (var row = 0; row < oldUltimateLevels.length; row++) {
+        var weaponName = oldUltimateLevels[row][0];
+        // Process only weapons that are in our targetWeapons list
+        if (weaponName && targetWeapons.includes(weaponName)) {
+          var unlocked = oldUltimateLevels[row + 2][0];
+          var weapon = {
+            unlocked: unlocked,
+          };
+
+          for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
+            var nextRowData = oldUltimateLevels[nextRow];
+            if (nextRow !== row && targetWeapons.includes(nextRowData[0])) {
+              row = nextRow - 1;
+              break;
+            }
+            var key = nextRowData[2];
+            if (!key) {
+              continue;
+            }
+            var level = nextRowData[4];
+            var target = nextRowData[5];
+            if (level) {
+              if (!weapon.hasOwnProperty("levels")) {
+                weapon.levels = {};
+              }
+              weapon.levels[key] = level;
+            }
+            if (target) {
+              if (!weapon.hasOwnProperty("targets")) {
+                weapon.targets = {};
+              }
+              weapon.targets[key] = target;
+            }
+          }
+          oldUltimate[weaponName] = weapon;
+        }
+      }
+
+      return {
+        success: true,
+        "Ultimate Weapon": oldUltimate,
+      };
+    } catch (error) {
+      console.log("Error in getVersion3_1UltimateWeapons: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion3_1UltimateWeapons: " + error.message,
+      };
+    }
+  },
+
   getVersion2_0UltimateWeapons: function (oldUltimateDataValues) {
     try {
       console.log("Called: ultimate.getVersion2_0UltimateWeapons");
@@ -791,8 +958,8 @@ const ultimate = {
           (cell) =>
             cell !== null &&
             cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
+            String(cell || "").trim() !== "",
+        ),
       );
 
       var oldUltimate = {};
@@ -803,7 +970,6 @@ const ultimate = {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
             unlocked: unlocked,
-            props: {},
           };
 
           for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
@@ -815,7 +981,10 @@ const ultimate = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              weapon.props[key] = value;
+              if (!weapon.hasOwnProperty("levels")) {
+                weapon.levels = {};
+              }
+              weapon.levels[key] = value;
             }
           }
           oldUltimate[weaponName] = weapon;
@@ -855,8 +1024,8 @@ const ultimate = {
           (cell) =>
             cell !== null &&
             cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
+            String(cell || "").trim() !== "",
+        ),
       );
 
       var oldUltimate = {};
@@ -867,7 +1036,6 @@ const ultimate = {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
             unlocked: unlocked,
-            props: {},
           };
 
           for (nextRow = row; nextRow < oldUltimateLevels.length; nextRow++) {
@@ -891,7 +1059,10 @@ const ultimate = {
                   .padStart(2, "0");
                 value = modifiedFirstTwo + valueStr.substring(2);
               }
-              weapon.props[key] = value;
+              if (!weapon.hasOwnProperty("levels")) {
+                weapon.levels = {};
+              }
+              weapon.levels[key] = value;
             }
           }
           oldUltimate[weaponName] = weapon;
@@ -1004,7 +1175,7 @@ const ultimate = {
                   subName === "" ||
                   (subRowData[weaponColIndex] &&
                     targetWeapons.includes(
-                      subRowData[weaponColIndex].toString().trim()
+                      subRowData[weaponColIndex].toString().trim(),
                     ))
                 ) {
                   break;
@@ -1080,6 +1251,7 @@ const ultimate = {
     return {
       "v1.0": this.version1_0.bind(this),
       "v2.0": this.version2_0.bind(this),
+      "v3.1": this.version3_1.bind(this),
     };
   },
 
