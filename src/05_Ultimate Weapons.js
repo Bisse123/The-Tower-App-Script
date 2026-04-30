@@ -617,9 +617,9 @@ const ultimate = {
 
   // #endregion
   // #region Convert Versions
-  version3_1: function () {
+  version3_1_1: function () {
     try {
-      console.log("Called: ultimate.version3_1");
+      console.log("Called: ultimate.version3_1_1");
       var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
       var oldSheetID = oldSpreadsheet.spreadsheetId;
 
@@ -668,7 +668,7 @@ const ultimate = {
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
       // Process ultimate weapons data
-      var ultimateWeaponsData = this.getVersion3_1UltimateWeapons(
+      var ultimateWeaponsData = this.getVersion3_1_1UltimateWeapons(
         oldUltimateDataValues,
       );
       if (!ultimateWeaponsData || !ultimateWeaponsData.success) {
@@ -690,10 +690,10 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version3_1: " + error.toString());
+      console.log("Error in version3_1_1: " + error.toString());
       return {
         success: false,
-        message: "Error in version3_1: " + error.message,
+        message: "Error in version3_1_1: " + error.message,
       };
     }
   },
@@ -862,9 +862,9 @@ const ultimate = {
 
   // #endregion
   // #region Get Ultimate Weapons
-  getVersion3_1UltimateWeapons: function (oldUltimateDataValues) {
+  getVersion3_1_1UltimateWeapons: function (oldUltimateDataValues) {
     try {
-      console.log("Called: ultimate.getVersion3_1UltimateWeapons");
+      console.log("Called: ultimate.getVersion3_1_1UltimateWeapons");
       var targetWeapons = [
         "Chain Lightning",
         "Smart Missiles",
@@ -930,10 +930,10 @@ const ultimate = {
         "Ultimate Weapon": oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion3_1UltimateWeapons: " + error.toString());
+      console.log("Error in getVersion3_1_1UltimateWeapons: " + error.toString());
       return {
         success: false,
-        message: "Error in getVersion3_1UltimateWeapons: " + error.message,
+        message: "Error in getVersion3_1_1UltimateWeapons: " + error.message,
       };
     }
   },
@@ -1251,7 +1251,7 @@ const ultimate = {
     return {
       "v1.0": this.version1_0.bind(this),
       "v2.0": this.version2_0.bind(this),
-      "v3.1": this.version3_1.bind(this),
+      "v3.1.1": this.version3_1_1.bind(this),
     };
   },
 

@@ -1328,7 +1328,7 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1UltimateWeapons(ultimateValues);
+          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
         var costCalculatorData = ultimate.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
