@@ -426,13 +426,13 @@ const ePaths = {
         }
       }
 
-      if (oldData.hasOwnProperty("CLDamage")) {
-        var cLDamageValue = oldData.CLDamage;
-        batchUpdate.push({
-          range: `${sheetName}!AM149`,
-          values: [[cLDamageValue]],
-        });
-      }
+      // if (oldData.hasOwnProperty("CLDamage")) {
+      //   var cLDamageValue = oldData.CLDamage;
+      //   batchUpdate.push({
+      //     range: `${sheetName}!AM149`,
+      //     values: [[cLDamageValue]],
+      //   });
+      // }
 
       for (var row = 0; row < eDamageData.length; row++) {
         for (var column = 0; column < eDamageData[row].length; column++) {
