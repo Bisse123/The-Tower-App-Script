@@ -614,6 +614,39 @@
     // Execute the actual template copying in parallel
     var copyResponses = await Promise.all(
       templates.map(function (template) {
+        if (
+          effectivePathsID &&
+          template &&
+          template.templateID === effectivePathsID
+        ) {
+          return new Promise(function (resolve) {
+            google.script.run
+              .withSuccessHandler(function (result) {
+                resolve({
+                  success: !!(result && result.success),
+                  result: result,
+                  sheetType: template.sheetType || "Effective Paths",
+                  templateID: template.templateID,
+                  templateVersion: template.templateVersion || "",
+                });
+              })
+              .withFailureHandler(function (error) {
+                resolve({
+                  success: false,
+                  result: null,
+                  error: error,
+                  sheetType: template.sheetType || "Effective Paths",
+                  templateID: template.templateID,
+                  templateVersion: template.templateVersion || "",
+                });
+              })
+              .moveGetStartedFileToFolder(
+                template.templateID,
+                parentFolderID || "",
+              );
+          });
+        }
+
         return copyGetStartedTemplateAsync(template, parentFolderID);
       }),
     );
@@ -827,18 +860,31 @@
     var failedCopies = [];
 
     copyResponses.forEach(function (response) {
-      if (response.success) {
+      if (response.success && response.result && response.result.fileId) {
+        var createdFileName =
+          response.result.fileName ||
+          response.result.name ||
+          `${response.sheetType}`;
+        var createdFileUrl = response.result.fileUrl;
+        if (!createdFileUrl && response.result.fileId) {
+          createdFileUrl =
+            "https://docs.google.com/spreadsheets/d/" +
+            response.result.fileId +
+            "/edit";
+        }
         createdFiles.push({
           sheetType: response.sheetType,
           fileId: response.result.fileId,
-          fileName: response.result.fileName || `Copy of ${response.sheetType}`,
-          fileUrl: response.result.fileUrl,
+          fileName: createdFileName,
+          fileUrl: createdFileUrl,
         });
         return;
       }
 
       var errorMessage = "Unknown error";
-      if (response.result && response.result.message) {
+      if (response.success && (!response.result || !response.result.fileId)) {
+        errorMessage = "Missing file ID from template operation.";
+      } else if (response.result && response.result.message) {
         errorMessage = response.result.message;
       } else if (response.error) {
         errorMessage = response.error.message || String(response.error);
@@ -1017,9 +1063,21 @@
 
     var copyMode = modeSelect.value || "master-and-subsheets";
     getStartedLastCopyMode = copyMode;
+
+    var templates = [];
     var effectivePaths = GET_STARTED_TEMPLATE_CONFIG["effective-paths"] || [];
+
+    if (effectivePathsID) {
+      templates.push({
+        sheetType: "Effective Paths",
+        templateID: effectivePathsID,
+      });
+    } else if (effectivePaths.length > 0) {
+      templates = templates.concat(effectivePaths);
+    }
+
     var selectedTemplates = GET_STARTED_TEMPLATE_CONFIG[copyMode] || [];
-    var templates = effectivePaths.concat(selectedTemplates);
+    templates = templates.concat(selectedTemplates);
 
     if (!templates || templates.length === 0) {
       setStatusText("Invalid copy mode selected.");

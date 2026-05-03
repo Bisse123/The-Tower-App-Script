@@ -1148,10 +1148,10 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
       };
     }
 
-    parents["addParents"] = oldFile.parents.join(",");
+    parents.addParents = oldFile.parents.join(",");
 
     if (typeof newFile.parents != "undefined") {
-      parents["removeParents"] = newFile.parents.join(",");
+      parents.removeParents = newFile.parents.join(",");
     }
 
     try {
@@ -2227,6 +2227,69 @@ function copyFileTemplate(
       copyUrl: templateID
         ? "https://docs.google.com/spreadsheets/d/" + templateID + "/copy"
         : "",
+    };
+  }
+}
+
+function moveGetStartedFileToFolder(fileId, parentFolderID) {
+  try {
+    if (!fileId) {
+      return { success: false, message: "Missing fileId parameter." };
+    }
+    if (!parentFolderID) {
+      return { success: false, message: "Missing parentFolderID parameter." };
+    }
+
+    var file = CacheManager.getFile(fileId);
+    if (!file) {
+      return {
+        success: false,
+        message: `File not found for ID: ${fileId}`,
+      };
+    }
+
+    var versionInfo = shared.findSheetVersion(
+      fileId,
+      "Home Page",
+      "Effective Paths",
+    );
+    var versionLabel =
+      versionInfo && versionInfo.currentVersion
+        ? String(versionInfo.currentVersion).trim()
+        : "";
+    var newFileName = "Effective Paths";
+    if (versionLabel) {
+      newFileName = `${newFileName} ${versionLabel}`.trim();
+    }
+
+    var removeParents = "";
+    if (file.parents && file.parents.length > 0) {
+      removeParents = file.parents.join(",");
+    }
+
+    var parents = {
+      addParents: parentFolderID,
+    };
+    if (removeParents) {
+      parents.removeParents = removeParents;
+    }
+
+    Drive.Files.update({ name: newFileName }, fileId, null, parents);
+
+    return {
+      success: true,
+      message: "File moved to Get Started folder.",
+      fileId: fileId,
+      fileName: newFileName,
+      fileUrl: `https://docs.google.com/spreadsheets/d/${fileId}/edit`,
+    };
+  } catch (error) {
+    console.error(
+      `Error moving Get Started file (${fileId}): ${error.toString()}`,
+    );
+    return {
+      success: false,
+      message: `Error moving file: ${error.toString()}`,
     };
   }
 }
