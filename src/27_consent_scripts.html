@@ -110,12 +110,14 @@
   function openAddonConsentDialog(authorizationUrl) {
     google.script.run
       .withSuccessHandler(() => {
-        setStatusWithSpinner("Consent dialog opened. Waiting for permissions...");
+        setStatusWithSpinner(
+          "Consent dialog opened. Waiting for permissions...",
+        );
       })
       .withFailureHandler((error) => {
         console.error("Unable to open add-on consent dialog:", error);
         setStatusText(
-          `Unable to open consent dialog: ${error.message || error}`
+          `Unable to open consent dialog: ${error.message || error}`,
         );
       })
       .showAddonConsentDialog(authorizationUrl || "");
@@ -156,7 +158,7 @@
       setConsentRecheckButtonVisible(true);
       setConsentModalStatus(
         CONSENT_BADGE_MANUAL_RECHECK,
-        CONSENT_MESSAGE_MANUAL_RECHECK
+        CONSENT_MESSAGE_MANUAL_RECHECK,
       );
       return;
     }
@@ -170,13 +172,10 @@
   }
 
   function showConsentModal(authorizationUrl) {
-    const { modalBackground, authorizeLink, recheckButton } = getConsentElements();
+    const { modalBackground, authorizeLink, recheckButton } =
+      getConsentElements();
 
-    if (
-      !modalBackground ||
-      !authorizeLink ||
-      !recheckButton
-    ) {
+    if (!modalBackground || !authorizeLink || !recheckButton) {
       console.error("Consent modal elements not found.");
       return;
     }
@@ -185,8 +184,10 @@
       authorizeLink.addEventListener("click", onConsentAuthorizeLinkClick);
       consentAuthorizeLinkHandlerAttached = true;
     }
-    
-    const hasAuthorizationUrl = Boolean(authorizationUrl && authorizationUrl !== "#");
+
+    const hasAuthorizationUrl = Boolean(
+      authorizationUrl && authorizationUrl !== "#",
+    );
 
     if (hasAuthorizationUrl) {
       authorizeLink.href = authorizationUrl;
@@ -203,7 +204,7 @@
     } else {
       setConsentModalStatus(
         CONSENT_BADGE_MANUAL_RECHECK,
-        CONSENT_MESSAGE_MANUAL_RECHECK
+        CONSENT_MESSAGE_MANUAL_RECHECK,
       );
       setConsentAuthorizeLinkDisabled(true);
       setConsentRecheckButtonVisible(true);
@@ -274,7 +275,10 @@
 
     setConsentAuthorizeLinkDisabled(false);
     setConsentRecheckButtonVisible(true);
-    setConsentModalStatus(CONSENT_BADGE_MANUAL_RECHECK, CONSENT_MESSAGE_MANUAL_RECHECK);
+    setConsentModalStatus(
+      CONSENT_BADGE_MANUAL_RECHECK,
+      CONSENT_MESSAGE_MANUAL_RECHECK,
+    );
 
     if (recheckAuthorizationButton) {
       recheckAuthorizationButton.disabled = false;
@@ -348,7 +352,7 @@
 
       if (!recovery || !recovery.success) {
         setStatusText(
-          `Unable to load update details: ${(recovery && recovery.message) || "Unknown error"}`
+          `Unable to load update details: ${(recovery && recovery.message) || "Unknown error"}`,
         );
         return false;
       }
@@ -359,11 +363,11 @@
       sheetType = recovery.sheetType || "";
 
       const recoveredContextIsValid = Boolean(
-        sheetType && (newSheetID || oldSheetID || idMasterID)
+        sheetType && (newSheetID || oldSheetID || idMasterID),
       );
       if (!recoveredContextIsValid) {
         setStatusText(
-          "Update details are incomplete. Please close and click Update Sheet again."
+          "Update details are incomplete. Please close and click Update Sheet again.",
         );
         return false;
       }
@@ -433,7 +437,7 @@
     return true;
   }
 
-async function authorizeGetStarted(forceTokenRefresh = false) {
+  async function authorizeGetStarted(forceTokenRefresh = false) {
     setStatusWithSpinner("Checking scope access permissions...");
 
     if (!accessToken || forceTokenRefresh) {
@@ -444,6 +448,44 @@ async function authorizeGetStarted(forceTokenRefresh = false) {
     }
 
     hideConsentModal();
+
+    if (viewType === "sidebar") {
+      try {
+        var getStartedParams = await new Promise(function (resolve, reject) {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getGetStartedParameters();
+        });
+
+        var effectivePathsTemplateId = "";
+        if (
+          typeof GET_STARTED_TEMPLATE_CONFIG !== "undefined" &&
+          GET_STARTED_TEMPLATE_CONFIG["effective-paths"] &&
+          GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0] &&
+          GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0].templateID
+        ) {
+          effectivePathsTemplateId =
+            GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0].templateID;
+        }
+
+        if (
+          getStartedParams &&
+          getStartedParams.success &&
+          getStartedParams.sheetId &&
+          effectivePathsTemplateId &&
+          getStartedParams.sheetId !== effectivePathsTemplateId
+        ) {
+          effectivePathsID = getStartedParams.sheetId;
+        } else {
+          effectivePathsID = "";
+        }
+      } catch (error) {
+        console.error("Error loading Get Started parameters:", error);
+        effectivePathsID = "";
+      }
+    }
+
     continueGetStarted();
     return true;
   }

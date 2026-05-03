@@ -67,6 +67,10 @@ function doGet(e) {
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     getStartedTemplate.APP_ID =
       PropertiesService.getScriptProperties().getProperty("APP_ID");
+    var effectivePathsID = RegExp("^[a-zA-Z0-9-_]{44}$").test(params.effectivePathsID || "")
+       ? params.effectivePathsID
+       : "";
+    getStartedTemplate.effectivePathsID = effectivePathsID;
     getStartedTemplate.viewType = "webapp";
     return getStartedTemplate
       .evaluate()
@@ -152,6 +156,7 @@ function showGetStartedDialog() {
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     template.APP_ID =
       PropertiesService.getScriptProperties().getProperty("APP_ID");
+    template.effectivePathsID = "";
     template.viewType = "sidebar";
     var html = template
       .evaluate()
@@ -367,6 +372,41 @@ function consumeAddonConsentReadySignal() {
 
   userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
   return true;
+}
+
+function getGetStartedParameters() {
+  try {
+    var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    if (!activeSpreadsheet) {
+      throw new Error("Active spreadsheet not found.");
+    }
+
+    var hasEffectivePathsSheet = Boolean(
+      activeSpreadsheet.getSheetByName("eHP") ||
+        activeSpreadsheet.getSheetByName("eDamage") ||
+        activeSpreadsheet.getSheetByName("eEcon")
+    );
+
+    if (!hasEffectivePathsSheet) {
+      return {
+        success: false,
+        sheetId: "",
+        message: "Effective Paths sheets not found in active spreadsheet.",
+      };
+    }
+
+    return {
+      success: true,
+      sheetId: activeSpreadsheet.getId(),
+    };
+  } catch (error) {
+    console.log(`Error in getGetStartedParameters: ${error.message || error}`);
+    return {
+      success: false,
+      sheetId: "",
+      message: error.message || error.toString(),
+    };
+  }
 }
 
 function getUpdateDialogParameters() {
