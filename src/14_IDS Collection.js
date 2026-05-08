@@ -47,7 +47,7 @@
       }
       var newSheetID = newSpreadsheet.spreadsheetId;
 
-      // Define DVT named ranges for each module
+      // Define DVT named ranges for each Ultimate Weapon, Bot, Module, and Guardian
       var dvtNamedRangesUW = {
         "Chain Lightning": {
           Damage: "DVT_UW_UG_CL_DMG",
