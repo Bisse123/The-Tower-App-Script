@@ -709,8 +709,11 @@ const shared = {
 
   compareVersions: function (oldVersion, newVersion) {
     function parseVersion(v) {
-      v = v.replace(/[^\d.]/g, "");
-      return v.split(".").map(Number);
+      var match = String(v || "").match(/\d+(?:\.\d+)*/);
+      if (!match) {
+        return [];
+      }
+      return match[0].split(".").map(Number);
     }
 
     var oldParts = parseVersion(oldVersion || "");
