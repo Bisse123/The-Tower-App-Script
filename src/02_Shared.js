@@ -1202,6 +1202,100 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
   }
 }
 
+function moveConvertedSheet(sheetType, newSheetID, oldCollectionID) {
+  try {
+    var newSpreadsheet = spreadsheets(
+      `${sheetType} newSpreadsheet`,
+      newSheetID,
+    );
+    if (!newSpreadsheet) {
+      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
+      return {
+        success: false,
+        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
+      };
+    }
+
+    var newFile = CacheManager.getFile(newSheetID);
+    var collectionFile = CacheManager.getFile(oldCollectionID);
+    if (!newFile || !collectionFile) {
+      console.log(`Could not retrieve file information for new sheet.`);
+      return {
+        success: false,
+        message: `Could not retrieve file information for new sheet™.`,
+      };
+    }
+
+    var newVersionInfo = shared.findSheetVersion(
+      newSheetID,
+      "Home Page",
+      sheetType,
+    );
+    var newVersion = newVersionInfo && newVersionInfo.currentVersion
+      ? newVersionInfo.currentVersion
+      : "";
+
+    var collectionName = collectionFile.name || "";
+    var newFileName = collectionName.replace("IDS Collection", sheetType);
+    
+    if (newVersion) {
+      var existingVersion = newFileName.match(/[vV]\d+(?:.\d+)*/g);
+      if (existingVersion && existingVersion.length > 0) {
+        newFileName = newFileName.replace(existingVersion[0], newVersion);
+      } else {
+        newFileName = `${newFileName} ${newVersion}`;
+      }
+    }
+
+    if (typeof collectionFile.parents == "undefined") {
+      console.log(`Could not find old collection file location.`);
+      return {
+        success: false,
+        message: `Could not find old collection file location.`,
+      };
+    }
+
+    var parents = {
+      addParents: collectionFile.parents.join(","),
+    };
+    if (typeof newFile.parents != "undefined") {
+      parents.removeParents = newFile.parents.join(",");
+    }
+
+    try {
+      Drive.Files.update(
+        {
+          name: newFileName,
+        },
+        newSheetID,
+        null,
+        parents,
+      );
+    } catch (error) {
+      console.log(`Error moving new sheet: ${error.toString()}`);
+      return {
+        success: false,
+        message: `Error moving new sheet™: ${error.toString()}`,
+      };
+    }
+
+    CacheManager.RemoveSpreadsheet(`${sheetType} newSpreadsheet`);
+    CacheManager.RemoveFile(newSheetID);
+
+    return {
+      success: true,
+      message: "new sheet™ moved and renamed",
+      newName: newFileName,
+    };
+  } catch (error) {
+    console.log(`Error in moveConvertedSheet: ${error.toString()}`);
+    return {
+      success: false,
+      message: error.toString(),
+    };
+  }
+}
+
 function updateIdsMaster(idMasterID, idDataEntries) {
   var idsMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
   if (!idsMasterSpreadsheet) {
@@ -1288,6 +1382,57 @@ function updateIdsMaster(idMasterID, idDataEntries) {
   }
 }
 
+function compareSheetVersions(sheetID, sheetType) {
+  var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, sheetID);
+  if (!spreadsheet) {
+    console.log(`Spreadsheet not found with ID: ${sheetID}`);
+    return {
+      success: false,
+      message: `Spreadsheet™ not found with ID: ${sheetID}`,
+    };
+  }
+  var homePageSheet = SheetsAPI.getSheetByName(spreadsheet, "Home Page");
+  if (!homePageSheet) {
+    console.log(`Home Page sheet not found in spreadsheet`);
+    return {
+      success: false,
+      message: `Home Page sheet™ not found in spreadsheet™`,
+    };
+  }
+  // CacheManager.RemoveSpreadsheet(`${sheetType} spreadsheet`);
+  var homePageData = SheetsAPI.batchGetValues(sheetID, ["Home Page"]);
+  if (!homePageData || homePageData.length === 0) {
+    console.log(`Could not fetch Home Page data from sheet`);
+    return {
+      success: false,
+      message: `Could not fetch Home Page data from sheet`,
+    };
+  }
+  var homePageValues = homePageData[0].values;
+  var versionInfo = shared.findSheetVersion(
+    sheetID,
+    "Home Page",
+    sheetType,
+    homePageValues,
+  );
+  if (!versionInfo || !versionInfo.currentVersion || !versionInfo.latestVersion) {
+    console.log(`Could not find complete version information in Home Page sheet`);
+    return {
+      success: false,
+      message: `Could not find complete version information in Home Page sheet™`,
+    };
+  }
+  var comparisonResult = shared.compareVersions(
+    versionInfo.currentVersion,
+    versionInfo.latestVersion,
+  );
+  return {
+    success: true,
+    currentVersion: versionInfo.currentVersion,
+    latestVersion: versionInfo.latestVersion,
+    comparisonResult: comparisonResult,
+  };
+}
 function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
   try {
     var newSpreadsheet = spreadsheets(
@@ -1609,7 +1754,7 @@ function checkSheetAccess(sheetID, userEmail) {
 
     try {
       const file = CacheManager.getFile(sheetID);
-
+      const parentFolderID = file.parents && file.parents.length > 0 ? file.parents[0] : null;
       const owners = file.owners || [];
       const isOwner = owners.some(
         (owner) =>
@@ -1624,6 +1769,7 @@ function checkSheetAccess(sheetID, userEmail) {
         owned: isOwner,
         sheetID: sheetID,
         name: file.name,
+        parentFolderID: parentFolderID,
       };
     } catch (error) {
       console.log(`Sheet access denied for ${sheetID}: ${error.toString()}`);
@@ -2166,7 +2312,7 @@ function copyFileTemplate(
   parentFolderID,
 ) {
   try {
-    var resolvedTemplateVersion = templateVersion || "";
+    var resolvedTemplateVersion = templateVersion && templateVersion !== "undefined" ? String(templateVersion).trim() : "";
     var fileName = `Copy of ${sheetType} ${resolvedTemplateVersion}`.trim();
     var templateCopyUrl = `https://docs.google.com/spreadsheets/d/${templateID}/copy`;
     var copyRequest = { name: fileName };
@@ -2501,7 +2647,7 @@ function deleteOldSheet(sheetID) {
       };
     }
 
-    Drive.Files.trash(sheetID);
+    Drive.Files.update({ trashed: true }, sheetID);
 
     console.log(`Successfully deleted sheet: ${fileInfo.name} (${sheetID})`);
     return {
