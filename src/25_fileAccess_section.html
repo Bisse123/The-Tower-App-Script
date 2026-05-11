@@ -13,22 +13,6 @@
     Grant Access to Files
   </button>
   <button
-    id="copyButton"
-    onclick="copyTemplates('all')"
-    style="display: none"
-    disabled
-  >
-    Update All Subsheets
-  </button>
-  <button
-    id="copyUpdateButton"
-    onclick="copyTemplates('update')"
-    style="display: none"
-    disabled
-  >
-    Update Subsheets with new versions
-  </button>
-  <button
     id="importButton"
     onclick="importData()"
     style="display: none"
@@ -53,12 +37,12 @@
     Update Single Sheet
   </button>
   <button
-    id="updateMasterOnlyButton"
-    onclick="updateIDSMasterOnly()"
+    id="updateMasterAndSubsheetsButton"
+    onclick="updateMasterAndSubsheets()"
     style="display: none"
     disabled
   >
-    📄 Update IDS Master Only
+    Update IDS Master & Subsheets
   </button>
   <button
     id="updateSubsheetsOnlyButton"
@@ -66,14 +50,46 @@
     style="display: none"
     disabled
   >
-    📋 Update Subsheets Only
+    Update Subsheets
   </button>
   <button
-    id="updateMasterAndSubsheetsButton"
-    onclick="updateMasterAndSubsheets()"
+    id="convertToMasterButton"
+    onclick="convertToMaster()"
     style="display: none"
     disabled
   >
-    🔄 Update Master & Subsheets
+    Convert to IDS Master
   </button>
+  <button
+    id="convertToCollectionButton"
+    onclick="convertToCollection()"
+    style="display: none"
+    disabled
+  >
+    Convert to Collection
+  </button>
+  <!-- <button
+    id="updateMasterOnlyButton"
+    onclick="updateIDSMasterOnly()"
+    style="display: none"
+    disabled
+  >
+    Update IDS Master Only
+  </button>
+  <button
+    id="copyButton"
+    onclick="copyTemplates('all')"
+    style="display: none"
+    disabled
+  >
+    Update All Subsheets
+  </button>
+  <button
+    id="copyUpdateButton"
+    onclick="copyTemplates('update')"
+    style="display: none"
+    disabled
+  >
+    Update Subsheets with new versions
+  </button> -->
 </div>

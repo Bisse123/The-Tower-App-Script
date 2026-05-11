@@ -1001,9 +1001,9 @@
       }
 
       // Player updates
-      if (data.Player) {
+      if (data["Player & Stuff"]) {
         try {
-          var playerData = data.Player;
+          var playerData = data["Player & Stuff"];
           var playerMasterSheetData = getRangeData("player_MS", "values");
           var playerSuccess = true;
           var playerMessages = [];
@@ -1521,7 +1521,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -1919,7 +1919,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -2317,7 +2317,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -2715,7 +2715,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -3116,7 +3116,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -3517,7 +3517,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -3918,7 +3918,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -4321,7 +4321,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -4721,7 +4721,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {
@@ -5107,7 +5107,7 @@
           oldPlayerStuffTierData: playerTierData.oldPlayerStuffTierData,
           oldPlayerStuffStatsData: playerStatData.oldPlayerStuffStatsData,
         };
-        collectedData.Player = playerData;
+        collectedData["Player & Stuff"] = playerData;
       }
 
       return {

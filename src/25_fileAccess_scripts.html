@@ -17,7 +17,15 @@
     openMultiFilePicker();
   }
 
-  function importData() {
+  function runAppsScript(method, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)[method](...args);
+    });
+  }
+
+  async function importData() {
     document.getElementById("importButton").disabled = true;
     document.getElementById("moveSheetButton").disabled = true;
     if (
@@ -31,27 +39,108 @@
         (exportedFilesFailed || []).length;
       if (totalAvailableFiles === 0) {
         setStatusText(
-          "No copied sheets available for import. Please copy templates first."
+          "No copied sheets available for import. Please copy templates first.",
         );
         return;
       }
 
+      if (isConvertToMasterFlow) {
+        setStatusWithSpinner("Exporting IDS Collection data...");
+        let exportResult;
+        try {
+          exportResult = await runAppsScript(
+            "exportData",
+            oldSheetID,
+            "IDS Collection",
+            versionDifference,
+          );
+        } catch (error) {
+          document.getElementById("importButton").disabled = false;
+          console.error("Export error:", error);
+          setStatusText(`Export error: ${error.message || error}`);
+          return;
+        }
+
+        if (!exportResult || !exportResult.success) {
+          document.getElementById("importButton").disabled = false;
+          setStatusText(
+            `Export failed: ${
+              exportResult?.message || "Unknown export error"
+            }`,
+          );
+          return;
+        }
+
+        const collectionData = exportResult.data || {};
+        const allTemplateFiles = (copiedTemplateFiles || [])
+          .concat(importedFilesFailed || [])
+          .concat(exportedFilesFailed || []);
+
+        copiedTemplateFiles = [];
+        importedFilesFailed = [];
+        exportedFilesFailed = [];
+        exportedFilesSuccess = [];
+
+        allTemplateFiles.forEach((file) => {
+          const exportData = collectionData[file.sheetType];
+
+          if (exportData !== undefined) {
+            exportedFilesSuccess.push({
+              ...file,
+              exportData: exportData,
+              sheetVisibility: exportResult.sheetVisibility,
+            });
+          } else {
+            exportedFilesFailed.push({
+              ...file,
+              error: `No IDS Collection export data for ${file.sheetType}`,
+            });
+          }
+        });
+
+        if (exportedFilesSuccess.length === 0) {
+          document.getElementById("importButton").disabled = false;
+          setStatusText(
+            "No data was successfully exported. Cannot proceed with import.",
+          );
+          displayOperationResults();
+          return;
+        }
+
+        const importTasks = exportedFilesSuccess.map((file) => ({
+          newSheetID: file.fileId,
+          sheetType: file.sheetType,
+        }));
+
+        setStatusWithSpinner(
+          `Importing data into ${importTasks.length} sheets...`,
+        );
+        await importAllData(importTasks);
+        return;
+      }
+
+      const exportSourceLabel = isConvertToMasterFlow
+        ? "IDS Collection"
+        : "IDS Master";
       setStatusWithSpinner(
-        `Preparing import for ${totalAvailableFiles} sheets...`
+        `Preparing import from ${exportSourceLabel} for ${totalAvailableFiles} sheets...`,
       );
 
-      google.script.run
-        .withSuccessHandler(onprepareImportDataSuccess)
-        .withFailureHandler(onprepareImportDataFailure)
-        .prepareImportData(
+      try {
+        const prepareResult = await runAppsScript(
+          "prepareImportData",
           oldSheetID,
           copiedTemplateFiles || [],
           importedFilesFailed || [],
-          exportedFilesFailed || []
+          exportedFilesFailed || [],
         );
+        await onprepareImportDataSuccess(prepareResult);
+      } catch (error) {
+        onprepareImportDataFailure(error);
+      }
       return;
     }
-    if (sheetType === "IDS Collection" && versionDifference === "None") {
+    if (sheetType === "IDS Collection" && isConvertToCollectionFlow) {
       setStatusWithSpinner("Preparing import for sheet...");
       const sheetTypes = [
         "Laboratory",
@@ -72,137 +161,141 @@
           fileId: newSheetID,
         });
       });
-      google.script.run
-        .withSuccessHandler(async function (result) {
-          console.log("Import preparation result:", result);
+      let result;
+      try {
+        result = await runAppsScript(
+          "prepareImportData",
+          oldSheetID,
+          copiedTemplateFiles,
+        );
+      } catch (error) {
+        document.getElementById("importButton").disabled = false;
+        console.error("Import preparation failed:", error);
+        setStatusText(`Import preparation error: ${error.message || error}`);
+        return;
+      }
 
-          if (!result.succeededTasks || result.succeededTasks.length === 0) {
-            document.getElementById("importButton").disabled = false;
+      console.log("Import preparation result:", result);
 
-            // Show generic message in status text
-            const statusMessage =
-              result.failedTasks && result.failedTasks.length > 0
-                ? "Import preparation failed for all tasks."
-                : "No valid import tasks prepared.";
-            setStatusText(statusMessage);
+      if (!result.succeededTasks || result.succeededTasks.length === 0) {
+        document.getElementById("importButton").disabled = false;
 
-            // Show detailed error messages for each failed task in the summary
-            if (result.failedTasks && result.failedTasks.length > 0) {
-              let summaryHtml =
-                "<strong>❌ Import Preparation Failed:</strong><br>";
-              result.failedTasks.forEach((task) => {
-                summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
-              });
-              document.getElementById("selectedFileSummary").innerHTML =
-                summaryHtml;
-            }
-            return;
-          }
+        const statusMessage =
+          result.failedTasks && result.failedTasks.length > 0
+            ? "Import preparation failed for all tasks."
+            : "No valid import tasks prepared.";
+        setStatusText(statusMessage);
 
-          if (result.failedTasks && result.failedTasks.length > 0) {
-            console.warn(
-              `${result.failedTasks.length} tasks failed during preparation:`,
-              result.failedTasks
-            );
-          }
+        if (result.failedTasks && result.failedTasks.length > 0) {
+          let summaryHtml =
+            "<strong>❌ Import Preparation Failed:</strong><br>";
+          result.failedTasks.forEach((task) => {
+            summaryHtml += `&nbsp;&nbsp;• ${task.sheetType}: ${task.message}<br>`;
+          });
+          document.getElementById("selectedFileSummary").innerHTML =
+            summaryHtml;
+        }
+        return;
+      }
 
-          try {
-            // First, export all data
-            setStatusWithSpinner(
-              `Exporting data from ${result.succeededTasks.length} sheets...`
-            );
-            const exportResults = await exportAllData(result.succeededTasks);
+      if (result.failedTasks && result.failedTasks.length > 0) {
+        console.warn(
+          `${result.failedTasks.length} tasks failed during preparation:`,
+          result.failedTasks,
+        );
+      }
 
-            console.log("Export results:", exportResults);
+      try {
+        setStatusWithSpinner(
+          `Exporting data from ${result.succeededTasks.length} sheets...`,
+        );
+        const exportResults = await exportAllData(result.succeededTasks);
 
-            if (exportResults.failedCount > 0) {
-              console.warn(
-                `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`
-              );
-            }
+        console.log("Export results:", exportResults);
 
-            // Check if we have any successful exports to import
-            if (exportedFilesSuccess.length === 0) {
-              document.getElementById("importButton").disabled = false;
-              setStatusText(
-                "No data was successfully exported. Cannot proceed with import."
-              );
-              return;
-            }
-            // Create nested dictionary structure where each sheet type has its own data dictionary
-            const exportedData = {};
-            const sheetVisibilityData = {};
-            exportedFilesSuccess.forEach((exportedFile) => {
-              if (exportedFile.exportData && exportedFile.sheetType) {
-                exportedData[exportedFile.sheetType] = exportedFile.exportData;
-                if (exportedFile.sheetVisibility) {
-                  Object.assign(
-                    sheetVisibilityData,
-                    exportedFile.sheetVisibility
-                  );
-                }
-              }
-            });
+        if (exportResults.failedCount > 0) {
+          console.warn(
+            `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`,
+          );
+        }
 
-            // Now proceed with imports
-            setStatusWithSpinner(`Importing ${sheetType} data...`);
-            google.script.run
-              .withSuccessHandler(onImportSuccess)
-              .withFailureHandler(onImportFailure)
-              .importData(
-                newSheetID,
-                sheetType,
-                exportedData,
-                sheetVisibilityData,
-                idMasterID
-              );
-          } catch (error) {
-            console.error("Error in export/import process:", error);
-            document.getElementById("importButton").disabled = false;
-            setStatusText(
-              `Error during export/import process: ${error.message || error}`
-            );
-          }
-        })
-        .withFailureHandler(function (error) {
+        if (exportedFilesSuccess.length === 0) {
           document.getElementById("importButton").disabled = false;
-          console.error("Import preparation failed:", error);
-          setStatusText(`Import preparation error: ${error.message || error}`);
-        })
-        .prepareImportData(oldSheetID, copiedTemplateFiles);
+          setStatusText(
+            "No data was successfully exported. Cannot proceed with import.",
+          );
+          return;
+        }
+
+        const exportedData = {};
+        const sheetVisibilityData = {};
+        exportedFilesSuccess.forEach((exportedFile) => {
+          if (exportedFile.exportData && exportedFile.sheetType) {
+            exportedData[exportedFile.sheetType] = exportedFile.exportData;
+            if (exportedFile.sheetVisibility) {
+              Object.assign(sheetVisibilityData, exportedFile.sheetVisibility);
+            }
+          }
+        });
+
+        setStatusWithSpinner(`Importing ${sheetType} data...`);
+        try {
+          const importResult = await runAppsScript(
+            "importData",
+            newSheetID,
+            sheetType,
+            exportedData,
+            sheetVisibilityData,
+            idMasterID,
+          );
+          await onImportSuccess(importResult);
+        } catch (error) {
+          onImportFailure(error);
+        }
+      } catch (error) {
+        console.error("Error in export/import process:", error);
+        document.getElementById("importButton").disabled = false;
+        setStatusText(
+          `Error during export/import process: ${error.message || error}`,
+        );
+      }
       return;
     }
 
     // For non-IDS Master sheets, first export data, then import it
     setStatusWithSpinner(`Exporting ${sheetType} data...`);
+    try {
+      const exportResult = await runAppsScript(
+        "exportData",
+        oldSheetID,
+        sheetType,
+        versionDifference,
+      );
+      if (exportResult.success) {
+        setStatusWithSpinner(`Importing ${sheetType} data...`);
 
-    google.script.run
-      .withSuccessHandler(function (exportResult) {
-        if (exportResult.success) {
-          setStatusWithSpinner(`Importing ${sheetType} data...`);
-
-          // Now call importData with the exported data
-          google.script.run
-            .withSuccessHandler(onImportSuccess)
-            .withFailureHandler(onImportFailure)
-            .importData(
-              newSheetID,
-              sheetType,
-              exportResult.data,
-              exportResult.sheetVisibility,
-              idMasterID
-            );
-        } else {
-          document.getElementById("importButton").disabled = false;
-          setStatusText(`Export failed: ${exportResult.message}`);
+        try {
+          const importResult = await runAppsScript(
+            "importData",
+            newSheetID,
+            sheetType,
+            exportResult.data,
+            exportResult.sheetVisibility,
+            idMasterID,
+          );
+          await onImportSuccess(importResult);
+        } catch (error) {
+          onImportFailure(error);
         }
-      })
-      .withFailureHandler(function (error) {
+      } else {
         document.getElementById("importButton").disabled = false;
-        console.error("Export error:", error);
-        setStatusText(`Export error: ${error.message || error}`);
-      })
-      .exportData(oldSheetID, sheetType, versionDifference);
+        setStatusText(`Export failed: ${exportResult.message}`);
+      }
+    } catch (error) {
+      document.getElementById("importButton").disabled = false;
+      console.error("Export error:", error);
+      setStatusText(`Export error: ${error.message || error}`);
+    }
   }
 
   async function onprepareImportDataSuccess(result) {
@@ -233,14 +326,14 @@
     if (result.failedTasks && result.failedTasks.length > 0) {
       console.warn(
         `${result.failedTasks.length} tasks failed during preparation:`,
-        result.failedTasks
+        result.failedTasks,
       );
     }
 
     try {
       // First, export all data
       setStatusWithSpinner(
-        `Exporting data from ${result.succeededTasks.length} sheets...`
+        `Exporting data from ${result.succeededTasks.length} sheets...`,
       );
       const exportResults = await exportAllData(result.succeededTasks);
 
@@ -248,7 +341,7 @@
 
       if (exportResults.failedCount > 0) {
         console.warn(
-          `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`
+          `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`,
         );
       }
 
@@ -268,14 +361,14 @@
 
       // Now proceed with imports
       setStatusWithSpinner(
-        `Importing data into ${importTasks.length} sheets...`
+        `Importing data into ${importTasks.length} sheets...`,
       );
       importAllData(importTasks);
     } catch (error) {
       console.error("Error in export/import process:", error);
       document.getElementById("importButton").disabled = false;
       setStatusText(
-        `Error during export/import process: ${error.message || error}`
+        `Error during export/import process: ${error.message || error}`,
       );
     }
   }
@@ -306,7 +399,7 @@
               if (result.success) {
                 successCount++;
                 console.log(
-                  `✅ ${task.sheetType} export completed successfully`
+                  `✅ ${task.sheetType} export completed successfully`,
                 );
 
                 // Check both arrays for the file to move to success
@@ -315,34 +408,34 @@
 
                 // First check copiedTemplateFiles
                 const copiedFileIndex = copiedTemplateFiles.findIndex(
-                  (f) => f.sheetType === task.sheetType
+                  (f) => f.sheetType === task.sheetType,
                 );
                 if (copiedFileIndex !== -1) {
                   exportedFile = copiedTemplateFiles.splice(
                     copiedFileIndex,
-                    1
+                    1,
                   )[0];
                   sourceArray = "copy failed";
                 } else {
                   // Then check exportedFilesFailed (for retry attempts)
                   const failedFileIndex = exportedFilesFailed.findIndex(
-                    (f) => f.sheetType === task.sheetType
+                    (f) => f.sheetType === task.sheetType,
                   );
                   if (failedFileIndex !== -1) {
                     exportedFile = exportedFilesFailed.splice(
                       failedFileIndex,
-                      1
+                      1,
                     )[0];
                     sourceArray = "export failed";
                   } else {
                     // Then check importedFilesFailed (for retry attempts)
                     const importedFileIndex = importedFilesFailed.findIndex(
-                      (f) => f.sheetType === task.sheetType
+                      (f) => f.sheetType === task.sheetType,
                     );
                     if (importedFileIndex !== -1) {
                       exportedFile = importedFilesFailed.splice(
                         importedFileIndex,
-                        1
+                        1,
                       )[0];
                       sourceArray = "import failed";
                     }
@@ -358,28 +451,28 @@
                     sheetVisibility: result.sheetVisibility,
                   });
                   console.log(
-                    `Moved ${task.sheetType} from ${sourceArray} to exported success`
+                    `Moved ${task.sheetType} from ${sourceArray} to exported success`,
                   );
                 } else {
                   console.warn(
-                    `Could not find ${task.sheetType} in either copiedTemplateFiles or exportedFilesFailed`
+                    `Could not find ${task.sheetType} in either copiedTemplateFiles or exportedFilesFailed`,
                   );
                 }
               } else {
                 failedCount++;
                 console.error(
                   `❌ ${task.sheetType} export failed:`,
-                  result.message
+                  result.message,
                 );
 
                 // Move failed export from copiedTemplateFiles to exportedFilesFailed
                 const copiedFileIndex = copiedTemplateFiles.findIndex(
-                  (f) => f.sheetType === task.sheetType
+                  (f) => f.sheetType === task.sheetType,
                 );
                 if (copiedFileIndex !== -1) {
                   const failedFile = copiedTemplateFiles.splice(
                     copiedFileIndex,
-                    1
+                    1,
                   )[0];
                   exportedFilesFailed.push({
                     ...failedFile,
@@ -388,18 +481,18 @@
                     idMasterID: task.idMasterID,
                   });
                   console.log(
-                    `Moved ${task.sheetType} from copied to export failed with error: ${result.message}`
+                    `Moved ${task.sheetType} from copied to export failed with error: ${result.message}`,
                   );
                 } else {
                   // File was already in exportedFilesFailed (retry attempt) - update error info
                   const failedFileIndex = exportedFilesFailed.findIndex(
-                    (f) => f.sheetType === task.sheetType
+                    (f) => f.sheetType === task.sheetType,
                   );
                   if (failedFileIndex !== -1) {
                     exportedFilesFailed[failedFileIndex].error =
                       result.message || "Export failed";
                     console.log(
-                      `Updated error for ${task.sheetType} in export failed list: ${result.message}`
+                      `Updated error for ${task.sheetType} in export failed list: ${result.message}`,
                     );
                   }
                 }
@@ -407,7 +500,7 @@
 
               // Update status
               setStatusWithSpinner(
-                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
               );
 
               resolve({
@@ -423,12 +516,12 @@
 
               // Move failed export from copiedTemplateFiles to exportedFilesFailed
               const copiedFileIndex = copiedTemplateFiles.findIndex(
-                (f) => f.sheetType === task.sheetType
+                (f) => f.sheetType === task.sheetType,
               );
               if (copiedFileIndex !== -1) {
                 const failedFile = copiedTemplateFiles.splice(
                   copiedFileIndex,
-                  1
+                  1,
                 )[0];
                 exportedFilesFailed.push({
                   ...failedFile,
@@ -441,12 +534,12 @@
                     task.sheetType
                   } from copied to export failed with error: ${
                     error.message || error
-                  }`
+                  }`,
                 );
               } else {
                 // File was already in exportedFilesFailed (retry attempt) - update error info
                 const failedFileIndex = exportedFilesFailed.findIndex(
-                  (f) => f.sheetType === task.sheetType
+                  (f) => f.sheetType === task.sheetType,
                 );
                 if (failedFileIndex !== -1) {
                   exportedFilesFailed[failedFileIndex].error =
@@ -454,14 +547,14 @@
                   console.log(
                     `Updated error for ${
                       task.sheetType
-                    } in export failed list: ${error.message || error}`
+                    } in export failed list: ${error.message || error}`,
                   );
                 }
               }
 
               // Update status
               setStatusWithSpinner(
-                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
               );
 
               resolve({
@@ -474,7 +567,7 @@
             .exportData(
               task.oldSheetID,
               task.sheetType,
-              task.versionDifference
+              task.versionDifference,
             );
         });
       });
@@ -512,7 +605,7 @@
 
           // Find the corresponding exported file data
           const exportedFile = exportedFilesSuccess.find(
-            (f) => f.sheetType === task.sheetType
+            (f) => f.sheetType === task.sheetType,
           );
           if (!exportedFile || !exportedFile.exportData) {
             completedCount++;
@@ -522,7 +615,7 @@
 
             // Update status
             setStatusWithSpinner(
-              `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`
+              `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
             );
 
             resolve({
@@ -540,44 +633,44 @@
               if (result.success) {
                 successCount++;
                 console.log(
-                  `✅ ${task.sheetType} import completed successfully`
+                  `✅ ${task.sheetType} import completed successfully`,
                 );
 
                 // Move successfully imported file from exportedFilesSuccess to importedFilesSuccess
                 const exportedFileIndex = exportedFilesSuccess.findIndex(
-                  (f) => f.sheetType === task.sheetType
+                  (f) => f.sheetType === task.sheetType,
                 );
                 if (exportedFileIndex !== -1) {
                   const importedFile = exportedFilesSuccess.splice(
                     exportedFileIndex,
-                    1
+                    1,
                   )[0];
                   // Remove exportData from the imported file object as it's no longer needed
                   const { exportData, ...fileWithoutExportData } = importedFile;
                   importedFilesSuccess.push(fileWithoutExportData);
                   console.log(
-                    `Moved ${task.sheetType} from exported success to imported success`
+                    `Moved ${task.sheetType} from exported success to imported success`,
                   );
                 } else {
                   console.warn(
-                    `Could not find ${task.sheetType} in exportedFilesSuccess after successful import`
+                    `Could not find ${task.sheetType} in exportedFilesSuccess after successful import`,
                   );
                 }
               } else {
                 failedCount++;
                 console.error(
                   `❌ ${task.sheetType} import failed:`,
-                  result.message
+                  result.message,
                 );
 
                 // Move failed import from exportedFilesSuccess to importedFilesFailed
                 const exportedFileIndex = exportedFilesSuccess.findIndex(
-                  (f) => f.sheetType === task.sheetType
+                  (f) => f.sheetType === task.sheetType,
                 );
                 if (exportedFileIndex !== -1) {
                   const failedFile = exportedFilesSuccess.splice(
                     exportedFileIndex,
-                    1
+                    1,
                   )[0];
                   // Remove exportData from the failed file object
                   const { exportData, ...fileWithoutExportData } = failedFile;
@@ -586,18 +679,18 @@
                     error: result.message || "Import failed",
                   });
                   console.log(
-                    `Moved ${task.sheetType} from exported success to imported failed with error: ${result.message}`
+                    `Moved ${task.sheetType} from exported success to imported failed with error: ${result.message}`,
                   );
                 } else {
                   console.warn(
-                    `Could not find ${task.sheetType} in exportedFilesSuccess for failure handling`
+                    `Could not find ${task.sheetType} in exportedFilesSuccess for failure handling`,
                   );
                 }
               }
 
               // Update status
               setStatusWithSpinner(
-                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
               );
 
               resolve({
@@ -613,12 +706,12 @@
 
               // Move failed import from exportedFilesSuccess to importedFilesFailed
               const exportedFileIndex = exportedFilesSuccess.findIndex(
-                (f) => f.sheetType === task.sheetType
+                (f) => f.sheetType === task.sheetType,
               );
               if (exportedFileIndex !== -1) {
                 const failedFile = exportedFilesSuccess.splice(
                   exportedFileIndex,
-                  1
+                  1,
                 )[0];
                 // Remove exportData from the failed file object
                 const { exportData, ...fileWithoutExportData } = failedFile;
@@ -631,17 +724,17 @@
                     task.sheetType
                   } from exported success to imported failed with error: ${
                     error.message || error
-                  }`
+                  }`,
                 );
               } else {
                 console.warn(
-                  `Could not find ${task.sheetType} in exportedFilesSuccess for error handling`
+                  `Could not find ${task.sheetType} in exportedFilesSuccess for error handling`,
                 );
               }
 
               // Update status
               setStatusWithSpinner(
-                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
               );
 
               resolve({
@@ -656,7 +749,7 @@
               task.sheetType,
               exportedFile.exportData,
               exportedFile.sheetVisibility,
-              idMasterID
+              idMasterID,
             );
         });
       });
@@ -723,10 +816,10 @@
         sheetType === "IDS Collection"
           ? "moving your IDS Collection"
           : sheetType === "Effective Paths"
-          ? "moving your Effective Paths"
-          : sheetType === "IDS Master"
-          ? "moving your IDS Master"
-          : "updating your IDS Master"
+            ? "moving your Effective Paths"
+            : sheetType === "IDS Master"
+              ? "moving your IDS Master"
+              : "updating your IDS Master"
       }! ⚠️</strong><br>`;
       if (sheetType === "Effective Paths") {
         selectedFileSummary.innerHTML += `<strong>⚠️ If the sheet shows errors after a minute, try refreshing the page. ⚠️</strong><br>`;
@@ -768,7 +861,7 @@
         // Add IDS Master to importedFilesSuccess so it gets processed with other files
         // Check if IDS Master is not already in the array to prevent duplicates
         const idsMasterExists = importedFilesSuccess.some(
-          (file) => file.sheetType === sheetType && file.fileId === newSheetID
+          (file) => file.sheetType === sheetType && file.fileId === newSheetID,
         );
         if (!idsMasterExists) {
           importedFilesSuccess.push({
@@ -780,16 +873,16 @@
               : "",
           });
           console.log(
-            `Combined update: Added IDS Master to importedFilesSuccess for batch processing`
+            `Combined update: Added IDS Master to importedFilesSuccess for batch processing`,
           );
         } else {
           console.log(
-            `Combined update: IDS Master already exists in importedFilesSuccess, skipping duplicate`
+            `Combined update: IDS Master already exists in importedFilesSuccess, skipping duplicate`,
           );
         }
       }
       console.log(
-        `Calling moveMultipleSheets for IDS Master with ${importedFilesSuccess.length} imported files`
+        `Calling moveMultipleSheets for IDS Master with ${importedFilesSuccess.length} imported files`,
       );
 
       moveMultipleSheets();
@@ -801,7 +894,7 @@
     setStatusWithSpinner(`Moving and renaming new ${sheetType} file...`);
 
     console.log(
-      `Calling moveSheet -> sheetType: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}`
+      `Calling moveSheet -> sheetType: ${sheetType}, newSheetID: ${newSheetID}, oldSheetID: ${oldSheetID}`,
     );
 
     // Call the Apps Script function to process the selected files
@@ -822,12 +915,19 @@
         console.log(`Starting ${totalUpdates} sheet updates`);
 
         setStatusWithSpinner(
-          `Processing ${importedFilesSuccess.length} imported files...`
+          `Processing ${importedFilesSuccess.length} imported files...`,
         );
 
         const movePromises = importedFilesSuccess.map((file, index) => {
           return new Promise((resolve) => {
             console.log(`Starting update for ${file.sheetType}`);
+
+            const moveMethod = isConvertToMasterFlow
+              ? "moveConvertedSheet"
+              : "moveSheet";
+            const oldIdForMove = isConvertToMasterFlow
+              ? oldSheetID
+              : file.oldSheetID;
 
             google.script.run
               .withSuccessHandler(function (result) {
@@ -835,7 +935,7 @@
                 if (result.success) {
                   successCount++;
                   console.log(
-                    `✅ ${file.sheetType} update completed successfully`
+                    `✅ ${file.sheetType} update completed successfully`,
                   );
 
                   // Only add to movedFiles if this is not the IDS Master
@@ -847,20 +947,20 @@
                     });
                   } else {
                     console.log(
-                      `Skipping adding IDS Master (${file.sheetType}) to movedFiles as it matches idMasterID`
+                      `Skipping adding IDS Master (${file.sheetType}) to movedFiles as it matches idMasterID`,
                     );
                   }
                 } else {
                   failedCount++;
                   console.error(
                     `❌ ${file.sheetType} update failed:`,
-                    result.message
+                    result.message,
                   );
                 }
 
                 // Update status
                 setStatusWithSpinner(
-                  `Moving progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`
+                  `Moving progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`,
                 );
 
                 resolve({
@@ -878,7 +978,7 @@
 
                 // Update status
                 setStatusWithSpinner(
-                  `Moving progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`
+                  `Moving progress: ${completedCount}/${totalUpdates} completed (${successCount} successful, ${failedCount} failed)`,
                 );
 
                 resolve({
@@ -890,7 +990,7 @@
                   fileData: file,
                 });
               })
-              .moveSheet(file.sheetType, file.fileId, file.oldSheetID);
+              [moveMethod](file.sheetType, file.fileId, oldIdForMove);
           });
         });
 
@@ -899,14 +999,14 @@
 
         // Remove successfully updated files from importedFiles and add to movedFiles
         const successfulResults = moveResults.filter(
-          (result) => result.success
+          (result) => result.success,
         );
 
         // Remove successful files from importedFilesSuccess (working backwards to avoid index issues)
         for (let i = importedFilesSuccess.length - 1; i >= 0; i--) {
           const file = importedFilesSuccess[i];
           const successfulResult = successfulResults.find(
-            (result) => result.sheetType === file.sheetType
+            (result) => result.sheetType === file.sheetType,
           );
           if (successfulResult) {
             // Remove from importedFilesSuccess and ensure it's in movedFiles
@@ -941,7 +1041,7 @@
 
       // Update status text and title
       setStatusWithSpinner(
-        `Updating IDS Master with ${movedFiles.length} moved files...`
+        `Updating IDS Master with ${movedFiles.length} moved files...`,
       );
       document.getElementById("fileAccessTitle").innerHTML = titleText;
 
@@ -956,13 +1056,13 @@
         cachedTemplatesWithSameVersion.length > 0
       ) {
         console.log(
-          `Processing ${cachedTemplatesWithSameVersion.length} templates with same versions for IDS Master update`
+          `Processing ${cachedTemplatesWithSameVersion.length} templates with same versions for IDS Master update`,
         );
 
         cachedTemplatesWithSameVersion.forEach((template) => {
           // Check if this sheet ID doesn't already exist in idDataEntries
           const existingEntry = idDataEntries.find(
-            (entry) => entry.newSheetID === template.oldSheetID
+            (entry) => entry.newSheetID === template.oldSheetID,
           );
           if (!existingEntry) {
             idDataEntries.push({
@@ -970,17 +1070,17 @@
               newSheetID: template.oldSheetID, // Use oldSheetID as these are existing sheets
             });
             console.log(
-              `Added ${template.sheetType} (${template.oldSheetID}) to IDS Master update`
+              `Added ${template.sheetType} (${template.oldSheetID}) to IDS Master update`,
             );
           } else {
             console.log(
-              `Skipped ${template.sheetType} (${template.oldSheetID}) - already exists in IDS Master update`
+              `Skipped ${template.sheetType} (${template.oldSheetID}) - already exists in IDS Master update`,
             );
           }
         });
 
         console.log(
-          `Total entries for IDS Master update: ${idDataEntries.length}`
+          `Total entries for IDS Master update: ${idDataEntries.length}`,
         );
       }
 
@@ -997,9 +1097,8 @@
 
       if (!updateIdsMasterResult) {
         setStatusText(`Error updating IDS Master: No result returned`);
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `❌ IDS Master Update Failed`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `❌ IDS Master Update Failed`;
         document.getElementById("importButton").disabled = false;
         document.getElementById("moveSheetButton").disabled = false;
         return;
@@ -1011,6 +1110,13 @@
         }`;
         titleText = `❌ IDS Master Update Failed (${totalSuccessCount}/${totalAllCount} files moved)`;
       } else {
+        if (isConvertToMasterFlow && failedCount === 0) {
+          try {
+            await runAppsScript("deleteOldSheet", oldSheetID);
+          } catch (error) {
+            console.warn("Failed to delete old IDS Collection:", error);
+          }
+        }
         if (failedCount === 0) {
           finalMessage = `🎉 All ${totalAllCount} sheet updates completed successfully!`;
           document.getElementById("importButton").style.display = "none";
@@ -1028,10 +1134,10 @@
           cachedTemplatesWithSameVersion.length > 0
         ) {
           console.log(
-            `Updating master IDs for ${cachedTemplatesWithSameVersion.length} templates with same versions...`
+            `Updating master IDs for ${cachedTemplatesWithSameVersion.length} templates with same versions...`,
           );
           setStatusWithSpinner(
-            `IDS Master updated. Updating master IDs in ${cachedTemplatesWithSameVersion.length} subsheets...`
+            `IDS Master updated. Updating master IDs in ${cachedTemplatesWithSameVersion.length} subsheets...`,
           );
 
           const updatePromises = cachedTemplatesWithSameVersion.map(
@@ -1039,7 +1145,7 @@
               console.log(
                 `Updating sheet ID for ${template.sheetType} template (${
                   index + 1
-                }/${cachedTemplatesWithSameVersion.length})`
+                }/${cachedTemplatesWithSameVersion.length})`,
               );
 
               return new Promise((resolve) => {
@@ -1047,7 +1153,7 @@
                   .withSuccessHandler(function (updateResult) {
                     console.log(
                       `✅ Sheet ID updated successfully for ${template.sheetType}:`,
-                      updateResult
+                      updateResult,
                     );
                     resolve({
                       success: true,
@@ -1058,7 +1164,7 @@
                   .withFailureHandler(function (error) {
                     console.error(
                       `❌ Failed to update sheet ID for ${template.sheetType}:`,
-                      error
+                      error,
                     );
                     resolve({
                       success: false,
@@ -1069,10 +1175,10 @@
                   .updateSheetID(
                     template.oldSheetID,
                     idMasterID,
-                    template.sheetType
+                    template.sheetType,
                   );
               });
-            }
+            },
           );
 
           try {
@@ -1120,12 +1226,12 @@
         sheetType === "IDS Collection"
           ? "moving your IDS Collection"
           : sheetType === "Effective Paths"
-          ? "moving your Effective Paths"
-          : sheetType === "IDS Master" && isUpdateSingleSheetFlow
-          ? "moving your IDS Master"
-          : sheetType !== "IDS Master"
-          ? `moving your ${sheetType}`
-          : "moving your subsheets"
+            ? "moving your Effective Paths"
+            : sheetType === "IDS Master" && isUpdateSingleSheetFlow
+              ? "moving your IDS Master"
+              : sheetType !== "IDS Master"
+                ? `moving your ${sheetType}`
+                : "moving your subsheets"
       }! ⚠️</strong><br>`;
     }
 
@@ -1133,10 +1239,18 @@
     if (idsMasterUpdated) {
       let masterLabel = "IDS Master";
       if (cachedMasterTemplateInfo) {
-        masterLabel = '<strong style="color:#fff;background:#e53935;padding:0 0.4em;border-radius:0.3em;">new</strong> IDS Master';
+        masterLabel =
+          '<strong style="color:#fff;background:#e53935;padding:0 0.4em;border-radius:0.3em;">new</strong> IDS Master';
       }
       summaryHtml += `<strong>🔄 Please go to your ${masterLabel} and grant the new sheet(s) access.</strong>`;
       summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+    }
+
+    if (!idsMasterUpdated && sheetType === "IDS Master" && isCombinedUpdate) {
+      if (newSheetID) {
+        summaryHtml += `<strong>📄 New IDS Master (copy):</strong><br>`;
+        summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${newSheetID}/edit" target="_blank">Open IDS Master Sheet™</a><br>`;
+      }
     }
 
     // Show comprehensive file status across all workflow stages
@@ -1146,7 +1260,11 @@
       document.getElementById("importButton").disabled = false;
       summaryHtml += `<br><strong>📋 Sheets (Ready for Import):</strong><br>`;
       copiedTemplateFiles.forEach((file) => {
-        summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
+        if (file.fileId) {
+          summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${file.fileId}/edit" target="_blank">Copy of ${file.sheetType} ${file.version}</a><br>`;
+        } else {
+          summaryHtml += `&nbsp;&nbsp;• Copy of ${file.sheetType} ${file.version}<br>`;
+        }
       });
     }
 
@@ -1228,11 +1346,11 @@
           cachedTemplatesWithSameVersion.length > 0
         ) {
           console.log(
-            `IDS Master moved successfully. Updating sheet IDs for ${cachedTemplatesWithSameVersion.length} templates with same versions...`
+            `IDS Master moved successfully. Updating sheet IDs for ${cachedTemplatesWithSameVersion.length} templates with same versions...`,
           );
 
           setStatusWithSpinner(
-            `IDS Master moved successfully. Updating Master ID in subsheets...`
+            `IDS Master moved successfully. Updating Master ID in subsheets...`,
           );
 
           let completedCount = 0;
@@ -1244,7 +1362,7 @@
               console.log(
                 `Updating sheet ID for ${template.sheetType} template (${
                   index + 1
-                }/${cachedTemplatesWithSameVersion.length})`
+                }/${cachedTemplatesWithSameVersion.length})`,
               );
 
               return new Promise((resolve) => {
@@ -1254,12 +1372,12 @@
                     successCount++;
                     console.log(
                       `✅ Sheet ID updated successfully for ${template.sheetType}:`,
-                      updateResult
+                      updateResult,
                     );
 
                     // Update progress in status
                     setStatusWithSpinner(
-                      `Updating Master IDs: ${completedCount}/${cachedTemplatesWithSameVersion.length} completed (${successCount} successful)`
+                      `Updating Master IDs: ${completedCount}/${cachedTemplatesWithSameVersion.length} completed (${successCount} successful)`,
                     );
 
                     resolve({
@@ -1272,12 +1390,12 @@
                     completedCount++;
                     console.error(
                       `❌ Failed to update sheet ID for ${template.sheetType}:`,
-                      error
+                      error,
                     );
 
                     // Update progress in status
                     setStatusWithSpinner(
-                      `Updating Master IDs: ${completedCount}/${cachedTemplatesWithSameVersion.length} completed (${successCount} successful)`
+                      `Updating Master IDs: ${completedCount}/${cachedTemplatesWithSameVersion.length} completed (${successCount} successful)`,
                     );
 
                     resolve({
@@ -1289,10 +1407,10 @@
                   .updateSheetID(
                     template.oldSheetID,
                     newSheetID,
-                    template.sheetType
+                    template.sheetType,
                   );
               });
-            }
+            },
           );
 
           // Wait for all updateSheetID operations to complete
@@ -1305,10 +1423,10 @@
             cachedTemplatesWithSameVersion = failResults.map((r) => r.template);
 
             console.log(
-              `Sheet ID updates completed - ${successResults.length} successful, ${failResults.length} failed`
+              `Sheet ID updates completed - ${successResults.length} successful, ${failResults.length} failed`,
             );
             console.log(
-              `Removed ${successResults.length} successful templates from cache. ${cachedTemplatesWithSameVersion.length} templates remaining.`
+              `Removed ${successResults.length} successful templates from cache. ${cachedTemplatesWithSameVersion.length} templates remaining.`,
             );
           } catch (error) {
             console.error(`Error waiting for sheet ID updates:`, error);
@@ -1316,9 +1434,8 @@
         }
 
         setStatusText(result.message);
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `✅ IDS Master updated successfully!`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `✅ IDS Master updated successfully!`;
 
         // Show success message and any failed subsheets
         let summaryHtml = `<strong>🎉 IDS Master updated successfully!</strong><br><strong>⚠️ Update your master ID in Effective Paths ⚠️</strong>`;
@@ -1339,61 +1456,56 @@
         }
 
         document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+        isConvertToMasterFlow = false;
       } else if (sheetType === "IDS Collection") {
         // Check if there are cached sheet IDs that need cleanup
         if (cachedSheetIds && cachedSheetIds.length > 0) {
           console.log(
-            `IDS Collection updated successfully. Checking ${cachedSheetIds.length} cached sheet IDs for cleanup...`
+            `IDS Collection updated successfully. Checking ${cachedSheetIds.length} cached sheet IDs for cleanup...`,
           );
 
           // Filter to get only sheet IDs that are not the old or new sheet IDs
           const sheetsToDelete = cachedSheetIds.filter(
             (sheetId) =>
-              sheetId && sheetId !== oldSheetID && sheetId !== newSheetID
+              sheetId && sheetId !== oldSheetID && sheetId !== newSheetID,
           );
 
           if (sheetsToDelete.length > 0) {
             setStatusWithSpinner(
-              `${result.message} Cleaning up ${sheetsToDelete.length} old subsheets...`
+              `${result.message} Cleaning up ${sheetsToDelete.length} old subsheets...`,
             );
-            document.getElementById(
-              "fileAccessTitle"
-            ).innerHTML = `✅ IDS Collection updated! Cleaning up subsheets...`;
+            document.getElementById("fileAccessTitle").innerHTML =
+              `✅ IDS Collection updated! Cleaning up subsheets...`;
             // Delete all the filtered subsheets
             await deleteImportedSubsheets(sheetsToDelete);
           } else {
             console.log(
-              "Skipping subsheet cleanup - no valid sheet IDs found for deletion"
+              "Skipping subsheet cleanup - no valid sheet IDs found for deletion",
             );
             setStatusText(result.message);
-            document.getElementById(
-              "fileAccessTitle"
-            ).innerHTML = `✅ IDS Collection updated successfully!`;
+            document.getElementById("fileAccessTitle").innerHTML =
+              `✅ IDS Collection updated successfully!`;
           }
         } else {
           console.log(
-            "Skipping subsheet cleanup - no cached sheet IDs available"
+            "Skipping subsheet cleanup - no cached sheet IDs available",
           );
           setStatusText(result.message);
-          document.getElementById(
-            "fileAccessTitle"
-          ).innerHTML = `✅ IDS Collection updated successfully!`;
+          document.getElementById("fileAccessTitle").innerHTML =
+            `✅ IDS Collection updated successfully!`;
         }
 
-        document.getElementById(
-          "selectedFileSummary"
-        ).innerHTML = `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>⚠️ Update your collection ID in Effective Paths ⚠️</strong>`;
+        document.getElementById("selectedFileSummary").innerHTML =
+          `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>⚠️ Update your collection ID in Effective Paths ⚠️</strong>`;
       } else if (sheetType === "Effective Paths") {
         // Handle Effective Paths update completion (no subsheet cleanup needed)
         console.log("Effective Paths updated successfully - no cleanup needed");
         setStatusText(result.message);
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `✅ Effective Paths updated successfully!`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `✅ Effective Paths updated successfully!`;
 
-        document.getElementById(
-          "selectedFileSummary"
-        ).innerHTML = `<strong>🎉 Effective Paths updated successfully!</strong><br><strong>Your Effective Paths data has been updated and imported.</strong>`;
+        document.getElementById("selectedFileSummary").innerHTML =
+          `<strong>🎉 Effective Paths updated successfully!</strong><br><strong>Your Effective Paths data has been updated and imported.</strong>`;
       } else {
         const updateIdsMasterResult = await new Promise((resolve) => {
           google.script.run
@@ -1413,9 +1525,8 @@
 
         if (!updateIdsMasterResult) {
           setStatusText(`Error updating IDS Master: No result returned`);
-          document.getElementById(
-            "fileAccessTitle"
-          ).innerHTML = `❌ IDS Master Update Failed`;
+          document.getElementById("fileAccessTitle").innerHTML =
+            `❌ IDS Master Update Failed`;
           document.getElementById("importButton").disabled = false;
           document.getElementById("moveSheetButton").disabled = false;
           return;
@@ -1427,23 +1538,20 @@
           setStatusText(
             `Error updating IDS Master: ${
               updateIdsMasterResult.message || "Unknown error"
-            }`
+            }`,
           );
-          document.getElementById(
-            "fileAccessTitle"
-          ).innerHTML = `❌ IDS Master Update Failed`;
+          document.getElementById("fileAccessTitle").innerHTML =
+            `❌ IDS Master Update Failed`;
           document.getElementById("importButton").disabled = false;
           document.getElementById("moveSheetButton").disabled = false;
           return;
         }
 
         setStatusText(`IDS Master updated!`);
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `🎉 IDS Master Updated Successfully!`;
-        document.getElementById(
-          "selectedFileSummary"
-        ).innerHTML = `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `🎉 IDS Master Updated Successfully!`;
+        document.getElementById("selectedFileSummary").innerHTML =
+          `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
       }
 
       document.getElementById("importButton").disabled = false;
@@ -1482,7 +1590,7 @@
                 });
                 console.error(
                   `❌ Sheet ${sheetId} deletion failed:`,
-                  result.message
+                  result.message,
                 );
               }
 
@@ -1490,7 +1598,7 @@
               setStatusWithSpinner(
                 `Cleanup progress: ${
                   deletedCount + failedDeletions.length
-                }/${totalDeletions} processed (${deletedCount} deleted)`
+                }/${totalDeletions} processed (${deletedCount} deleted)`,
               );
 
               resolve({
@@ -1509,7 +1617,7 @@
               setStatusWithSpinner(
                 `Cleanup progress: ${
                   deletedCount + failedDeletions.length
-                }/${totalDeletions} processed (${deletedCount} deleted)`
+                }/${totalDeletions} processed (${deletedCount} deleted)`,
               );
 
               resolve({
@@ -1528,25 +1636,23 @@
       // Update final status
       if (failedDeletions.length === 0) {
         setStatusText(
-          `✅ IDS Collection updated and ${deletedCount} subsheets cleaned up successfully!`
+          `✅ IDS Collection updated and ${deletedCount} subsheets cleaned up successfully!`,
         );
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `✅ IDS Collection updated! All subsheets cleaned up!`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `✅ IDS Collection updated! All subsheets cleaned up!`;
       } else {
         setStatusText(
-          `✅ IDS Collection updated! ${deletedCount} subsheets cleaned up, ${failedDeletions.length} failed to delete.`
+          `✅ IDS Collection updated! ${deletedCount} subsheets cleaned up, ${failedDeletions.length} failed to delete.`,
         );
-        document.getElementById(
-          "fileAccessTitle"
-        ).innerHTML = `✅ IDS Collection updated! Partial cleanup completed.`;
+        document.getElementById("fileAccessTitle").innerHTML =
+          `✅ IDS Collection updated! Partial cleanup completed.`;
 
         console.warn("Some subsheets failed to delete:", failedDeletions);
       }
     } catch (error) {
       console.error("Error during subsheet cleanup:", error);
       setStatusText(
-        `✅ IDS Collection updated, but subsheet cleanup encountered errors: ${error.message}`
+        `✅ IDS Collection updated, but subsheet cleanup encountered errors: ${error.message}`,
       );
     }
   }
@@ -1558,7 +1664,7 @@
     setStatusText(`Updating IDS Master error: ${error.message || error}`);
 
     // Reset IDS Master state if this was an IDS Master operation
-    if (sheetType === "IDS Master") {
+    if (sheetType === "IDS Master" && !isConvertToMasterFlow) {
       resetIDSMasterState();
     }
   }
@@ -1603,7 +1709,7 @@
           .withSuccessHandler(function (result) {
             console.log(
               `Sheet ${template.sheetType} copied successfully:`,
-              result
+              result,
             );
 
             let templateResult;
@@ -1646,7 +1752,7 @@
             completedCount++;
             selectedFileSummary.innerHTML = linksHtml;
             setStatusWithSpinner(
-              `Copying sheets... (${completedCount}/${totalTemplates} completed)`
+              `Copying sheets... (${completedCount}/${totalTemplates} completed)`,
             );
 
             resolve(templateResult);
@@ -1663,7 +1769,7 @@
             linksHtml += `<br>&nbsp;&nbsp;• ❌ ${template.sheetType} Sheet™ (failed)`;
             selectedFileSummary.innerHTML = linksHtml;
             setStatusWithSpinner(
-              `Copying sheets... (${completedCount}/${totalTemplates} completed)`
+              `Copying sheets... (${completedCount}/${totalTemplates} completed)`,
             );
 
             resolve({
@@ -1672,7 +1778,7 @@
               error: errorMessage,
             });
           })
-          .copyFileTemplate(template.id, template.sheetType, template.version);
+          .copyFileTemplate(template.id, template.sheetType, template.version, parentFolderID);
       });
     });
 
@@ -1700,8 +1806,8 @@
           fileAccessTitle.innerHTML += ` (${failedCount} failed)`;
         }
 
-        document.getElementById("copyButton").style.display = "none";
-        document.getElementById("copyUpdateButton").style.display = "none";
+        // document.getElementById("copyButton").style.display = "none";
+        // document.getElementById("copyUpdateButton").style.display = "none";
         document.getElementById("addAnotherButton").style.display = "none";
         document.getElementById("instructionsSection").style.display = "none";
         document.getElementById("importButton").style.display = "inline-block";
@@ -1710,11 +1816,7 @@
         document.getElementById("moveSheetButton").style.display =
           "inline-block";
         document.getElementById("moveSheetButton").disabled = true;
-
-        // Hide IDS Master buttons if we're in combined update mode
-        if (isCombinedUpdate) {
-          hideIDSMasterButtons();
-        }
+        hideIDSMasterButtons();
       } else {
         const titleModeDescription =
           copyMode === "update" ? "Sheets with Updates" : "Sheets";
@@ -1724,9 +1826,252 @@
       console.error("Error in sheet copying process:", error);
       setStatusText(`Error during sheet copying: ${error.message || error}`);
     } finally {
-      document.getElementById("copyButton").disabled = false;
-      document.getElementById("copyUpdateButton").disabled = false;
+      // document.getElementById("copyButton").disabled = false;
+      // document.getElementById("copyUpdateButton").disabled = false;
     }
+  }
+
+  async function renderIdMasterOptions() {
+    const summary = document.getElementById("selectedFileSummary");
+    // const updateMasterOnlyButton = document.getElementById(
+    //   "updateMasterOnlyButton",
+    // );
+    const updateSubsheetsOnlyButton = document.getElementById(
+      "updateSubsheetsOnlyButton",
+    );
+    const updateMasterAndSubsheetsButton = document.getElementById(
+      "updateMasterAndSubsheetsButton",
+    );
+    const convertToCollectionButton = document.getElementById(
+      "convertToCollectionButton",
+    );
+
+    // if (updateMasterOnlyButton) {
+    //   updateMasterOnlyButton.style.display = "none";
+    //   updateMasterOnlyButton.disabled = true;
+    // }
+
+    updateSubsheetsOnlyButton.style.display = "inline-block";
+    updateSubsheetsOnlyButton.disabled = true;
+    updateMasterAndSubsheetsButton.style.display = "none";
+    updateMasterAndSubsheetsButton.disabled = true;
+    convertToCollectionButton.style.display = "inline-block";
+    convertToCollectionButton.disabled = true;
+
+    if (!masterVersionDifference) {
+      setStatusWithSpinner(`Checking IDS Master version...`);
+      const versionResult = await new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            resolve(result);
+          })
+          .withFailureHandler(function (error) {
+            resolve(error);
+          })
+          .compareSheetVersions(oldSheetID, sheetType);
+      });
+      if (versionResult && versionResult.success) {
+        masterVersionDifference = versionResult.comparisonResult;
+        console.log(
+          `Master version difference between IDS Master and template: ${masterVersionDifference}`,
+        );
+      }
+    }
+
+    updateSubsheetsOnlyButton.disabled = false;
+    convertToCollectionButton.disabled = false;
+
+    if (masterVersionDifference === "older") {
+      setStatusText("Choose update option:");
+      updateMasterAndSubsheetsButton.style.display = "inline-block";
+      updateMasterAndSubsheetsButton.disabled = false;
+      summary.innerHTML = `
+        <strong>🔧 Select your preferred update method:</strong><br>
+        <small>
+          <strong>🔄 Update IDS Master & Subsheets:</strong> Updates the IDS Master and subsheets with new versions</strong><br>
+          <strong>📋 Update Subsheets:</strong> Updates only subsheets with new versions</strong>
+        </small>
+      `;
+    } else {
+      setStatusText("Ready to update subsheets.");
+      summary.innerHTML = `
+        <strong> IDS Master is up to date!</strong><br>
+        <strong> Update Subsheets with new versions</strong>
+      `;
+      // summary.innerHTML = `
+      //   <strong>🔧 Select your preferred update method:</strong><br>
+      //   <small>
+      //     <strong>📋 Update Subsheets:</strong> Updates only subsheets with new versions
+      //   </small>
+      // `;
+    }
+  }
+
+  async function convertToMaster() {
+    const templates = CONVERT_TO_TEMPLATES["master-and-subsheets"];
+    const masterTemplate = templates.find(
+      (template) => template.sheetType === "IDS Master",
+    );
+    const subsheetTemplates = templates.filter(
+      (template) => template.sheetType !== "IDS Master",
+    );
+
+    if (!masterTemplate) {
+      setStatusText("Missing IDS Master template for conversion.");
+      return;
+    }
+
+    const compatibilityResult = await checkVersionCompatibility(
+      oldSheetID,
+      "IDS Collection",
+    );
+    if (!compatibilityResult.success) {
+      setStatusText(compatibilityResult.message);
+      return;
+    }
+    versionDifference = compatibilityResult.versionDifference;
+    isConvertToMasterFlow = true;
+    isConvertToCollectionFlow = false;
+
+    sheetType = "IDS Master";
+    masterVersionDifference = null;
+    isUpdateSingleSheetFlow = false;
+    isCombinedUpdate = true;
+    currentCopyMode = "all";
+
+    disableUpdateSingleSheetButton();
+    
+    cachedMasterTemplateInfo = {
+      templateID: masterTemplate.templateID,
+      sheetType: "IDS Master",
+      version: masterTemplate.templateVersion || "",
+    };
+    cachedTemplateInfo = subsheetTemplates.map((template) => ({
+      templateID: template.templateID,
+      sheetType: template.sheetType,
+      version: template.templateVersion || "",
+    }));
+    cachedSheetIds = [];
+    cachedTemplatesWithSameVersion = [];
+    hasSubsheetsToUpdate = cachedTemplateInfo.length > 0;
+
+    updateMasterAndSubsheetsWithAllFiles();
+  }
+
+  async function convertToCollection() {
+    const template = CONVERT_TO_TEMPLATES["ids-collection"][0];
+
+    disableIDSMasterButtons();
+    isConvertToMasterFlow = false;
+    isConvertToCollectionFlow = true;
+
+    sheetType = "IDS Collection";
+    idMasterID = oldSheetID;
+    isUpdateSingleSheetFlow = true;
+    isCombinedUpdate = false;
+
+    try {
+      const subsheetsResult = await new Promise((resolve) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(resolve)
+          .getTemplateAndsheetIds(oldSheetID, "all");
+      });
+
+      if (subsheetsResult && subsheetsResult.success) {
+        cachedSheetIds = subsheetsResult.sheetIds || [];
+      } else {
+        cachedSheetIds = [];
+        console.warn(
+          "Unable to collect subsheet IDs for cleanup:",
+          subsheetsResult,
+        );
+      }
+    } catch (error) {
+      cachedSheetIds = [];
+      console.error("Error collecting subsheet IDs for cleanup:", error);
+    }
+
+    cachedTemplateInfo = [
+      {
+        templateID: template.templateID,
+        sheetType: "IDS Collection",
+        version: "", // add templateVersion to constants if needed
+        oldSheetID: oldSheetID,
+      },
+    ];
+
+    const templateInfoForAccess = [
+      {
+        templateID: template.templateID,
+        sheetType: "IDS Collection",
+        version: "",
+      },
+    ];
+
+    const sheetIdsToCheck = [oldSheetID];
+    if (cachedSheetIds && cachedSheetIds.length > 0) {
+      cachedSheetIds.forEach((sheetId) => {
+        if (sheetId && sheetId !== oldSheetID) {
+          sheetIdsToCheck.push(sheetId);
+        }
+      });
+    }
+
+    setStatusWithSpinner(
+      `Checking access to IDS Collection template and ${sheetIdsToCheck.length} sheet(s)...`,
+    );
+
+    const [templateAccess, sheetAccess] = await Promise.all([
+      checkMultipleTemplateAccess(templateInfoForAccess),
+      checkMultipleSheetAccess(sheetIdsToCheck, userEmail),
+    ]);
+
+    if (!templateAccess.success || !sheetAccess.success) {
+      const errorMessage = !templateAccess.success
+        ? templateAccess.message
+        : sheetAccess.message;
+      setStatusText(`Error checking access: ${errorMessage}`);
+      templateAccessibleFilesCache = [];
+      templateInaccessibleFilesCache = [];
+      accessibleFilesCache = [];
+      inaccessibleFilesCache = [];
+      notOwnedFilesCache = [];
+      return;
+    }
+
+    templateAccessibleFilesCache = templateAccess.accessibleFiles || [];
+    templateInaccessibleFilesCache = templateAccess.inaccessibleFiles || [];
+    accessibleFilesCache = sheetAccess.accessibleFiles || [];
+    inaccessibleFilesCache = sheetAccess.inaccessibleFiles || [];
+    notOwnedFilesCache = sheetAccess.notOwnedFiles || [];
+
+    if (notOwnedFilesCache.length > 0) {
+      setStatusText("Some files are not owned by you. Please confirm ownership before continuing.");
+      showContinueSection();
+      return;
+    }
+
+    const totalInaccessibleFiles =
+      templateInaccessibleFilesCache.length + inaccessibleFilesCache.length;
+    if (totalInaccessibleFiles > 0) {
+      let statusMessages = [];
+      if (templateInaccessibleFilesCache.length > 0) {
+        statusMessages.push(
+          `${templateInaccessibleFilesCache.length} template(s)`,
+        );
+      }
+      if (inaccessibleFilesCache.length > 0) {
+        statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
+      }
+      setStatusWithSpinner(
+        `${statusMessages.join(" and ")} need access. Opening file picker...`,
+      );
+      openMultiFilePicker();
+      return;
+    }
+
+    proceedWithUpdateSingleSheetTemplateCopy();
   }
 
   function showContinueSection() {
@@ -1739,84 +2084,28 @@
     const summary = document.getElementById("selectedFileSummary");
     const addAnotherButton = document.getElementById("addAnotherButton");
     const importButton = document.getElementById("importButton");
-    const copyButton = document.getElementById("copyButton");
-    const copyUpdateButton = document.getElementById("copyUpdateButton");
+    // const copyButton = document.getElementById("copyButton");
+    // const copyUpdateButton = document.getElementById("copyUpdateButton");
     const updateButton = document.getElementById("moveSheetButton");
     const updateSingleSheetButton = document.getElementById(
-      "updateSingleSheetButton"
+      "updateSingleSheetButton",
     );
     const instructionsSection = document.getElementById("instructionsSection");
-    const updateMasterOnlyButton = document.getElementById(
-      "updateMasterOnlyButton"
-    );
+    // const updateMasterOnlyButton = document.getElementById(
+    //   "updateMasterOnlyButton",
+    // );
     const updateSubsheetsOnlyButton = document.getElementById(
-      "updateSubsheetsOnlyButton"
+      "updateSubsheetsOnlyButton",
     );
     const updateMasterAndSubsheetsButton = document.getElementById(
-      "updateMasterAndSubsheetsButton"
+      "updateMasterAndSubsheetsButton",
     );
     const fileAccessSection = document.getElementById("fileAccessSection");
 
     const totalInaccessibleFiles =
       inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
 
-    if (totalInaccessibleFiles === 0) {
-      fileAccessTitle.innerText = `✅ All Required Files Access Granted`;
-      summary.innerHTML = "";
-      showAccessibleFilesSummary();
-      addAnotherButton.style.display = "none";
-      instructionsSection.style.display = "none";
-      if (sheetType === "IDS Master") {
-        setStatusText(`Choose IDS Master update option:`);
-        summary.innerHTML = `
-          <strong>🔧 Select your preferred update method:</strong><br><br>
-          <small>
-            <strong>📄 Master Only:</strong> Creates a new copy of the IDS Master sheet<br>
-            <strong>📋 Subsheets Only:</strong> Updates all individual sheet templates<br>
-            <strong>🔄 Master & Subsheets:</strong> Updates both the master and all subsheets
-          </small>
-        `;
-
-        // Show the IDS Master option buttons
-        updateMasterOnlyButton.style.display = "inline-block";
-        updateMasterOnlyButton.disabled = false;
-        updateSubsheetsOnlyButton.style.display = "inline-block";
-        updateSubsheetsOnlyButton.disabled = false;
-        updateMasterAndSubsheetsButton.style.display = "inline-block";
-        updateMasterAndSubsheetsButton.disabled = false;
-
-        copyButton.style.display = "none";
-        copyUpdateButton.style.display = "none";
-        importButton.style.display = "none";
-        updateButton.style.display = "none";
-        updateSingleSheetButton.style.display = "none";
-      } else if (!newSheetID && oldSheetID && sheetType) {
-        // We have access to all required files - show updateSingleSheetButton
-        setStatusText(`Ready to update ${sheetType}.`);
-        updateSingleSheetButton.style.display = "inline-block";
-        updateSingleSheetButton.disabled = false;
-        updateSingleSheetButton.innerText = `Update ${sheetType}`;
-        importButton.style.display = "none";
-        updateButton.style.display = "none";
-        copyButton.style.display = "none";
-        copyUpdateButton.style.display = "none";
-      } else {
-        setStatusWithSpinner(`Checking import status and compatibility.`);
-        importButton.innerText = `Import ${sheetType} data`;
-        importButton.style.display = "inline-block";
-        importButton.disabled = true;
-        updateButton.style.display = "inline-block";
-        updateButton.disabled = true;
-        updateButton.innerText = `Move ${sheetType}`;
-        copyButton.style.display = "none";
-        copyUpdateButton.style.display = "none";
-        updateSingleSheetButton.style.display = "none";
-        google.script.run
-          .withSuccessHandler(onImportStatusAndCompatibilitySuccess)
-          .withFailureHandler(onImportStatusAndCompatibilityFailure)
-          .checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType);
-      }
-    } else if (notOwnedFilesCache.length > 0) {
+    if (notOwnedFilesCache.length > 0) {
       fileAccessTitle.innerHTML = `⛔ ${notOwnedFilesCache.length} Files Not Owned By You`;
 
       summary.innerHTML =
@@ -1828,10 +2117,57 @@
       addAnotherButton.style.display = "none";
       importButton.style.display = "none";
       updateButton.style.display = "none";
-      copyButton.style.display = "none";
-      copyUpdateButton.style.display = "none";
-      updateSingleSheetButton.style.display = "none";
+      // copyButton.style.display = "none";
+      // copyUpdateButton.style.display = "none";
+      hideUpdateSingleSheetButton();
       instructionsSection.style.display = "none";
+    } else if (totalInaccessibleFiles === 0) {
+      fileAccessTitle.innerText = `✅ All Required Files Access Granted`;
+      summary.innerHTML = "";
+      showAccessibleFilesSummary();
+      addAnotherButton.style.display = "none";
+      instructionsSection.style.display = "none";
+      if (sheetType === "IDS Master") {
+        // copyButton.style.display = "none";
+        // copyUpdateButton.style.display = "none";
+        importButton.style.display = "none";
+        updateButton.style.display = "none";
+        updateSingleSheetButton.style.display = "none";
+
+        renderIdMasterOptions();
+        // } else if (!newSheetID && oldSheetID && sheetType) {
+      } else {
+        // We have access to all required files - show updateSingleSheetButton
+        setStatusText(`Ready to update ${sheetType}.`);
+        updateSingleSheetButton.style.display = "inline-block";
+        updateSingleSheetButton.disabled = false;
+        updateSingleSheetButton.innerText = `Update ${sheetType}`;
+        importButton.style.display = "none";
+        updateButton.style.display = "none";
+        // copyButton.style.display = "none";
+        // copyUpdateButton.style.display = "none";
+        if (sheetType === "IDS Collection") {
+          document.getElementById("convertToMasterButton").style.display =
+            "inline-block";
+          document.getElementById("convertToMasterButton").disabled = false;
+        }
+        // Deprecated
+        // } else {
+        //   setStatusWithSpinner(`Checking import status and compatibility.`);
+        //   importButton.innerText = `Import ${sheetType} data`;
+        //   importButton.style.display = "inline-block";
+        //   importButton.disabled = true;
+        //   updateButton.style.display = "inline-block";
+        //   updateButton.disabled = true;
+        //   updateButton.innerText = `Move ${sheetType}`;
+        //   copyButton.style.display = "none";
+        //   copyUpdateButton.style.display = "none";
+        //   updateSingleSheetButton.style.display = "none";
+        //   google.script.run
+        //     .withSuccessHandler(onImportStatusAndCompatibilitySuccess)
+        //     .withFailureHandler(onImportStatusAndCompatibilityFailure)
+        //     .checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType);
+      }
     } else {
       let summaryParts = [];
       if (inaccessibleFilesCache.length > 0) {
@@ -1839,12 +2175,12 @@
       }
       if (templateInaccessibleFilesCache.length > 0) {
         summaryParts.push(
-          `${templateInaccessibleFilesCache.length} template(s)`
+          `${templateInaccessibleFilesCache.length} template(s)`,
         );
       }
 
       summary.innerHTML = `<strong>🔐 ${summaryParts.join(
-        " and "
+        " and ",
       )} need access permission</strong><br>`;
 
       instructionsSection.style.display = "block";
@@ -1852,14 +2188,15 @@
       addAnotherButton.disabled = false;
       importButton.style.display = "none";
       updateButton.style.display = "none";
-      copyButton.style.display = "none";
-      copyUpdateButton.style.display = "none";
-      updateSingleSheetButton.style.display = "none";
+      // copyButton.style.display = "none";
+      // copyUpdateButton.style.display = "none";
+      hideUpdateSingleSheetButton();
     }
 
     fileAccessSection.style.display = "block";
   }
 
+  //Deprecated
   function onImportStatusAndCompatibilitySuccess(result) {
     console.log("Import status and compatibility result:", result);
     if (result.success) {
@@ -1870,34 +2207,34 @@
       }
       if (result.imported) {
         document.getElementById("moveSheetButton").disabled = false;
-        document.getElementById(
-          "selectedFileSummary"
-        ).innerHTML = `<strong>⚠️ Make sure your data is imported correctly before ${
-          sheetType === "IDS Collection"
-            ? "moving your IDS Collection"
-            : sheetType === "Effective Paths"
-            ? "moving your Effective Paths"
-            : sheetType === "IDS Master"
-            ? "moving your IDS Master"
-            : "updating your IDS Master"
-        }! ⚠️</strong><br>`;
+        document.getElementById("selectedFileSummary").innerHTML =
+          `<strong>⚠️ Make sure your data is imported correctly before ${
+            sheetType === "IDS Collection"
+              ? "moving your IDS Collection"
+              : sheetType === "Effective Paths"
+                ? "moving your Effective Paths"
+                : sheetType === "IDS Master"
+                  ? "moving your IDS Master"
+                  : "updating your IDS Master"
+          }! ⚠️</strong><br>`;
         showAccessibleFilesSummary();
       }
     } else {
       document.getElementById("importButton").disabled = true;
       document.getElementById("moveSheetButton").disabled = true;
       setStatusText(
-        `Import status and compatibility failed: ${result.message}`
+        `Import status and compatibility failed: ${result.message}`,
       );
     }
   }
 
+  // Deprecated
   function onImportStatusAndCompatibilityFailure(error) {
     document.getElementById("importButton").disabled = true;
     document.getElementById("moveSheetButton").disabled = true;
     console.error("Import status and compatibility error:", error);
     setStatusText(
-      `Import status and compatibility check failed: ${error.message || error}`
+      `Import status and compatibility check failed: ${error.message || error}`,
     );
   }
 
@@ -1927,11 +2264,11 @@
         // Store the version difference result for future use
         versionDifference = compatibilityResult.versionDifference;
         console.log(
-          `Compatibility check completed. Version difference: ${versionDifference}`
+          `Compatibility check completed. Version difference: ${versionDifference}`,
         );
       } else {
         console.log(
-          `Using cached compatibility result. Version difference: ${versionDifference}`
+          `Using cached compatibility result. Version difference: ${versionDifference}`,
         );
       }
 
@@ -1953,11 +2290,7 @@
   // Update single sheet function - creates template copy for any supported sheet type
   async function updateSingleSheet() {
     // Disable the button immediately to prevent multiple clicks
-    const updateSingleSheetButton = document.getElementById(
-      "updateSingleSheetButton"
-    );
-    updateSingleSheetButton.disabled = true;
-
+    disableUpdateSingleSheetButton();
     // Set the flow flag
     isUpdateSingleSheetFlow = true;
 
@@ -1967,7 +2300,7 @@
       // Check version compatibility
       const compatibilityResult = await checkVersionCompatibility(
         oldSheetID,
-        sheetType
+        sheetType,
       );
       if (!compatibilityResult.success) {
         setStatusText(compatibilityResult.message);
@@ -1987,7 +2320,7 @@
       } else {
         // Need to get template information from server
         setStatusWithSpinner(
-          `Getting ${sheetType} template and sheet information...`
+          `Getting ${sheetType} template and sheet information...`,
         );
 
         const templateResult = await new Promise((resolve, reject) => {
@@ -1999,7 +2332,7 @@
 
         if (!templateResult.success) {
           setStatusText(
-            `Error getting template info: ${templateResult.message}`
+            `Error getting template info: ${templateResult.message}`,
           );
           resetUpdateSingleSheetButton();
           return;
@@ -2022,7 +2355,7 @@
 
       // Update status for access checking
       setStatusWithSpinner(
-        `Checking access to ${sheetType} template and sheet...`
+        `Checking access to ${sheetType} template and sheet...`,
       );
 
       // Create template info array for access checking
@@ -2039,12 +2372,12 @@
       // Now check access using the simplified function
       const accessResult = await checkSingleSheetAccess(
         templateInfoForAccess,
-        sheetIds
+        sheetIds,
       );
 
       if (!accessResult.success) {
         setStatusText(
-          `Error checking ${sheetType} access: ${accessResult.message}`
+          `Error checking ${sheetType} access: ${accessResult.message}`,
         );
         resetUpdateSingleSheetButton();
         return;
@@ -2097,13 +2430,14 @@
     } catch (error) {
       console.error(`Error in ${sheetType} access check:`, error);
       setStatusText(
-        `Error checking ${sheetType} access: ${error.message || error}`
+        `Error checking ${sheetType} access: ${error.message || error}`,
       );
       resetUpdateSingleSheetButton();
     }
   }
 
   // IDS Master update option functions
+  // Deprecated
   async function updateIDSMasterOnly() {
     console.log("IDS Master Only update selected");
 
@@ -2127,11 +2461,11 @@
 
         allTemplateInfo = cachedTemplatesWithSameVersion;
         allSubsheetIds = cachedTemplatesWithSameVersion.map(
-          (template) => template.oldSheetID
+          (template) => template.oldSheetID,
         );
 
         console.log(
-          `Using cached data for ${allTemplateInfo.length} templates and ${allSubsheetIds.length} sheet IDs`
+          `Using cached data for ${allTemplateInfo.length} templates and ${allSubsheetIds.length} sheet IDs`,
         );
       } else {
         // No cached data available, fetch from server
@@ -2147,7 +2481,7 @@
 
         if (!subsheetsResult.success) {
           setStatusText(
-            `Error getting subsheet info: ${subsheetsResult.message}`
+            `Error getting subsheet info: ${subsheetsResult.message}`,
           );
           resetIDSMasterState();
           return;
@@ -2162,17 +2496,17 @@
 
       // Check access to all subsheets before proceeding
       setStatusWithSpinner(
-        `Checking access to ${allSubsheetIds.length} subsheets...`
+        `Checking access to ${allSubsheetIds.length} subsheets...`,
       );
 
       const subsheetAccessResult = await checkMultipleSheetAccess(
         allSubsheetIds,
-        userEmail
+        userEmail,
       );
 
       if (!subsheetAccessResult.success) {
         setStatusText(
-          `Error checking subsheet access: ${subsheetAccessResult.message}`
+          `Error checking subsheet access: ${subsheetAccessResult.message}`,
         );
         resetIDSMasterState();
         return;
@@ -2185,7 +2519,7 @@
       ) {
         // Some subsheets need access - set up for picker
         setStatusText(
-          `${subsheetAccessResult.inaccessibleFiles.length} subsheets need access permission. Please grant access...`
+          `${subsheetAccessResult.inaccessibleFiles.length} subsheets need access permission. Please grant access...`,
         );
 
         // Update the caches with inaccessible files
@@ -2202,7 +2536,7 @@
 
       // All subsheets are accessible - proceed with IDS Master creation
       console.log(
-        `✅ Access verified for all ${allSubsheetIds.length} subsheets - proceeding with IDS Master update`
+        `✅ Access verified for all ${allSubsheetIds.length} subsheets - proceeding with IDS Master update`,
       );
       hideIDSMasterButtons();
       // Use updateSingleSheet logic for IDS Master
@@ -2211,37 +2545,33 @@
     } catch (error) {
       console.error("Error in updateIDSMasterOnly:", error);
       setStatusText(
-        `Error preparing IDS Master update: ${error.message || error}`
+        `Error preparing IDS Master update: ${error.message || error}`,
       );
       resetIDSMasterState();
     }
   }
 
   function updateSubsheetsOnly() {
-    console.log("Subsheets Only update selected");
-    setStatusText("Choose copy option for subsheets:");
+    console.log("Subsheets update selected");
+    setStatusWithSpinner("Preparing subsheet updates...");
 
+    isCombinedUpdate = false;
     idMasterID = oldSheetID;
-    // Update summary to show what each button does
-    document.getElementById("selectedFileSummary").innerHTML = `
-      <strong>🔧 Select your preferred subsheet update method:</strong><br><br>
-      <small>
-        <strong>📋 Update All Subsheets:</strong> Creates copies of all available subsheet templates<br>
-        <strong>📋 Update Subsheets with new versions:</strong> Creates copies only of subsheets that have version updates
-      </small>
-    `;
+    currentCopyMode = "update";
+    cachedTemplateInfo = null;
+    cachedSheetIds = null;
 
-    // Show the original copy buttons for subsheets
-    document.getElementById("copyButton").style.display = "inline-block";
-    document.getElementById("copyButton").disabled = false;
+    document.getElementById("selectedFileSummary").innerHTML =
+      "<strong>📋 Updating subsheets with new versions.</strong><br>";
 
-    document.getElementById("copyUpdateButton").style.display = "inline-block";
-    document.getElementById("copyUpdateButton").disabled = false;
-
+    // document.getElementById("copyButton").style.display = "none";
+    // document.getElementById("copyUpdateButton").style.display = "none";
     document.getElementById("moveSheetButton").innerText = "Move Subsheets";
 
     // Hide the IDS Master option buttons
     hideIDSMasterButtons();
+
+    copyTemplates("update");
   }
 
   function updateMasterAndSubsheets() {
@@ -2268,7 +2598,7 @@
       // Check if we have cached data to optimize the process
       if (cachedTemplateInfo && cachedSheetIds) {
         console.log(
-          "Using cached template info and sheet IDs for combined update"
+          "Using cached template info and sheet IDs for combined update",
         );
 
         // Use cached data for subsheets
@@ -2280,14 +2610,6 @@
           console.log("Using cached master template info");
           masterTemplateInfo = cachedMasterTemplateInfo;
         } else {
-          setStatusWithSpinner("Checking IDS Master version compatibility...");
-          const compatibilityResult = await checkVersionCompatibility(
-            oldSheetID,
-            sheetType
-          );
-          if (!compatibilityResult.success) {
-            throw new Error(compatibilityResult.message);
-          }
           // Still need to get IDS Master template info separately
           setStatusWithSpinner("Getting IDS Master template information...");
           ("Getting IDS Master template information...");
@@ -2301,7 +2623,7 @@
 
           if (!masterTemplateResult.success) {
             throw new Error(
-              `Failed to get IDS Master template: ${masterTemplateResult.message}`
+              `Failed to get IDS Master template: ${masterTemplateResult.message}`,
             );
           }
 
@@ -2321,20 +2643,11 @@
         allSheetIds = [oldSheetID, ...subsheetsSheetIds]; // Include the old IDS Master for access check
       } else {
         console.log(
-          "No cached data found, fetching all template and sheet information from server"
+          "No cached data found, fetching all template and sheet information from server",
         );
-
-        setStatusWithSpinner("Checking IDS Master version compatibility...");
-        const compatibilityResult = await checkVersionCompatibility(
-          oldSheetID,
-          sheetType
-        );
-        if (!compatibilityResult.success) {
-          throw new Error(compatibilityResult.message);
-        }
 
         setStatusWithSpinner(
-          "Getting all required template and sheet information..."
+          "Getting all required template and sheet information...",
         );
 
         // Get all required IDs in parallel - both IDS Master template and all subsheet templates
@@ -2357,13 +2670,13 @@
 
         if (!masterTemplateResult.success) {
           throw new Error(
-            `Failed to get IDS Master template: ${masterTemplateResult.message}`
+            `Failed to get IDS Master template: ${masterTemplateResult.message}`,
           );
         }
 
         if (!subsheetsResult.success) {
           throw new Error(
-            `Failed to get subsheet templates: ${subsheetsResult.message}`
+            `Failed to get subsheet templates: ${subsheetsResult.message}`,
           );
         }
 
@@ -2376,10 +2689,10 @@
 
         // Filter templates based on version differences
         const templatesWithUpdates = subsheetsResult.templateInfo.filter(
-          (template) => template.templateVersion !== template.oldVersion
+          (template) => template.templateVersion !== template.oldVersion,
         );
         const templatesWithSameVersion = subsheetsResult.templateInfo.filter(
-          (template) => template.templateVersion === template.oldVersion
+          (template) => template.templateVersion === template.oldVersion,
         );
 
         // Filter sheet IDs to match templates with updates
@@ -2387,7 +2700,7 @@
           (sheetId, index) => {
             const template = subsheetsResult.templateInfo[index];
             return template && template.templateVersion !== template.oldVersion;
-          }
+          },
         );
 
         // Use only templates with updates for the combined update process
@@ -2409,11 +2722,11 @@
 
       hasSubsheetsToUpdate = cachedTemplateInfo.length > 0;
       console.log(
-        `Has subsheets to update: ${hasSubsheetsToUpdate} (${cachedTemplateInfo.length} total subsheet templates)`
+        `Has subsheets to update: ${hasSubsheetsToUpdate} (${cachedTemplateInfo.length} total subsheet templates)`,
       );
 
       setStatusWithSpinner(
-        `Checking access to ${allTemplateInfo.length} templates and ${allSheetIds.length} sheets...`
+        `Checking access to ${allTemplateInfo.length} templates and ${allSheetIds.length} sheets...`,
       );
 
       // Check access to all templates and sheets in parallel
@@ -2444,7 +2757,7 @@
         let statusMessages = [];
         if (templateInaccessibleFilesCache.length > 0) {
           statusMessages.push(
-            `${templateInaccessibleFilesCache.length} template(s)`
+            `${templateInaccessibleFilesCache.length} template(s)`,
           );
         }
         if (inaccessibleFilesCache.length > 0) {
@@ -2453,8 +2766,8 @@
 
         setStatusWithSpinner(
           `${statusMessages.join(
-            " and "
-          )} need access permission. Opening file picker...`
+            " and ",
+          )} need access permission. Opening file picker...`,
         );
 
         // Open picker for access permission
@@ -2466,9 +2779,13 @@
     } catch (error) {
       console.error("Combined update preparation failed:", error);
       setStatusText(
-        `Combined update preparation failed: ${error.message || error}`
+        `Combined update preparation failed: ${error.message || error}`,
       );
-      resetIDSMasterState();
+      if (isConvertToMasterFlow) {
+        resetToCollectionState();
+      } else {
+        resetIDSMasterState();
+      }
     }
   }
 
@@ -2508,7 +2825,8 @@
           .copyFileTemplate(
             masterTemplate.templateID,
             masterTemplate.sheetType,
-            masterTemplate.version
+            masterTemplate.version,
+            parentFolderID
           );
       });
 
@@ -2521,7 +2839,7 @@
         idMasterID = newSheetID;
 
         console.log("✅ IDS Master sheet created successfully:", newMasterID);
-        linksHtml += `<br>&nbsp;&nbsp;• IDS Master Sheet™`;
+        linksHtml += `<br>&nbsp;&nbsp;• <a href="${googleLink}/${newMasterID}/edit" target="_blank">IDS Master Sheet™</a>`;
       } else {
         failedCount++;
         const errorMessage =
@@ -2533,18 +2851,22 @@
       // Update UI with IDS Master result
       document.getElementById("selectedFileSummary").innerHTML = linksHtml;
       setStatusWithSpinner(
-        `Creating sheets... (${completedCount}/${totalTemplates} completed)`
+        `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
       );
 
       // If IDS Master creation failed, stop the process gracefully
       if (!masterResult.success || !masterResult.result.success) {
         const errorMessage = masterResult.result?.message || "Unknown error";
         setStatusText(
-          `❌ Update failed: IDS Master sheet creation failed - ${errorMessage}`
+          `❌ Update failed: IDS Master sheet creation failed - ${errorMessage}`,
         );
         document.getElementById("fileAccessTitle").innerHTML =
           "❌ Update Failed";
-        resetIDSMasterState();
+        if (isConvertToMasterFlow) {
+          resetToCollectionState();
+        } else {
+          resetIDSMasterState();
+        }
         return;
       }
 
@@ -2557,7 +2879,7 @@
           (template, index) => {
             console.log(
               `Starting copy for ${template.sheetType} sheet:`,
-              template
+              template,
             );
 
             return new Promise((resolve) => {
@@ -2565,7 +2887,7 @@
                 .withSuccessHandler(function (result) {
                   console.log(
                     `✅ ${template.sheetType} sheet copy result:`,
-                    result
+                    result,
                   );
 
                   let templateResult;
@@ -2589,7 +2911,7 @@
                     });
 
                     // Immediately add successful item to display
-                    linksHtml += `<br>&nbsp;&nbsp;• ${template.sheetType} Sheet™`;
+                    linksHtml += `<br>&nbsp;&nbsp;• <a href="${googleLink}/${result.fileId}/edit" target="_blank">${template.sheetType} Sheet™</a>`;
                   } else {
                     const errorMessage =
                       result.message ||
@@ -2615,7 +2937,7 @@
                   document.getElementById("selectedFileSummary").innerHTML =
                     linksHtml;
                   setStatusWithSpinner(
-                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`
+                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
                   );
 
                   resolve(templateResult);
@@ -2623,7 +2945,7 @@
                 .withFailureHandler(function (error) {
                   console.error(
                     `❌ Error copying sheet ${template.sheetType}:`,
-                    error
+                    error,
                   );
 
                   completedCount++;
@@ -2635,7 +2957,7 @@
                   document.getElementById("selectedFileSummary").innerHTML =
                     linksHtml;
                   setStatusWithSpinner(
-                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`
+                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
                   );
 
                   resolve({
@@ -2647,10 +2969,11 @@
                 .copyFileTemplate(
                   template.templateID,
                   template.sheetType,
-                  template.version
+                  template.version,
+                  parentFolderID
                 );
             });
-          }
+          },
         );
 
         // Wait for all subsheet copying operations to complete
@@ -2698,20 +3021,25 @@
             : "Move IDS Master";
       }
 
-      // Hide IDS Master option buttons
+      hideUpdateSingleSheetButton();
       hideIDSMasterButtons();
     } catch (error) {
       console.error("Combined update execution failed:", error);
       setStatusText(`Update failed: ${error.message || error}`);
-      resetIDSMasterState();
+      if (isConvertToMasterFlow) {
+        resetToCollectionState();
+      } else {
+        resetIDSMasterState();
+      }
     }
   }
 
   function disableIDSMasterButtons() {
     const buttons = [
-      "updateMasterOnlyButton",
+      // "updateMasterOnlyButton",
       "updateSubsheetsOnlyButton",
       "updateMasterAndSubsheetsButton",
+      "convertToCollectionButton",
     ];
     buttons.forEach((buttonId) => {
       const button = document.getElementById(buttonId);
@@ -2721,9 +3049,10 @@
 
   function enableIDSMasterButtons() {
     const buttons = [
-      "updateMasterOnlyButton",
+      // "updateMasterOnlyButton",
       "updateSubsheetsOnlyButton",
       "updateMasterAndSubsheetsButton",
+      "convertToCollectionButton",
     ];
     buttons.forEach((buttonId) => {
       const button = document.getElementById(buttonId);
@@ -2733,9 +3062,10 @@
 
   function hideIDSMasterButtons() {
     const buttons = [
-      "updateMasterOnlyButton",
+      // "updateMasterOnlyButton",
       "updateSubsheetsOnlyButton",
       "updateMasterAndSubsheetsButton",
+      "convertToCollectionButton",
     ];
     buttons.forEach((buttonId) => {
       const button = document.getElementById(buttonId);
@@ -2744,15 +3074,7 @@
   }
 
   function showIDSMasterButtons() {
-    const buttons = [
-      "updateMasterOnlyButton",
-      "updateSubsheetsOnlyButton",
-      "updateMasterAndSubsheetsButton",
-    ];
-    buttons.forEach((buttonId) => {
-      const button = document.getElementById(buttonId);
-      if (button) button.style.display = "inline-block";
-    });
+    renderIdMasterOptions();
   }
 
   function resetIDSMasterState() {
@@ -2761,6 +3083,10 @@
 
     // Reset IDS Master only update state
     isUpdateSingleSheetFlow = false;
+
+    // Reset conversion state
+    isConvertToMasterFlow = false;
+    isConvertToCollectionFlow = false;
 
     // Clean up temporary master template cache
     cachedMasterTemplateInfo = null;
@@ -2771,11 +3097,22 @@
     // Re-enable buttons
     enableIDSMasterButtons();
 
-    // Show the original IDS Master options again
-    if (sheetType === "IDS Master") {
-      showIDSMasterButtons();
-      document.getElementById("copyButton").style.display = "none";
-      document.getElementById("copyUpdateButton").style.display = "none";
-    }
+    sheetType = "IDS Master";
+    idMasterID = oldSheetID;
+    isUpdateSingleSheetFlow = true;
+    isCombinedUpdate = false;
+    renderIdMasterOptions();
+  }
+
+  function resetToCollectionState() {
+    isCombinedUpdate = false;
+    isUpdateSingleSheetFlow = false;
+    isConvertToMasterFlow = false;
+    isConvertToCollectionFlow = false;
+    sheetType = "IDS Collection";
+    versionDifference = null;
+    masterVersionDifference = null;
+    enableUpdateSingleSheetButton();
+    showUpdateSingleSheetButton();
   }
 </script>
