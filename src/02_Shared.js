@@ -1231,13 +1231,14 @@ function moveConvertedSheet(sheetType, newSheetID, oldCollectionID) {
       "Home Page",
       sheetType,
     );
-    var newVersion = newVersionInfo && newVersionInfo.currentVersion
-      ? newVersionInfo.currentVersion
-      : "";
+    var newVersion =
+      newVersionInfo && newVersionInfo.currentVersion
+        ? newVersionInfo.currentVersion
+        : "";
 
     var collectionName = collectionFile.name || "";
     var newFileName = collectionName.replace("IDS Collection", sheetType);
-    
+
     if (newVersion) {
       var existingVersion = newFileName.match(/[vV]\d+(?:.\d+)*/g);
       if (existingVersion && existingVersion.length > 0) {
@@ -1415,8 +1416,14 @@ function compareSheetVersions(sheetID, sheetType) {
     sheetType,
     homePageValues,
   );
-  if (!versionInfo || !versionInfo.currentVersion || !versionInfo.latestVersion) {
-    console.log(`Could not find complete version information in Home Page sheet`);
+  if (
+    !versionInfo ||
+    !versionInfo.currentVersion ||
+    !versionInfo.latestVersion
+  ) {
+    console.log(
+      `Could not find complete version information in Home Page sheet`,
+    );
     return {
       success: false,
       message: `Could not find complete version information in Home Page sheet™`,
@@ -1426,6 +1433,16 @@ function compareSheetVersions(sheetID, sheetType) {
     versionInfo.currentVersion,
     versionInfo.latestVersion,
   );
+  if (comparisonResult !== "older") {
+    console.log(`Sheet is up to date`);
+    return {
+      success: true,
+      currentVersion: versionInfo.currentVersion,
+      latestVersion: versionInfo.latestVersion,
+      comparisonResult: comparisonResult,
+    };
+  }
+  
   return {
     success: true,
     currentVersion: versionInfo.currentVersion,
@@ -1754,7 +1771,8 @@ function checkSheetAccess(sheetID, userEmail) {
 
     try {
       const file = CacheManager.getFile(sheetID);
-      const parentFolderID = file.parents && file.parents.length > 0 ? file.parents[0] : null;
+      const parentFolderID =
+        file.parents && file.parents.length > 0 ? file.parents[0] : null;
       const owners = file.owners || [];
       const isOwner = owners.some(
         (owner) =>
@@ -2312,7 +2330,10 @@ function copyFileTemplate(
   parentFolderID,
 ) {
   try {
-    var resolvedTemplateVersion = templateVersion && templateVersion !== "undefined" ? String(templateVersion).trim() : "";
+    var resolvedTemplateVersion =
+      templateVersion && templateVersion !== "undefined"
+        ? String(templateVersion).trim()
+        : "";
     var fileName = `Copy of ${sheetType} ${resolvedTemplateVersion}`.trim();
     var templateCopyUrl = `https://docs.google.com/spreadsheets/d/${templateID}/copy`;
     var copyRequest = { name: fileName };
