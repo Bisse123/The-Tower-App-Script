@@ -21,7 +21,8 @@
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
-        .withFailureHandler(reject)[method](...args);
+        .withFailureHandler(reject)
+        [method](...args);
     });
   }
 
@@ -64,9 +65,7 @@
         if (!exportResult || !exportResult.success) {
           document.getElementById("importButton").disabled = false;
           setStatusText(
-            `Export failed: ${
-              exportResult?.message || "Unknown export error"
-            }`,
+            `Export failed: ${exportResult?.message || "Unknown export error"}`,
           );
           return;
         }
@@ -139,8 +138,7 @@
         onprepareImportDataFailure(error);
       }
       return;
-    }
-    if (sheetType === "IDS Collection" && isConvertToCollectionFlow) {
+    } else if (sheetType === "IDS Collection" && isConvertToCollectionFlow) {
       setStatusWithSpinner("Preparing import for sheet...");
       const sheetTypes = [
         "Laboratory",
@@ -1778,7 +1776,12 @@
               error: errorMessage,
             });
           })
-          .copyFileTemplate(template.id, template.sheetType, template.version, parentFolderID);
+          .copyFileTemplate(
+            template.id,
+            template.sheetType,
+            template.version,
+            parentFolderID,
+          );
       });
     });
 
@@ -1878,10 +1881,18 @@
       }
     }
 
-    updateSubsheetsOnlyButton.disabled = false;
-    convertToCollectionButton.disabled = false;
-
     if (masterVersionDifference === "older") {
+      if (!versionDifference) {
+        const compatibilityResult = await checkVersionCompatibility(
+          oldSheetID,
+          "IDS Master",
+        );
+        if (!compatibilityResult.success || !compatibilityResult.versionDifference) {
+          setStatusText(compatibilityResult.message);
+          return;
+        }
+        versionDifference = compatibilityResult.versionDifference;
+      }
       setStatusText("Choose update option:");
       updateMasterAndSubsheetsButton.style.display = "inline-block";
       updateMasterAndSubsheetsButton.disabled = false;
@@ -1905,6 +1916,11 @@
       //   </small>
       // `;
     }
+    summary.innerHTML += `<br><br>
+      <strong>⚠️ Note: IDS Collection is a single all-in-one sheet that can be used as a substitute for IDS Master and subsheets </strong>`;
+    
+    updateSubsheetsOnlyButton.disabled = false;
+    convertToCollectionButton.disabled = false;
   }
 
   async function convertToMaster() {
@@ -1940,7 +1956,7 @@
     currentCopyMode = "all";
 
     disableUpdateSingleSheetButton();
-    
+
     cachedMasterTemplateInfo = {
       templateID: masterTemplate.templateID,
       sheetType: "IDS Master",
@@ -2047,7 +2063,9 @@
     notOwnedFilesCache = sheetAccess.notOwnedFiles || [];
 
     if (notOwnedFilesCache.length > 0) {
-      setStatusText("Some files are not owned by you. Please confirm ownership before continuing.");
+      setStatusText(
+        "Some files are not owned by you. Please confirm ownership before continuing.",
+      );
       showContinueSection();
       return;
     }
@@ -2147,6 +2165,8 @@
         // copyButton.style.display = "none";
         // copyUpdateButton.style.display = "none";
         if (sheetType === "IDS Collection") {
+          summary.innerHTML += `<br><br>
+            <strong>⚠️ Note: IDS Master is multiple sheets that can be used as a substitute for IDS Collection</strong>`;
           document.getElementById("convertToMasterButton").style.display =
             "inline-block";
           document.getElementById("convertToMasterButton").disabled = false;
@@ -2826,7 +2846,7 @@
             masterTemplate.templateID,
             masterTemplate.sheetType,
             masterTemplate.version,
-            parentFolderID
+            parentFolderID,
           );
       });
 
@@ -2970,7 +2990,7 @@
                   template.templateID,
                   template.sheetType,
                   template.version,
-                  parentFolderID
+                  parentFolderID,
                 );
             });
           },
