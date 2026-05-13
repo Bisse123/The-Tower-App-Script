@@ -189,34 +189,35 @@
         Pass: [],
         "Premium Packs": [],
       };
+      var dissHeaders = ["attack", "defense", "utility", "ultimate"];
+      var dissValuesByName = {};
+      var dissColsByName = {};
 
       var firstRow = -1;
-      var dissAttackCol = -1;
-      var dissDefenseCol = -1;
-      var dissUtilityCol = -1;
-      var dissUltimateCol = -1;
       for (var row = 0; row < masterSheetData.length; row++) {
         var dissHeaderRow = masterSheetData[row] || [];
-        var dissAttackIndex = dissHeaderRow.indexOf("Attack");
-        var dissDefenseIndex = dissHeaderRow.indexOf("Defense");
-        var dissUtilityIndex = dissHeaderRow.indexOf("Utility");
-        var dissUltimateIndex = dissHeaderRow.indexOf("Ultimate Weapon");
-        if (
-          dissAttackIndex !== -1 &&
-          dissDefenseIndex !== -1 &&
-          dissUtilityIndex !== -1 &&
-          dissUltimateIndex !== -1
-        ) {
-          firstRow = row + 2;
-          dissAttackCol =
-            dissHeaderRow.indexOf("Attack") + 1 || dissCol + 1;
-          dissDefenseCol =
-            dissHeaderRow.indexOf("Defense") + 1 || dissCol + 3;
-          dissUtilityCol =
-            dissHeaderRow.indexOf("Utility") + 1 || dissCol + 5;
-          dissUltimateCol =
-            dissHeaderRow.indexOf("Ultimate Weapon") + 1 || dissCol + 7;
+        var dissIndexesByName = {};
+        var allFound = true;
+        for (var i = 0; i < dissHeaders.length; i++) {
+          var dissHeaderName = dissHeaders[i];
+          var dissIndex = dissHeaderRow.findIndex(function (cell) {
+            return String(cell || "")
+              .toLowerCase()
+              .includes(dissHeaderName);
+          });
+          if (dissIndex === -1) {
+            allFound = false;
             break;
+          }
+          dissIndexesByName[dissHeaderName] = dissIndex;
+        }
+        if (allFound) {
+          firstRow = row + 2;
+          for (var j = 0; j < dissHeaders.length; j++) {
+            var dissName = dissHeaders[j];
+            dissColsByName[dissName] = dissIndexesByName[dissName] + 1;
+          }
+          break;
         }
       }
       if (firstRow === -1) {
@@ -241,19 +242,15 @@
           values.Tier.push([wave]);
           values.Pass.push([premium]);
           if (oldPlayerTierData[tierValue].diss) {
-            var dissAttack = oldPlayerTierData[tierValue].diss.Attack || null;
-            var dissDefense = oldPlayerTierData[tierValue].diss.Defense || null;
-            var dissUtility = oldPlayerTierData[tierValue].diss.Utility || null;
-            var dissUltimate =
-              oldPlayerTierData[tierValue].diss["Ultimate Weapon"] || null;
-            values.dissAttack = values.dissAttack || [];
-            values.dissDefense = values.dissDefense || [];
-            values.dissUtility = values.dissUtility || [];
-            values.dissUltimate = values.dissUltimate || [];
-            values.dissAttack.push([dissAttack]);
-            values.dissDefense.push([dissDefense]);
-            values.dissUtility.push([dissUtility]);
-            values.dissUltimate.push([dissUltimate]);
+            for (var i = 0; i < dissHeaders.length; i++) {
+              var dissHeaderName = dissHeaders[i];
+              var dissValue =
+                oldPlayerTierData[tierValue].diss[dissHeaderName] || null;
+              if (!dissValuesByName[dissHeaderName]) {
+                dissValuesByName[dissHeaderName] = [];
+              }
+              dissValuesByName[dissHeaderName].push([dissValue]);
+            }
           }
         }
 
@@ -277,11 +274,6 @@
 
       var statColLetter = shared.columnToLetter(statCol + 2);
       var tierColLetter = shared.columnToLetter(tierCol + 2);
-
-      var dissAttackColLetter = shared.columnToLetter(dissAttackCol);
-      var dissDefenseColLetter = shared.columnToLetter(dissDefenseCol);
-      var dissUtilityColLetter = shared.columnToLetter(dissUtilityCol);
-      var dissUltimateColLetter = shared.columnToLetter(dissUltimateCol);
       var passColLetter = shared.columnToLetter(passCol + 1);
       var batchUpdate = [];
       var ranges = {
@@ -298,31 +290,26 @@
           perkRow + values["Premium Packs"].length - 1
         }`,
       };
-      if (values.dissAttack && values.dissAttack.length > 0) {
-        ranges.dissAttack = `${sheetName}!${dissAttackColLetter}${firstRow}:${dissAttackColLetter}${
-          firstRow + values.dissAttack.length - 1
-        }`;
-      }
-      if (values.dissDefense && values.dissDefense.length > 0) {
-        ranges.dissDefense = `${sheetName}!${dissDefenseColLetter}${firstRow}:${dissDefenseColLetter}${
-          firstRow + values.dissDefense.length - 1
-        }`;
-      }
-      if (values.dissUtility && values.dissUtility.length > 0) {
-        ranges.dissUtility = `${sheetName}!${dissUtilityColLetter}${firstRow}:${dissUtilityColLetter}${
-          firstRow + values.dissUtility.length - 1
-        }`;
-      }
-      if (values.dissUltimate && values.dissUltimate.length > 0) {
-        ranges.dissUltimate = `${sheetName}!${dissUltimateColLetter}${firstRow}:${dissUltimateColLetter}${
-          firstRow + values.dissUltimate.length - 1
-        }`;
-      }
       for (var key in values) {
         if (values[key].length > 0) {
           batchUpdate.push({
             range: ranges[key],
             values: values[key],
+          });
+        }
+      }
+      for (var i = 0; i < dissHeaders.length; i++) {
+        var dissHeaderName = dissHeaders[i];
+        var dissValues = dissValuesByName[dissHeaderName];
+        if (dissValues && dissValues.length > 0) {
+          var dissColLetter = shared.columnToLetter(
+            dissColsByName[dissHeaderName],
+          );
+          batchUpdate.push({
+            range: `${sheetName}!${dissColLetter}${firstRow}:${dissColLetter}${
+              firstRow + dissValues.length - 1
+            }`,
+            values: dissValues,
           });
         }
       }
@@ -526,10 +513,10 @@
           oldPlayerStuffTierData[tier] = {
             wave: wave,
             diss: {
-              Attack: dissAttack,
-              Defense: dissDefense,
-              Utility: dissUtility,
-              "Ultimate Weapon": dissUltimate,
+              attack: dissAttack,
+              defense: dissDefense,
+              utility: dissUtility,
+              ultimate: dissUltimate,
             },
             premium: premium,
           };
