@@ -1236,18 +1236,22 @@
     // Show master link if there are updated files
     if (idsMasterUpdated) {
       let masterLabel = "IDS Master";
+      let epLabel = "";
       if (cachedMasterTemplateInfo) {
         masterLabel =
           '<strong style="color:#fff;background:#e53935;padding:0 0.4em;border-radius:0.3em;">new</strong> IDS Master';
+          epLabel = ` <strong>⚠️ Remember to update Effective Path to use your new IDS Master ⚠️</strong><br>`;
       }
       summaryHtml += `<strong>🔄 Please go to your ${masterLabel} and grant the new sheet(s) access.</strong>`;
-      summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+      summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a><br>`;
+      summaryHtml += `${epLabel}`;
     }
 
     if (!idsMasterUpdated && sheetType === "IDS Master" && isCombinedUpdate) {
       if (newSheetID) {
         summaryHtml += `<strong>📄 New IDS Master (copy):</strong><br>`;
         summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${newSheetID}/edit" target="_blank">Open IDS Master Sheet™</a><br>`;
+        summaryHtml += `<strong>⚠️ Remember to update your Effective Paths to use the new IDS Master! ⚠️</strong><br>`;
       }
     }
 
