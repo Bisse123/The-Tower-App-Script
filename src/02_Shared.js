@@ -1394,10 +1394,10 @@ function compareSheetVersions(sheetID, sheetType) {
   }
   var homePageSheet = SheetsAPI.getSheetByName(spreadsheet, "Home Page");
   if (!homePageSheet) {
-    console.log(`Home Page sheet not found in spreadsheet`);
+    console.log(`Home Page sheet not found in ${sheeetType} spreadsheet`);
     return {
       success: false,
-      message: `Home Page sheet™ not found in spreadsheet™`,
+      message: `Home Page sheet™ not found in ${sheeetType} spreadsheet™`,
     };
   }
   // CacheManager.RemoveSpreadsheet(`${sheetType} spreadsheet`);
@@ -2764,10 +2764,8 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     }
 
     var oldHomePageValues = oldHomePageData[0].values;
-    var oldVersionInfo;
-    var oldVersion;
-
-    oldVersionInfo = shared.findSheetVersion(
+    
+    var oldVersionInfo = shared.findSheetVersion(
       oldSheetID,
       "Home Page",
       sheetType,
@@ -2779,7 +2777,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
         message: `Current Version not found in old ${sheetType} spreadsheet.`,
       };
     }
-    oldVersion = oldVersionInfo.currentVersion;
+    var oldVersion = oldVersionInfo.currentVersion;
 
     var sheetTypeFunction = sheetVars(sheetType);
     if (sheetTypeFunction) {

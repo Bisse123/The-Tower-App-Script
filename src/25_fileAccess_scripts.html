@@ -1082,16 +1082,7 @@
         );
       }
 
-      const updateIdsMasterResult = await new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler(function (result) {
-            resolve(result);
-          })
-          .withFailureHandler(function (error) {
-            resolve(error);
-          })
-          .updateIdsMaster(idMasterID, idDataEntries);
-      });
+      const updateIdsMasterResult = await runAppsScript("updateIdsMaster", idMasterID, idDataEntries);
 
       if (!updateIdsMasterResult) {
         setStatusText(`Error updating IDS Master: No result returned`);
@@ -1509,21 +1500,12 @@
         document.getElementById("selectedFileSummary").innerHTML =
           `<strong>🎉 Effective Paths updated successfully!</strong><br><strong>Your Effective Paths data has been updated and imported.</strong>`;
       } else {
-        const updateIdsMasterResult = await new Promise((resolve) => {
-          google.script.run
-            .withSuccessHandler(function (result) {
-              resolve(result);
-            })
-            .withFailureHandler(function (error) {
-              resolve(error);
-            })
-            .updateIdsMaster(idMasterID, [
-              {
-                sheetType: sheetType,
-                newSheetID: newSheetID,
-              },
-            ]);
-        });
+        const updateIdsMasterResult = await runAppsScript("updateIdsMaster", idMasterID, [
+          {
+            sheetType: sheetType,
+            newSheetID: newSheetID,
+          },
+        ]);
 
         if (!updateIdsMasterResult) {
           setStatusText(`Error updating IDS Master: No result returned`);
@@ -1865,28 +1847,38 @@
     convertToCollectionButton.style.display = "inline-block";
     convertToCollectionButton.disabled = true;
 
-    if (!masterVersionDifference) {
+    if (!masterVersionDifference || masterVersionDifference === "unknown") {
       setStatusWithSpinner(`Checking IDS Master version...`);
-      const versionResult = await new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler(function (result) {
-            resolve(result);
-          })
-          .withFailureHandler(function (error) {
-            resolve(error);
-          })
-          .compareSheetVersions(oldSheetID, sheetType);
-      });
-      if (versionResult && versionResult.success) {
+      let versionResult = null;
+      try {
+        versionResult = await runAppsScript(
+          "compareSheetVersions",
+          oldSheetID,
+          "IDS Master",
+        );
+      } catch (error) {
+        console.warn("IDS Master version check failed:", error);
+      }
+  
+      if (versionResult && versionResult.success && versionResult.comparisonResult) {
         masterVersionDifference = versionResult.comparisonResult;
         console.log(
           `Master version difference between IDS Master and template: ${masterVersionDifference}`,
         );
+      } else {
+        masterVersionDifference = "unknown";
+        console.warn(
+          "IDS Master version check returned an unexpected result:",
+          versionResult,
+        );
       }
     }
 
-    if (masterVersionDifference === "older") {
-      if (!versionDifference) {
+    if (
+      masterVersionDifference === "older" ||
+      masterVersionDifference === "unknown"
+    ) {
+      if (versionDifference === null) {
         const compatibilityResult = await checkVersionCompatibility(
           oldSheetID,
           "IDS Master",
@@ -1897,7 +1889,11 @@
         }
         versionDifference = compatibilityResult.versionDifference;
       }
-      setStatusText("Choose update option:");
+      setStatusText(
+        masterVersionDifference === "unknown"
+          ? "Unable to verify IDS Master version. You can still update."
+          : "Choose update option:",
+      );
       updateMasterAndSubsheetsButton.style.display = "inline-block";
       updateMasterAndSubsheetsButton.disabled = false;
       summary.innerHTML = `
@@ -1991,12 +1987,7 @@
     isCombinedUpdate = false;
 
     try {
-      const subsheetsResult = await new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(resolve)
-          .getTemplateAndsheetIds(oldSheetID, "all");
-      });
+      const subsheetsResult = await runAppsScript("getTemplateAndsheetIds", oldSheetID, "all");
 
       if (subsheetsResult && subsheetsResult.success) {
         cachedSheetIds = subsheetsResult.sheetIds || [];
@@ -2270,12 +2261,7 @@
         setStatusWithSpinner(`Checking version compatibility...`);
 
         // Check version compatibility for export before proceeding
-        const compatibilityResult = await new Promise((resolve, reject) => {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .checkExportCompatibility(sheetId, sheetTypeToCheck);
-        });
+        const compatibilityResult = await runAppsScript("checkExportCompatibility", sheetId, sheetTypeToCheck);
 
         if (!compatibilityResult.success) {
           return {
@@ -2347,12 +2333,11 @@
           `Getting ${sheetType} template and sheet information...`,
         );
 
-        const templateResult = await new Promise((resolve, reject) => {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .getTemplateIdForSingleSheet(oldSheetID, sheetType);
-        });
+        const templateResult = await runAppsScript(
+          "getTemplateIdForSingleSheet",
+          oldSheetID,
+          sheetType,
+        );
 
         if (!templateResult.success) {
           setStatusText(
@@ -2496,12 +2481,7 @@
         console.log("No cached subsheet data found, fetching from server");
         setStatusWithSpinner("Getting subsheet information...");
 
-        const subsheetsResult = await new Promise((resolve, reject) => {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .getTemplateAndsheetIds(oldSheetID, "all");
-        });
+        const subsheetsResult = await runAppsScript("getTemplateAndsheetIds", oldSheetID, "all");
 
         if (!subsheetsResult.success) {
           setStatusText(
@@ -2638,12 +2618,11 @@
           setStatusWithSpinner("Getting IDS Master template information...");
           ("Getting IDS Master template information...");
 
-          const masterTemplateResult = await new Promise((resolve, reject) => {
-            google.script.run
-              .withSuccessHandler(resolve)
-              .withFailureHandler(reject)
-              .getTemplateIdForSingleSheet(oldSheetID, sheetType);
-          });
+          const masterTemplateResult = await runAppsScript(
+            "getTemplateIdForSingleSheet",
+            oldSheetID,
+            sheetType,
+          );
 
           if (!masterTemplateResult.success) {
             throw new Error(
@@ -2677,19 +2656,9 @@
         // Get all required IDs in parallel - both IDS Master template and all subsheet templates
         const [masterTemplateResult, subsheetsResult] = await Promise.all([
           // Get IDS Master template ID
-          new Promise((resolve, reject) => {
-            google.script.run
-              .withSuccessHandler(resolve)
-              .withFailureHandler(reject)
-              .getTemplateIdForSingleSheet(oldSheetID, sheetType);
-          }),
+          runAppsScript("getTemplateIdForSingleSheet", oldSheetID, sheetType),
           // Get all subsheet template and sheet IDs (using oldSheetID which is the current IDS Master)
-          new Promise((resolve, reject) => {
-            google.script.run
-              .withSuccessHandler(resolve)
-              .withFailureHandler(reject)
-              .getTemplateAndsheetIds(oldSheetID, "all");
-          }),
+          runAppsScript("getTemplateAndsheetIds", oldSheetID, "all"),
         ]);
 
         if (!masterTemplateResult.success) {
