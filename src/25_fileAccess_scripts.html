@@ -1665,161 +1665,6 @@
     }
   }
 
-  async function proceedWithTemplateCopying(copyMode) {
-    const totalTemplates = templateAccessibleFilesCache.length;
-    const fileAccessTitle = document.getElementById("fileAccessTitle");
-    const selectedFileSummary = document.getElementById("selectedFileSummary");
-    hasSubsheetsToUpdate = true;
-
-    const modeDescription =
-      copyMode === "update" ? "sheets with updates" : "sheets";
-
-    // Initialize the summary with header
-    let linksHtml = "<strong>📂 Created sheets for update:</strong>";
-    selectedFileSummary.innerHTML = linksHtml;
-
-    setStatusWithSpinner(`Copying ${totalTemplates} ${modeDescription}...`);
-
-    let successCount = 0;
-    let failedCount = 0;
-    let completedCount = 0;
-
-    // Create promises for all template copying operations with immediate UI updates
-    const copyPromises = templateAccessibleFilesCache.map((template, index) => {
-      console.log(`Starting copy for ${template.sheetType} sheet:`, template);
-
-      return new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler(function (result) {
-            console.log(
-              `Sheet ${template.sheetType} copied successfully:`,
-              result,
-            );
-
-            let templateResult;
-            if (result.success && result.fileId) {
-              successCount++;
-              templateResult = {
-                success: true,
-                sheetType: template.sheetType,
-                fileId: result.fileId,
-                gid: result.gid || "",
-                version: template.version,
-              };
-
-              copiedTemplateFiles.push(templateResult);
-
-              // Add the newly copied file to accessible files cache
-              accessibleFilesCache.push({
-                id: result.fileId,
-                name: `Copy of ${template.sheetType} ${template.version}`,
-                sheetType: template.sheetType,
-              });
-
-              // Immediately add successful item to display
-              linksHtml += `<br>&nbsp;&nbsp;• ${template.sheetType} Sheet™`;
-            } else {
-              failedCount++;
-              const errorMessage =
-                result.message || "Copy operation returned unsuccessful result";
-              templateResult = {
-                success: false,
-                sheetType: template.sheetType,
-                error: errorMessage,
-              };
-
-              // Immediately add failure message to display
-              linksHtml += `<br>&nbsp;&nbsp;• ❌ ${template.sheetType} Sheet™ (failed)`;
-            }
-
-            // Update UI immediately
-            completedCount++;
-            selectedFileSummary.innerHTML = linksHtml;
-            setStatusWithSpinner(
-              `Copying sheets... (${completedCount}/${totalTemplates} completed)`,
-            );
-
-            resolve(templateResult);
-          })
-          .withFailureHandler(function (error) {
-            console.error(`Error copying sheet ${template.sheetType}:`, error);
-
-            failedCount++;
-            completedCount++;
-
-            const errorMessage = error.message || error;
-
-            // Immediately add failure message to display
-            linksHtml += `<br>&nbsp;&nbsp;• ❌ ${template.sheetType} Sheet™ (failed)`;
-            selectedFileSummary.innerHTML = linksHtml;
-            setStatusWithSpinner(
-              `Copying sheets... (${completedCount}/${totalTemplates} completed)`,
-            );
-
-            resolve({
-              success: false,
-              sheetType: template.sheetType,
-              error: errorMessage,
-            });
-          })
-          .copyFileTemplate(
-            template.id,
-            template.sheetType,
-            template.version,
-            parentFolderID,
-          );
-      });
-    });
-
-    // Wait for all copying operations to complete
-    try {
-      await Promise.all(copyPromises);
-
-      // Final status update
-      const modeDescription =
-        copyMode === "update" ? "sheets with updates" : "sheets";
-      let statusMessage = `All ${modeDescription} copied successfully.`;
-      if (failedCount > 0) {
-        statusMessage = `${
-          modeDescription.charAt(0).toUpperCase() + modeDescription.slice(1)
-        } copying completed: ${successCount} successful, ${failedCount} failed`;
-      }
-      setStatusText(statusMessage);
-
-      // Update title
-      if (successCount > 0) {
-        const titleModeDescription =
-          copyMode === "update" ? "Sheet(s) with Updates" : "Sheet(s)";
-        fileAccessTitle.innerHTML = `✅ ${successCount} ${titleModeDescription} Copied Successfully!`;
-        if (failedCount > 0) {
-          fileAccessTitle.innerHTML += ` (${failedCount} failed)`;
-        }
-
-        // document.getElementById("copyButton").style.display = "none";
-        // document.getElementById("copyUpdateButton").style.display = "none";
-        document.getElementById("addAnotherButton").style.display = "none";
-        document.getElementById("instructionsSection").style.display = "none";
-        document.getElementById("importButton").style.display = "inline-block";
-        document.getElementById("importButton").innerText = "Import Data";
-        document.getElementById("importButton").disabled = false;
-        document.getElementById("moveSheetButton").style.display =
-          "inline-block";
-        document.getElementById("moveSheetButton").disabled = true;
-        hideIDSMasterButtons();
-      } else {
-        const titleModeDescription =
-          copyMode === "update" ? "Sheets with Updates" : "Sheets";
-        fileAccessTitle.innerHTML = `❌ All ${totalTemplates} ${titleModeDescription} Failed to Copy`;
-      }
-    } catch (error) {
-      console.error("Error in sheet copying process:", error);
-      setStatusText(`Error during sheet copying: ${error.message || error}`);
-    } finally {
-      // document.getElementById("copyButton").disabled = false;
-      // document.getElementById("copyUpdateButton").disabled = false;
-    }
-  }
-
   async function renderIdMasterOptions() {
     const summary = document.getElementById("selectedFileSummary");
     // const updateMasterOnlyButton = document.getElementById(
@@ -1967,11 +1812,11 @@
       sheetType: template.sheetType,
       version: template.templateVersion || "",
     }));
-    cachedSheetIds = [];
+    cachedSheetIds = [oldSheetID];
     cachedTemplatesWithSameVersion = [];
     hasSubsheetsToUpdate = cachedTemplateInfo.length > 0;
 
-    updateMasterAndSubsheetsWithAllFiles();
+    copyTemplates(currentCopyMode);
   }
 
   async function convertToCollection() {
@@ -2578,88 +2423,33 @@
     copyTemplates("update");
   }
 
-  function updateMasterAndSubsheets() {
+  async function updateMasterAndSubsheets() {
     console.log("Master and Subsheets update selected");
     setStatusWithSpinner("Preparing combined update...");
 
     // Set a flag to indicate we're doing combined update
     isCombinedUpdate = true;
 
+    currentCopyMode = "update";
+    idMasterID = oldSheetID;
+
     // Disable all buttons during operation
     disableIDSMasterButtons();
 
-    // Use the new combined function to handle all ID discovery and file creation
-    updateMasterAndSubsheetsWithAllFiles();
-  }
+    document.getElementById("selectedFileSummary").innerHTML =
+      "<strong>📋 Updating IDS Master and subsheets with new versions.</strong><br>";
 
-  async function updateMasterAndSubsheetsWithAllFiles() {
     try {
-      let allTemplateInfo,
-        allSheetIds,
-        masterTemplateInfo,
-        subsheetsTemplateInfo;
-
-      // Check if we have cached data to optimize the process
-      if (cachedTemplateInfo && cachedSheetIds) {
-        console.log(
-          "Using cached template info and sheet IDs for combined update",
+      if (
+        !cachedMasterTemplateInfo ||
+        cachedMasterTemplateInfo.oldSheetID !== oldSheetID
+      ) {
+        setStatusWithSpinner("Getting IDS Master template information...");
+        const masterTemplateResult = await runAppsScript(
+          "getTemplateIdForSingleSheet",
+          oldSheetID,
+          sheetType,
         );
-
-        // Use cached data for subsheets
-        subsheetsTemplateInfo = cachedTemplateInfo;
-        const subsheetsSheetIds = cachedSheetIds;
-
-        // Check if we also have cached master template info
-        if (cachedMasterTemplateInfo) {
-          console.log("Using cached master template info");
-          masterTemplateInfo = cachedMasterTemplateInfo;
-        } else {
-          // Still need to get IDS Master template info separately
-          setStatusWithSpinner("Getting IDS Master template information...");
-          ("Getting IDS Master template information...");
-
-          const masterTemplateResult = await runAppsScript(
-            "getTemplateIdForSingleSheet",
-            oldSheetID,
-            sheetType,
-          );
-
-          if (!masterTemplateResult.success) {
-            throw new Error(
-              `Failed to get IDS Master template: ${masterTemplateResult.message}`,
-            );
-          }
-
-          // Create template info structure for IDS Master
-          masterTemplateInfo = {
-            templateID: masterTemplateResult.templateID,
-            sheetType: sheetType, // This is "IDS Master"
-            version: masterTemplateResult.templateVersion,
-          };
-
-          // Cache the master template info for future use
-          cachedMasterTemplateInfo = masterTemplateInfo;
-        }
-
-        // Combine all template info (IDS Master + cached subsheets)
-        allTemplateInfo = [masterTemplateInfo, ...subsheetsTemplateInfo];
-        allSheetIds = [oldSheetID, ...subsheetsSheetIds]; // Include the old IDS Master for access check
-      } else {
-        console.log(
-          "No cached data found, fetching all template and sheet information from server",
-        );
-
-        setStatusWithSpinner(
-          "Getting all required template and sheet information...",
-        );
-
-        // Get all required IDs in parallel - both IDS Master template and all subsheet templates
-        const [masterTemplateResult, subsheetsResult] = await Promise.all([
-          // Get IDS Master template ID
-          runAppsScript("getTemplateIdForSingleSheet", oldSheetID, sheetType),
-          // Get all subsheet template and sheet IDs (using oldSheetID which is the current IDS Master)
-          runAppsScript("getTemplateAndsheetIds", oldSheetID, "all"),
-        ]);
 
         if (!masterTemplateResult.success) {
           throw new Error(
@@ -2667,363 +2457,50 @@
           );
         }
 
-        if (!subsheetsResult.success) {
-          throw new Error(
-            `Failed to get subsheet templates: ${subsheetsResult.message}`,
-          );
-        }
-
-        // Create template info structure for IDS Master
-        masterTemplateInfo = {
+        cachedMasterTemplateInfo = {
           templateID: masterTemplateResult.templateID,
-          sheetType: sheetType, // This is "IDS Master"
+          sheetType: sheetType,
           version: masterTemplateResult.templateVersion,
+          templateVersion: masterTemplateResult.templateVersion,
+          oldSheetID: oldSheetID,
         };
-
-        // Filter templates based on version differences
-        const templatesWithUpdates = subsheetsResult.templateInfo.filter(
-          (template) => template.templateVersion !== template.oldVersion,
-        );
-        const templatesWithSameVersion = subsheetsResult.templateInfo.filter(
-          (template) => template.templateVersion === template.oldVersion,
-        );
-
-        // Filter sheet IDs to match templates with updates
-        const sheetIdsWithUpdates = subsheetsResult.sheetIds.filter(
-          (sheetId, index) => {
-            const template = subsheetsResult.templateInfo[index];
-            return template && template.templateVersion !== template.oldVersion;
-          },
-        );
-
-        // Use only templates with updates for the combined update process
-        subsheetsTemplateInfo = templatesWithUpdates;
-
-        // Combine all template info (IDS Master + subsheets with updates)
-        allTemplateInfo = [masterTemplateInfo, ...subsheetsTemplateInfo];
-        allSheetIds = [...subsheetsResult.sheetIds]; // Use filtered sheet IDs
-
-        // Cache the data for later use
-        cachedTemplateInfo = subsheetsTemplateInfo;
-        cachedTemplatesWithSameVersion = templatesWithSameVersion; // Cache templates with matching versions
-        cachedSheetIds = sheetIdsWithUpdates;
-        cachedMasterTemplateInfo = masterTemplateInfo;
       }
 
-      console.log("All template info for combined update:", allTemplateInfo);
-      console.log("All sheet IDs for combined update:", allSheetIds);
-
-      hasSubsheetsToUpdate = cachedTemplateInfo.length > 0;
-      console.log(
-        `Has subsheets to update: ${hasSubsheetsToUpdate} (${cachedTemplateInfo.length} total subsheet templates)`,
+      const subsheetsResult = await runAppsScript(
+        "getTemplateAndsheetIds",
+        oldSheetID,
+        "all",
       );
 
-      setStatusWithSpinner(
-        `Checking access to ${allTemplateInfo.length} templates and ${allSheetIds.length} sheets...`,
+      if (!subsheetsResult.success) {
+        throw new Error(
+          `Failed to get subsheet templates: ${subsheetsResult.message}`,
+        );
+      }
+
+      const templatesWithUpdates = subsheetsResult.templateInfo.filter(
+        (template) => template.templateVersion !== template.oldVersion,
+      );
+      const templatesWithSameVersion = subsheetsResult.templateInfo.filter(
+        (template) => template.templateVersion === template.oldVersion,
       );
 
-      // Check access to all templates and sheets in parallel
-      const [templateResults, sheetResults] = await Promise.all([
-        checkMultipleTemplateAccess(allTemplateInfo),
-        checkMultipleSheetAccess(allSheetIds, userEmail),
-      ]);
-
-      if (!templateResults.success || !sheetResults.success) {
-        const message = !templateResults.success
-          ? templateResults.message
-          : sheetResults.message;
-        throw new Error(`Access check failed: ${message}`);
-      }
-
-      // Update caches with results for openMultiFilePicker
-      accessibleFilesCache = sheetResults.accessibleFiles || [];
-      inaccessibleFilesCache = sheetResults.inaccessibleFiles || [];
-      notOwnedFilesCache = sheetResults.notOwnedFiles || [];
-      templateAccessibleFilesCache = templateResults.accessibleFiles || [];
-      templateInaccessibleFilesCache = templateResults.inaccessibleFiles || [];
-
-      const totalInaccessibleFiles =
-        inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
-
-      if (totalInaccessibleFiles > 0) {
-        // Show picker for access permission
-        let statusMessages = [];
-        if (templateInaccessibleFilesCache.length > 0) {
-          statusMessages.push(
-            `${templateInaccessibleFilesCache.length} template(s)`,
-          );
+      cachedTemplateInfo = templatesWithUpdates;
+      cachedTemplatesWithSameVersion = templatesWithSameVersion;
+      cachedSheetIds = [oldSheetID];
+      templatesWithUpdates.forEach((template) => {
+        if (template.oldSheetID) {
+          cachedSheetIds.push(template.oldSheetID);
         }
-        if (inaccessibleFilesCache.length > 0) {
-          statusMessages.push(`${inaccessibleFilesCache.length} sheet(s)`);
-        }
+      });
 
-        setStatusWithSpinner(
-          `${statusMessages.join(
-            " and ",
-          )} need access permission. Opening file picker...`,
-        );
-
-        // Open picker for access permission
-        openMultiFilePicker();
-        return;
-      }
-
-      proceedWithCombinedUpdate(masterTemplateInfo, subsheetsTemplateInfo);
+      copyTemplates(currentCopyMode);
     } catch (error) {
       console.error("Combined update preparation failed:", error);
       setStatusText(
         `Combined update preparation failed: ${error.message || error}`,
       );
-      if (isConvertToMasterFlow) {
-        resetToCollectionState();
-      } else {
-        resetIDSMasterState();
-      }
-    }
-  }
-
-  async function proceedWithCombinedUpdate(masterTemplate, subsheetTemplates) {
-    try {
-      const totalTemplates = 1 + subsheetTemplates.length; // IDS Master + subsheets
-      let successCount = 0;
-      let failedCount = 0;
-      let completedCount = 0;
-
-      // Initialize the summary with header
-      let linksHtml = "<strong>📂 Created sheets for update:</strong>";
-      document.getElementById("selectedFileSummary").innerHTML = linksHtml;
-
-      setStatusWithSpinner(`Creating ${totalTemplates} sheets for update...`);
-
-      // Step 1: Create IDS Master sheet copy
-      console.log("Creating IDS Master sheet copy...");
-
-      const masterResult = await new Promise((resolve) => {
-        google.script.run
-          .withSuccessHandler(function (result) {
-            resolve({
-              success: true,
-              result: result,
-            });
-          })
-          .withFailureHandler(function (error) {
-            resolve({
-              success: false,
-              result: {
-                success: false,
-                message: error.message || error,
-              },
-            });
-          })
-          .copyFileTemplate(
-            masterTemplate.templateID,
-            masterTemplate.sheetType,
-            masterTemplate.version,
-            parentFolderID,
-          );
-      });
-
-      // Update progress for IDS Master
-      completedCount++;
-      if (masterResult.success && masterResult.result.success) {
-        successCount++;
-        const newMasterID = masterResult.result.fileId;
-        newSheetID = newMasterID;
-        idMasterID = newSheetID;
-
-        console.log("✅ IDS Master sheet created successfully:", newMasterID);
-        linksHtml += `<br>&nbsp;&nbsp;• <a href="${googleLink}/${newMasterID}/edit" target="_blank">IDS Master Sheet™</a>`;
-      } else {
-        failedCount++;
-        const errorMessage =
-          masterResult.result?.message || "IDS Master creation failed";
-        console.error("❌ IDS Master sheet creation failed:", errorMessage);
-        linksHtml += `<br>&nbsp;&nbsp;• ❌ IDS Master Sheet™ (failed)`;
-      }
-
-      // Update UI with IDS Master result
-      document.getElementById("selectedFileSummary").innerHTML = linksHtml;
-      setStatusWithSpinner(
-        `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
-      );
-
-      // If IDS Master creation failed, stop the process gracefully
-      if (!masterResult.success || !masterResult.result.success) {
-        const errorMessage = masterResult.result?.message || "Unknown error";
-        setStatusText(
-          `❌ Update failed: IDS Master sheet creation failed - ${errorMessage}`,
-        );
-        document.getElementById("fileAccessTitle").innerHTML =
-          "❌ Update Failed";
-        if (isConvertToMasterFlow) {
-          resetToCollectionState();
-        } else {
-          resetIDSMasterState();
-        }
-        return;
-      }
-
-      // Step 2: Create all subsheet copies if there are any
-      if (hasSubsheetsToUpdate && subsheetTemplates.length > 0) {
-        console.log(`Creating ${subsheetTemplates.length} subsheet copies...`);
-
-        // Create promises for all subsheet copying operations
-        const subsheetCopyPromises = subsheetTemplates.map(
-          (template, index) => {
-            console.log(
-              `Starting copy for ${template.sheetType} sheet:`,
-              template,
-            );
-
-            return new Promise((resolve) => {
-              google.script.run
-                .withSuccessHandler(function (result) {
-                  console.log(
-                    `✅ ${template.sheetType} sheet copy result:`,
-                    result,
-                  );
-
-                  let templateResult;
-                  if (result.success && result.fileId) {
-                    templateResult = {
-                      success: true,
-                      sheetType: template.sheetType,
-                      version: template.version,
-                      fileId: result.fileId,
-                      gid: result.gid,
-                    };
-
-                    // Add to copiedTemplateFiles for later import
-                    copiedTemplateFiles.push(templateResult);
-
-                    // Add the newly copied file to accessible files cache
-                    accessibleFilesCache.push({
-                      id: result.fileId,
-                      name: `Copy of ${template.sheetType} ${template.version}`,
-                      sheetType: template.sheetType,
-                    });
-
-                    // Immediately add successful item to display
-                    linksHtml += `<br>&nbsp;&nbsp;• <a href="${googleLink}/${result.fileId}/edit" target="_blank">${template.sheetType} Sheet™</a>`;
-                  } else {
-                    const errorMessage =
-                      result.message ||
-                      "Copy operation returned unsuccessful result";
-                    templateResult = {
-                      success: false,
-                      sheetType: template.sheetType,
-                      error: errorMessage,
-                    };
-
-                    // Immediately add failure message to display
-                    linksHtml += `<br>&nbsp;&nbsp;• ❌ ${template.sheetType} Sheet™ (failed)`;
-                  }
-
-                  // Update UI immediately
-                  completedCount++;
-                  if (templateResult.success) {
-                    successCount++;
-                  } else {
-                    failedCount++;
-                  }
-
-                  document.getElementById("selectedFileSummary").innerHTML =
-                    linksHtml;
-                  setStatusWithSpinner(
-                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
-                  );
-
-                  resolve(templateResult);
-                })
-                .withFailureHandler(function (error) {
-                  console.error(
-                    `❌ Error copying sheet ${template.sheetType}:`,
-                    error,
-                  );
-
-                  completedCount++;
-                  failedCount++;
-                  const errorMessage = error.message || error;
-
-                  // Immediately add failure message to display
-                  linksHtml += `<br>&nbsp;&nbsp;• ❌ ${template.sheetType} Sheet™ (failed)`;
-                  document.getElementById("selectedFileSummary").innerHTML =
-                    linksHtml;
-                  setStatusWithSpinner(
-                    `Creating sheets... (${completedCount}/${totalTemplates} completed)`,
-                  );
-
-                  resolve({
-                    success: false,
-                    sheetType: template.sheetType,
-                    error: errorMessage,
-                  });
-                })
-                .copyFileTemplate(
-                  template.templateID,
-                  template.sheetType,
-                  template.version,
-                  parentFolderID,
-                );
-            });
-          },
-        );
-
-        // Wait for all subsheet copying operations to complete
-        await Promise.all(subsheetCopyPromises);
-      }
-
-      // Final status update after all sheets are created
-      const subsheetMessage = hasSubsheetsToUpdate
-        ? ` and ${subsheetTemplates.length} subsheets`
-        : "";
-
-      let statusMessage;
-      let titleMessage;
-
-      if (failedCount === 0) {
-        statusMessage = `🎉 All sheets created successfully! IDS Master${subsheetMessage} ready for import.`;
-        titleMessage = `✅ Sheets Created Successfully!`;
-      } else if (successCount === 0) {
-        statusMessage = `❌ All ${totalTemplates} sheet creations failed.`;
-        titleMessage = `❌ Sheet Creation Failed`;
-      } else {
-        statusMessage = `⚠️ Sheet creation completed: ${successCount} successful, ${failedCount} failed.`;
-        titleMessage = `⚠️ Sheets Partially Created`;
-      }
-
-      setStatusText(statusMessage);
-      document.getElementById("fileAccessTitle").innerHTML = titleMessage;
-
-      // Show buttons only if at least IDS Master was created successfully
-      if (newSheetID) {
-        // Show import button
-        document.getElementById("importButton").style.display = "inline-block";
-        document.getElementById("importButton").disabled = false;
-        document.getElementById("importButton").innerText = hasSubsheetsToUpdate
-          ? "Import Subsheets"
-          : "Import IDS Master";
-
-        // Show move button
-        document.getElementById("moveSheetButton").style.display =
-          "inline-block";
-        document.getElementById("moveSheetButton").disabled = true;
-        document.getElementById("moveSheetButton").innerText =
-          hasSubsheetsToUpdate
-            ? "Move Subsheets and Move/Update Master"
-            : "Move IDS Master";
-      }
-
-      hideUpdateSingleSheetButton();
-      hideIDSMasterButtons();
-    } catch (error) {
-      console.error("Combined update execution failed:", error);
-      setStatusText(`Update failed: ${error.message || error}`);
-      if (isConvertToMasterFlow) {
-        resetToCollectionState();
-      } else {
-        resetIDSMasterState();
-      }
+      resetIDSMasterState();
     }
   }
 
