@@ -915,7 +915,6 @@ const shared = {
 
     var oldLevel = oldValue.split("|")[0].trim();
 
-    console.log(`Looking for DVT match for level: ${oldLevel}`);
     for (var i = 0; i < dvtNamedRangesData.length; i++) {
       var row = dvtNamedRangesData[i];
       var val = row[0] ? row[0].split("|")[0].trim() : null;
