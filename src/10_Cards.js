@@ -111,7 +111,7 @@ const cards = {
       // Only update cards preset if key exists
       if (data.hasOwnProperty("oldCardsPreset")) {
         var oldCardsPreset = data.oldCardsPreset;
-        var shouldRemoveUsedCards = data.shouldRemoveUsedCards || true;
+        var shouldRemoveUsedCards = data.hasOwnProperty("shouldRemoveUsedCards") ? data.shouldRemoveUsedCards : true;
         var presetResult = this.updateCardsPreset(
           "Card Preset",
           oldCardsPreset,
