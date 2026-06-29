@@ -1,0 +1,26 @@
+<div id="saveFileSection" class="section saveFileSection">
+  <h2 class="title">Parse Save File</h2>
+
+  <div id="saveFileAccessControls" class="saveFileAccessControls" style="display: none;">
+    <p id="saveFileAccessSummary" class="selectedFileSummary">
+      The script needs access to your IDS Master before you can import data.
+    </p>
+    <button id="saveFileAccessBtn" onclick="grantSaveFileAccess()">
+      Grant Access to Files
+    </button>
+  </div>
+
+  <div id="saveFileInputRow" class="saveFileInputRow">
+    <input type="file" id="saveFileInput" accept=".dat" disabled>
+
+    <div id="saveFileImportControls" class="saveFileImportControls" style="display: none;">
+      <button id="saveFileImportBtn" onclick="startSaveFileImport()" disabled>
+        Import selected data
+      </button>
+    </div>
+  </div>
+
+  <div id="saveFileImportSummary" class="saveFileImportSummary"></div>
+
+  <div id="saveFileResults"></div>
+</div>

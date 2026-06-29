@@ -3,10 +3,10 @@
   <head>
     <?!= include('21_shared_styles'); ?>
     <?!= include('22_status_styles'); ?>
-    <?!= include('23_getStarted_styles'); ?>
     <?!= include('27_consent_styles'); ?>
+    <?!= include('28_saveFile_styles'); ?>
 
-    <title>The Tower Import Data</title>
+    <title>Parse Save File</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -16,25 +16,34 @@
   <body>
     <?!= include('21_header'); ?>
     <?!= include('22_status_section'); ?>
-    <?!= include('23_getStarted_section'); ?>
+    <?!= include('28_saveFile_section'); ?>
     <?!= include('27_consent_section'); ?>
 
     <script>
       const API_KEY = "<?= API_KEY ?>";
       const APP_ID = "<?= APP_ID ?>";
       const viewType = "<?= viewType ? viewType : 'webapp' ?>";
-      const getStarted = true;
-      const saveFile = false;
+      const saveFile = true;
 
-      let effectivePathsID = "<?= effectivePathsID ? effectivePathsID : '' ?>";
+      // From the URL for web apps; the add-on dialog resolves it client-side via
+      // getSaveFileParameters after scopes are granted (see authorizeSaveFile).
+      let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
+
+      // Globals required by the reused consent flow (27_consent_scripts). This
+      // page does not include 21_shared_scripts, so declare them here.
+      let accessToken = null;
+      let userEmail = "";
+      const accessRequired = false;
+      const googleLink = "https://docs.google.com/spreadsheets/d";
     </script>
-    
+
     <?!= include('22_status_scripts'); ?>
-    <?!= include('23_getStarted_scripts'); ?>
     <?!= include('27_consent_scripts'); ?>
+    <?!= include('28_saveFile_scripts'); ?>
+
     <script
       src="https://apis.google.com/js/api.js"
-      onload="getStartedGapiLoaded()"
+      onload="saveFileGapiLoaded()"
     ></script>
   </body>
 </html>

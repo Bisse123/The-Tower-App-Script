@@ -182,7 +182,7 @@ const relics = {
       // Build unlocked status array directly by iterating through new relics data
       var newRelicsUnlocked = [];
       newRelicsData.slice(startRow - 1).forEach(function (row) {
-        var relicName = row[newRelicNameCol - 1] || "";
+        var relicName = (row[newRelicNameCol - 1] || "").trim();
         if (String(relicName).trim() !== "") {
           if (oldRelics.includes(relicName)) {
             newRelicsUnlocked.push([true]);
@@ -298,7 +298,10 @@ const relics = {
 
       var oldRelics = [];
       oldRelicsData.slice(startRow - 1).forEach(function (row) {
-        var relicName = row[relicNameIndex];
+        var relicName = row[relicNameIndex].trim();
+        if (relicName.includes("T:")) {
+          relicName = relicName.replace("T:", "T: ").trim();
+        }
         var isUnlocked = row[relicUnlockedIndex];
 
         if (
@@ -322,6 +325,84 @@ const relics = {
         message: "Error in getVersion1_0Relics: " + error.message,
       };
     }
+  },
+
+  // #endregion
+  // #region Parse Saved File
+  parseRelicsData: function (data, sheetID) {
+    var relicsSheetData = null;
+    if (sheetID) {
+      var batchResult = SheetsAPI.batchGetValues(sheetID, ["Relics"]);
+      if (batchResult && batchResult[0] && batchResult[0].values) {
+        relicsSheetData = batchResult[0].values;
+      }
+    }
+
+    if (!relicsSheetData) {
+      console.log("Could not read Relics sheet to map relic indices");
+      return {
+        oldRelics: [],
+      };
+    }
+
+    var headerRow = -1;
+    var relicNameCol = -1;
+    var ingameIdCol = -1;
+    for (var headerScan = 0; headerScan < relicsSheetData.length; headerScan++) {
+      var headerValues = relicsSheetData[headerScan];
+      var nameIndex = headerValues.indexOf("Relic Name");
+      var idIndex = headerValues.indexOf("Ingame_ID");
+      if (nameIndex !== -1 && idIndex !== -1) {
+        headerRow = headerScan;
+        relicNameCol = nameIndex;
+        ingameIdCol = idIndex;
+        break;
+      }
+    }
+
+    if (headerRow === -1) {
+      console.log(
+        "Could not find 'Relic Name' and 'Ingame_ID' headers in Relics sheet"
+      );
+      return {
+        oldRelics: [],
+      };
+    }
+
+    var relicNameByIndex = {};
+    for (var r = headerRow + 1; r < relicsSheetData.length; r++) {
+      var relicRow = relicsSheetData[r];
+      var mappedRelicName = (relicRow[relicNameCol] || "").toString().trim();
+      var ingameId = relicRow[ingameIdCol];
+      if (
+        mappedRelicName === "" ||
+        ingameId === "" ||
+        ingameId === null ||
+        ingameId === undefined
+      ) {
+        continue;
+      }
+      var relicIndex = parseInt(ingameId, 10);
+      if (!isNaN(relicIndex)) {
+        relicNameByIndex[relicIndex] = mappedRelicName;
+      }
+    }
+
+    const relicsData = data.relicsUnlocked || [];
+
+    var oldRelics = [];
+    relicsData.forEach(function (relicStatus, index) {
+      if (relicStatus > 0) {
+        var relicName = relicNameByIndex[index];
+        if (relicName) {
+          oldRelics.push(relicName);
+        }
+      }
+    });
+
+    return {
+      oldRelics: oldRelics,
+    };
   },
 
   // #endregion
@@ -352,5 +433,6 @@ const relics = {
 
     return null;
   },
+
   // #endregion
 };

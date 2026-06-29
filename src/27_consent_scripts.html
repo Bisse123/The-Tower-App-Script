@@ -93,6 +93,10 @@
 
           stopAddonConsentReadyPolling();
           setStatusWithSpinner("Permissions granted. Continuing...");
+          if (saveFile) {
+            await authorizeSaveFile(true);
+            return;
+          }
           if (getStarted) {
             await authorizeGetStarted(true);
             return;
@@ -250,7 +254,9 @@
 
     let authSuccess = false;
     try {
-      if (getStarted) {
+      if (saveFile) {
+        authSuccess = await authorizeSaveFile(true);
+      } else if (getStarted) {
         authSuccess = await authorizeGetStarted(true);
       } else {
         authSuccess = await authorizeAndContinue(true);
@@ -487,6 +493,38 @@
     }
 
     continueGetStarted();
+    return true;
+  }
+
+  async function authorizeSaveFile(forceTokenRefresh = false) {
+    setStatusWithSpinner("Checking scope access permissions...");
+
+    if (!accessToken || forceTokenRefresh) {
+      const authSuccess = await getOAuthToken();
+      if (!authSuccess) {
+        return false;
+      }
+    }
+
+    hideConsentModal();
+
+    if (viewType === "sidebar") {
+      try {
+        const saveFileParams = await new Promise(function (resolve, reject) {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getSaveFileParameters();
+        });
+        if (saveFileParams && saveFileParams.idMasterID) {
+          idMasterID = saveFileParams.idMasterID;
+        }
+      } catch (error) {
+        console.error("Error loading save file parameters:", error);
+      }
+    }
+
+    continueSaveFile();
     return true;
   }
 

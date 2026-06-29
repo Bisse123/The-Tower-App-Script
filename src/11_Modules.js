@@ -50,7 +50,7 @@ const modules = {
       var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
-        "Assist Level": "DVT_Mod_Assist_Level",
+        "Assist Level": "DVT_Mod_Assist_Bonus_Level",
       };
 
       Object.keys(dvtNamedRanges).forEach(function (item) {
@@ -239,7 +239,7 @@ const modules = {
                     String(cell).toLowerCase().includes("preset") &&
                     !String(cell).toLowerCase().includes("module") &&
                     !usedPresets.includes(cell) &&
-                    !oldModulesPresets[moduleType].hasOwnProperty(cell)
+                    !oldModulesPresets[moduleType].hasOwnProperty(cell),
                 );
                 if (presetCol === -1) {
                   return;
@@ -252,17 +252,13 @@ const modules = {
                 )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
                   rowIdx + 1
                 }`;
-                var lockedValues = [
-                  [presetData.locked || ""],
-                ];
+                var lockedValues = [[presetData.locked || null]];
                 var rarityRange = `${sheetName}!${shared.columnToLetter(
                   presetCol + 2,
                 )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
                   rowIdx + 2
                 }`;
-                var rarityValues = [
-                  [presetData.rarity || ""],
-                ];
+                var rarityValues = [[presetData.rarity || null]];
                 var multiSubRange = `${sheetName}!${shared.columnToLetter(
                   presetCol + 3,
                 )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
@@ -271,7 +267,7 @@ const modules = {
 
                 // Transform values using DVT
                 var dvtMultiplier = shared.getDVTValue(
-                  presetData.multiplier || "",
+                  presetData.multiplier || null,
                   dvtNamedRangesData["Assist Level"],
                 );
                 var dvtSubstat = shared.getDVTValue(
@@ -293,7 +289,7 @@ const modules = {
                   values: multiSubValues,
                 });
               } else {
-                var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1,)}${rowIdx + 1}`;
+                var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
                 var presetNameValues = [[presetName]];
                 batchUpdate.push({
                   range: presetNameRange,
@@ -1302,6 +1298,356 @@ const modules = {
   },
 
   // #endregion
+  // #region Parse Saved File
+  parseModulesData: function (data) {
+    const moduleNames = {
+      7: { name: "Havoc Bringer", category: "Cannon" },
+      8: { name: "Death Penalty", category: "Cannon" },
+      9: { name: "Being Annihilator", category: "Cannon" },
+      10: { name: "Astral Deliverance", category: "Cannon" },
+      17: { name: "Wormhole Redirector", category: "Armor" },
+      18: { name: "Negative Mass Projector", category: "Armor" },
+      19: { name: "Space Displacer", category: "Armor" },
+      20: { name: "Anti-Cube Portal", category: "Armor" },
+      27: { name: "Black Hole Digestor", category: "Generator" },
+      28: { name: "Pulsar Harvester", category: "Generator" },
+      29: { name: "Galaxy Compressor", category: "Generator" },
+      30: { name: "Singularity Harness", category: "Generator" },
+      37: { name: "Multiverse Nexus", category: "Core" },
+      38: { name: "Dimension Core", category: "Core" },
+      39: { name: "Harmony Conductor", category: "Core" },
+      40: { name: "Om Chip", category: "Core" },
+      41: { name: "Shrink Ray", category: "Cannon" },
+      42: { name: "Sharp Fortitude", category: "Armor" },
+      43: { name: "Project Funding", category: "Generator" },
+      44: { name: "Magnetic Hook", category: "Core" },
+      45: { name: "Amplifying Strike", category: "Cannon" },
+      46: { name: "Orbital Augment", category: "Armor" },
+      47: { name: "Restorative Bonus", category: "Generator" },
+      48: { name: "Primordial Collapse", category: "Core" },
+    };
+
+    const moduleRarities = {
+      1: "Common",
+      2: "Rare",
+      3: "Rare+",
+      4: "Epic",
+      5: "Epic+",
+      6: "Legendary",
+      7: "Legendary+",
+      8: "Mythic",
+      9: "Mythic+",
+      10: "Ancestral",
+      11: "Ancestral 1*",
+      12: "Ancestral 2*",
+      13: "Ancestral 3*",
+      14: "Ancestral 4*",
+      15: "Ancestral 5*",
+    };
+
+    const rarityIndex = Object.fromEntries(
+      Object.entries(moduleRarities).map(([k, v]) => [v, +k]),
+    );
+
+    const moduleCategories = {
+      0: "Cannon",
+      1: "Armor",
+      2: "Generator",
+      3: "Core",
+    };
+
+    const assistRarities = ["Epic", "Legendary", "Mythic", "Ancestral"];
+
+    function lookupEffectID(effectID) {
+      const effectRarities = [
+        "Common",
+        "Rare",
+        "Epic",
+        "Legendary",
+        "Mythic",
+        "Ancestral",
+      ];
+
+      // [label, n]  —  rarityStart = 6 - n, effectIDs assigned sequentially
+      const substatClusters = [
+        // Cannon (C=1-17)
+        ["Attack Speed", 6],
+        ["Critical Chance", 6],
+        ["Critical Factor", 6],
+        ["Attack Range", 6],
+        ["Damage / Meter", 6],
+        ["Multishot Chance", 5],
+        ["Multishot Targets", 4],
+        ["Rapid Fire Chance", 5],
+        ["Rapid Fire Duration", 5],
+        ["Bounce Shot Chance", 5],
+        ["Bounce Shot Targets", 4],
+        ["Bounce Shot Range", 5],
+        ["Super Crit Chance", 4],
+        ["Super Crit Multi", 4],
+        ["Rend Armor Chance", 3],
+        ["Rend Armor Multi", 3],
+        ["Max Rend Armor Multi", 3],
+        // Armor (C=18-34)
+        ["Health Regen", 6],
+        ["Defense %", 6],
+        ["Defense Absolute", 6],
+        ["Thorns Damage", 4],
+        ["Lifesteal", 4],
+        ["Knockback Chance", 4],
+        ["Knockback Force", 4],
+        ["Orb Speed", 4],
+        ["Orbs", 2],
+        ["Shockwave Size", 4],
+        ["Shockwave Frequency", 4],
+        ["Land Mine Damage", 5],
+        ["Land Mine Chance", 5],
+        ["Land Mine Radius", 5],
+        ["Death Defy", 3],
+        ["Wall Health", 4],
+        ["Wall Rebuild", 4],
+        // Generator (C=35-46)
+        ["Cash Bonus", 6],
+        ["Cash / Wave", 6],
+        ["Coins / Kill Bonus", 6],
+        ["Coins / Wave", 6],
+        ["Free Attack Upgrade", 6],
+        ["Free Defense Upgrade", 6],
+        ["Free Utility Upgrade", 6],
+        ["Interest / Wave", 4],
+        ["Recovery Amount", 4],
+        ["Package Chance", 4],
+        ["Enemy Attack Level Skip", 4],
+        ["Enemy Health Level Skip", 4],
+        // Core (C=47-73)
+        ["Chain Lightning - Damage", 6],
+        ["Chain Lightning - Quantity", 4],
+        ["Chain Lightning - Chance", 6],
+        ["Smart Missiles - Damage", 6],
+        ["Smart Missiles - Quantity", 4],
+        ["Smart Missiles - Cooldown", 3],
+        ["Death Wave - Damage", 6],
+        ["Death Wave - Quantity", 3],
+        ["Death Wave - Cooldown", 3],
+        ["Chrono Field - Duration", 3],
+        ["Chrono Field - Speed Reduction", 4],
+        ["Chrono Field - Cooldown", 3],
+        ["Inner Land Mines - Damage", 6],
+        ["Inner Land Mines - Quantity", 3],
+        ["Inner Land Mines - Cooldown", 4],
+        ["Golden Tower - Bonus", 4],
+        ["Golden Tower - Duration", 3],
+        ["Golden Tower - Cooldown", 3],
+        ["Poison Swamp - Damage", 6],
+        ["Poison Swamp - Duration", 3],
+        ["Poison Swamp - Cooldown", 5],
+        ["Black Hole - Size", 6],
+        ["Black Hole - Duration", 3],
+        ["Black Hole - Cooldown", 3],
+        ["Spotlight - Bonus", 6],
+        ["Spotlight - Angle", 4],
+        ["Spotlight - Quantity", 1],
+        // Generator appendix (C=74)
+        ["Max Recovery", 4],
+      ];
+      if (effectID < 1 || effectID > 331) {
+        return null;
+      }
+      var id = 1;
+      for (var c = 0; c < substatClusters.length; c++) {
+        var cluster = substatClusters[c];
+        1;
+        var n = cluster[1];
+        if (effectID < id + n) {
+          return {
+            label: cluster[0],
+            rarity: effectRarities[6 - n + (effectID - id)],
+          };
+        }
+        id += n;
+      }
+      return null;
+    }
+
+    const equippedModulesData = data.moduleEquipped || {};
+    const assistSlotData = data.assistModuleSlots || {};
+    const inventoryData = data.inventory || {};
+
+    var oldModuleInventory = {};
+    var oldModulesPresets = {};
+
+    equippedModulesData.forEach(function (module, index) {
+      const moduleName = moduleNames.hasOwnProperty(module.infoIndex)
+        ? moduleNames[module.infoIndex].name
+        : "Any Other";
+      const moduleCategory = (moduleNames.hasOwnProperty(module.infoIndex)
+        ? moduleNames[module.infoIndex].category
+        : moduleCategories[module.category]).toLowerCase();
+      const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
+        ? moduleRarities[module.currentRarity]
+        : "Epic";
+      const moduleLevel = module.level || 1;
+      const substatData = module.effects || [];
+      var moduleSubstats = [];
+      substatData.forEach(function (effectID, substatIndex) {
+        var substatInfo = lookupEffectID(effectID);
+        if (substatInfo) {
+          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
+        } else {
+          moduleSubstats.push([null, null]);
+        }
+      });
+      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
+        oldModuleInventory[moduleCategory] = {};
+      }
+      oldModuleInventory[moduleCategory]["Highest Level"] = moduleLevel;
+      oldModuleInventory[moduleCategory][moduleName] = {
+        rarity: moduleRarity,
+        substats: moduleSubstats,
+      };
+      if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
+        oldModulesPresets[moduleCategory] = {};
+      }
+      // oldModulesPresets[moduleCategory]["Farming"] = {
+      //   primary: moduleName,
+      //   secondary: "",
+      // };
+      // oldModulesPresets[moduleCategory]["Tourney"] = {
+      //   primary: moduleName,
+      //   secondary: "",
+      // };
+    });
+
+    assistSlotData.forEach(function (assistSlot, index) {
+      const assistCategory = moduleCategories[index].toLowerCase();
+      if (!assistCategory) {
+        return;
+      }
+      const assistUnlocked = assistSlot.unlocked || false;
+      const assistMainEffiency = String(
+        assistSlot.mainEffectEfficiencyLevel || 0,
+      ).padStart(2, "0");
+      const assistSubEffiency = String(
+        assistSlot.substatEfficiencyLevel || 0,
+      ).padStart(2, "0");
+      const assistUniqueEffect = assistSlot.uniqueEffectEfficiencyLevel || 0;
+      const assistRarity = assistRarities[assistUniqueEffect] || "Epic";
+      if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
+        oldModulesPresets[assistCategory] = {};
+      }
+      oldModulesPresets[assistCategory]["Assist Slot"] = {
+        locked: assistUnlocked,
+        rarity: assistRarity,
+        multiplier: assistMainEffiency,
+        substat: assistSubEffiency,
+      };
+
+      if (!assistUnlocked) {
+        return;
+      }
+      const equippedAssistModule = assistSlot.equippedModule || {};
+      if (!equippedAssistModule || !equippedAssistModule.infoIndex) {
+        return;
+      }
+      const assistModuleName = moduleNames.hasOwnProperty(
+        equippedAssistModule.infoIndex,
+      )
+        ? moduleNames[equippedAssistModule.infoIndex].name
+        : "Any Other";
+      const assistModuleRarity = moduleRarities.hasOwnProperty(
+        equippedAssistModule.currentRarity,
+      )
+        ? moduleRarities[equippedAssistModule.currentRarity]
+        : "Epic";
+      const assistModuleLevel = equippedAssistModule.level || 1;
+      const assistSubstatData = equippedAssistModule.effects || [];
+      var assistModuleSubstats = [];
+      assistSubstatData.forEach(function (effectID, substatIndex) {
+        var substatInfo = lookupEffectID(effectID);
+        if (substatInfo) {
+          assistModuleSubstats.push([substatInfo.label, substatInfo.rarity]);
+        } else {
+          assistModuleSubstats.push([null, null]);
+        }
+      });
+      if (!oldModuleInventory.hasOwnProperty(assistCategory)) {
+        oldModuleInventory[assistCategory] = {};
+      }
+      oldModuleInventory[assistCategory]["Assist Level"] = assistModuleLevel;
+      oldModuleInventory[assistCategory][assistModuleName] = {
+        rarity: assistModuleRarity,
+        substats: assistModuleSubstats,
+      };
+      if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
+        oldModulesPresets[assistCategory] = {};
+      }
+      // if (!oldModulesPresets[assistCategory].hasOwnProperty("Farming")) {
+      //   oldModulesPresets[assistCategory]["Farming"] = {
+      //     primary: "",
+      //     secondary: "assistModuleName",
+      //   };
+      // } else {
+      //   oldModulesPresets[assistCategory]["Farming"].secondary =
+      //     assistModuleName;
+      // }
+      // if (!oldModulesPresets[assistCategory].hasOwnProperty("Tourney")) {
+      //   oldModulesPresets[assistCategory]["Tourney"] = {
+      //     primary: "",
+      //     secondary: "assistModuleName",
+      //   };
+      // } else {
+      //   oldModulesPresets[assistCategory]["Tourney"].secondary =
+      //     assistModuleName;
+      // }
+    });
+
+    inventoryData.forEach(function (module, index) {
+      const moduleName = moduleNames.hasOwnProperty(module.infoIndex)
+        ? moduleNames[module.infoIndex].name
+        : null;
+      if (!moduleName) {
+        return;
+      }
+      const moduleCategory = (moduleNames.hasOwnProperty(module.infoIndex)
+        ? moduleNames[module.infoIndex].category
+        : moduleCategories[module.category]).toLowerCase();
+      const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
+        ? moduleRarities[module.currentRarity]
+        : "Epic";
+      const substatData = module.effects || [];
+      var moduleSubstats = [];
+      if (
+        oldModuleInventory.hasOwnProperty(moduleCategory) &&
+        oldModuleInventory[moduleCategory].hasOwnProperty(moduleName) &&
+        module.currentRarity <= rarityIndex[oldModuleInventory[moduleCategory][moduleName].rarity]
+      ) {
+        return;
+      }
+
+      substatData.forEach(function (effectID, substatIndex) {
+        var substatInfo = lookupEffectID(effectID);
+        if (substatInfo) {
+          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
+        } else {
+          moduleSubstats.push([null, null]);
+        }
+      });
+      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
+        oldModuleInventory[moduleCategory] = {};
+      }
+      oldModuleInventory[moduleCategory][moduleName] = {
+        rarity: moduleRarity,
+        substats: moduleSubstats,
+      };
+    });
+
+    return {
+      oldModulesInventory: oldModuleInventory,
+      oldModulesPresets: oldModulesPresets,
+    };
+  },
+  
+  // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
@@ -1332,5 +1678,6 @@ const modules = {
 
     return null;
   },
+
   // #endregion
 };

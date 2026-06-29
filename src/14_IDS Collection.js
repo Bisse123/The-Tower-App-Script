@@ -139,7 +139,7 @@
           Cooldown: "DVT_BOT_UG_BB_CD",
           Bonus: "DVT_BOT_UG_BB_BONUS",
           Range: "DVT_BOT_UG_BB_RANGE",
-          "Maximum Power: Heal": "DVT_BOT_UG_BB_MAXIMUMPOWER",
+          "Maximum Power": "DVT_BOT_UG_BB_MAXIMUMPOWER",
         },
       };
 

@@ -1,4 +1,3 @@
-// Cache Manager - handles spreadsheet metadata and sheet values caching
 const CacheManager = {
   _userCache: null,
 
@@ -913,7 +912,7 @@ const shared = {
       return oldValue;
     }
 
-    var oldLevel = oldValue.split("|")[0].trim();
+    var oldLevel = String(oldValue).split("|")[0].trim();
 
     for (var i = 0; i < dvtNamedRangesData.length; i++) {
       var row = dvtNamedRangesData[i];
@@ -1399,7 +1398,7 @@ function compareSheetVersions(sheetID, sheetType) {
       message: `Home Page sheet™ not found in ${sheeetType} spreadsheet™`,
     };
   }
-  // CacheManager.RemoveSpreadsheet(`${sheetType} spreadsheet`);
+  
   var homePageData = SheetsAPI.batchGetValues(sheetID, ["Home Page"]);
   if (!homePageData || homePageData.length === 0) {
     console.log(`Could not fetch Home Page data from sheet`);
@@ -1449,6 +1448,7 @@ function compareSheetVersions(sheetID, sheetType) {
     comparisonResult: comparisonResult,
   };
 }
+
 function checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType) {
   try {
     var newSpreadsheet = spreadsheets(
@@ -2322,6 +2322,121 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
   return processTemplateAccess(idsMasterData, sheetType, "all");
 }
 
+function getSaveFileImportTargets(idMasterID, sheetTypes) {
+  try {
+    var resolvedIdMasterID = idMasterID
+      ? shared.extractSheetId(String(idMasterID))
+      : null;
+    if (!resolvedIdMasterID) {
+      return {
+        success: false,
+        message: "Please provide a valid IDS Master ID or URL.",
+        idMasterID: "",
+        targets: {},
+        missing: [],
+        versions: {},
+      };
+    }
+
+    // When no specific types are requested, resolve every save-file category so
+    // the caller can grant access to all linked subsheets up front.
+    var requestedTypes =
+      Array.isArray(sheetTypes) && sheetTypes.length > 0
+        ? sheetTypes
+        : [
+            "Laboratory",
+            "Workshop",
+            "Ultimate Weapon",
+            "Themes & Songs",
+            "Bots",
+            "Relics",
+            "Vault",
+            "Cards",
+            "Modules",
+            "Guardians",
+            "Player & Stuff",
+          ];
+
+    var idsMasterData = fetchIdsMasterData(resolvedIdMasterID);
+    if (!idsMasterData.success) {
+      return {
+        success: false,
+        message: idsMasterData.message || "Could not read IDS Master.",
+        idMasterID: resolvedIdMasterID,
+        targets: {},
+        missing: [],
+        versions: {},
+      };
+    }
+
+    var values = idsMasterData.values;
+
+    var targets = {};
+    var missing = [];
+    var versions = {};
+
+    for (var i = 0; i < requestedTypes.length; i++) {
+      var sheetType = requestedTypes[i];
+      var sheetTypeInfo = shared.findSheetTypeURL(
+        resolvedIdMasterID,
+        "IDS",
+        sheetType,
+        values,
+      );
+
+      var targetID = sheetTypeInfo && sheetTypeInfo.id
+        ? shared.extractSheetId(sheetTypeInfo.id)
+        : null;
+
+      if (!targetID) {
+        missing.push(sheetType);
+        continue;
+      }
+
+      targets[sheetType] = targetID;
+
+      var latestVersion =
+        sheetTypeInfo.version && sheetTypeInfo.version.value
+          ? String(sheetTypeInfo.version.value).trim()
+          : "";
+      var currentVersion =
+        sheetTypeInfo.oldVersion && sheetTypeInfo.oldVersion.value
+          ? String(sheetTypeInfo.oldVersion.value).trim()
+          : "";
+
+      var upToDate =
+        latestVersion && currentVersion
+          ? shared.compareVersions(currentVersion, latestVersion) !== "older"
+          : false;
+
+      versions[sheetType] = {
+        currentVersion: currentVersion,
+        latestVersion: latestVersion,
+        upToDate: upToDate,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Resolved ${Object.keys(targets).length} target sheet(s) from IDS Master.`,
+      idMasterID: resolvedIdMasterID,
+      targets: targets,
+      missing: missing,
+      versions: versions,
+    };
+  } catch (error) {
+    console.error(`Error resolving save-file import targets: ${error.toString()}`);
+    return {
+      success: false,
+      message: `Error resolving import targets: ${error.toString()}`,
+      idMasterID: "",
+      targets: {},
+      missing: [],
+      versions: {},
+    };
+  }
+}
+
 function copyFileTemplate(
   templateID,
   sheetType,
@@ -2881,7 +2996,6 @@ function updateSheetID(spreadsheetID, sheetID, sheetType) {
 
 function getOrCreateGetStartedFolder() {
   try {
-    // Search for a folder named "The Tower" in the user's Drive
     var query =
       'name="The Tower" and mimeType="application/vnd.google-apps.folder" and trashed=false';
     var folderList = Drive.Files.list({
@@ -2892,7 +3006,6 @@ function getOrCreateGetStartedFolder() {
     });
 
     if (folderList.files && folderList.files.length > 0) {
-      // Folder exists, use it
       var folder = folderList.files[0];
       console.log(`Found existing "The Tower" folder: ${folder.id}`);
       return {
@@ -2903,7 +3016,6 @@ function getOrCreateGetStartedFolder() {
       };
     }
 
-    // Folder doesn't exist, create it
     var fileMetadata = {
       name: "The Tower",
       mimeType: "application/vnd.google-apps.folder",
@@ -3126,3 +3238,71 @@ function updateGetStartedSheetIdsAndReferences(
     return { success: false, message: error.toString() };
   }
 }
+
+function getSaveFileSheetType(sheetID) {
+  try {
+    var resolvedID = sheetID
+      ? shared.extractSheetId(String(sheetID)) || ""
+      : "";
+    if (!resolvedID) {
+      return {
+        success: false,
+        sheetType: "",
+        message: "No sheet ID provided.",
+      };
+    }
+
+    var batchResult = SheetsAPI.batchGetValues(resolvedID, ["Home Page"]);
+    var homePageValues =
+      batchResult && batchResult[0] && batchResult[0].values
+        ? batchResult[0].values
+        : null;
+
+    var sheetType =
+      homePageValues && homePageValues[1] && homePageValues[1][1] != null
+        ? String(homePageValues[1][1]).trim()
+        : "";
+
+    if (sheetType.indexOf("IDS Collection") !== -1) {
+      sheetType = "IDS Collection";
+    }
+
+    var result = {
+      success: true,
+      sheetType: sheetType,
+      idMasterID: resolvedID,
+    };
+
+    if (sheetType === "IDS Collection" && homePageValues) {
+      var versionInfo = shared.findSheetVersion(
+        resolvedID,
+        "Home Page",
+        "IDS Collection",
+        homePageValues,
+      );
+      if (
+        versionInfo &&
+        versionInfo.currentVersion &&
+        versionInfo.latestVersion
+      ) {
+        result.currentVersion = versionInfo.currentVersion;
+        result.latestVersion = versionInfo.latestVersion;
+        result.outdated =
+          shared.compareVersions(
+            versionInfo.currentVersion,
+            versionInfo.latestVersion,
+          ) === "older";
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.log(`Error in getSaveFileSheetType: ${error.message || error}`);
+    return {
+      success: false,
+      sheetType: "",
+      message: error.message || error.toString(),
+    };
+  }
+}
+

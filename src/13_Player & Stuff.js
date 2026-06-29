@@ -107,8 +107,10 @@
 
       if (data.hasOwnProperty("oldPerksPreset")) {
         var oldPerksPreset = data.oldPerksPreset;
-        var shouldRemoveUsedPerks = data.hasOwnProperty("shouldRemoveUsedPerks") ? data.shouldRemoveUsedPerks : true;
-        
+        var shouldRemoveUsedPerks = data.hasOwnProperty("shouldRemoveUsedPerks")
+          ? data.shouldRemoveUsedPerks
+          : true;
+
         var playerPerksResult = this.updatePlayerPerksPreset(
           "Perk Preset",
           oldPerksPreset,
@@ -284,14 +286,17 @@
         if (statName === "Premium Packs") {
           header = "Premium Packs";
           perkRow = row + 2;
+          continue;
         }
 
         if (
           oldPlayerStatsData[header] &&
           oldPlayerStatsData[header][statName]
         ) {
-          var value = oldPlayerStatsData[header][statName].value || "";
+          var value = oldPlayerStatsData[header][statName] || null;
           values[header].push([value]);
+        } else {
+          values[header].push([null]);
         }
       }
 
@@ -398,7 +403,9 @@
           continue;
         }
         var nonEmptyCells = perksSheetData[row].filter(function (cell) {
-          return cell !== null && cell !== undefined && String(cell).trim() !== "";
+          return (
+            cell !== null && cell !== undefined && String(cell).trim() !== ""
+          );
         });
 
         if (nonEmptyCells.indexOf("Farming") !== -1) {
@@ -534,8 +541,12 @@
       var statsDataResult = this.getVersion3_2PlayerStuffStats(
         oldPlayerStuffStatsValues,
       );
-      var perksPresetResult = this.getVersion4_2PlayerStuffPerks(oldPerksPresetValues);
-      success = tierDataResult.success && statsDataResult.success && perksPresetResult.success;
+      var perksPresetResult =
+        this.getVersion4_2PlayerStuffPerks(oldPerksPresetValues);
+      success =
+        tierDataResult.success &&
+        statsDataResult.success &&
+        perksPresetResult.success;
       return {
         success: success,
         message: success
@@ -827,10 +838,11 @@
           oldPlayerStuffStatsData[header] = {};
           continue;
         }
+        if (name === "Coin Multiplier") {
+          break;
+        }
         if (name) {
-          oldPlayerStuffStatsData[header][name] = {
-            value: value,
-          };
+          oldPlayerStuffStatsData[header][name] = value;
         }
       }
       return {
@@ -875,10 +887,11 @@
           oldPlayerStuffStatsData[header] = {};
           continue;
         }
+        if (name === "Coin Multiplier") {
+          break;
+        }
         if (name) {
-          oldPlayerStuffStatsData[header][name] = {
-            value: value,
-          };
+          oldPlayerStuffStatsData[header][name] = value;
         }
       }
       return {
@@ -914,7 +927,11 @@
       }
       var shouldRemoveUsedPerks;
       var oldPerksPreset = {};
-      for (var rowIndex = 0; rowIndex < oldPlayerStuffPerksValues.length; rowIndex++) {
+      for (
+        var rowIndex = 0;
+        rowIndex < oldPlayerStuffPerksValues.length;
+        rowIndex++
+      ) {
         var row = oldPlayerStuffPerksValues[rowIndex];
         var colIndex = row.indexOf("Remove used perks from the pool");
         if (colIndex !== -1) {
@@ -941,9 +958,11 @@
                 order: orderIndex + 1,
               };
             }
-            var bannedAmount = oldPlayerStuffPerksValues[rowIndex + 1][colIdx + 2] || 0;
+            var bannedAmount =
+              oldPlayerStuffPerksValues[rowIndex + 1][colIdx + 2] || 0;
             oldPerksPreset[presetName].bannedAmount = bannedAmount;
-            for (var rowIdx = rowIndex + 3;
+            for (
+              var rowIdx = rowIndex + 3;
               rowIdx < oldPlayerStuffPerksValues.length;
               rowIdx++
             ) {
@@ -954,10 +973,16 @@
               }
               oldPerksPreset[presetName].perks.push(perkValue || null);
             }
-            var lastPerk = oldPerksPreset[presetName].perks[oldPerksPreset[presetName].perks.length - 1];
-             if (lastPerk && String(lastPerk).trim() === "Unlock a random Ultimate Weapon") {
+            var lastPerk =
+              oldPerksPreset[presetName].perks[
+                oldPerksPreset[presetName].perks.length - 1
+              ];
+            if (
+              lastPerk &&
+              String(lastPerk).trim() === "Unlock a random Ultimate Weapon"
+            ) {
               oldPerksPreset[presetName].perks.pop();
-             }
+            }
           });
           break;
         }
@@ -978,7 +1003,71 @@
       };
     }
   },
-  
+
+  // #endregion
+  // #region Parse Saved File
+  parsePlayerStuffData: function (data) {
+    const tourneyNames = {
+      0: "Copper",
+      1: "Silver",
+      2: "Gold",
+      3: "Platinum",
+      4: "Champions",
+      5: "Legends",
+    };
+    
+    const tourneyName = data.tourneyID ? tourneyNames[data.tourneyID] : null;
+    const highestWavePerTier = data.highestWavePerTier || [];
+    const premiumPass = data.premiumPass || [];
+    const atkDissonance = data.atkDissonance || [];
+    const hpDissonance = data.hpDissonance || [];
+    const coinDissonance = data.coinDissonance || [];
+    const uwDissonance = data.uwDissonance || [];
+
+    var oldPlayerStuffTierData = {};
+    var oldPlayerStuffStatsData = {
+      Stat: {
+        "Player ID": data.playerID,
+        "Farming Tier": "Tier " + data.currentTier,
+        "Tourney League": tourneyName,
+      },
+      "Premium Packs": {
+        "Disable Ads": data.addPack,
+        "Starter Pack": data.starterPack,
+        "Epic Pack": data.epicPack,
+      },
+    };
+
+    var nextPremium = 0;
+    for (var tier = 0; tier < highestWavePerTier.length; tier++) {
+      var wave = Math.min(4500, highestWavePerTier[tier]);
+      if (wave <= 0) {
+        continue;
+      }
+      var premium = null;
+      if (tier % 3 === 1) {
+        premium = premiumPass[nextPremium] || null;
+        nextPremium++;
+      }
+
+      oldPlayerStuffTierData["Tier " + (tier)] = {
+        wave: wave,
+        diss: {
+          attack: Math.min(5000, atkDissonance[tier] || 0),
+          defense: Math.min(5000, hpDissonance[tier] || 0),
+          utility: Math.min(5000, coinDissonance[tier] || 0),
+          ultimate: Math.min(5000, uwDissonance[tier] || 0),
+        },
+        premium: premium,
+      };
+    }
+
+    return {
+      oldPlayerStuffTierData: oldPlayerStuffTierData,
+      oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+    };
+  },
+
   // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
@@ -1010,5 +1099,6 @@
 
     return null;
   },
+  
   // #endregion
 };

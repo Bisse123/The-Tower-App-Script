@@ -84,7 +84,7 @@ const bots = {
           Cooldown: "DVT_BOT_UG_BB_CD",
           Bonus: "DVT_BOT_UG_BB_BONUS",
           Range: "DVT_BOT_UG_BB_RANGE",
-          "Maximum Power: Heal": "DVT_BOT_UG_BB_MAXIMUMPOWER",
+          "Maximum Power": "DVT_BOT_UG_BB_MAXIMUMPOWER",
         },
       };
 
@@ -239,7 +239,7 @@ const bots = {
           message: `Bot column not found in Master Sheet`,
         };
       }
-      
+
       var startCol = botCol + 1; // Column after "Bot" (1-based)
       var endCol = startCol;
 
@@ -299,8 +299,8 @@ const bots = {
             );
           });
         });
-      
-        if (!newBotDataValues || newBotDataValues.length === 0) {
+
+      if (!newBotDataValues || newBotDataValues.length === 0) {
         console.log(`No bot data found`);
         return {
           success: false,
@@ -314,14 +314,14 @@ const bots = {
           (cell) =>
             cell !== null &&
             cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
+            String(cell || "").trim() !== "",
+        ),
       );
 
       var newBotUnlocked = [];
       var newBotLevels = {};
       var newBotSync = {};
-      
+
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];
         var botName = rowData[0];
@@ -363,7 +363,11 @@ const bots = {
               continue;
             }
 
-            if (presetData.hasOwnProperty("sync") && presetData.sync !== null && nextRow === row) {
+            if (
+              presetData.hasOwnProperty("sync") &&
+              presetData.sync !== null &&
+              nextRow === row
+            ) {
               newBotSync[presetName] = newBotSync[presetName] || [];
               newBotSync[presetName].push([presetData.sync]);
             } else {
@@ -372,6 +376,7 @@ const bots = {
             }
 
             if (!presetData.props) {
+              newBotLevels[presetName].push([null]);
               continue;
             }
 
@@ -382,7 +387,10 @@ const bots = {
             }
 
             var oldPropValue = presetData.props[newBotProp];
-            var dvtPropValue = shared.getDVTValue(oldPropValue, dvtNamedRangesData[botName][newBotProp]);
+            var dvtPropValue = shared.getDVTValue(
+              oldPropValue,
+              dvtNamedRangesData[botName][newBotProp],
+            );
             newBotLevels[presetName].push([dvtPropValue]);
           }
         }
@@ -402,7 +410,9 @@ const bots = {
             return map.presetName === presetName;
           });
           if (presetMap) {
-            var levelColLetter = shared.columnToLetter(presetMap.levelColIndex + 1);
+            var levelColLetter = shared.columnToLetter(
+              presetMap.levelColIndex + 1,
+            );
             batchUpdate.push({
               range: `${sheetName}!${levelColLetter}3:${levelColLetter}${newBotLevels[presetName].length + 2}`,
               values: newBotLevels[presetName],
@@ -417,7 +427,9 @@ const bots = {
             return map.presetName === presetName;
           });
           if (presetMap) {
-            var syncColLetter = shared.columnToLetter(presetMap.syncColIndex + 1);
+            var syncColLetter = shared.columnToLetter(
+              presetMap.syncColIndex + 1,
+            );
             batchUpdate.push({
               range: `${sheetName}!${syncColLetter}3:${syncColLetter}${newBotSync[presetName].length + 2}`,
               values: newBotSync[presetName],
@@ -608,7 +620,11 @@ const bots = {
       var presetColumnMapping = [];
 
       var firstPresetIndex = oldBotsHeaderRow.indexOf("Farming");
-      for (var colIdx = firstPresetIndex; colIdx < oldBotsHeaderRow.length; colIdx++) {
+      for (
+        var colIdx = firstPresetIndex;
+        colIdx < oldBotsHeaderRow.length;
+        colIdx++
+      ) {
         var presetName = String(oldBotsHeaderRow[colIdx] || "").trim();
         if (!presetName) {
           continue;
@@ -660,10 +676,13 @@ const bots = {
           if (!key) {
             continue;
           }
-          var defaultLevelValue = nextRowData[firstPresetIndex]
+          var defaultLevelValue = nextRowData[firstPresetIndex];
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            if (presetMap.presetName !== "Farming" && levelValue === defaultLevelValue) {
+            if (
+              presetMap.presetName !== "Farming" &&
+              levelValue === defaultLevelValue
+            ) {
               levelValue = null;
             }
             bot.presets[presetMap.presetName].props[key] = levelValue;
@@ -832,6 +851,93 @@ const bots = {
   },
 
   // #endregion
+  // #region Parse Saved File
+  parseBotsData: function (data) {
+    const targetBots = {
+      "Flame Bot": {
+        upgrades: ["Damage", "Range", "Cooldown", "Damage R."],
+        plusUpgrade: "Wildfire",
+      },
+      "Thunder Bot": {
+        upgrades: ["Linger", "Range", "Cooldown", "Duration"],
+        plusUpgrade: "Titan Shock",
+      },
+      "Golden Bot": {
+        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+        plusUpgrade: "Bonus Cell",
+      },
+      "Amplify Bot": {
+        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+        plusUpgrade: "Echoing Shot",
+      },
+      "Bot Bot": {
+        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+        plusUpgrade: "Maximum Power",
+      },
+    };
+
+    const presetNameOverride = ["Farming", "Tourney"];
+    
+    const presetNames = (data.presetNames || []).map((name, index) => (presetNameOverride[index] || name || `Preset ${index + 1}`));
+    const flameBotData = data.flameBotPresets || {};
+    const thunderBotData = data.thunderBotPresets || {};
+    const goldenBotData = data.goldenBotPresets || {};
+    const amplifyBotData = data.amplifyBotPresets || {};
+    const botBotData = data.botBotPresets || {};
+
+    const syncPresets = data.synchronicityPresets || {};
+    var oldBots = {
+      presetNames: presetNames,
+      data: {},
+    };
+
+    presetNames.forEach(function (presetName, index) {
+      const allBotPresets = [
+        flameBotData[index] || {},
+        thunderBotData[index] || {},
+        goldenBotData[index] || {},
+        amplifyBotData[index] || {},
+        botBotData[index] || {},
+      ];
+      allBotPresets.forEach(function (botPreset, botIndex) {
+        var botName = Object.keys(targetBots)[botIndex];
+        var botLevels = botPreset.levels || [];
+        var props = targetBots[botName].upgrades.reduce(function (
+          acc,
+          upgrade,
+          idx,
+        ) {
+          var level = botLevels[idx];
+          acc[upgrade] = level ? String(level).padStart(2, "0") : null ;
+          return acc;
+        }, {});
+        props[targetBots[botName].plusUpgrade] = botPreset.plusUnlocked
+          ? (botPreset.plusLevel ? String(botPreset.plusLevel).padStart(2, "0") : null)
+          : "Lo";
+        if (!oldBots.data.hasOwnProperty(botName)) {
+          oldBots.data[botName] = {
+            unlocked: null,
+            presets: {},
+          };
+        }
+        if (botPreset.unlocked) {
+          oldBots.data[botName].unlocked = botPreset.unlocked;
+        }
+        oldBots.data[botName].presets[presetName] = {
+          props: props,
+          sync: syncPresets[index][botIndex] || null,
+        };
+      });
+    });
+
+    return {
+      oldBots: oldBots,
+      targetBots: targetBots,
+      botOrder: Object.keys(targetBots),
+    };
+  },
+
+  // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
@@ -861,5 +967,6 @@ const bots = {
 
     return null;
   },
+
   // #endregion
 };

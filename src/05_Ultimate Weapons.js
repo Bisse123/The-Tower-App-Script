@@ -316,7 +316,7 @@ const ultimate = {
         if (oldUltimate.hasOwnProperty(weaponName)) {
           var oldWeapon = oldUltimate[weaponName];
           newUltimateUnlocked.push([weaponName]);
-          newUltimateUnlocked.push([""]);
+          newUltimateUnlocked.push([null]);
           newUltimateUnlocked.push([oldWeapon.unlocked]);
 
           for (var nextRow = row; nextRow < newUltimateData.length; nextRow++) {
@@ -359,7 +359,7 @@ const ultimate = {
             }
           }
         } else {
-          newUltimateUnlocked.push([rowData[0]]);
+          newUltimateUnlocked.push([null]);
         }
       }
 
@@ -686,7 +686,7 @@ const ultimate = {
       return {
         success: true,
         message: "Ultimate weapons processed successfully",
-        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimate: ultimateWeaponsData.oldUltimate,
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
@@ -767,7 +767,7 @@ const ultimate = {
       return {
         success: true,
         message: "Ultimate weapons processed successfully",
-        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimate: ultimateWeaponsData.oldUltimate,
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
@@ -848,7 +848,7 @@ const ultimate = {
       return {
         success: true,
         message: "Ultimate weapons processed successfully",
-        oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+        oldUltimate: ultimateWeaponsData.oldUltimate,
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
@@ -927,10 +927,12 @@ const ultimate = {
 
       return {
         success: true,
-        "Ultimate Weapon": oldUltimate,
+        oldUltimate: oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion3_1_1UltimateWeapons: " + error.toString());
+      console.log(
+        "Error in getVersion3_1_1UltimateWeapons: " + error.toString(),
+      );
       return {
         success: false,
         message: "Error in getVersion3_1_1UltimateWeapons: " + error.message,
@@ -993,7 +995,7 @@ const ultimate = {
 
       return {
         success: true,
-        "Ultimate Weapon": oldUltimate,
+        oldUltimate: oldUltimate,
       };
     } catch (error) {
       console.log("Error in getVersion2_0UltimateWeapons: " + error.toString());
@@ -1071,7 +1073,7 @@ const ultimate = {
 
       return {
         success: true,
-        "Ultimate Weapon": oldUltimate,
+        oldUltimate: oldUltimate,
       };
     } catch (error) {
       console.log("Error in getVersion1_0UltimateWeapons: " + error.toString());
@@ -1246,6 +1248,54 @@ const ultimate = {
   },
 
   // #endregion
+  // #region Parse Saved File
+  parseUltimateWeaponData: function (data) {
+    const targetWeapons = {
+      "Chain Lightning": { upgrades: ["Damage", "Quantity", "Chance"], plusUpgrade: "Smite" },
+      "Smart Missiles": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Cover Fire" },
+      "Death Wave": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Kill Wall" },
+      "Chrono Field": { upgrades: ["Duration", "Speed Reduction", "Cooldown"], plusUpgrade: "Chrono Loop" },
+      "Inner Land Mines": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Charged Mines" },
+      "Golden Tower": { upgrades: ["Multiplier", "Duration", "Cooldown"], plusUpgrade: "Golden Combo" },
+      "Poison Swamp": { upgrades: ["Damage", "Duration", "Cooldown"], plusUpgrade: "Death Creep" },
+      "Black Hole": { upgrades: ["Size", "Duration", "Cooldown"], plusUpgrade: "Consume" },
+      "Spotlight": { upgrades: ["Multiplier", "Angle", "Quantity"], plusUpgrade: "Light Range" },
+    };
+    const ultimateWeaponUnlocked = data.ultimateWeaponUnlocked || [];
+    const ultimateWeaponLevel = data.ultimateWeaponLevel || [];
+    const ultimateWeaponPlusUnlocked = data.ultimateWeaponPlusUnlocked || [];
+    const ultimateWeaponPlusLevel = data.ultimateWeaponPlusLevel || [];
+
+    var oldUltimate = {};
+
+    Object.keys(targetWeapons).forEach(function (weaponName, i) {
+      var { upgrades, plusUpgrade } = targetWeapons[weaponName];
+      var weaponLevels = {};
+      upgrades.forEach(function (attr, j) {
+        var idx = i * upgrades.length + j;
+        var level = ultimateWeaponLevel[idx];
+        weaponLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+      });
+      if (!ultimateWeaponPlusUnlocked[i]) {
+        weaponLevels[plusUpgrade] = "Lo";
+      } else {
+        var level = ultimateWeaponPlusLevel[i];
+        weaponLevels[plusUpgrade] = level ? String(level).padStart(2, "0") : "00";
+      }
+      oldUltimate[weaponName] = {
+        unlocked: ultimateWeaponUnlocked[i] || null,
+        levels: weaponLevels,
+      };
+    });
+    
+    return {
+      oldUltimate: oldUltimate,
+      targetWeapons: targetWeapons,
+      weaponOrder: Object.keys(targetWeapons),
+    };
+  },
+
+  // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
@@ -1276,5 +1326,6 @@ const ultimate = {
 
     return null;
   },
+  
   // #endregion
 };

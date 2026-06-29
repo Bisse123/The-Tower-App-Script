@@ -428,6 +428,147 @@ const themes = {
   },
 
   // #endregion
+  // #region Parse Saved File
+  parseThemesData: function (data, sheetID) {
+    var emptyThemesNames = {
+      "Tower Skin": [],
+      "Background Skin": [],
+      "Songs": [],
+      "Guardians": [],
+      "Menu": [],
+      "Profile Banner": [],
+      "Milestone Skin": [],
+    };
+    
+    var themesSheetData = null;
+    if (sheetID) {
+      var batchResult = SheetsAPI.batchGetValues(sheetID, ["Themes & Songs"]);
+      if (batchResult && batchResult[0] && batchResult[0].values) {
+        themesSheetData = batchResult[0].values;
+      }
+    }
+
+    if (!themesSheetData) {
+      console.log("Could not read Themes & Songs sheet to map theme indices");
+      return {
+        oldThemesNames: emptyThemesNames,
+      };
+    }
+
+    function buildThemeIndexMap(nameHeader, idHeader) {
+      var nameCol = -1;
+      var idCol = -1;
+      var headerRow = -1;
+      for (var row = 0; row < themesSheetData.length; row++) {
+        var rowValues = themesSheetData[row];
+        var foundName = rowValues.indexOf(nameHeader);
+        var foundId = rowValues.indexOf(idHeader);
+        if (foundName !== -1 && foundId !== -1) {
+          nameCol = foundName + 1;
+          idCol = foundId;
+          headerRow = row;
+          break;
+        }
+      }
+
+      var map = {};
+      if (headerRow === -1) {
+        console.log(
+          "Could not find '" +
+            nameHeader +
+            "' and '" +
+            idHeader +
+            "' headers in Themes & Songs sheet"
+        );
+        return map;
+      }
+
+      for (var r = headerRow + 1; r < themesSheetData.length; r++) {
+        var dataRow = themesSheetData[r];
+        var name = (dataRow[nameCol] || "").toString().trim();
+        var id = dataRow[idCol];
+        if (name === "" || id === "" || id === null || id === undefined) {
+          break;
+        }
+        var index = parseInt(id, 10);
+        if (!isNaN(index)) {
+          map[index] = name;
+        }
+      }
+      return map;
+    }
+
+    var towerSkins = buildThemeIndexMap("Tower Skin", "Tower_ID");
+    var backgroundSkins = buildThemeIndexMap("Background Skin", "Background_ID");
+    var milestoneSkins = buildThemeIndexMap("Milestone Skin", "Milestone_ID");
+    var songs = buildThemeIndexMap("Songs", "Songs_ID");
+    var guardianSkins = buildThemeIndexMap("Guardians", "Guardians_ID");
+    var menuThemes = buildThemeIndexMap("Menu", "Menu_ID");
+    var profileBanners = buildThemeIndexMap("Profile Banner", "Banner_ID");
+
+    const towerSkinsData = data.towerSkins || [];
+    const backgroundSkinsData = data.backgroundSkins || [];
+    const menuSkinsData = data.menuSkins || [];
+    const guardianSkinsData = data.guardianSkins || [];
+    const profileBannersData = data.profileBanners || [];
+    const songsData = data.songs || [];
+
+    var oldThemesNames = {
+      "Tower Skin": [],
+      "Background Skin": [],
+      "Milestone Skin": [],
+      "Guardians": [],
+      "Profile Banner": [],
+      "Menu": [],
+      "Songs": [],
+    };
+
+    towerSkinsData.forEach(function (isUnlocked, index) {
+      if (!isUnlocked) return;
+      if (towerSkins[index]) {
+        oldThemesNames["Tower Skin"].push(towerSkins[index]);
+      }
+      if (milestoneSkins[index]) {
+        oldThemesNames["Milestone Skin"].push(milestoneSkins[index]);
+      }
+    });
+
+    backgroundSkinsData.forEach(function (isUnlocked, index) {
+      if (isUnlocked && backgroundSkins[index]) {
+        oldThemesNames["Background Skin"].push(backgroundSkins[index]);
+      }
+    });
+
+    menuSkinsData.forEach(function (isUnlocked, index) {
+      if (isUnlocked && menuThemes[index]) {
+        oldThemesNames["Menu"].push(menuThemes[index]);
+      }
+    });
+
+    guardianSkinsData.forEach(function (isUnlocked, index) {
+      if (isUnlocked && guardianSkins[index]) {
+        oldThemesNames["Guardians"].push(guardianSkins[index]);
+      }
+    });
+
+    profileBannersData.forEach(function (isUnlocked, index) {
+      if (isUnlocked && profileBanners[index]) {
+        oldThemesNames["Profile Banner"].push(profileBanners[index]);
+      }
+    });
+
+    songsData.forEach(function (isUnlocked, index) {
+      if (isUnlocked && songs[index]) {
+        oldThemesNames["Songs"].push(songs[index]);
+      }
+    });
+
+    return {
+      oldThemesNames: oldThemesNames,
+      themesOrder: Object.keys(oldThemesNames),
+    };
+  },
+  // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
@@ -456,5 +597,6 @@ const themes = {
 
     return null;
   },
+
   // #endregion
 };
