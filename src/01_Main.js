@@ -62,7 +62,7 @@ function doGet(e) {
     return saveFileTemplate
       .evaluate()
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
-      .setTitle("Parse Save File");
+      .setTitle("Load Data From Save File");
   }
 
   var openGetStarted =
@@ -148,7 +148,7 @@ function createMenu() {
         ui.createMenu("Import Data")
             .addItem("Get Started", "showGetStartedDialog")
             .addItem("Update Sheet", "showUpdateDialog")
-            .addItem("Parse Save File", "openSaveFilePicker")
+            .addItem("Load Data From Save File", "openSaveFilePicker")
             .addToUi();
     } catch (error) {}
 }
@@ -234,7 +234,7 @@ function openSaveFilePicker() {
     .setHeight(720)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 
-  SpreadsheetApp.getUi().showModalDialog(html, "Parse Save File");
+  SpreadsheetApp.getUi().showModalDialog(html, "Load Data From Save File");
 }
 
 function findIdMasterIdInIdsTab(idsSheet) {
