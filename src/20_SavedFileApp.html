@@ -25,12 +25,9 @@
       const viewType = "<?= viewType ? viewType : 'webapp' ?>";
       const saveFile = true;
 
-      // From the URL for web apps; the add-on dialog resolves it client-side via
-      // getSaveFileParameters after scopes are granted (see authorizeSaveFile).
       let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
+      let sheetType = "<?= sheetType ? sheetType : '' ?>";
 
-      // Globals required by the reused consent flow (27_consent_scripts). This
-      // page does not include 21_shared_scripts, so declare them here.
       let accessToken = null;
       let userEmail = "";
       const accessRequired = false;

@@ -518,6 +518,7 @@
         });
         if (saveFileParams && saveFileParams.idMasterID) {
           idMasterID = saveFileParams.idMasterID;
+          sheetType = saveFileParams.sheetType || "";
         }
       } catch (error) {
         console.error("Error loading save file parameters:", error);
