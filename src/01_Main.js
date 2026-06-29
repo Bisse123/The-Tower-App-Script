@@ -50,6 +50,10 @@ function doGet(e) {
   var targetPage = (params.page || "").toString().toLowerCase();
 
   if (targetPage === "savefile" || targetPage === "save-file" || params.saveFile === "true") {
+    var sheetType = params.sheetType || "";
+    if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
+      sheetType = "IDS Collection";
+    }
     var saveFileTemplate = HtmlService.createTemplateFromFile("20_SavedFileApp");
     saveFileTemplate.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
@@ -59,6 +63,7 @@ function doGet(e) {
     saveFileTemplate.idMasterID = params.idMasterID
       ? shared.extractSheetId(params.idMasterID) || ""
       : "";
+    saveFileTemplate.sheetType = sheetType;
     return saveFileTemplate
       .evaluate()
       .addMetaTag("viewport", "width=device-width, initial-scale=1")

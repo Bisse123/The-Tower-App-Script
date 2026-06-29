@@ -3,6 +3,7 @@
   let saveFilePickerReady = false;
   let saveFileSheetType = "";
   let saveFileCollectionOutdated = null;
+  let saveFileCollectionVersionChecked = false;
 
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
@@ -36,9 +37,6 @@
       }
     });
 
-  // Per-category sheet IDs so the parser can read indices from the live sheets.
-  // IDS Master: each category has its own linked subsheet (resolved up front).
-  // IDS Collection: every category lives on the single collection sheet.
   function getSaveFileSheetIds() {
     if (saveFileSheetType === "IDS Collection") {
       return { Relics: idMasterID, "Themes & Songs": idMasterID };
@@ -225,17 +223,18 @@
     return await resolveSaveFileSubsheetAccess();
   }
 
-  // Assumes access to the primary sheet (idMasterID) is already confirmed, so it
-  // never re-checks it. Resolves the sheet type and, for an IDS Master, every
-  // linked subsheet, storing any inaccessible subsheets in
-  // saveFilePendingAccessIds. Returns true when nothing is left to grant.
   async function resolveSaveFileSubsheetAccess() {
+    if (!saveFileSheetType && typeof sheetType === "string") {
+      saveFileSheetType = sheetType;
+    }
     if (!saveFileSheetType) {
       await resolveSaveFileSheetType();
     }
 
-    // An IDS Collection is a single sheet - access to it is all that is needed.
     if (saveFileSheetType !== "IDS Master") {
+      if (saveFileSheetType === "IDS Collection") {
+        await ensureSaveFileCollectionVersion();
+      }
       saveFilePendingAccessIds = [];
       return true;
     }
@@ -277,15 +276,40 @@
       const result = await runAppsScript("getSaveFileSheetType", idMasterID);
       if (result && result.success && result.sheetType) {
         saveFileSheetType = result.sheetType;
-        if (saveFileSheetType === "IDS Collection" && result.outdated) {
-          saveFileCollectionOutdated = {
-            currentVersion: result.currentVersion,
-            latestVersion: result.latestVersion,
-          };
+        if (saveFileSheetType === "IDS Collection") {
+          saveFileCollectionVersionChecked = true;
+          if (result.outdated) {
+            saveFileCollectionOutdated = {
+              currentVersion: result.currentVersion,
+              latestVersion: result.latestVersion,
+            };
+          }
         }
       }
     } catch (err) {
       console.error("Could not determine sheet type:", err);
+    }
+  }
+
+  async function ensureSaveFileCollectionVersion() {
+    if (saveFileCollectionVersionChecked || !idMasterID) return;
+    saveFileCollectionVersionChecked = true;
+    try {
+      setStatusWithSpinner("Checking your IDS Collection version...");
+      const result = await runAppsScript("getSaveFileSheetType", idMasterID);
+      if (
+        result &&
+        result.success &&
+        result.sheetType === "IDS Collection" &&
+        result.outdated
+      ) {
+        saveFileCollectionOutdated = {
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion,
+        };
+      }
+    } catch (err) {
+      console.error("Could not check IDS Collection version:", err);
     }
   }
 
@@ -336,9 +360,6 @@
   async function grantSaveFileAccess() {
     document.getElementById("saveFileAccessBtn").disabled = true;
 
-    // The button is only shown because the access checks on open already found
-    // these sheets inaccessible, so grant access to the stored list directly -
-    // no need to re-check before opening the picker.
     const wasPrimaryPending =
       saveFilePendingAccessIds.indexOf(idMasterID) !== -1;
 
@@ -347,14 +368,10 @@
     );
 
     if (!grantedAll) {
-      // ensureSaveFileAccess has already updated saveFilePendingAccessIds with
-      // whatever is still missing; let the user click again to grant the rest.
       document.getElementById("saveFileAccessBtn").disabled = false;
       return;
     }
 
-    // Everything we knew about is granted. If the primary sheet was just granted,
-    // discover and check its subsheets now (without re-checking the primary).
     let ready = true;
     if (wasPrimaryPending) {
       ready = await resolveSaveFileSubsheetAccess();
@@ -773,9 +790,6 @@
   }
 
   async function ensureSaveFileAccess(label) {
-    // Operates on the globally-tracked saveFilePendingAccessIds (populated by the
-    // access checks on open) and updates it from what the picker grants, so there
-    // is no redundant access re-check here.
     if (saveFilePendingAccessIds.length === 0) return true;
 
     if (
@@ -807,9 +821,7 @@
       setStatusText("File access was not granted.");
       return false;
     }
-
-    // Drop the just-granted sheets from the global list (the picker granting a
-    // file is what grants access, so no server re-check is needed).
+    
     saveFilePendingAccessIds = saveFilePendingAccessIds.filter(function (id) {
       return pickedIds.indexOf(id) === -1;
     });
