@@ -208,13 +208,11 @@
     var resultElement = document.getElementById("getStartedCopyResult");
     if (!resultElement) return;
 
-    // Merge new results with previous ones
     var createdFiles = (result && result.createdFiles) || [];
     var failedCopies = (result && (result.failedCopies)) || [];
     var failedIDUpdates = (result && result.failedIDUpdates) || [];
     var successfulIDUpdates = (result && result.successfulIDUpdates) || [];
 
-    // Add or refresh created files
     createdFiles.forEach(function (newFile) {
       if (!newFile || !newFile.fileId) {
         return;
@@ -541,7 +539,6 @@
 
     return new Promise(function (resolve, reject) {
       try {
-        // Extract template IDs from failed templates
         var failedTemplateIds = failedTemplates
           .map(function (template) {
             return template.templateID;
@@ -582,13 +579,17 @@
           .addView(view)
           .setCallback(function (data) {
             if (data.action === google.picker.Action.PICKED) {
+              const pickedIds = (data.docs || []).map(function (d) {
+                return d.id;
+              });
               console.log(
-                "Get Started access picker: files selected, rechecking access",
+                "Get Started access picker: files selected:",
+                pickedIds,
               );
-              resolve(true);
+              resolve(pickedIds);
             } else if (data.action === google.picker.Action.CANCEL) {
               console.log("Get Started access picker: cancelled");
-              resolve(false);
+              resolve([]);
             }
           })
           .setSize(pickerSize.width, pickerSize.height);
@@ -926,50 +927,23 @@
     destinationLabel,
     copyMode,
   ) {
-    // Perform the full flow: check access -> handle picker -> copy -> update IDs -> process results
     try {
-      // Check access to all templates before attempting to copy
       var accessCheckResult = await checkGetStartedTemplateAccess(templates);
+      var inaccessibleTemplates = accessCheckResult.inaccessibleTemplates || [];
 
-      if (
-        !accessCheckResult.success &&
-        accessCheckResult.inaccessibleTemplates.length > 0
-      ) {
+      while (inaccessibleTemplates.length > 0) {
         console.log(
-          "Access check failed, opening picker for:",
-          accessCheckResult.inaccessibleTemplates,
+          "Templates need access, opening picker for:",
+          inaccessibleTemplates,
         );
 
         setStatusWithSpinner(
-          `Opening file picker to grant access to ${accessCheckResult.inaccessibleTemplates.length} template(s)...`,
+          `Opening file picker to grant access to ${inaccessibleTemplates.length} template(s)...`,
         );
 
+        var pickedIds;
         try {
-          var pickerResult = await openGetStartedAccessPicker(
-            accessCheckResult.inaccessibleTemplates,
-          );
-
-          if (pickerResult) {
-            // User granted access, retry the entire flow
-            console.log("Get Started access granted, retrying template copy");
-            setStatusWithSpinner(
-              "Access granted. Rechecking template access and retrying...",
-            );
-
-            // Retry the access check and copy flow
-            return await performGetStartedAccessCheckAndCopy(
-              templates,
-              parentFolderID,
-              destinationLabel,
-              copyMode,
-            );
-          } else {
-            // User cancelled the picker
-            setStatusText(
-              "File access picker cancelled. Please grant access to continue.",
-            );
-            return null;
-          }
+          pickedIds = await openGetStartedAccessPicker(inaccessibleTemplates);
         } catch (pickerError) {
           console.error("Error opening access picker:", pickerError);
           setStatusText(
@@ -977,9 +951,25 @@
           );
           return null;
         }
+
+        if (!pickedIds || pickedIds.length === 0) {
+          setStatusText(
+            "File access picker cancelled. Please grant access to continue.",
+          );
+          return null;
+        }
+
+        inaccessibleTemplates = inaccessibleTemplates.filter(function (template) {
+          return pickedIds.indexOf(template.templateID) === -1;
+        });
+
+        if (inaccessibleTemplates.length > 0) {
+          setStatusText(
+            `Still missing access to ${inaccessibleTemplates.length} template(s). Please grant access to the remaining templates.`,
+          );
+        }
       }
 
-      // All templates are accessible, proceed with copying
       setStatusWithSpinner(
         `Copying ${templates.length} templates to ${destinationLabel}...`,
       );
@@ -1054,7 +1044,6 @@
 
     if (!modeSelect || !copyButton) return;
 
-    // Reset persistent state for a new copy flow
     allCreatedFiles = [];
     allFailedCopyFiles = [];
     allFailedIDUpdateFiles = [];
@@ -1084,7 +1073,6 @@
       return;
     }
 
-    // Disable controls and clear previous results
     copyButton.disabled = true;
     modeSelect.disabled = true;
     if (resultElement) resultElement.innerHTML = "";
@@ -1093,14 +1081,12 @@
     setStatusWithSpinner(`Checking access to ${templates.length} templates...`);
 
     try {
-      // Use the auto-detected destination folder
       if (!getStartedSelectedFolder || !getStartedSelectedFolder.id) {
         await getOrCreateGetStartedFolder();
       }
       var parentFolderID = getStartedSelectedFolder.id;
       var destinationLabel = getStartedSelectedFolder.name;
 
-      // Perform the access check and copy flow
       await performGetStartedAccessCheckAndCopy(
         templates,
         parentFolderID,
@@ -1111,13 +1097,11 @@
       console.error("Error in copy flow:", error);
       setStatusText(`Error: ${error.message || error}. Please try again.`);
     } finally {
-      // Always re-enable button when done (but hide it, see renderGetStartedCopyResult)
       copyButton.disabled = false;
       modeSelect.disabled = false;
     }
   }
 
-  // Retry logic for failed copy and ID setup operations
   async function retryFailedCopies() {
     var modeSelect = document.getElementById("getStartedCopyMode");
     var retryBtn = document.getElementById("retryFailedCopiesBtn");
