@@ -225,25 +225,15 @@ const cards = {
         }
       }
 
-      var oldCards = {};
-      oldCardsLevel.forEach(function (row) {
-        var oldCardName = row[0];
-        var oldLevel = row[1];
-        var oldMastery = row[2];
-        if (oldCardName) {
-          oldCards[oldCardName] = [oldLevel, oldMastery];
-        }
-      });
-
       var newCards = [];
       newCardsLevels.forEach(function (row) {
         var newCardName = row[0];
         if (newCardName === "Card Slot (Gems)") {
           newCards.push([oldCardSlots, ""]);
-        } else if (oldCards.hasOwnProperty(newCardName)) {
-          newCards.push(oldCards[newCardName]);
+        } else if (oldCardsLevel.hasOwnProperty(newCardName)) {
+          newCards.push(oldCardsLevel[newCardName]);
         } else {
-          newCards.push([row[1], row[2]]);
+          newCards.push([null, null]);
         }
       });
 
@@ -761,14 +751,13 @@ const cards = {
         };
       }
 
-      var oldCardsLevel = oldCardsLevelData.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
+      var oldCardsLevel = {};
+      oldCardsLevelData.forEach(function (row) {
+        var cardName = row[0];
+        if (cardName && String(cardName).trim() !== "") {
+          oldCardsLevel[cardName] = [row[1], row[2]];
+        }
+      });
 
       return {
         success: true,
@@ -783,6 +772,96 @@ const cards = {
         message: "Error in getVersion1_0CardsLevel: " + error.message,
       };
     }
+  },
+
+  // #endregion
+  // #region Parse Saved File
+  parseCardsData: function (data) {
+    const cardNameIndices = [
+      "Damage",
+      "Attack Speed",
+      "Health",
+      "Health Regen",
+      "Range",
+      "Cash",
+      "Coins",
+      "Slow Aura",
+      null,
+      null,
+      "Critical Chance",
+      "Enemy Balance",
+      "Extra Defense",
+      "Fortress",
+      null,
+      "Free Upgrades",
+      "Extra Orb",
+      null,
+      "Plasma Cannon",
+      "Critical Coin",
+      "Wave Skip",
+      "Intro Sprint",
+      "Land Mine Stun",
+      "Recovery Package Chance",
+      null,
+      "Death Ray",
+      "Energy Net",
+      "Super Tower",
+      "Second Wind",
+      "Demon Mode",
+      "Energy Shield",
+      "Wave Accelerator",
+      "Berserker",
+      "Ultimate Crit",
+      "Nuke",
+      "Area of Effect",
+      null,
+      null,
+      null,
+      null,
+    ];
+    const cardLevel = data.cardLevel || [];
+    const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
+
+    const presetNameOverride = ["Farming", "Tourney"];
+    const presetNames = (data.presetNames || []).map((name, index) => (presetNameOverride[index] || name || `Preset ${index + 1}`));
+    const presetSlots = data.presetSlots || [];
+    const presetCards = data.presetCards || [];
+    const slotsUnlocked = data.slotsUnlocked || 0;
+
+    var oldCardsLevel = {};
+    cardNameIndices.forEach(function (cardName, i) {
+      if (!cardName) return;
+      oldCardsLevel[cardName] = [cardLevel[i], cardMasteryUnlocked[i]];
+    });
+
+    const numPresets = presetNames.length;
+    const slotsPerPreset = numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
+    var oldCardsPreset = {};
+    presetNames.forEach(function (name, p) {
+      if (!name) return;
+      var slotStart = p * slotsPerPreset;
+      var cards = [];
+      presetSlots.slice(slotStart, slotStart + slotsPerPreset).forEach(function (assigned, s) {
+        if (assigned) {
+          var resolvedName = cardNameIndices[presetCards[slotStart + s]] || null;
+          if (resolvedName) {
+            cards.push(resolvedName);
+          }
+        }
+      });
+      oldCardsPreset[name] = {
+        cards: cards,
+        remove: [],
+        order: p + 1,
+      };
+    });
+
+    return {
+      oldCardsLevel: oldCardsLevel,
+      oldCardsPreset: oldCardsPreset,
+      oldCardSlots: slotsUnlocked,
+      cardNameIndices: cardNameIndices,
+    };
   },
 
   // #endregion
@@ -813,5 +892,6 @@ const cards = {
 
     return null;
   },
+  
   // #endregion
 };

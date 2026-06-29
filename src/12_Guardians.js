@@ -260,7 +260,7 @@ const guardians = {
         if (oldGuardians.hasOwnProperty(guardianName)) {
           var oldGuardian = oldGuardians[guardianName];
           newGuardianUnlocked.push([guardianName]);
-          newGuardianUnlocked.push([""]);
+          newGuardianUnlocked.push([null]);
           newGuardianUnlocked.push([oldGuardian.unlocked]);
 
           for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
@@ -277,14 +277,14 @@ const guardians = {
               );
               newGuardianLevel.push([dvtPropValue]);
             } else {
-              newGuardianLevel.push([nextRowData[4]]);
+              newGuardianLevel.push([null]);
             }
             if (nextRow == newGuardianData.length - 1) {
               row = nextRow;
             }
           }
         } else {
-          newGuardianUnlocked.push([rowData[0]]);
+          newGuardianUnlocked.push([null]);
         }
       }
 
@@ -636,6 +636,52 @@ const guardians = {
   },
 
   // #endregion
+  // #region Parse Saved File
+  parseGuardiansData: function (data) {
+    const targetGuardians = {
+      "Bounty":  { upgrades: ["Multiplier", "Cooldown", "Targets"] },
+      "Catch":   { upgrades: [null, null, null] },
+      "Attack":  { upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
+      "Scare":   { upgrades: [null, null, null] },
+      "Rush":    { upgrades: [null, null, null] },
+      "Ally":    { upgrades: ["Recovery Amount", "Max Recovery", "Cooldown"], alwaysUnlocked: true },
+      "Fetch":   { upgrades: ["Cooldown", "Find Chance", "Double Find Chance"] },
+      "Summon":  { upgrades: ["Cooldown", "Duration", "Cash Bonus"] },
+      "Scout":   { upgrades: ["Cooldown", "Range Bonus", "Duration"] },
+    };
+
+    const guardianUnlockedData = data.guardianChipUnlocked || [];
+    const guardianLevelData = data.guardianChipLevel || [];
+
+    var oldGuardians = {};
+
+    Object.keys(targetGuardians).forEach(function (guardianName, i) {
+      var { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
+      var chipLevels = {};
+      upgrades.forEach(function (attr, j) {
+        if (attr === null) return;
+        var idx = i * upgrades.length + j;
+        var level = guardianLevelData[idx];
+        chipLevels[attr] = level ? String(level).padStart(2, "0") : null;
+      });
+      oldGuardians[guardianName] = {
+        unlocked: alwaysUnlocked ? null : (guardianUnlockedData[i] || null),
+        props: chipLevels,
+      };
+    });
+    
+    const guardianOrder = Object.keys(targetGuardians).filter(function (guardianName) {
+      return targetGuardians[guardianName].upgrades.some(function (attr) {return attr});
+    });
+
+    return {
+      oldGuardians: oldGuardians,
+      targetGuardians: targetGuardians,
+      guardianOrder: guardianOrder,
+    };
+  },
+
+  // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
@@ -665,5 +711,6 @@ const guardians = {
 
     return null;
   },
+  
   // #endregion
 };

@@ -50,7 +50,7 @@ const workshop = {
       var requiredFormulaRanges = ["Master Sheet"];
       var batchFormulaResults = SheetsAPI.batchGetFormulas(
         newSheetID,
-        requiredFormulaRanges
+        requiredFormulaRanges,
       );
       if (!batchFormulaResults || batchFormulaResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -63,7 +63,7 @@ const workshop = {
       var requiredValueRanges = ["Desired Ratios", "IDS"];
       var batchValueResults = SheetsAPI.batchGetValues(
         newSheetID,
-        requiredValueRanges
+        requiredValueRanges,
       );
       if (!batchValueResults || batchValueResults.length < 2) {
         console.log(`Could not read required data from spreadsheet`);
@@ -83,7 +83,7 @@ const workshop = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -110,11 +110,11 @@ const workshop = {
           "Master Sheet",
           oldWorkshopLevels,
           oldWorkshopPlusLevels,
-          masterSheetData
+          masterSheetData,
         );
         if (!workshopResult || !workshopResult.success) {
           console.log(
-            `Error updating workshop levels: ${workshopResult.message}`
+            `Error updating workshop levels: ${workshopResult.message}`,
           );
           return workshopResult;
         }
@@ -127,11 +127,11 @@ const workshop = {
         var ratioResult = this.updateWorkshopPlusRatios(
           "Desired Ratios",
           oldWorkshopPlusRatios,
-          desiredRatiosData
+          desiredRatiosData,
         );
         if (!ratioResult || !ratioResult.success) {
           console.log(
-            `Error updating workshop plus ratios: ${ratioResult.message}`
+            `Error updating workshop plus ratios: ${ratioResult.message}`,
           );
           return ratioResult;
         }
@@ -152,7 +152,7 @@ const workshop = {
         "Workshop",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       // Apply all updates (including ID setting and import status)
@@ -184,7 +184,7 @@ const workshop = {
     sheetName,
     oldWorkshopLevels,
     oldWorkshopPlusLevels,
-    masterSheetData
+    masterSheetData,
   ) {
     try {
       console.log("Called: workshop.updateWorkshopLevels");
@@ -348,7 +348,7 @@ const workshop = {
   updateWorkshopPlusRatios: function (
     sheetName,
     oldWorkshopPlusRatios,
-    desiredRatiosData
+    desiredRatiosData,
   ) {
     try {
       console.log("Called: workshop.updateWorkshopPlusRatios");
@@ -362,7 +362,7 @@ const workshop = {
 
       var headerRow = desiredRatiosData[0];
       var workshopEnhancementNameCol = headerRow.indexOf(
-        "Workshop Enhancement"
+        "Workshop Enhancement",
       );
 
       if (workshopEnhancementNameCol === -1) {
@@ -470,7 +470,7 @@ const workshop = {
 
       var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(
         oldSheetID,
-        valuesRanges
+        valuesRanges,
       );
       if (
         !updateWorkshopValuesBatchResult ||
@@ -490,7 +490,7 @@ const workshop = {
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
-        oldWorkshopLevelsValues
+        oldWorkshopLevelsValues,
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
@@ -498,7 +498,7 @@ const workshop = {
 
       // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
-        oldWorkshopPlusLevelsValues
+        oldWorkshopPlusLevelsValues,
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
@@ -507,7 +507,7 @@ const workshop = {
       // Process workshop plus ratios
       var workshopPlusRatiosResult = this.getVersion2_2_8WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
-        oldWorkshopPlusRatiosValues
+        oldWorkshopPlusRatiosValues,
       );
       if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
         return workshopPlusRatiosResult;
@@ -549,7 +549,7 @@ const workshop = {
 
       var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(
         oldSheetID,
-        valuesRanges
+        valuesRanges,
       );
       if (
         !updateWorkshopValuesBatchResult ||
@@ -571,7 +571,7 @@ const workshop = {
       var formulasRanges = [workshopPlusRatioRange];
       var updateWorkshopFormulasBatchResult = SheetsAPI.batchGetFormulas(
         oldSheetID,
-        formulasRanges
+        formulasRanges,
       );
       if (
         !updateWorkshopFormulasBatchResult ||
@@ -589,7 +589,7 @@ const workshop = {
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
-        oldWorkshopLevelsValues
+        oldWorkshopLevelsValues,
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
@@ -597,7 +597,7 @@ const workshop = {
 
       // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
-        oldWorkshopPlusLevelsValues
+        oldWorkshopPlusLevelsValues,
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
@@ -606,7 +606,7 @@ const workshop = {
       // Process workshop plus ratios
       var workshopPlusRatiosResult = this.getVersion2_1WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
-        oldWorkshopPlusRatiosValues
+        oldWorkshopPlusRatiosValues,
       );
       if (!workshopPlusRatiosResult || !workshopPlusRatiosResult.success) {
         return workshopPlusRatiosResult;
@@ -648,7 +648,7 @@ const workshop = {
 
       var updateWorkshopValuesBatchResult = SheetsAPI.batchGetValues(
         oldSheetID,
-        valuesRanges
+        valuesRanges,
       );
       if (
         !updateWorkshopValuesBatchResult ||
@@ -668,7 +668,7 @@ const workshop = {
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
-        oldWorkshopLevelsValues
+        oldWorkshopLevelsValues,
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
@@ -676,7 +676,7 @@ const workshop = {
 
       // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
-        oldWorkshopPlusLevelsValues
+        oldWorkshopPlusLevelsValues,
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
@@ -734,7 +734,7 @@ const workshop = {
 
       // Process workshop levels
       var workshopLevelsResult = this.getVersion1_0WorkshopLevels(
-        oldWorkshopLevelsValues
+        oldWorkshopLevelsValues,
       );
       if (!workshopLevelsResult || !workshopLevelsResult.success) {
         return workshopLevelsResult;
@@ -742,7 +742,7 @@ const workshop = {
 
       // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion1_0WorkshopPlusLevels(
-        oldWorkshopPlusLevelsValues
+        oldWorkshopPlusLevelsValues,
       );
       if (!workshopPlusLevelsResult || !workshopPlusLevelsResult.success) {
         return workshopPlusLevelsResult;
@@ -796,7 +796,7 @@ const workshop = {
         });
         if (hasData && row[1]) {
           oldWorkshopLevels.data[row[1]] = {
-            unlocked: row[0] || "",
+            unlocked: row[0] || null,
             levels: [],
           };
           row.forEach(function (cell, index) {
@@ -816,7 +816,7 @@ const workshop = {
               } else {
                 oldWorkshopLevels.data[row[1]].levels.push(
                   row[index] || null,
-                  row[index + 1] || null
+                  row[index + 1] || null,
                 );
               }
             }
@@ -925,7 +925,7 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion2_0WorkshopPlusLevels: " + error.toString()
+        "Error in getVersion2_0WorkshopPlusLevels: " + error.toString(),
       );
       return {
         success: false,
@@ -958,7 +958,7 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion1_0WorkshopPlusLevels: " + error.toString()
+        "Error in getVersion1_0WorkshopPlusLevels: " + error.toString(),
       );
       return {
         success: false,
@@ -971,14 +971,14 @@ const workshop = {
   // #region Get Workshop Plus Ratios
   getVersion2_2_8WorkshopPlusRatios: function (
     presetNames,
-    oldWorkshopPlusRatiosValues
+    oldWorkshopPlusRatiosValues,
   ) {
     try {
       console.log("Called: workshop.getVersion2_2_8WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
       var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
-        "Workshop Enhancement"
+        "Workshop Enhancement",
       );
       oldWorkshopPlusRatiosValues.splice(0, 1);
       for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
@@ -987,7 +987,7 @@ const workshop = {
         if (workshopPresetIndex !== -1) {
           var presetValue = row[workshopPresetIndex + 1];
           oldWorkshopPlusRatios["Workshop preset"] = presetNames.includes(
-            presetValue
+            presetValue,
           )
             ? presetValue
             : null;
@@ -1016,7 +1016,7 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion2_2_8WorkshopPlusRatios: " + error.toString()
+        "Error in getVersion2_2_8WorkshopPlusRatios: " + error.toString(),
       );
       return {
         success: false,
@@ -1027,14 +1027,14 @@ const workshop = {
 
   getVersion2_1WorkshopPlusRatios: function (
     presetNames,
-    oldWorkshopPlusRatiosValues
+    oldWorkshopPlusRatiosValues,
   ) {
     try {
       console.log("Called: workshop.getVersion2_1WorkshopPlusRatios");
       var oldWorkshopPlusRatios = {};
       var oldWorkshopPlusRatiosHeaders = oldWorkshopPlusRatiosValues[0];
       var workshopEnhancementNameCol = oldWorkshopPlusRatiosHeaders.indexOf(
-        "Workshop Enhancement"
+        "Workshop Enhancement",
       );
       oldWorkshopPlusRatiosValues.splice(0, 1);
       for (i = 0; i < oldWorkshopPlusRatiosValues.length; i++) {
@@ -1089,13 +1089,250 @@ const workshop = {
       };
     } catch (error) {
       console.log(
-        "Error in getVersion2_1WorkshopPlusRatios: " + error.toString()
+        "Error in getVersion2_1WorkshopPlusRatios: " + error.toString(),
       );
       return {
         success: false,
         message: "Error in getVersion2_1WorkshopPlusRatios: " + error.message,
       };
     }
+  },
+
+  // #endregion
+  // #region Parse Saved File
+  parseWorkshopData: function (data) {
+    const attackUpgradeIndices = [
+      "Damage",
+      "Attack Speed",
+      "Critical Chance",
+      "Critical Factor",
+      "Range",
+      "Damage / Meter",
+      "Multishot Chance",
+      "Multishot Targets",
+      "Rapid Fire Chance",
+      "Rapid Fire Duration",
+      "Bounce Shot Chance",
+      "Bounce Shot Targets",
+      "Bounce Shot Range",
+      "Super Critical Chance",
+      "Super Critical Mult",
+      "Rend Armor Chance",
+      "Rend Armor Mult",
+    ];
+    const defenseUpgradeIndices = [
+      "Health",
+      "Health Regen",
+      "Defense %",
+      "Defense Absolute",
+      "Thorn Damage",
+      "Lifesteal",
+      "Knockback Chance",
+      "Knockback Force",
+      "Orb Speed",
+      "Orbs",
+      "Shockwave Size",
+      "Shockwave Frequency",
+      "Land Mine Chance",
+      "Land Mine Damage",
+      "Land Mine Radius",
+      "Death Defy",
+      "Wall Health",
+      "Wall Rebuild",
+    ];
+    const utilityUpgradeIndices = [
+      "Cash Bonus",
+      "Cash / Wave",
+      "Coin / Kill Bonus",
+      "Coin / Wave",
+      "Free Attack Upgrade",
+      "Free Defense Upgrade",
+      "Free Utility Upgrade",
+      "Interest / Wave",
+      "Recovery Amount",
+      "Max Amount",
+      "Package Chance",
+      "Enemy Attack Level Skip",
+      "Enemy Health Level Skip",
+    ];
+
+    const attackEnhancementIndices = [
+      "Damage +",
+      "Rend Armor Mult +",
+      "Critical Factor +",
+      "Damage / Meter +",
+      "Super Crit Multi +",
+      "Attack Speed +",
+    ];
+    const defenseEnhancementIndices = [
+      "Health +",
+      "Health Regen +",
+      "Defense Absolute +",
+      "Land Mine Damage +",
+      "Wall Health +",
+      "Orb Size +",
+    ];
+    const utilityEnhancementIndices = [
+      "Cash Bonus +",
+      "Coin Bonus +",
+      "Cells / Kill Bonus +",
+      "Free Upgrades +",
+      "Recovery Package +",
+      "Enemy Level Skips +",
+    ];
+
+    const attackUpgradeUnlockedIndices = [
+      "Range",
+      "Multishot Chance",
+      "Rapid Fire Chance",
+      "Bounce Shot Chance",
+      "Super Critical Chance",
+      "Rend Armor Chance",
+    ];
+    const defenseUpgradeUnlockedIndices = [
+      "Defense %",
+      "Thorn Damage",
+      "Lifesteal",
+      "Knockback Chance",
+      "Orb Speed",
+      "Shockwave Size",
+      "Land Mine Chance",
+      "Death Defy",
+      "Wall Health",
+    ];
+    const utilityUpgradeUnlockedIndices = [
+      "Cash Bonus",
+      "Coin / Kill Bonus",
+      "Free Attack Upgrade",
+      "Interest / Wave",
+      "Recovery Amount",
+      "Enemy Attack Level Skip",
+    ];
+
+    const presetNameOverride = ["Farming", "Tourney"];
+
+
+    const presetNames = (data.presetNames || []).map((name, index) => (presetNameOverride[index] || name || `Preset ${index + 1}`));
+    const attackUpgradeData = data.upgradeAttackLevels || [];
+    const defenseUpgradeData = data.upgradeDefenseLevels || [];
+    const utilityUpgradeData = data.upgradeUtilityLevels || [];
+
+    const attackEnhancementData = data.enhancementAttackLevels || [];
+    const defenseEnhancementData = data.enhancementDefenseLevels || [];
+    const utilityEnhancementData = data.enhancementUtilityLevels || [];
+
+    const attackUpgradeMax = attackUpgradeData.length;
+    const defenseUpgradeMax = defenseUpgradeData.length;
+    const utilityUpgradeMax = utilityUpgradeData.length;
+    const attackEnhancementMax = attackEnhancementData.length;
+    const defenseEnhancementMax = defenseEnhancementData.length;
+    const utilityEnhancementMax = utilityEnhancementData.length;
+
+    var attackPresetUpgradeData = data.presetUpgradeAttackLevels || [];
+    var defensePresetUpgradeData = data.presetUpgradeDefenseLevels || [];
+    var utilityPresetUpgradeData = data.presetUpgradeUtilityLevels || [];
+
+    var attackPresetEnhancementData = data.presetEnhancementAttackLevels || [];
+    var defensePresetEnhancementData = data.presetEnhancementDefenseLevels || [];
+    var utilityPresetEnhancementData = data.presetEnhancementUtilityLevels || [];
+
+    const attackUpgradeUnlocked = data.upgradeAttackUnlocked || [];
+    const defenseUpgradeUnlocked = data.upgradeDefenseUnlocked || [];
+    const utilityUpgradeUnlocked = data.upgradeUtilityUnlocked || [];
+
+    const attackEnhancementUnlocked = data.enhancementAttackUnlocked || [];
+    const defenseEnhancementUnlocked = data.enhancementDefenseUnlocked || [];
+    const utilityEnhancementUnlocked = data.enhancementUtilityUnlocked || [];
+
+    var attackPresetUpgradeUnlocked = data.presetUpgradeAttackUnlocked || [];
+    var defensePresetUpgradeUnlocked = data.presetUpgradeDefenseUnlocked || [];
+    var utilityPresetUpgradeUnlocked = data.presetUpgradeUtilityUnlocked || [];
+
+    const hasPresets =
+      attackPresetUpgradeUnlocked.some((unlocked) => unlocked) ||
+      defensePresetUpgradeUnlocked.some((unlocked) => unlocked) ||
+      utilityPresetUpgradeUnlocked.some((unlocked) => unlocked);
+    
+    if (!hasPresets) {
+      attackPresetUpgradeData = attackUpgradeData;
+      defensePresetUpgradeData = defenseUpgradeData;
+      utilityPresetUpgradeData = utilityUpgradeData;
+      attackPresetEnhancementData = attackEnhancementData;
+      defensePresetEnhancementData = defenseEnhancementData;
+      utilityPresetEnhancementData = utilityEnhancementData;
+      attackPresetUpgradeUnlocked = attackUpgradeUnlocked;
+      defensePresetUpgradeUnlocked = defenseUpgradeUnlocked;
+      utilityPresetUpgradeUnlocked = utilityUpgradeUnlocked;
+    }
+
+    var oldWorkshopLevels = {
+      presetNames: presetNames,
+      data: {},
+    };
+    var oldWorkshopPlusLevels = {
+      presetNames: presetNames,
+      data: {},
+    };
+
+    function populateUpgradeLevels(upgradeIndices, upgradeData, presetUpgradeIndex, upgradeUnlockIndices, upgradeUnlockedData) {
+      upgradeIndices.forEach((upgradeName, upgradeIndex) => {
+        if (!oldWorkshopLevels.data[upgradeName]) {
+          oldWorkshopLevels.data[upgradeName] = {
+            unlocked: null,
+            levels: [],
+          };
+        }
+        const unlockedIndex = upgradeUnlockIndices.findIndex((unlocked) => unlocked === upgradeName);
+        if (unlockedIndex !== -1 && !oldWorkshopLevels.data[upgradeName].unlocked) {
+          oldWorkshopLevels.data[upgradeName].unlocked = upgradeUnlockedData[presetUpgradeIndex + unlockedIndex] || null;
+        }
+        const levelValue = upgradeData[presetUpgradeIndex + upgradeIndex] || null;
+        oldWorkshopLevels.data[upgradeName].levels.push(levelValue, null);
+      })
+    }
+
+    function populateEnhancementLevels(enhancementIndices, enhancementData, presetEnhancementIndex) {
+      enhancementIndices.forEach((enhancementName, enhancementIndex) => {
+        if (!oldWorkshopPlusLevels.data[enhancementName]) {
+          oldWorkshopPlusLevels.data[enhancementName] = [];
+        }
+        const levelValue = enhancementData[presetEnhancementIndex + enhancementIndex] || null;
+        oldWorkshopPlusLevels.data[enhancementName].push(levelValue);
+      })
+    }
+
+    presetNames.forEach((presetName, presetIndex) => {
+      const attackUpgradeIndex = presetIndex * attackUpgradeMax;
+      const defenseUpgradeIndex = presetIndex * defenseUpgradeMax;
+      const utilityUpgradeIndex = presetIndex * utilityUpgradeMax;
+
+      const attackEnhancementIndex = presetIndex * attackEnhancementMax;
+      const defenseEnhancementIndex = presetIndex * defenseEnhancementMax;
+      const utilityEnhancementIndex = presetIndex * utilityEnhancementMax;
+
+      populateUpgradeLevels(attackUpgradeIndices, attackPresetUpgradeData, attackUpgradeIndex, attackUpgradeUnlockedIndices, attackPresetUpgradeUnlocked);
+      populateUpgradeLevels(defenseUpgradeIndices, defensePresetUpgradeData, defenseUpgradeIndex, defenseUpgradeUnlockedIndices, defensePresetUpgradeUnlocked);
+      populateUpgradeLevels(utilityUpgradeIndices, utilityPresetUpgradeData, utilityUpgradeIndex, utilityUpgradeUnlockedIndices, utilityPresetUpgradeUnlocked);
+
+      populateEnhancementLevels(attackEnhancementIndices, attackPresetEnhancementData, attackEnhancementIndex);
+      populateEnhancementLevels(defenseEnhancementIndices, defensePresetEnhancementData, defenseEnhancementIndex);
+      populateEnhancementLevels(utilityEnhancementIndices, utilityPresetEnhancementData, utilityEnhancementIndex);
+    })
+
+    return {
+      oldWorkshopLevels: oldWorkshopLevels,
+      oldWorkshopPlusLevels: oldWorkshopPlusLevels,
+      upgradeIndices: {
+        Attack: attackUpgradeIndices,
+        Defense: defenseUpgradeIndices,
+        Utility: utilityUpgradeIndices,
+      },
+      enhancementIndices: {
+        Attack: attackEnhancementIndices,
+        Defense: defenseEnhancementIndices,
+        Utility: utilityEnhancementIndices,
+      },
+    };
   },
 
   // #endregion
@@ -1130,5 +1367,6 @@ const workshop = {
 
     return null;
   },
+
   // #endregion
 };

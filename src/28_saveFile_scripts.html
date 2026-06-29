@@ -1,0 +1,1513 @@
+<script>
+  let parsedSaveData = null;
+  let saveFilePickerReady = false;
+  let saveFileSheetType = "";
+  let saveFileCollectionOutdated = null;
+
+  let saveFileImportTargets = null;
+  let saveFilePendingAccessIds = [];
+
+  function runAppsScript(method, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        [method](...args);
+    });
+  }
+
+  document
+    .getElementById("saveFileInput")
+    .addEventListener("change", function () {
+      const file = this.files[0];
+
+      parsedSaveData = null;
+      document.getElementById("saveFileResults").style.display = "none";
+      document.getElementById("saveFileResults").innerHTML = "";
+      document.getElementById("saveFileImportControls").style.display = "none";
+      document.getElementById("saveFileImportBtn").disabled = true;
+      const summary = document.getElementById("saveFileImportSummary");
+      if (summary) summary.innerHTML = "";
+
+      if (file) {
+        parseFile();
+      } else {
+        setStatusText("Choose saved file...");
+      }
+    });
+
+  // Per-category sheet IDs so the parser can read indices from the live sheets.
+  // IDS Master: each category has its own linked subsheet (resolved up front).
+  // IDS Collection: every category lives on the single collection sheet.
+  function getSaveFileSheetIds() {
+    if (saveFileSheetType === "IDS Collection") {
+      return { Relics: idMasterID, "Themes & Songs": idMasterID };
+    }
+    return (saveFileImportTargets && saveFileImportTargets.targets) || {};
+  }
+
+  function parseFile() {
+    const file = document.getElementById("saveFileInput").files[0];
+    if (!file) return;
+
+    setStatusWithSpinner("Reading file…");
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const byteArray = Array.from(new Uint8Array(e.target.result));
+      setStatusWithSpinner("Parsing…");
+
+      runAppsScript(
+        "parseSaveFileBytes",
+        byteArray,
+        file.name,
+        false,
+        getSaveFileSheetIds(),
+      )
+        .then(function (result) {
+          parsedSaveData = (result && result.parsed) || {};
+          setStatusText(`${file.name} parsed successfully`);
+          renderSaveFileResults(result);
+        })
+        .catch(function (err) {
+          setStatusText("Error: " + (err.message || err));
+        });
+    };
+    reader.onerror = function () {
+      setStatusText("Failed to read file.");
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function renderSaveFileResults(result) {
+    const container = document.getElementById("saveFileResults");
+    const parsed = (result && result.parsed) || {};
+    const order = (result && result.order) || Object.keys(parsed);
+    let html = "<br>";
+    let cardCount = 0;
+
+    for (const type of order) {
+      const data = parsed[type];
+      if (!categoryHasData(data)) continue;
+      cardCount++;
+
+      html += '<div class="sfCategory">';
+      html +=
+        '<div class="sfCategoryHeader" onclick="toggleSaveFileCategory(this)">';
+      html += '<span class="sfCategoryHeaderMain">';
+      html +=
+        '<input type="checkbox" class="sfCategoryCheckbox" data-sheettype="' +
+        escSaveFileHtml(type) +
+        '" checked onclick="event.stopPropagation()">';
+      html +=
+        '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
+      html += "</span>";
+      html += '<span class="sfCategoryChevron">►</span>';
+      html += "</div>";
+      html += '<div class="sfCategoryBody">';
+      html += renderCategoryBody(type, data);
+      html += "</div></div>";
+    }
+
+    if (cardCount === 0) {
+      html +=
+        '<div class="sfMissingSection">No recognizable data found in this save file.</div>';
+    }
+
+    container.innerHTML = html;
+    container.style.display = "block";
+
+    document.getElementById("saveFileImportControls").style.display = "block";
+    container.querySelectorAll(".sfCategoryCheckbox").forEach(function (cb) {
+      cb.addEventListener("change", updateImportButtonState);
+    });
+
+    const importSummary = document.getElementById("saveFileImportSummary");
+    if (!idMasterID) {
+      importSummary.innerHTML =
+        `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
+    } else if (saveFileCollectionOutdated) {
+      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
+    } else {
+      importSummary.innerHTML = "";
+    }
+
+    updateImportButtonState();
+  }
+
+  function categoryHasData(data) {
+    if (!data || typeof data !== "object") return false;
+    return Object.keys(data).some(function (k) {
+      const v = data[k];
+      if (Array.isArray(v)) return v.length > 0;
+      if (v && typeof v === "object") return Object.keys(v).length > 0;
+      return v !== null && v !== undefined && v !== "";
+    });
+  }
+
+  function getSelectedSheetTypes() {
+    const out = [];
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        if (cb.checked) out.push(cb.getAttribute("data-sheettype"));
+      });
+    return out;
+  }
+
+  function updateImportButtonState() {
+    const btn = document.getElementById("saveFileImportBtn");
+    const hasSelection = getSelectedSheetTypes().length > 0;
+    btn.disabled = !(
+      parsedSaveData &&
+      idMasterID &&
+      hasSelection &&
+      !saveFileCollectionOutdated
+    );
+  }
+
+  function setSaveFileBusy(busy) {
+    document.getElementById("saveFileInput").disabled = busy;
+    if (busy) {
+      document.getElementById("saveFileImportBtn").disabled = true;
+    } else {
+      updateImportButtonState();
+    }
+  }
+
+  function startSaveFileImport() {
+    if (!parsedSaveData) {
+      setStatusText("Parse a save file first.");
+      return;
+    }
+    if (!idMasterID) {
+      setStatusText(`Could not determine your ${saveFileSheetType} automatically.`);
+      return;
+    }
+    if (saveFileCollectionOutdated) {
+      setStatusText(
+        "Update your IDS Collection to the latest version before importing.",
+      );
+      return;
+    }
+    if (getSelectedSheetTypes().length === 0) {
+      setStatusText("Select at least one category to import.");
+      return;
+    }
+    runSaveFileImport();
+  }
+
+  async function continueSaveFile() {
+    const ready = await evaluateSaveFileAccess();
+    document.getElementById("saveFileSection").style.display = "block";
+    if (ready) {
+      showSaveFileWorkflow();
+    } else {
+      showSaveFileAccessPrompt();
+    }
+  }
+
+  async function evaluateSaveFileAccess() {
+    saveFilePendingAccessIds = [];
+    if (!idMasterID) return true;
+
+    if (accessToken && !userEmail) {
+      await getUserEmailFromToken(accessToken);
+    }
+
+    setStatusWithSpinner("Checking sheet access...");
+    const primaryAccess = await checkSaveFileSheetAccess([idMasterID]);
+    if ((primaryAccess.inaccessibleFiles || []).length > 0) {
+      saveFilePendingAccessIds = [idMasterID];
+      return false;
+    }
+
+    return await resolveSaveFileSubsheetAccess();
+  }
+
+  // Assumes access to the primary sheet (idMasterID) is already confirmed, so it
+  // never re-checks it. Resolves the sheet type and, for an IDS Master, every
+  // linked subsheet, storing any inaccessible subsheets in
+  // saveFilePendingAccessIds. Returns true when nothing is left to grant.
+  async function resolveSaveFileSubsheetAccess() {
+    if (!saveFileSheetType) {
+      await resolveSaveFileSheetType();
+    }
+
+    // An IDS Collection is a single sheet - access to it is all that is needed.
+    if (saveFileSheetType !== "IDS Master") {
+      saveFilePendingAccessIds = [];
+      return true;
+    }
+
+    if (!saveFileImportTargets) {
+      setStatusWithSpinner("Resolving your IDS Master sheets...");
+      try {
+        const result = await runAppsScript("getSaveFileImportTargets", idMasterID);
+        if (result && result.success) saveFileImportTargets = result;
+      } catch (err) {
+        console.error("Could not resolve IDS Master sheets:", err);
+      }
+    }
+
+    const targets = (saveFileImportTargets && saveFileImportTargets.targets) || {};
+    const targetIds = Object.keys(targets).map(function (type) {
+      return targets[type];
+    });
+    if (targetIds.length === 0) {
+      saveFilePendingAccessIds = [];
+      return true;
+    }
+
+    setStatusWithSpinner("Checking access to your IDS Master sheets...");
+    const subAccess = await checkSaveFileSheetAccess(targetIds);
+    saveFilePendingAccessIds = (subAccess.inaccessibleFiles || []).map(
+      function (f) {
+        return f.id;
+      },
+    );
+    return saveFilePendingAccessIds.length === 0;
+  }
+
+  async function resolveSaveFileSheetType() {
+    if (!idMasterID) return;
+    saveFileCollectionOutdated = null;
+    try {
+      setStatusWithSpinner("Determining sheet type...");
+      const result = await runAppsScript("getSaveFileSheetType", idMasterID);
+      if (result && result.success && result.sheetType) {
+        saveFileSheetType = result.sheetType;
+        if (saveFileSheetType === "IDS Collection" && result.outdated) {
+          saveFileCollectionOutdated = {
+            currentVersion: result.currentVersion,
+            latestVersion: result.latestVersion,
+          };
+        }
+      }
+    } catch (err) {
+      console.error("Could not determine sheet type:", err);
+    }
+  }
+
+  function renderSaveFileCollectionOutdated(info) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    el.innerHTML =
+      '<div class="sfImportGroup"><strong>⛔ Update required.</strong>' +
+      "<br>Your IDS Collection is out of date (" +
+      escSaveFileHtml((info && info.currentVersion) || "?") +
+      " → " +
+      escSaveFileHtml((info && info.latestVersion) || "?") +
+      "). Please update it to the latest version before importing a save file." +
+      "</div>";
+  }
+
+  function showSaveFileAccessPrompt() {
+    document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileImportSummary").style.display = "none";
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileAccessControls").style.display =
+      "block";
+    document.getElementById("saveFileAccessBtn").disabled = false;
+    const summaryEl = document.getElementById("saveFileAccessSummary");
+    if (summaryEl) {
+      summaryEl.textContent = "The script needs access to your sheet(s) before you can import data.";
+    }
+    setStatusText("File access required. Please grant access...");
+  }
+
+  function showSaveFileWorkflow() {
+    document.getElementById("saveFileAccessControls").style.display =
+      "none";
+    document.getElementById("saveFileInputRow").style.display = "";
+    document.getElementById("saveFileImportSummary").style.display = "";
+    document.getElementById("saveFileResults").style.display = "";
+    document.getElementById("saveFileInput").disabled = false;
+    if (saveFileCollectionOutdated) {
+      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
+      setStatusText(
+        "Update your IDS Collection to the latest version before importing.",
+      );
+    } else {
+      setStatusText("Choose saved file...");
+    }
+  }
+
+  async function grantSaveFileAccess() {
+    document.getElementById("saveFileAccessBtn").disabled = true;
+
+    // The button is only shown because the access checks on open already found
+    // these sheets inaccessible, so grant access to the stored list directly -
+    // no need to re-check before opening the picker.
+    const wasPrimaryPending =
+      saveFilePendingAccessIds.indexOf(idMasterID) !== -1;
+
+    const grantedAll = await ensureSaveFileAccess(
+      saveFilePendingAccessIds.length > 1 ? "your sheets" : "your sheet",
+    );
+
+    if (!grantedAll) {
+      // ensureSaveFileAccess has already updated saveFilePendingAccessIds with
+      // whatever is still missing; let the user click again to grant the rest.
+      document.getElementById("saveFileAccessBtn").disabled = false;
+      return;
+    }
+
+    // Everything we knew about is granted. If the primary sheet was just granted,
+    // discover and check its subsheets now (without re-checking the primary).
+    let ready = true;
+    if (wasPrimaryPending) {
+      ready = await resolveSaveFileSubsheetAccess();
+    }
+
+    if (ready) {
+      showSaveFileWorkflow();
+    } else {
+      showSaveFileAccessPrompt();
+    }
+  }
+
+  async function runSaveFileImport() {
+    const selected = getSelectedSheetTypes();
+    if (!idMasterID || selected.length === 0) return;
+
+    setSaveFileBusy(true);
+
+    if (accessToken && !userEmail) {
+      await getUserEmailFromToken(accessToken);
+    }
+
+    if (saveFileSheetType === "IDS Collection") {
+      await runSaveFileCollectionImport(selected);
+      setSaveFileBusy(false);
+      return;
+    }
+
+    if (!saveFileImportTargets || !saveFileImportTargets.success) {
+      setStatusText(
+        (saveFileImportTargets && saveFileImportTargets.message) ||
+          "Could not read IDS Master. Please reload and try again.",
+      );
+      setSaveFileBusy(false);
+      return;
+    }
+
+    const resolvedIdMasterID = saveFileImportTargets.idMasterID;
+    const targets = saveFileImportTargets.targets || {};
+    const versions = saveFileImportTargets.versions || {};
+
+    const notLinked = selected.filter(function (type) {
+      return !targets[type];
+    });
+    const outdated = selected
+      .filter(function (type) {
+        return targets[type] && !(versions[type] && versions[type].upToDate);
+      })
+      .map(function (type) {
+        return {
+          type: type,
+          currentVersion: versions[type] ? versions[type].currentVersion : "",
+          latestVersion: versions[type] ? versions[type].latestVersion : "",
+        };
+      });
+
+    if (notLinked.length > 0 || outdated.length > 0) {
+      renderSaveFileUpdateRequired(notLinked, outdated);
+      setStatusText(
+        "Update your IDS Master sheets before importing the save file.",
+      );
+      setSaveFileBusy(false);
+      return;
+    }
+
+    const tasks = selected.map(function (type) {
+      return { type: type, targetID: targets[type] };
+    });
+
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    setStatusWithSpinner(`Importing data into ${tasks.length} sheets...`);
+
+    const results = await Promise.all(
+      tasks.map(function (task) {
+        return runAppsScript(
+          "importData",
+          task.targetID,
+          task.type,
+          parsedSaveData[task.type],
+          {},
+          resolvedIdMasterID,
+        )
+          .then(function (r) {
+            completedCount++;
+            if (r && r.success) {
+              successCount++;
+            } else {
+              failedCount++;
+            }
+            setStatusWithSpinner(
+              `Import progress: ${completedCount}/${tasks.length} completed (${successCount} successful, ${failedCount} failed)`,
+            );
+            return { type: task.type, result: r };
+          })
+          .catch(function (e) {
+            completedCount++;
+            failedCount++;
+            setStatusWithSpinner(
+              `Import progress: ${completedCount}/${tasks.length} completed (${successCount} successful, ${failedCount} failed)`,
+            );
+            return {
+              type: task.type,
+              result: { success: false, message: e.message || e },
+            };
+          });
+      }),
+    );
+
+    const okCount = results.filter(function (r) {
+      return r.result && r.result.success;
+    }).length;
+    const failCount = results.length - okCount;
+
+    renderSaveFileImportResults(results, []);
+
+    let msg;
+    if (failedCount === 0) {
+      msg = `🎉 All ${successCount}/${tasks.length} sheet imports completed successfully!`;
+    } else if (successCount === 0) {
+      msg = `❌ All ${tasks.length} imports failed.`;
+    } else {
+      msg = `⚠️️ Imports completed: ${successCount}/${tasks.length} successful, ${failedCount} failed.`;
+    }
+
+    setStatusText(msg);
+
+    setSaveFileBusy(false);
+  }
+
+  async function runSaveFileCollectionImport(selected) {
+    const filtered = {};
+    selected.forEach(function (type) {
+      if (parsedSaveData && parsedSaveData[type] !== undefined) {
+        filtered[type] = parsedSaveData[type];
+      }
+    });
+
+    setStatusWithSpinner(
+      `Importing ${selected.length} categories into your IDS Collection...`,
+    );
+
+    let result;
+    try {
+      result = await runAppsScript(
+        "importData",
+        idMasterID,
+        "IDS Collection",
+        filtered,
+        {},
+        idMasterID,
+      );
+    } catch (err) {
+      result = { success: false, message: err.message || err };
+    }
+
+    const failedMap = {};
+    ((result && result.failedUpdates) || []).forEach(function (f) {
+      if (f && f.sheetType) {
+        failedMap[f.sheetType] = f.message || "Update failed";
+      }
+    });
+    const overallFail = !(result && result.success);
+    const hadFailedUpdates = Object.keys(failedMap).length > 0;
+
+    const results = selected.map(function (type) {
+      if (failedMap.hasOwnProperty(type)) {
+        return {
+          type: type,
+          result: { success: false, message: failedMap[type] },
+        };
+      }
+      if (overallFail && !hadFailedUpdates) {
+        return {
+          type: type,
+          result: {
+            success: false,
+            message: (result && result.message) || "Import failed",
+          },
+        };
+      }
+      return { type: type, result: { success: true } };
+    });
+
+    renderSaveFileImportResults(results, []);
+
+    const okCount = results.filter(function (r) {
+      return r.result && r.result.success;
+    }).length;
+    const failCount = results.length - okCount;
+
+    let msg;
+    if (failCount === 0) {
+      msg = `🎉 All ${okCount}/${selected.length} categories imported into your IDS Collection!`;
+    } else if (okCount === 0) {
+      msg = `❌ Import into your IDS Collection failed.`;
+    } else {
+      msg = `⚠️️ IDS Collection import: ${okCount}/${selected.length} succeeded, ${failCount} failed.`;
+    }
+    setStatusText(msg);
+  }
+
+  function renderSaveFileImportResults(results, skipped) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+
+    const ok = results.filter(function (r) {
+      return r.result && r.result.success;
+    });
+    const fail = results.filter(function (r) {
+      return !(r.result && r.result.success);
+    });
+
+    let html = "";
+
+    if (ok.length) {
+      html += '<div class="sfImportGroup"><strong>✅ Imported:</strong>';
+      ok.forEach(function (r) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(r.type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    if (fail.length) {
+      html += '<div class="sfImportGroup"><strong>❌ Failed:</strong>';
+      fail.forEach(function (r) {
+        html +=
+          "&nbsp;&nbsp;• " +
+          escSaveFileHtml(r.type) +
+          " - " +
+          escSaveFileHtml((r.result && r.result.message) || "Unknown error") +
+          "<br>";
+      });
+      html += "</div>";
+    }
+
+    if (skipped && skipped.length) {
+      html +=
+        `<div class="sfImportGroup"><strong>⚠️️ Not found in this ${saveFileSheetType}:</strong><br>`;
+      skipped.forEach(function (type) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    el.innerHTML = html;
+  }
+
+  function renderSaveFileUpdateRequired(needsAttention, outdated) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+
+    let html =
+      `<div class="sfImportGroup"><strong>⛔ Import blocked - update your sheets first.</strong>
+        <br>All selected subsheets must be linked in your ${saveFileSheetType} and on the 
+        latest version before importing a save file.</div>`;
+
+    if (outdated && outdated.length) {
+      html += '<div class="sfImportGroup"><strong>Out of date:</strong>';
+      outdated.forEach(function (o) {
+        html +=
+          "&nbsp;&nbsp;• " +
+          escSaveFileHtml(o.type) +
+          " (" +
+          escSaveFileHtml(o.currentVersion || "?") +
+          " → " +
+          escSaveFileHtml(o.latestVersion || "?") +
+          ")<br>";
+      });
+      html += "</div>";
+    }
+
+    if (needsAttention && needsAttention.length) {
+      html +=
+        '<div class="sfImportGroup"><strong>Not linked or version unknown:</strong>';
+      needsAttention.forEach(function (type) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    el.innerHTML = html;
+  }
+
+  function saveFileGapiLoaded() {
+    gapi.load("client:picker", {
+      callback: initializeSaveFilePicker,
+      onerror: function () {
+        console.error("Failed to load GAPI client:picker for save file");
+      },
+    });
+  }
+
+  async function initializeSaveFilePicker() {
+    try {
+      if (!API_KEY || !APP_ID) {
+        throw new Error("Missing API_KEY or APP_ID for the file picker.");
+      }
+
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        ],
+      });
+
+      saveFilePickerReady = true;
+      console.log("Save file picker initialized.");
+      authorizeSaveFile();
+    } catch (error) {
+      console.error("Error initializing save file picker:", error);
+    }
+  }
+
+  async function checkSaveFileSheetAccess(fileIds) {
+    const ids = (fileIds || []).filter(function (id) {
+      return typeof id === "string" && id.length > 0;
+    });
+    if (ids.length === 0) {
+      return { accessibleFiles: [], inaccessibleFiles: [] };
+    }
+
+    const results = await Promise.all(
+      ids.map(function (id) {
+        return runAppsScript("checkSheetAccess", id, userEmail)
+          .then(function (result) {
+            return { id: id, result: result };
+          })
+          .catch(function (error) {
+            console.error("Sheet access check failed for", id, ":", error);
+            return { id: id, result: { accessible: false } };
+          });
+      }),
+    );
+
+    const accessibleFiles = [];
+    const inaccessibleFiles = [];
+    results.forEach(function (entry) {
+      if (entry.result && entry.result.accessible) {
+        accessibleFiles.push({ id: entry.id, name: entry.result.name });
+      } else {
+        inaccessibleFiles.push({ id: entry.id });
+      }
+    });
+
+    return {
+      accessibleFiles: accessibleFiles,
+      inaccessibleFiles: inaccessibleFiles,
+    };
+  }
+  function openSaveFileAccessPicker(fileIds) {
+    return new Promise(function (resolve, reject) {
+      try {
+        const ids = (fileIds || []).filter(function (id) {
+          return typeof id === "string" && id.length > 0;
+        });
+        if (ids.length === 0) {
+          resolve([]);
+          return;
+        }
+
+        const view = new google.picker.DocsView(
+          google.picker.ViewId.SPREADSHEET,
+        )
+          .setFileIds(ids.join(","))
+          .setIncludeFolders(false)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+        const pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        const picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const docs = data.docs || [];
+              resolve(
+                docs.map(function (d) {
+                  return d.id;
+                }),
+              );
+            } else if (data.action === google.picker.Action.CANCEL) {
+              resolve([]);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (isMobile) {
+          picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+        }
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        picker.build().setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async function ensureSaveFileAccess(label) {
+    // Operates on the globally-tracked saveFilePendingAccessIds (populated by the
+    // access checks on open) and updates it from what the picker grants, so there
+    // is no redundant access re-check here.
+    if (saveFilePendingAccessIds.length === 0) return true;
+
+    if (
+      !saveFilePickerReady ||
+      typeof google === "undefined" ||
+      !google.picker
+    ) {
+      setStatusText(
+        `The script needs access to ${label}, but the file picker is not ready. ` +
+          "Please reload the page and try again.",
+      );
+      return false;
+    }
+
+    setStatusWithSpinner(
+      `Opening file picker to grant access to ${saveFilePendingAccessIds.length} sheet(s) (${label})...`,
+    );
+
+    let pickedIds;
+    try {
+      pickedIds = await openSaveFileAccessPicker(saveFilePendingAccessIds);
+    } catch (error) {
+      console.error("Error opening save file access picker:", error);
+      setStatusText(`Error opening file picker: ${error.message || error}`);
+      return false;
+    }
+
+    if (!pickedIds || pickedIds.length === 0) {
+      setStatusText("File access was not granted.");
+      return false;
+    }
+
+    // Drop the just-granted sheets from the global list (the picker granting a
+    // file is what grants access, so no server re-check is needed).
+    saveFilePendingAccessIds = saveFilePendingAccessIds.filter(function (id) {
+      return pickedIds.indexOf(id) === -1;
+    });
+
+    if (saveFilePendingAccessIds.length > 0) {
+      setStatusText(
+        `Still missing access to ${saveFilePendingAccessIds.length} sheet(s). ` +
+          "Please grant access to the remaining sheets.",
+      );
+      return false;
+    }
+    return true;
+  }
+
+  function renderCategoryBody(type, data) {
+    switch (type) {
+      case "Laboratory":
+        return renderLaboratoryBody(data);
+      case "Workshop":
+        return renderWorkshopBody(data);
+      case "Ultimate Weapon":
+        return renderUltimateBody(data);
+      case "Themes & Songs":
+        return renderThemesBody(data);
+      case "Bots":
+        return renderBotsBody(data);
+      case "Relics":
+        return renderRelicsBody(data);
+      case "Vault":
+        return renderVaultBody(data);
+      case "Cards":
+        return renderCardsBody(data);
+      case "Modules":
+        return renderModulesBody(data);
+      case "Guardians":
+        return renderGuardiansBody(data);
+      case "Player & Stuff":
+        return renderPlayerBody(data);
+      default:
+        return renderGenericBody(data);
+    }
+  }
+
+  function renderGenericBody(data) {
+    let html = "";
+    for (const key of Object.keys(data)) {
+      html +=
+        '<div class="sfFieldRow">' +
+        '<div class="sfFieldName">' +
+        escSaveFileHtml(key) +
+        "</div>" +
+        '<div class="sfFieldValue">' +
+        renderSaveFileValue(data[key]) +
+        "</div>" +
+        "</div>";
+    }
+    return html;
+  }
+
+  function sfSubLabel(text) {
+    return '<div class="sfSubLabel">' + escSaveFileHtml(text) + "</div>";
+  }
+
+  function sfUnlockMark(unlocked) {
+    return unlocked
+      ? '<span class="sfBool is-true">✓</span>'
+      : '<span class="sfBool is-false">✗</span>';
+  }
+
+  function sfFmtVal(v) {
+    if (v === true || v === false) return sfUnlockMark(v);
+    if (v === null || v === undefined || v === "")
+      return '<span class="sfNull">-</span>';
+    return (
+      '<span class="sfPrimitive">' + escSaveFileHtml(String(v)) + "</span>"
+    );
+  }
+
+  function sfInlinePair(key, val) {
+    return (
+      '<span class="sfInlinePair">' +
+      '<span class="sfInlineKey">' +
+      escSaveFileHtml(key) +
+      "</span>" +
+      '<span class="sfInlineVal">' +
+      sfFmtVal(val) +
+      "</span></span>"
+    );
+  }
+
+  function sfLevelRow(level, nameHtml) {
+    return (
+      '<div class="sfLevelRow"><span class="sfLevel">' +
+      escSaveFileHtml(level == null ? 0 : level) +
+      "</span>" +
+      '<span class="sfLevelName">' +
+      nameHtml +
+      "</span></div>"
+    );
+  }
+
+  function sfEntityUpgradeRows(upgradeNames, plusName, levels) {
+    let html = "";
+    (upgradeNames || []).forEach(function (attr) {
+      if (!attr) return;
+      const lvl = levels[attr];
+      html += sfLevelRow(lvl != null ? lvl : "00", escSaveFileHtml(attr));
+    });
+    if (plusName) {
+      const pv = levels[plusName];
+      if (pv === "Lo") {
+        html +=
+          '<div class="sfLevelRow">' +
+          '<span class="sfLevel sfBool is-false">✗</span>' +
+          '<span class="sfLevelName">' +
+          escSaveFileHtml(plusName) +
+          "</span></div>";
+      } else {
+        html += sfLevelRow(pv != null ? pv : "00", escSaveFileHtml(plusName));
+      }
+    }
+    return html;
+  }
+
+  function renderLaboratoryBody(data) {
+    const labs = data.oldLabLevels || {};
+    const labOrder = data.labNameIndices || [];
+    let html = '<div class="sfLabGrid">';
+
+    labOrder.forEach(function (name) {
+      if (!name || !labs.hasOwnProperty(name)) return;
+      const v = labs[name];
+      const level = Array.isArray(v) ? v[0] : v;
+      html += '<div class="sfLabItem">';
+      html += sfLevelRow(level, escSaveFileHtml(name));
+      html += "</div>";
+    });
+    return html + "</div>";
+  }
+
+  function renderWorkshopBody(data) {
+    const upgrades = renderWorkshopGroup(
+      "Upgrades",
+      data.oldWorkshopLevels,
+      false,
+      data.upgradeIndices,
+    );
+    const enhancements = renderWorkshopGroup(
+      "Enhancements",
+      data.oldWorkshopPlusLevels,
+      true,
+      data.enhancementIndices,
+    );
+    if (!upgrades && !enhancements) return "";
+    return (
+      '<div class="sfWorkshopGroups">' +
+      (upgrades
+        ? '<div class="sfWorkshopGroupCol">' + upgrades + "</div>"
+        : "") +
+      (enhancements
+        ? '<div class="sfWorkshopGroupCol">' + enhancements + "</div>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function renderWorkshopGroup(groupLabel, group, isEnhancement, tracks) {
+    if (!group) return "";
+    const presetNames = group.presetNames || [];
+    const entries = group.data || {};
+    const trackLabels = ["Attack", "Defense", "Utility"];
+    let body = "";
+
+    presetNames.forEach(function (presetName, presetIndex) {
+      let presetHasLevel = false;
+      let columnsHtml = '<div class="sfWorkshopColumns">';
+
+      trackLabels.forEach(function (track) {
+        let rows = "";
+        (tracks[track] || []).forEach(function (name) {
+          if (!entries.hasOwnProperty(name)) return;
+          const levels = isEnhancement
+            ? entries[name]
+            : entries[name].levels || [];
+          const lvl = levels[presetIndex];
+          if (
+            lvl !== null &&
+            lvl !== undefined &&
+            lvl !== 0 &&
+            lvl !== "0" &&
+            lvl !== "00"
+          ) {
+            presetHasLevel = true;
+          }
+          rows += sfLevelRow(lvl, escSaveFileHtml(name));
+        });
+        columnsHtml +=
+          '<div class="sfWorkshopColumn">' +
+          '<div class="sfWorkshopColHeader">' +
+          escSaveFileHtml(track) +
+          "</div>" +
+          rows +
+          "</div>";
+      });
+
+      columnsHtml += "</div>";
+
+      if (!presetHasLevel) return;
+      body +=
+        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+        escSaveFileHtml(presetName) +
+        "</div>" +
+        columnsHtml +
+        "</div>";
+    });
+
+    return body ? sfSubLabel(groupLabel) + body : "";
+  }
+
+  function renderUltimateBody(data) {
+    const uw = data.oldUltimate || {};
+    const defs = data.targetWeapons || {};
+    const order = data.weaponOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      if (!uw[name]) return;
+      const def = defs[name];
+      if (!def) return;
+      const levels = uw[name].levels || {};
+      html +=
+        '<div class="sfBlock"><div class="sfBlockHeader">' +
+        escSaveFileHtml(name) +
+        " " +
+        sfUnlockMark(uw[name].unlocked) +
+        "</div>" +
+        sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, levels) +
+        "</div>";
+    });
+    return html;
+  }
+
+  function renderThemesBody(data) {
+    const themes = data.oldThemesNames || {};
+    const order = data.themesOrder || Object.keys(themes);
+    let html = '<div class="sfThemeColumns">';
+    order.forEach(function (cat) {
+      const items = themes[cat] || [];
+      html +=
+        '<div class="sfThemeColumn">' +
+        '<div class="sfThemeColHeader">' +
+        escSaveFileHtml(cat) +
+        " (" +
+        items.length +
+        ")</div>";
+      items.forEach(function (name) {
+        html += '<div class="sfThemeItem">' + escSaveFileHtml(name) + "</div>";
+      });
+      html += "</div>";
+    });
+    return html + "</div>";
+  }
+
+  function renderBotsBody(data) {
+    const bots = data.oldBots || {};
+    const botData = bots.data || {};
+    const defs = data.targetBots || {};
+    const order = data.botOrder || Object.keys(defs);
+    const presetNames = bots.presetNames || [];
+    let html = "";
+
+    order.forEach(function (botName) {
+      const bot = botData[botName];
+      if (!bot) return;
+      const def = defs[botName];
+      if (!def) return;
+      const presets = bot.presets || {};
+
+      html +=
+        '<div class="sfBlock"><div class="sfBlockHeader">' +
+        escSaveFileHtml(botName) +
+        " " +
+        sfUnlockMark(bot.unlocked) +
+        "</div>";
+      html += '<div class="sfBotsColumns">';
+
+      presetNames.forEach(function (presetName) {
+        const preset = presets[presetName];
+        if (!preset) return;
+        const props = preset.props || {};
+        const syncTag = preset.sync
+          ? ' <span class="sfTag">sync ' +
+            escSaveFileHtml(preset.sync) +
+            "</span>"
+          : "";
+        html +=
+          '<div class="sfBotColumn">' +
+          '<div class="sfBotColHeader">' +
+          escSaveFileHtml(presetName) +
+          syncTag +
+          "</div>" +
+          sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, props) +
+          "</div>";
+      });
+
+      html += "</div></div>";
+    });
+    return html;
+  }
+
+  function renderRelicsBody(data) {
+    const relics = data.oldRelics || [];
+    let html = '<div class="sfRelicsGrid">';
+    relics.forEach(function (name) {
+      html += '<span class="sfArrayItem">' + escSaveFileHtml(name) + "</span>";
+    });
+    return html + "</div>";
+  }
+
+  function renderVaultBody(data) {
+    const harmony = data.oldVaultHarmony || {};
+    const power = data.oldVaultPower || {};
+    const harmonyOrder = data.harmonyIndices || [];
+    const powerOrder = data.powerIndices || [];
+
+    let html = "";
+
+    const harmonyKeys = Object.keys(harmony);
+    if (harmonyKeys.length) {
+      html += sfSubLabel("Harmony") + '<div class="sfVaultGrid">';
+      harmonyOrder.forEach(function (name) {
+        if (!harmony.hasOwnProperty(name)) return;
+        html +=
+          '<span class="sfArrayItem">' + escSaveFileHtml(name) + "</span>";
+      });
+      html += "</div>";
+    }
+
+    const powerKeys = Object.keys(power);
+    if (powerKeys.length) {
+      html += sfSubLabel("Power") + '<div class="sfVaultGrid">';
+      powerOrder.forEach(function (name) {
+        if (!power.hasOwnProperty(name)) return;
+        const value = power[name];
+        const valueHtml = value === true || value === "true"
+            ? sfUnlockMark(true)
+            : '<span class="sfMul">' + escSaveFileHtml(value) + "</span>";
+        html +=
+          '<span class="sfArrayItem">' +
+          escSaveFileHtml(name) +
+          " " +
+          valueHtml +
+          "</span>";
+      });
+      html += "</div>";
+    }
+    return html;
+  }
+
+  function renderCardsBody(data) {
+    const levels = data.oldCardsLevel || {};
+    const presets = data.oldCardsPreset || {};
+    const cardOrder = data.cardNameIndices || [];
+    let html = '<div class="sfCardColumns">';
+
+    html +=
+      '<div class="sfCardColumn"><div class="sfCardColHeader">Card Levels</div>';
+    cardOrder.forEach(function (card) {
+      if (!card || !levels.hasOwnProperty(card)) return;
+      const arr = levels[card] || [];
+      const lvl = arr[0];
+      const mastery = arr[1];
+      html += sfLevelRow(lvl, escSaveFileHtml(card) + (mastery ? " ★" : ""));
+    });
+    html += "</div>";
+
+    Object.keys(presets)
+      .map(function (name) {
+        return {
+          name: name,
+          order: presets[name].order || 0,
+          cards: presets[name].cards || [],
+        };
+      })
+      .sort(function (a, b) {
+        return a.order - b.order;
+      })
+      .forEach(function (p) {
+        html +=
+          '<div class="sfCardColumn"><div class="sfCardColHeader">' +
+          escSaveFileHtml(p.name) +
+          "</div>";
+        if (p.cards.length === 0) {
+          html += '<div class="sfThemeItem sfNull">-</div>';
+        } else {
+          p.cards.forEach(function (c) {
+            html += '<div class="sfThemeItem">' + escSaveFileHtml(c) + "</div>";
+          });
+        }
+        html += "</div>";
+      });
+
+    html += "</div>";
+
+    if (data.oldCardSlots !== undefined && data.oldCardSlots !== null) {
+      html +=
+        '<div class="sfModMeta">Unlocked Slots: ' +
+        escSaveFileHtml(data.oldCardSlots) +
+        "</div>";
+    }
+    return html;
+  }
+
+  function renderModulesBody(data) {
+    const inv = data.oldModulesInventory || {};
+    const presets = data.oldModulesPresets || {};
+    const categories = ["cannon", "armor", "generator", "core"];
+    let html = '<div class="sfModuleColumns">';
+
+    categories.forEach(function (cat) {
+      const invCat = inv[cat] || {};
+      const presetCat = presets[cat] || {};
+      if (
+        Object.keys(invCat).length === 0 &&
+        Object.keys(presetCat).length === 0
+      )
+        return;
+
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(cat) +
+        "</div>";
+
+      const farming = presetCat["Farming"] || {};
+      if (invCat["Highest Level"] !== undefined)
+        html +=
+          '<div class="sfModMeta">Main Lvl ' +
+          escSaveFileHtml(invCat["Highest Level"]) +
+          "</div>";
+      if (invCat["Assist Level"] !== undefined)
+        html +=
+          '<div class="sfModMeta">Assist Lvl ' +
+          escSaveFileHtml(invCat["Assist Level"]) +
+          "</div>";
+      if (farming.primary)
+        html +=
+          '<div class="sfModMeta">Main: ' +
+          escSaveFileHtml(farming.primary) +
+          "</div>";
+      if (farming.secondary)
+        html +=
+          '<div class="sfModMeta">Assist: ' +
+          escSaveFileHtml(farming.secondary) +
+          "</div>";
+
+      const assistSlot = presetCat["Assist Slot"];
+      if (assistSlot) {
+        html +=
+          '<div class="sfModuleEntry">' +
+          '<div class="sfModuleName">Assist Slot ' +
+          sfUnlockMark(assistSlot.locked) +
+          "</div>" +
+          '<div class="sfSubstatRow"><span>Rarity</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.rarity) +
+          "</span></div>" +
+          '<div class="sfSubstatRow"><span>Multiplier</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.multiplier) +
+          "</span></div>" +
+          '<div class="sfSubstatRow"><span>Substat</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.substat) +
+          "</span></div>" +
+          "</div>";
+      }
+
+      Object.keys(invCat)
+        .sort(function (a, b) {
+          return a.localeCompare(b);
+        })
+        .forEach(function (key) {
+          if (key === "Highest Level" || key === "Assist Level") return;
+          const m = invCat[key];
+          if (!m || typeof m !== "object") return;
+          html +=
+            '<div class="sfModuleEntry">' +
+            '<div class="sfModuleName">' +
+            escSaveFileHtml(key) +
+            ' <span class="sfTag">' +
+            escSaveFileHtml(m.rarity) +
+            "</span></div>";
+          (m.substats || [])
+            .filter(function (s) {
+              return s && s[0];
+            })
+            .forEach(function (s) {
+              html +=
+                '<div class="sfSubstatRow"><span>' +
+                escSaveFileHtml(s[0]) +
+                '</span><span class="sfSubstatRarity">' +
+                escSaveFileHtml(s[1]) +
+                "</span></div>";
+            });
+          html += "</div>";
+        });
+
+      html += "</div>";
+    });
+    return html + "</div>";
+  }
+
+  function renderGuardiansBody(data) {
+    const gData = data.oldGuardians || {};
+    const defs = data.targetGuardians || {};
+    const order = data.guardianOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      const g = gData[name];
+      if (!g) return;
+      const def = defs[name];
+      if (!def) return;
+      const props = g.props || {};
+      const rows = sfEntityUpgradeRows(def.upgrades, null, props);
+      html +=
+        '<div class="sfBlock"><div class="sfBlockHeader">' +
+        escSaveFileHtml(name) +
+        " " +
+        sfUnlockMark(g.unlocked || def.alwaysUnlocked) +
+        "</div>" +
+        (rows || '<div class="sfModMeta">-</div>') +
+        "</div>";
+    });
+    return html;
+  }
+
+  function sfTierNumber(key) {
+    const m = String(key).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function renderPlayerBody(data) {
+    const stats = data.oldPlayerStuffStatsData || {};
+    const tiers = data.oldPlayerStuffTierData || {};
+    let html = "";
+
+    html += '<div class="sfInlineKV">';
+    Object.keys(stats).forEach(function (section) {
+      const obj = stats[section] || {};
+      Object.keys(obj).forEach(function (k) {
+        html += sfInlinePair(k + ": ", obj[k]);
+      });
+    });
+    html += "</div>";
+
+    const tierKeys = Object.keys(tiers).sort(function (a, b) {
+      return sfTierNumber(a) - sfTierNumber(b);
+    });
+
+    if (tierKeys.length === 0) return html;
+
+    html += '<div class="sfTierRow"> </div>';
+
+    for (let i = 0; i < tierKeys.length; i += 3) {
+      const chunk = tierKeys.slice(i, i + 3);
+      const isPremium = !!(tiers[chunk[0]] || {}).premium;
+
+      html += '<div class="sfTierRow">';
+      html +=
+        '<div class="sfTierMilestone">' +
+        '<div class="sfMilestoneName">Milestone Pass ' +
+        sfUnlockMark(isPremium) +
+        "</div>" +
+        "</div>";
+
+      chunk.forEach(function (tk) {
+        const t = tiers[tk] || {};
+        const d = t.diss || {};
+        const n = sfTierNumber(tk);
+        html +=
+          '<div class="sfTierCol">' +
+          '<div class="sfTierColHeader">Tier ' +
+          n +
+          "</div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Wave</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(t.wave != null ? t.wave : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Atk</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.attack != null ? d.attack : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Def</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.defense != null ? d.defense : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Util</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.utility != null ? d.utility : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Ult</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.ultimate != null ? d.ultimate : "-") +
+          "</span></div>" +
+          "</div>";
+      });
+
+      html += "</div>";
+    }
+
+    return html;
+  }
+
+  function renderSaveFileValue(val, depth) {
+    depth = depth || 0;
+
+    if (val === null || val === undefined) {
+      return '<span class="sfNull">null</span>';
+    }
+
+    if (val === true) return '<span class="sfArrayItem is-true">✓</span>';
+    if (val === false) return '<span class="sfArrayItem is-false">✗</span>';
+
+    if (typeof val !== "object") {
+      return (
+        '<span class="sfPrimitive">' + escSaveFileHtml(String(val)) + "</span>"
+      );
+    }
+
+    if (Array.isArray(val)) {
+      if (val.length === 0) return '<span class="sfArrayItem">empty</span>';
+
+      const allPrimitive = val.every(function (item) {
+        return item === null || typeof item !== "object";
+      });
+      if (allPrimitive) {
+        return val
+          .map(function (item) {
+            if (item === true)
+              return '<span class="sfArrayItem is-true">✓</span>';
+            if (item === false)
+              return '<span class="sfArrayItem is-false">✗</span>';
+            if (item === null)
+              return '<span class="sfArrayItem sfNull">null</span>';
+            return (
+              '<span class="sfArrayItem">' +
+              escSaveFileHtml(String(item)) +
+              "</span>"
+            );
+          })
+          .join("");
+      }
+
+      return (
+        '<div class="sfNestedList">' +
+        val
+          .map(function (item, idx) {
+            return (
+              '<div class="sfNestedItem">' +
+              '<span class="sfNestedIndex">[' +
+              idx +
+              "]</span>" +
+              renderSaveFileValue(item, depth + 1) +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      );
+    }
+
+    const keys = Object.keys(val);
+    if (keys.length === 0) return '<span class="sfArrayItem">{ }</span>';
+    return (
+      '<div class="sfNestedObject">' +
+      keys
+        .map(function (k) {
+          return (
+            '<div class="sfNestedRow">' +
+            '<span class="sfNestedKey">' +
+            escSaveFileHtml(k) +
+            "</span>" +
+            '<span class="sfNestedVal">' +
+            renderSaveFileValue(val[k], depth + 1) +
+            "</span>" +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
+  function toggleSaveFileCategory(header) {
+    header.parentElement.classList.toggle("open");
+  }
+
+  function escSaveFileHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+</script>
