@@ -236,7 +236,7 @@ function openSaveFileDialog() {
 
   var html = template
     .evaluate()
-    .setWidth(640)
+    .setWidth(1280)
     .setHeight(720)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 

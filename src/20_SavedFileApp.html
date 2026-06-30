@@ -34,6 +34,19 @@
       const googleLink = "https://docs.google.com/spreadsheets/d";
     </script>
 
+    <script>
+      (function sizeDialogToScreen() {
+        try {
+          if (!window.google || !google.script || !google.script.host) return;
+          var w = Math.max(800, Math.min(Math.round(screen.availWidth * 0.8), 1600));
+          var h = Math.max(500, Math.min(Math.round(screen.availHeight * 0.85), 1000));
+          google.script.host.setWidth(w);
+          google.script.host.setHeight(h);
+        } catch (e) {
+        }
+      })();
+    </script>
+
     <?!= include('22_status_scripts'); ?>
     <?!= include('27_consent_scripts'); ?>
     <?!= include('28_saveFile_scripts'); ?>
