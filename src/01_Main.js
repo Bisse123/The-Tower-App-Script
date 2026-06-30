@@ -153,7 +153,7 @@ function createMenu() {
         ui.createMenu("Import Data")
             .addItem("Get Started", "showGetStartedDialog")
             .addItem("Update Sheet", "showUpdateDialog")
-            .addItem("Load Data From Save File", "openSaveFilePicker")
+            .addItem("Load Data From Save File", "openSaveFileDialog")
             .addToUi();
     } catch (error) {}
 }
@@ -223,7 +223,7 @@ function showUpdateDialog() {
   }
 }
 
-function openSaveFilePicker() {
+function openSaveFileDialog() {
   var template = HtmlService.createTemplateFromFile("20_SavedFileApp");
   template.API_KEY =
     PropertiesService.getScriptProperties().getProperty("API_KEY");
@@ -232,6 +232,7 @@ function openSaveFilePicker() {
   template.viewType = "sidebar";
 
   template.idMasterID = "";
+  template.sheetType = "";
 
   var html = template
     .evaluate()
