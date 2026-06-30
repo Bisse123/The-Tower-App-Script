@@ -13,6 +13,10 @@
   <div id="saveFileInputRow" class="saveFileInputRow">
     <input type="file" id="saveFileInput" accept=".dat" disabled>
 
+    <button id="saveFileParseBtn" onclick="parseFile()" disabled>
+      Parse File
+    </button>
+
     <div id="saveFileImportControls" class="saveFileImportControls" style="display: none;">
       <button id="saveFileImportBtn" onclick="startSaveFileImport()" disabled>
         Import selected data
@@ -21,6 +25,17 @@
   </div>
 
   <div id="saveFileImportSummary" class="saveFileImportSummary"></div>
+
+  <div id="saveFileViewControls" class="sfViewControls" style="display: none;">
+    <button id="saveFileViewToggleBtn" type="button" onclick="toggleSaveFileViewMode()">
+      Show only differences
+    </button>
+    <span id="saveFileDiffLegend" class="sfDiffLegend" style="display: none;">
+      <span class="sfDiffOld">your sheet</span>
+      <span class="sfDiffArrow">→</span>
+      <span class="sfDiffNew">save file</span>
+    </span>
+  </div>
 
   <div id="saveFileResults"></div>
 </div>

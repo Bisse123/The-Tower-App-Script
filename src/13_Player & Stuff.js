@@ -729,15 +729,22 @@
           message: "No data found in old player & stuff tier data",
         };
       }
+      // Wave / dissonant cells may be display-formatted (e.g. "5,000"); strip
+      // the thousands separators so values match the raw save file numbers.
+      var stripCommas = function (v) {
+        if (v === null || v === undefined || v === "") return v;
+        var s = String(v).replace(/,/g, "");
+        return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : s;
+      };
       var oldPlayerStuffTierData = {};
       for (var row = 0; row < oldPlayerStuffTierValues.length; row++) {
         var rowData = oldPlayerStuffTierValues[row];
         var tier = rowData[0] || "";
-        var wave = rowData[1] || "";
-        var dissAttack = rowData[2] || "";
-        var dissDefense = rowData[3] || "";
-        var dissUtility = rowData[4] || "";
-        var dissUltimate = rowData[5] || "";
+        var wave = stripCommas(rowData[1] || "");
+        var dissAttack = stripCommas(rowData[2] || "");
+        var dissDefense = stripCommas(rowData[3] || "");
+        var dissUtility = stripCommas(rowData[4] || "");
+        var dissUltimate = stripCommas(rowData[5] || "");
         var premium = rowData[6] || "";
         if (tier) {
           oldPlayerStuffTierData[tier] = {
@@ -780,11 +787,17 @@
           message: "No data found in old player & stuff tier data",
         };
       }
+      // Strip thousands separators (e.g. "5,000") so wave values compare cleanly.
+      var stripCommas = function (v) {
+        if (v === null || v === undefined || v === "") return v;
+        var s = String(v).replace(/,/g, "");
+        return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : s;
+      };
       var oldPlayerStuffTierData = {};
       for (var row = 0; row < oldPlayerStuffTierValues.length; row++) {
         var rowData = oldPlayerStuffTierValues[row];
         var tier = rowData[0] || "";
-        var wave = rowData[1] || "";
+        var wave = stripCommas(rowData[1] || "");
         var premium = rowData[2] || "";
         if (tier) {
           oldPlayerStuffTierData[tier] = {

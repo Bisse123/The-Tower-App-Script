@@ -554,4 +554,91 @@
     padding-bottom: 2px;
     margin-bottom: 3px;
   }
+
+  /* ── Diff view (compare save file vs linked sheet) ── */
+  .sfViewControls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .sfDiffLegend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+  }
+
+  /* Green check on category headers that have no differences (diff view). */
+  .sfCategoryCheck {
+    color: #1e7e34;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .sfDiffOld { color: #c41010; font-weight: 600; }
+  .sfDiffNew { color: #2752b0; font-weight: 600; }
+  .sfDiffArrow { color: #888; flex-shrink: 0; }
+
+  /* Diff rows flow and wrap as whole units; each row sizes to its content and
+     never breaks "old → new name" across lines (see .sfDiffRow nowrap). */
+  .sfDiffGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    margin: 2px 0;
+  }
+  .sfDiffRow {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 0.95em;
+    background: #eef1f8;
+    border: 1px solid #d3ddf0;
+    border-radius: 4px;
+  }
+  .sfDiffName { color: #333; }
+
+  /* Module diff: columns size to content so their (no-wrap) rows always fit,
+     and stack their rows with a little breathing room between each. */
+  .sfDiffModuleColumns .sfModuleColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .sfDiffModuleColumns .sfModuleEntry {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .sfDiffChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 2px 0;
+  }
+  .sfDiffAddItem { background: #e6f4ea; color: #1e7e34; border-color: #1e7e34; }
+  .sfDiffRemItem { background: #fdecea; color: #c41010; border-color: #c41010; }
+
+  .sfDiffNone {
+    color: #1e7e34;
+    font-size: 0.95em;
+    padding: 4px 0;
+  }
+  .sfDiffUnavailable {
+    color: #7a4a00;
+    background: #fff8f0;
+    border: 1px solid #f5c885;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.95em;
+  }
 </style>
