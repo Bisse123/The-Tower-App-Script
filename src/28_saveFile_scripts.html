@@ -227,14 +227,14 @@
     if (!saveFileSheetType && typeof sheetType === "string") {
       saveFileSheetType = sheetType;
     }
-    if (!saveFileSheetType) {
+    if (saveFileSheetType !== "IDS Master" && saveFileSheetType !== "IDS Collection") {
       await resolveSaveFileSheetType();
     }
 
+    if (saveFileSheetType === "IDS Collection") {
+      await ensureSaveFileCollectionVersion();
+    }
     if (saveFileSheetType !== "IDS Master") {
-      if (saveFileSheetType === "IDS Collection") {
-        await ensureSaveFileCollectionVersion();
-      }
       saveFilePendingAccessIds = [];
       return true;
     }
