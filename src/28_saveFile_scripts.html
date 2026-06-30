@@ -8,6 +8,16 @@
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
 
+  // "all" shows everything parsed; "diff" compares against the linked sheet(s).
+  let saveFileViewMode = "all";
+  // Exported sheet data keyed by category, cached so toggling is instant.
+  let sheetExportData = {};
+  let sheetExportFetched = false;
+  // Last parse result, kept so we can re-render when the view mode changes.
+  let lastSaveFileResult = null;
+  // Category import selection (null = all selected); preserved across re-renders.
+  let saveFileSelectedTypes = null;
+
   function runAppsScript(method, ...args) {
     return new Promise((resolve, reject) => {
       google.script.run
@@ -23,15 +33,19 @@
       const file = this.files[0];
 
       parsedSaveData = null;
+      resetSaveFileDiffState();
       document.getElementById("saveFileResults").style.display = "none";
       document.getElementById("saveFileResults").innerHTML = "";
+      document.getElementById("saveFileViewControls").style.display = "none";
       document.getElementById("saveFileImportControls").style.display = "none";
       document.getElementById("saveFileImportBtn").disabled = true;
       const summary = document.getElementById("saveFileImportSummary");
       if (summary) summary.innerHTML = "";
 
+      document.getElementById("saveFileParseBtn").disabled = !file;
+
       if (file) {
-        parseFile();
+        setStatusText("Ready to parse. Click \"Parse File\" to continue...");
       } else {
         setStatusText("Choose saved file...");
       }
@@ -48,6 +62,7 @@
     const file = document.getElementById("saveFileInput").files[0];
     if (!file) return;
 
+    resetSaveFileDiffState();
     setStatusWithSpinner("Reading file…");
 
     const reader = new FileReader();
@@ -64,6 +79,7 @@
       )
         .then(function (result) {
           parsedSaveData = (result && result.parsed) || {};
+          lastSaveFileResult = result;
           setStatusText(`${file.name} parsed successfully`);
           renderSaveFileResults(result);
         })
@@ -78,6 +94,7 @@
   }
 
   function renderSaveFileResults(result) {
+    if (result) lastSaveFileResult = result;
     const container = document.getElementById("saveFileResults");
     const parsed = (result && result.parsed) || {};
     const order = (result && result.order) || Object.keys(parsed);
@@ -89,6 +106,10 @@
       if (!categoryHasData(data)) continue;
       cardCount++;
 
+      const bodyHtml = buildSaveFileCategoryBody(type, data);
+      // Mark categories that were compared and have no differences.
+      const noDiff = /sfDiffNone/.test(bodyHtml);
+
       html += '<div class="sfCategory">';
       html +=
         '<div class="sfCategoryHeader" onclick="toggleSaveFileCategory(this)">';
@@ -96,14 +117,20 @@
       html +=
         '<input type="checkbox" class="sfCategoryCheckbox" data-sheettype="' +
         escSaveFileHtml(type) +
-        '" checked onclick="event.stopPropagation()">';
+        '" ' +
+        (sfTypeChecked(type) ? "checked" : "") +
+        ' onclick="event.stopPropagation()">';
       html +=
         '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
+      if (noDiff) {
+        html +=
+          '<span class="sfCategoryCheck" title="No differences">✓</span>';
+      }
       html += "</span>";
       html += '<span class="sfCategoryChevron">►</span>';
       html += "</div>";
       html += '<div class="sfCategoryBody">';
-      html += renderCategoryBody(type, data);
+      html += bodyHtml;
       html += "</div></div>";
     }
 
@@ -117,7 +144,10 @@
 
     document.getElementById("saveFileImportControls").style.display = "block";
     container.querySelectorAll(".sfCategoryCheckbox").forEach(function (cb) {
-      cb.addEventListener("change", updateImportButtonState);
+      cb.addEventListener("change", function () {
+        captureSaveFileSelection();
+        updateImportButtonState();
+      });
     });
 
     const importSummary = document.getElementById("saveFileImportSummary");
@@ -131,7 +161,932 @@
     }
 
     updateImportButtonState();
+    updateSaveFileViewControls();
   }
+
+  // #region Save file diff (compare parsed save vs linked sheet data)
+
+  function resetSaveFileDiffState() {
+    saveFileViewMode = "all";
+    sheetExportData = {};
+    sheetExportFetched = false;
+    saveFileSelectedTypes = null;
+  }
+
+  function sfTypeChecked(type) {
+    return saveFileSelectedTypes === null || saveFileSelectedTypes.has(type);
+  }
+
+  function captureSaveFileSelection() {
+    const set = new Set();
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        if (cb.checked) set.add(cb.getAttribute("data-sheettype"));
+      });
+    saveFileSelectedTypes = set;
+  }
+
+  // Reflects the current view mode on the static button/legend in the section.
+  function updateSaveFileViewControls() {
+    const controls = document.getElementById("saveFileViewControls");
+    const btn = document.getElementById("saveFileViewToggleBtn");
+    const legend = document.getElementById("saveFileDiffLegend");
+    if (!controls || !btn) return;
+
+    // Diffing needs a linked sheet and parsed data to compare against.
+    const show = !!idMasterID && !!lastSaveFileResult;
+    controls.style.display = show ? "" : "none";
+
+    if (saveFileViewMode === "diff") {
+      btn.textContent = "Show all parsed data";
+      if (legend) legend.style.display = "";
+    } else {
+      btn.textContent = "Show only differences";
+      if (legend) legend.style.display = "none";
+    }
+  }
+
+  function buildSaveFileCategoryBody(type, data) {
+    if (saveFileViewMode !== "diff") {
+      return renderCategoryBody(type, data);
+    }
+    const entry = sheetExportData ? sheetExportData[type] : null;
+    if (!entry) {
+      return '<div class="sfDiffUnavailable">Could not load your sheet data for this category.</div>';
+    }
+    if (entry.__error) {
+      return (
+        '<div class="sfDiffUnavailable">' +
+        escSaveFileHtml(entry.__error) +
+        "</div>"
+      );
+    }
+    const diffHtml = renderSaveFileDiffBody(type, data, entry);
+    if (!diffHtml || !diffHtml.trim()) {
+      return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
+    }
+    return diffHtml;
+  }
+
+  async function toggleSaveFileViewMode() {
+    if (saveFileViewMode === "all") {
+      if (!idMasterID) {
+        setStatusText(
+          `Cannot compare: your ${saveFileSheetType || "sheet"} could not be determined.`,
+        );
+        return;
+      }
+      if (!sheetExportFetched) {
+        // Lock the whole workflow while the export runs in the background.
+        setSaveFileBusy(true);
+        const ok = await fetchSaveFileSheetData();
+        setSaveFileBusy(false);
+        if (!ok) return;
+      }
+      saveFileViewMode = "diff";
+      setStatusText("Loaded your sheet data. Showing differences.");
+    } else {
+      saveFileViewMode = "all";
+      setStatusText("Showing all parsed data.");
+    }
+    renderSaveFileResults(lastSaveFileResult);
+  }
+
+  async function fetchSaveFileSheetData() {
+    if (!idMasterID) return false;
+    try {
+      setStatusWithSpinner("Reading your sheet data to compare…");
+      const result = {};
+
+      if (saveFileSheetType === "IDS Collection") {
+        const compat = await runAppsScript(
+          "checkExportCompatibility",
+          idMasterID,
+          "IDS Collection",
+        );
+        if (!compat || !compat.success || !compat.versionDifference) {
+          setStatusText(
+            "Could not compare with your IDS Collection: " +
+              ((compat && compat.message) || "version check failed."),
+          );
+          return false;
+        }
+        const exp = await runAppsScript(
+          "exportData",
+          idMasterID,
+          "IDS Collection",
+          compat.versionDifference,
+        );
+        if (!exp || !exp.success) {
+          setStatusText(
+            "Could not read your IDS Collection: " +
+              ((exp && exp.message) || "export failed."),
+          );
+          return false;
+        }
+        const data = exp.data || {};
+        Object.keys(data).forEach(function (type) {
+          result[type] = data[type];
+        });
+      } else {
+        const targets =
+          (saveFileImportTargets && saveFileImportTargets.targets) || {};
+        const order =
+          lastSaveFileResult && lastSaveFileResult.order
+            ? lastSaveFileResult.order
+            : Object.keys(parsedSaveData || {});
+        const types = order.filter(function (type) {
+          return categoryHasData((parsedSaveData || {})[type]);
+        });
+
+        await Promise.all(
+          types.map(async function (type) {
+            const targetID = targets[type];
+            if (!targetID) {
+              result[type] = {
+                __error: "This category isn't linked in your IDS Master.",
+              };
+              return;
+            }
+            try {
+              const compat = await runAppsScript(
+                "checkExportCompatibility",
+                targetID,
+                type,
+              );
+              if (!compat || !compat.success || !compat.versionDifference) {
+                result[type] = {
+                  __error: (compat && compat.message) || "Version check failed.",
+                };
+                return;
+              }
+              const exp = await runAppsScript(
+                "exportData",
+                targetID,
+                type,
+                compat.versionDifference,
+              );
+              if (!exp || !exp.success) {
+                result[type] = {
+                  __error: (exp && exp.message) || "Could not read sheet.",
+                };
+                return;
+              }
+              result[type] = exp.data || {};
+            } catch (err) {
+              result[type] = { __error: err.message || String(err) };
+            }
+          }),
+        );
+      }
+
+      sheetExportData = result;
+      sheetExportFetched = true;
+      return true;
+    } catch (err) {
+      setStatusText("Error comparing with your sheet: " + (err.message || err));
+      return false;
+    }
+  }
+
+  // ── Diff value helpers ──
+
+  // Sheet cells for levels can be "level | effect | current cost | next cost";
+  // we only care about the level (first segment).
+  function sfTrimLevel(v) {
+    if (v === null || v === undefined) return null;
+    let s = String(v);
+    if (s.indexOf("|") !== -1) s = s.split("|")[0];
+    return s.trim();
+  }
+
+  // Normalize a level for comparison: empty/null → "0", numbers lose padding.
+  function sfNormLevel(v) {
+    const t = sfTrimLevel(v);
+    if (t === null || t === "") return "0";
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t.toLowerCase();
+  }
+
+  // Normalize a generic value (stats, names, multipliers) for comparison.
+  function sfNormGeneric(v) {
+    if (v === true || v === "true" || v === "TRUE") return "true";
+    if (v === false || v === "false" || v === "FALSE") return "false";
+    if (v === null || v === undefined || v === "") return "";
+    const t = sfTrimLevel(v);
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t.toLowerCase();
+  }
+
+  function sfNormBool(v) {
+    return (
+      v === true || v === "true" || v === "TRUE" || v === 1 || v === "1"
+    );
+  }
+
+  function sfDisplayLevel(v) {
+    const t = sfTrimLevel(v);
+    if (t === null || t === "") return "0";
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t;
+  }
+
+  function sfDisplayValue(v) {
+    if (v === true || v === "true" || v === "TRUE") return "✓";
+    if (v === false || v === "false" || v === "FALSE") return "✗";
+    if (v === null || v === undefined || v === "") return "-";
+    return sfTrimLevel(v);
+  }
+
+  // For unlock/boolean fields: empty/null means "not unlocked", so show ✗
+  // (never a bare "-") to make the on/off state explicit.
+  function sfDisplayBool(v) {
+    return sfNormBool(v) ? "✓" : "✗";
+  }
+
+  // The sheet marks "no bot sync" as blank or "X"; the save uses null. Treat
+  // all of those as "not synced" so they don't read as a difference.
+  function sfSyncIsNone(v) {
+    const t = sfNormGeneric(v);
+    return t === "" || t === "x" || t === "-" || t === "0" || t === "false";
+  }
+
+  function sfNormSync(v) {
+    return sfSyncIsNone(v) ? "" : sfNormGeneric(v);
+  }
+
+  function sfDisplaySync(v) {
+    return sfSyncIsNone(v) ? "-" : sfTrimLevel(v);
+  }
+
+  // ── Diff rendering helpers ──
+
+  function sfDiffRow(oldDisp, newDisp, name) {
+    return (
+      '<div class="sfDiffRow">' +
+      '<span class="sfDiffOld">' +
+      escSaveFileHtml(oldDisp) +
+      "</span>" +
+      '<span class="sfDiffArrow">→</span>' +
+      '<span class="sfDiffNew">' +
+      escSaveFileHtml(newDisp) +
+      "</span>" +
+      (name
+        ? '<span class="sfDiffName">' + escSaveFileHtml(name) + "</span>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function sfDiffAddItem(label) {
+    return (
+      '<span class="sfArrayItem sfDiffAddItem">+ ' +
+      escSaveFileHtml(label) +
+      "</span>"
+    );
+  }
+
+  function sfDiffRemItem(label) {
+    return (
+      '<span class="sfArrayItem sfDiffRemItem">− ' +
+      escSaveFileHtml(label) +
+      "</span>"
+    );
+  }
+
+  function sfDiffGrid(rows) {
+    return '<div class="sfDiffGrid">' + rows + "</div>";
+  }
+
+  function sfDiffBlock(title, inner) {
+    return (
+      '<div class="sfBlock"><div class="sfBlockHeader">' +
+      escSaveFileHtml(title) +
+      "</div>" +
+      inner +
+      "</div>"
+    );
+  }
+
+  function sfDiffSub(title, inner) {
+    return (
+      '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+      escSaveFileHtml(title) +
+      "</div>" +
+      inner +
+      "</div>"
+    );
+  }
+
+  function renderSaveFileDiffBody(type, parsed, sheet) {
+    switch (type) {
+      case "Laboratory":
+        return renderLaboratoryDiff(parsed, sheet);
+      case "Workshop":
+        return renderWorkshopDiff(parsed, sheet);
+      case "Ultimate Weapon":
+        return renderUltimateDiff(parsed, sheet);
+      case "Themes & Songs":
+        return renderThemesDiff(parsed, sheet);
+      case "Bots":
+        return renderBotsDiff(parsed, sheet);
+      case "Relics":
+        return renderRelicsDiff(parsed, sheet);
+      case "Vault":
+        return renderVaultDiff(parsed, sheet);
+      case "Cards":
+        return renderCardsDiff(parsed, sheet);
+      case "Modules":
+        return renderModulesDiff(parsed, sheet);
+      case "Guardians":
+        return renderGuardiansDiff(parsed, sheet);
+      case "Player & Stuff":
+        return renderPlayerDiff(parsed, sheet);
+      default:
+        return "";
+    }
+  }
+
+  function renderLaboratoryDiff(parsed, sheet) {
+    const p = parsed.oldLabLevels || {};
+    const s = sheet.oldLabLevels || {};
+    const order = parsed.labNameIndices || Object.keys(p);
+    let rows = "";
+    order.forEach(function (name) {
+      if (!name || !p.hasOwnProperty(name)) return;
+      const pv = Array.isArray(p[name]) ? p[name][0] : p[name];
+      const sv = Array.isArray(s[name]) ? s[name][0] : s[name];
+      if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+      rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+    });
+    return rows ? sfDiffGrid(rows) : "";
+  }
+
+  function renderWorkshopDiff(parsed, sheet) {
+    const pUp = parsed.oldWorkshopLevels || {};
+    const sUp = sheet.oldWorkshopLevels || {};
+    const pEn = parsed.oldWorkshopPlusLevels || {};
+    const sEn = sheet.oldWorkshopPlusLevels || {};
+    const presetNames = pUp.presetNames || [];
+    const upIdx = parsed.upgradeIndices || {};
+    const enIdx = parsed.enhancementIndices || {};
+    const tracks = ["Attack", "Defense", "Utility"];
+    let html = "";
+
+    presetNames.forEach(function (presetName, presetIndex) {
+      let upRows = "";
+      let enRows = "";
+      // Only show a preset if the save file actually configured it (non-zero).
+      let presetHasValue = false;
+
+      tracks.forEach(function (track) {
+        (upIdx[track] || []).forEach(function (name) {
+          const pd = (pUp.data || {})[name];
+          if (!pd) return;
+          const pv = (pd.levels || [])[presetIndex * 2];
+          if (sfNormLevel(pv) !== "0") presetHasValue = true;
+          const sd = (sUp.data || {})[name];
+          const sv = sfSheetPresetVal(
+            sd ? sd.levels : null,
+            presetIndex * 2,
+            presetIndex,
+            0,
+          );
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          upRows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+      });
+      tracks.forEach(function (track) {
+        (enIdx[track] || []).forEach(function (name) {
+          const parr = (pEn.data || {})[name];
+          if (!parr) return;
+          const pv = parr[presetIndex];
+          if (sfNormLevel(pv) !== "0") presetHasValue = true;
+          const sarr = (sEn.data || {})[name];
+          const sv = sfSheetPresetVal(sarr, presetIndex, presetIndex, 0);
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          enRows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+      });
+
+      if (!presetHasValue) return;
+      let inner = "";
+      if (upRows) inner += sfDiffSub("Upgrades", sfDiffGrid(upRows));
+      if (enRows) inner += sfDiffSub("Enhancements", sfDiffGrid(enRows));
+      if (inner) html += sfDiffBlock(presetName, inner);
+    });
+    return html;
+  }
+
+  // The sheet stores a Tourney value as blank when it inherits the Farming
+  // preset, so fall back to the Farming index to avoid spurious differences.
+  function sfSheetPresetVal(arr, idx, presetIndex, farmingIdx) {
+    if (!arr) return undefined;
+    let v = arr[idx];
+    if (
+      presetIndex > 0 &&
+      (v === null || v === undefined || String(v).trim() === "")
+    ) {
+      v = arr[farmingIdx];
+    }
+    return v;
+  }
+
+  function renderUltimateDiff(parsed, sheet) {
+    const p = parsed.oldUltimate || {};
+    const s = sheet.oldUltimate || {};
+    const defs = parsed.targetWeapons || {};
+    const order = parsed.weaponOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      const pw = p[name];
+      if (!pw) return;
+      const sw = s[name] || {};
+      const def = defs[name];
+      if (!def) return;
+      let rows = "";
+      if (sfNormBool(pw.unlocked) !== sfNormBool(sw.unlocked)) {
+        rows += sfDiffRow(
+          sfDisplayBool(sw.unlocked),
+          sfDisplayBool(pw.unlocked),
+          "Unlocked",
+        );
+      }
+      const attrs = (def.upgrades || []).filter(Boolean);
+      if (def.plusUpgrade) attrs.push(def.plusUpgrade);
+      const pl = pw.levels || {};
+      const sl = sw.levels || {};
+      attrs.forEach(function (attr) {
+        const pv = pl[attr];
+        const sv = sl[attr];
+        if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+        rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+      });
+      if (rows) html += sfDiffBlock(name, sfDiffGrid(rows));
+    });
+    return html;
+  }
+
+  function renderThemesDiff(parsed, sheet) {
+    const p = parsed.oldThemesNames || {};
+    const s = sheet.oldThemesNames || {};
+    const order = parsed.themesOrder || Object.keys(p);
+    let html = "";
+    order.forEach(function (cat) {
+      const pArr = p[cat] || [];
+      const sArr = s[cat] || [];
+      const pSet = new Set(pArr.map(String));
+      const sSet = new Set(sArr.map(String));
+      const added = pArr.filter(function (n) {
+        return !sSet.has(String(n));
+      });
+      const removed = sArr.filter(function (n) {
+        return !pSet.has(String(n));
+      });
+      if (!added.length && !removed.length) return;
+      let items = "";
+      added.forEach(function (n) {
+        items += sfDiffAddItem(n);
+      });
+      removed.forEach(function (n) {
+        items += sfDiffRemItem(n);
+      });
+      html += sfDiffSub(cat, '<div class="sfDiffChips">' + items + "</div>");
+    });
+    return html;
+  }
+
+  function renderBotsDiff(parsed, sheet) {
+    const pBots = (parsed.oldBots && parsed.oldBots.data) || {};
+    const sBots = (sheet.oldBots && sheet.oldBots.data) || {};
+    const presetNames = (parsed.oldBots && parsed.oldBots.presetNames) || [];
+    const defs = parsed.targetBots || {};
+    const order = parsed.botOrder || Object.keys(defs);
+    let html = "";
+
+    order.forEach(function (botName) {
+      const pBot = pBots[botName];
+      if (!pBot) return;
+      const sBot = sBots[botName] || {};
+      const def = defs[botName];
+      if (!def) return;
+
+      let botInner = "";
+      if (sfNormBool(pBot.unlocked) !== sfNormBool(sBot.unlocked)) {
+        botInner += sfDiffGrid(
+          sfDiffRow(
+            sfDisplayBool(sBot.unlocked),
+            sfDisplayBool(pBot.unlocked),
+            "Unlocked",
+          ),
+        );
+      }
+
+      const attrs = (def.upgrades || []).filter(Boolean);
+      if (def.plusUpgrade) attrs.push(def.plusUpgrade);
+
+      presetNames.forEach(function (presetName, presetIndex) {
+        const pPreset = (pBot.presets || {})[presetName] || {};
+        const sPreset = (sBot.presets || {})[presetName] || {};
+        const pProps = pPreset.props || {};
+        const sProps = sPreset.props || {};
+        // Non-Farming presets are stored blank when they inherit Farming.
+        const farmingProps =
+          presetIndex > 0
+            ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
+            : sProps;
+        let rows = "";
+        attrs.forEach(function (attr) {
+          const pv = pProps[attr];
+          let sv = sProps[attr];
+          if (
+            presetIndex > 0 &&
+            (sv === null || sv === undefined || String(sv).trim() === "")
+          ) {
+            sv = farmingProps[attr];
+          }
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+        });
+        if (sfNormSync(pPreset.sync) !== sfNormSync(sPreset.sync)) {
+          rows += sfDiffRow(
+            sfDisplaySync(sPreset.sync),
+            sfDisplaySync(pPreset.sync),
+            "Sync",
+          );
+        }
+        if (rows) botInner += sfDiffSub(presetName, sfDiffGrid(rows));
+      });
+
+      if (botInner) html += sfDiffBlock(botName, botInner);
+    });
+    return html;
+  }
+
+  function renderRelicsDiff(parsed, sheet) {
+    const pArr = parsed.oldRelics || [];
+    const sArr = sheet.oldRelics || [];
+    const pSet = new Set(pArr.map(String));
+    const sSet = new Set(sArr.map(String));
+    const added = pArr.filter(function (n) {
+      return !sSet.has(String(n));
+    });
+    const removed = sArr.filter(function (n) {
+      return !pSet.has(String(n));
+    });
+    if (!added.length && !removed.length) return "";
+    let items = "";
+    added.forEach(function (n) {
+      items += sfDiffAddItem(n);
+    });
+    removed.forEach(function (n) {
+      items += sfDiffRemItem(n);
+    });
+    return '<div class="sfDiffChips">' + items + "</div>";
+  }
+
+  // The sheet lists every node (locked ones with a blank value); the parse only
+  // lists unlocked nodes. Treat any truthy value as "owned".
+  function sfVaultOwned(v) {
+    return !(
+      v === null ||
+      v === undefined ||
+      v === "" ||
+      v === false ||
+      v === "false" ||
+      v === "FALSE"
+    );
+  }
+
+  function renderVaultDiff(parsed, sheet) {
+    const pH = parsed.oldVaultHarmony || {};
+    const sH = sheet.oldVaultHarmony || {};
+    const pP = parsed.oldVaultPower || {};
+    const sP = sheet.oldVaultPower || {};
+    const harmonyOrder = parsed.harmonyIndices || [];
+    const powerOrder = parsed.powerIndices || [];
+    let html = "";
+
+    let harmonyChips = "";
+    harmonyOrder.forEach(function (name) {
+      if (!name) return;
+      const inP = sfVaultOwned(pH[name]);
+      const inS = sfVaultOwned(sH[name]);
+      if (inP && !inS) harmonyChips += sfDiffAddItem(name);
+      else if (!inP && inS) harmonyChips += sfDiffRemItem(name);
+    });
+    if (harmonyChips)
+      html += sfDiffSub("Harmony", '<div class="sfDiffChips">' + harmonyChips + "</div>");
+
+    let powerRows = "";
+    powerOrder.forEach(function (name) {
+      if (!name) return;
+      const pv = pP[name];
+      const sv = sP[name];
+      // "Unlock" nodes are on/off (shown like the all-data view); the rest are
+      // multipliers, shown as an old value → new value change.
+      if (name.indexOf("Unlock") !== -1) {
+        if (sfNormBool(pv) !== sfNormBool(sv)) {
+          powerRows += sfDiffRow(sfDisplayBool(sv), sfDisplayBool(pv), name);
+        }
+      } else if (sfNormGeneric(pv) !== sfNormGeneric(sv)) {
+        powerRows += sfDiffRow(sfDisplayValue(sv), sfDisplayValue(pv), name);
+      }
+    });
+    if (powerRows) html += sfDiffSub("Power", sfDiffGrid(powerRows));
+    return html;
+  }
+
+  function renderCardsDiff(parsed, sheet) {
+    const pLevels = parsed.oldCardsLevel || {};
+    const sLevels = sheet.oldCardsLevel || {};
+    const order = parsed.cardNameIndices || Object.keys(pLevels);
+    let html = "";
+
+    let levelRows = "";
+    order.forEach(function (card) {
+      if (!card || !pLevels.hasOwnProperty(card)) return;
+      const pArr = pLevels[card] || [];
+      const sArr = sLevels[card] || [];
+      if (sfNormLevel(pArr[0]) !== sfNormLevel(sArr[0])) {
+        levelRows += sfDiffRow(
+          sfDisplayLevel(sArr[0]),
+          sfDisplayLevel(pArr[0]),
+          card,
+        );
+      }
+      if (sfNormBool(pArr[1]) !== sfNormBool(sArr[1])) {
+        levelRows += sfDiffRow(
+          sfDisplayBool(sArr[1]),
+          sfDisplayBool(pArr[1]),
+          card + " ★",
+        );
+      }
+    });
+    if (levelRows) html += sfDiffSub("Card Levels", sfDiffGrid(levelRows));
+
+    const pPresets = parsed.oldCardsPreset || {};
+    const sPresets = sheet.oldCardsPreset || {};
+    let presetInner = "";
+    Object.keys(pPresets).forEach(function (name) {
+      const pCards = (pPresets[name] && pPresets[name].cards) || [];
+      const sCards = (sPresets[name] && sPresets[name].cards) || [];
+      const pSet = new Set(pCards.map(String));
+      const sSet = new Set(sCards.map(String));
+      const added = pCards.filter(function (c) {
+        return !sSet.has(String(c));
+      });
+      const removed = sCards.filter(function (c) {
+        return !pSet.has(String(c));
+      });
+      if (!added.length && !removed.length) return;
+      let items = "";
+      added.forEach(function (c) {
+        items += sfDiffAddItem(c);
+      });
+      removed.forEach(function (c) {
+        items += sfDiffRemItem(c);
+      });
+      presetInner +=
+        sfSubLabel(name) + '<div class="sfDiffChips">' + items + "</div>";
+    });
+    if (presetInner) html += sfDiffSub("Card Presets", presetInner);
+
+    if (
+      parsed.oldCardSlots !== undefined &&
+      sheet.oldCardSlots !== undefined &&
+      sheet.oldCardSlots !== null &&
+      sfNormLevel(parsed.oldCardSlots) !== sfNormLevel(sheet.oldCardSlots)
+    ) {
+      html += sfDiffGrid(
+        sfDiffRow(
+          sfDisplayLevel(sheet.oldCardSlots),
+          sfDisplayLevel(parsed.oldCardSlots),
+          "Unlocked Slots",
+        ),
+      );
+    }
+    return html;
+  }
+
+  function renderModulesDiff(parsed, sheet) {
+    const pInv = parsed.oldModulesInventory || {};
+    const sInv = sheet.oldModulesInventory || {};
+    const pPre = parsed.oldModulesPresets || {};
+    const sPre = sheet.oldModulesPresets || {};
+    const metaKeys = ["Highest Level", "Assist Level"];
+    const moduleCats = ["cannon", "armor", "generator", "core"];
+    let columns = "";
+
+    moduleCats.forEach(function (cat) {
+      const pCat = pInv[cat] || {};
+      const sCat = sInv[cat] || {};
+      let colInner = "";
+
+      // Levels (Highest / Assist) first, above the Assist Slot.
+      metaKeys.forEach(function (key) {
+        if (!pCat.hasOwnProperty(key)) return;
+        if (sfNormLevel(pCat[key]) !== sfNormLevel(sCat[key])) {
+          colInner += sfDiffRow(
+            sfDisplayLevel(sCat[key]),
+            sfDisplayLevel(pCat[key]),
+            key,
+          );
+        }
+      });
+
+      // Assist Slot (rarity, multiplier, substat).
+      const pAssist = (pPre[cat] && pPre[cat]["Assist Slot"]) || null;
+      const sAssist = (sPre[cat] && sPre[cat]["Assist Slot"]) || {};
+      if (pAssist) {
+        let assistRows = "";
+        if (sfNormBool(pAssist.locked) !== sfNormBool(sAssist.locked)) {
+          assistRows += sfDiffRow(
+            sfDisplayBool(sAssist.locked),
+            sfDisplayBool(pAssist.locked),
+            "Unlocked",
+          );
+        }
+        if (sfNormGeneric(pAssist.rarity) !== sfNormGeneric(sAssist.rarity)) {
+          assistRows += sfDiffRow(
+            sfDisplayValue(sAssist.rarity),
+            sfDisplayValue(pAssist.rarity),
+            "Rarity",
+          );
+        }
+        if (sfNormLevel(pAssist.multiplier) !== sfNormLevel(sAssist.multiplier)) {
+          assistRows += sfDiffRow(
+            sfDisplayLevel(sAssist.multiplier),
+            sfDisplayLevel(pAssist.multiplier),
+            "Multiplier",
+          );
+        }
+        if (sfNormLevel(pAssist.substat) !== sfNormLevel(sAssist.substat)) {
+          assistRows += sfDiffRow(
+            sfDisplayLevel(sAssist.substat),
+            sfDisplayLevel(pAssist.substat),
+            "Substat",
+          );
+        }
+        if (assistRows) colInner += sfModuleDiffEntry("Assist Slot", assistRows);
+      }
+
+      Object.keys(pCat).forEach(function (key) {
+        if (metaKeys.indexOf(key) !== -1) return;
+        const pMod = pCat[key];
+        if (!pMod || typeof pMod !== "object") return;
+        const sMod = sCat[key];
+        let modRows = "";
+        if (!sMod) {
+          modRows += sfDiffRow("-", sfDisplayValue(pMod.rarity), "Rarity");
+        } else if (sfNormGeneric(pMod.rarity) !== sfNormGeneric(sMod.rarity)) {
+          modRows += sfDiffRow(
+            sfDisplayValue(sMod.rarity),
+            sfDisplayValue(pMod.rarity),
+            "Rarity",
+          );
+        }
+        const pSub = pMod.substats || [];
+        const sSub = (sMod && sMod.substats) || [];
+        const max = Math.max(pSub.length, sSub.length);
+        for (let i = 0; i < max; i++) {
+          const pPair = pSub[i] || [null, null];
+          const sPair = sSub[i] || [null, null];
+          if (
+            sfNormGeneric(pPair[0]) === sfNormGeneric(sPair[0]) &&
+            sfNormGeneric(pPair[1]) === sfNormGeneric(sPair[1])
+          )
+            continue;
+          modRows += sfDiffRow(
+            sfModuleSubstatLabel(sPair),
+            sfModuleSubstatLabel(pPair),
+          );
+        }
+        if (modRows) colInner += sfModuleDiffEntry(key, modRows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(cat) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    return columns
+      ? '<div class="sfModuleColumns sfDiffModuleColumns">' + columns + "</div>"
+      : "";
+  }
+
+  function sfModuleDiffEntry(name, rows) {
+    return (
+      '<div class="sfModuleEntry"><div class="sfModuleName">' +
+      escSaveFileHtml(name) +
+      "</div>" +
+      rows +
+      "</div>"
+    );
+  }
+
+  function sfModuleSubstatLabel(pair) {
+    if (!pair || (pair[0] == null && pair[1] == null)) return "-";
+    const label = pair[0] == null ? "" : String(pair[0]);
+    const rarity = pair[1] == null ? "" : String(pair[1]);
+    return (rarity + " - " + label).trim() || "-";
+  }
+
+  function renderGuardiansDiff(parsed, sheet) {
+    const p = parsed.oldGuardians || {};
+    const s = sheet.oldGuardians || {};
+    const defs = parsed.targetGuardians || {};
+    const order = parsed.guardianOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      const pg = p[name];
+      if (!pg) return;
+      const sg = s[name] || {};
+      const def = defs[name];
+      if (!def) return;
+      let rows = "";
+      if (
+        !def.alwaysUnlocked &&
+        sfNormBool(pg.unlocked) !== sfNormBool(sg.unlocked)
+      ) {
+        rows += sfDiffRow(
+          sfDisplayBool(sg.unlocked),
+          sfDisplayBool(pg.unlocked),
+          "Unlocked",
+        );
+      }
+      const pProps = pg.props || {};
+      const sProps = sg.props || {};
+      (def.upgrades || []).filter(Boolean).forEach(function (attr) {
+        const pv = pProps[attr];
+        const sv = sProps[attr];
+        if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+        rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+      });
+      if (rows) html += sfDiffBlock(name, sfDiffGrid(rows));
+    });
+    return html;
+  }
+
+  function renderPlayerDiff(parsed, sheet) {
+    const pStats = parsed.oldPlayerStuffStatsData || {};
+    const sStats = sheet.oldPlayerStuffStatsData || {};
+    let html = "";
+
+    let statRows = "";
+    Object.keys(pStats).forEach(function (section) {
+      const pObj = pStats[section] || {};
+      const sObj = sStats[section] || {};
+      Object.keys(pObj).forEach(function (key) {
+        if (sfNormGeneric(pObj[key]) === sfNormGeneric(sObj[key])) return;
+        statRows += sfDiffRow(
+          sfDisplayValue(sObj[key]),
+          sfDisplayValue(pObj[key]),
+          key,
+        );
+      });
+    });
+    if (statRows) html += sfDiffSub("Stats", sfDiffGrid(statRows));
+
+    const pTiers = parsed.oldPlayerStuffTierData || {};
+    const sTiers = sheet.oldPlayerStuffTierData || {};
+    const tierOrder = Object.keys(pTiers).sort(function (a, b) {
+      return sfTierNumber(a) - sfTierNumber(b);
+    });
+    tierOrder.forEach(function (tierKey) {
+      const pt = pTiers[tierKey] || {};
+      const st = sTiers[tierKey] || {};
+      const pd = pt.diss || {};
+      const sd = st.diss || {};
+      let rows = "";
+      if (sfNormLevel(pt.wave) !== sfNormLevel(st.wave))
+        rows += sfDiffRow(sfDisplayLevel(st.wave), sfDisplayLevel(pt.wave), "Wave");
+      ["attack", "defense", "utility", "ultimate"].forEach(function (k) {
+        if (sfNormLevel(pd[k]) !== sfNormLevel(sd[k]))
+          rows += sfDiffRow(
+            sfDisplayLevel(sd[k]),
+            sfDisplayLevel(pd[k]),
+            k.charAt(0).toUpperCase() + k.slice(1),
+          );
+      });
+      if (sfNormBool(pt.premium) !== sfNormBool(st.premium))
+        rows += sfDiffRow(
+          sfDisplayBool(st.premium),
+          sfDisplayBool(pt.premium),
+          "Milestone Pass",
+        );
+      if (rows) html += sfDiffSub(tierKey, sfDiffGrid(rows));
+    });
+    return html;
+  }
+
+  // #endregion
 
   function categoryHasData(data) {
     if (!data || typeof data !== "object") return false;
@@ -166,9 +1121,20 @@
 
   function setSaveFileBusy(busy) {
     document.getElementById("saveFileInput").disabled = busy;
+    const viewBtn = document.getElementById("saveFileViewToggleBtn");
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        cb.disabled = busy;
+      });
     if (busy) {
+      document.getElementById("saveFileParseBtn").disabled = true;
       document.getElementById("saveFileImportBtn").disabled = true;
+      if (viewBtn) viewBtn.disabled = true;
     } else {
+      document.getElementById("saveFileParseBtn").disabled =
+        !document.getElementById("saveFileInput").files[0];
+      if (viewBtn) viewBtn.disabled = false;
       updateImportButtonState();
     }
   }
