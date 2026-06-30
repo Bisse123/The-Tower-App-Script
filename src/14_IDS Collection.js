@@ -1353,7 +1353,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -1762,7 +1762,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -2160,7 +2160,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -2558,7 +2558,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -2956,7 +2956,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -3357,7 +3357,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -3758,7 +3758,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -4159,7 +4159,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -4560,7 +4560,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -4963,7 +4963,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -5348,7 +5348,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
@@ -5731,7 +5731,7 @@
           message: ultimateSuccess
             ? "Ultimate Weapon data retrieved successfully"
             : "Error retrieving Ultimate Weapon data",
-          oldUltimate: ultimateWeaponsData["Ultimate Weapon"],
+          oldUltimate: ultimateWeaponsData.oldUltimate,
           oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
         };
       }
