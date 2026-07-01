@@ -1,4 +1,4 @@
-﻿const playerStuff = {
+const playerStuff = {
   // #region Export Functions
   exportData: function (versionDifference) {
     try {
@@ -262,8 +262,8 @@
         }
 
         if (oldPlayerTierData && oldPlayerTierData[tierValue]) {
-          var wave = oldPlayerTierData[tierValue].wave || "";
-          var premium = oldPlayerTierData[tierValue].premium || "";
+          var wave = oldPlayerTierData[tierValue].wave || null;
+          var premium = oldPlayerTierData[tierValue].premium || null;
           values.Tier.push([wave]);
           values.Pass.push([premium]);
           if (oldPlayerTierData[tierValue].diss) {

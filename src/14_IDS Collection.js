@@ -1,4 +1,4 @@
-﻿const collection = {
+const collection = {
   // #region Export Functions
   exportData: function (versionDifference) {
     try {
