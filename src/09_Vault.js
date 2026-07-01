@@ -702,13 +702,17 @@ const vault = {
     harmonyData.forEach(function (isUnlocked, index) {
       if (isUnlocked && harmonyIndices[index]) {
         oldVaultHarmony[harmonyIndices[index]] = true;
-      };
+      } else {
+        oldVaultHarmony[harmonyIndices[index]] = false;
+      }
     });
 
     powerData.forEach(function (isUnlocked, index) {
       if (isUnlocked && powerIndices[index]) {
         var powerLevel = powerIndices[index].includes("Unlock") ? true : "x" + (powerLevels[index] + 1);
         oldVaultPower[powerIndices[index]] = powerLevel;
+      } else {
+        oldVaultPower[powerIndices[index]] = "-";
       }
     });
 
