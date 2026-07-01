@@ -1,0 +1,4 @@
+# Enforce LF line endings for the whole repo, in the index and on checkout.
+# This overrides the machine-level core.autocrlf=true so files are never
+# converted back to CRLF (which is what triggered the editor warning).
+* text=auto eol=lf

@@ -691,21 +691,10 @@
         const sPreset = (sBot.presets || {})[presetName] || {};
         const pProps = pPreset.props || {};
         const sProps = sPreset.props || {};
-        // Non-Farming presets are stored blank when they inherit Farming.
-        const farmingProps =
-          presetIndex > 0
-            ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
-            : sProps;
         let rows = "";
         attrs.forEach(function (attr) {
           const pv = pProps[attr];
           let sv = sProps[attr];
-          if (
-            presetIndex > 0 &&
-            (sv === null || sv === undefined || String(sv).trim() === "")
-          ) {
-            sv = farmingProps[attr];
-          }
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
         });

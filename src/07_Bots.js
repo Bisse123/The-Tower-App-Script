@@ -916,7 +916,7 @@ const bots = {
           : "Lo";
         if (!oldBots.data.hasOwnProperty(botName)) {
           oldBots.data[botName] = {
-            unlocked: null,
+            unlocked: false,
             presets: {},
           };
         }
