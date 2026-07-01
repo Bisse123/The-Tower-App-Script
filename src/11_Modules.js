@@ -1477,12 +1477,16 @@ const modules = {
     var oldModulesPresets = {};
 
     equippedModulesData.forEach(function (module, index) {
+      if (!module) {
+        return;
+      }
+      const moduleCategory = moduleCategories[index].toLowerCase();
+      if (!moduleCategory) {
+        return;
+      }
       const moduleName = moduleNames.hasOwnProperty(module.infoIndex)
-        ? moduleNames[module.infoIndex].name
-        : "Any Other";
-      const moduleCategory = (moduleNames.hasOwnProperty(module.infoIndex)
-        ? moduleNames[module.infoIndex].category
-        : moduleCategories[module.category]).toLowerCase();
+      ? moduleNames[module.infoIndex].name
+      : "Any Other";
       const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
         ? moduleRarities[module.currentRarity]
         : "Epic";
@@ -1546,7 +1550,7 @@ const modules = {
         return;
       }
       const equippedAssistModule = assistSlot.equippedModule || {};
-      if (!equippedAssistModule || !equippedAssistModule.infoIndex) {
+      if (!equippedAssistModule) {
         return;
       }
       const assistModuleName = moduleNames.hasOwnProperty(

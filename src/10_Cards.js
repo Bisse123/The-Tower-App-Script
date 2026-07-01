@@ -823,7 +823,15 @@ const cards = {
     const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
 
     const presetNameOverride = ["Farming", "Tourney"];
-    const presetNames = (data.presetNames || []).map((name, index) => (presetNameOverride[index] || name || `Preset ${index + 1}`));
+
+    const presetNames = (data.presetNames || []).map((name, index) => (name || `Preset ${index + 1}`));
+
+    presetNameOverride
+      .filter((override) => !presetNames.includes(override))
+      .forEach((override) => {
+        const slotIndex = presetNames.findIndex((name) => !presetNameOverride.includes(name));
+        if (slotIndex !== -1) presetNames[slotIndex] = override;
+      });
     const presetSlots = data.presetSlots || [];
     const presetCards = data.presetCards || [];
     const slotsUnlocked = data.slotsUnlocked || 0;

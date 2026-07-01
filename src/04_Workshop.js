@@ -1211,8 +1211,15 @@ const workshop = {
 
     const presetNameOverride = ["Farming", "Tourney"];
 
+    const presetNames = (data.presetNames || []).map((name, index) => (name || `Preset ${index + 1}`));
 
-    const presetNames = (data.presetNames || []).map((name, index) => (presetNameOverride[index] || name || `Preset ${index + 1}`));
+    presetNameOverride
+      .filter((override) => !presetNames.includes(override))
+      .forEach((override) => {
+        const slotIndex = presetNames.findIndex((name) => !presetNameOverride.includes(name));
+        if (slotIndex !== -1) presetNames[slotIndex] = override;
+      });
+
     const attackUpgradeData = data.upgradeAttackLevels || [];
     const defenseUpgradeData = data.upgradeDefenseLevels || [];
     const utilityUpgradeData = data.upgradeUtilityLevels || [];
