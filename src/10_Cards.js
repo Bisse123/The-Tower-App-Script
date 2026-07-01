@@ -844,6 +844,7 @@ const cards = {
 
     const numPresets = presetNames.length;
     const slotsPerPreset = numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
+    var nextPresetOrder = presetNameOverride.length + 1;
     var oldCardsPreset = {};
     presetNames.forEach(function (name, p) {
       if (!name) return;
@@ -857,10 +858,11 @@ const cards = {
           }
         }
       });
+      var overrideIndex = presetNameOverride.indexOf(name);
       oldCardsPreset[name] = {
         cards: cards,
         remove: [],
-        order: p + 1,
+        order: overrideIndex !== -1 ? overrideIndex + 1 : nextPresetOrder++,
       };
     });
 
