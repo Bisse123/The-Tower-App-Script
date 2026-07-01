@@ -8,14 +8,10 @@
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
 
-  // "all" shows everything parsed; "diff" compares against the linked sheet(s).
   let saveFileViewMode = "all";
-  // Exported sheet data keyed by category, cached so toggling is instant.
   let sheetExportData = {};
   let sheetExportFetched = false;
-  // Last parse result, kept so we can re-render when the view mode changes.
   let lastSaveFileResult = null;
-  // Category import selection (null = all selected); preserved across re-renders.
   let saveFileSelectedTypes = null;
 
   function runAppsScript(method, ...args) {
@@ -61,7 +57,7 @@
   function parseFile() {
     const file = document.getElementById("saveFileInput").files[0];
     if (!file) return;
-
+    setSaveFileBusy(true);
     resetSaveFileDiffState();
     setStatusWithSpinner("Reading file…");
 
@@ -81,13 +77,16 @@
           parsedSaveData = (result && result.parsed) || {};
           lastSaveFileResult = result;
           setStatusText(`${file.name} parsed successfully`);
+          setSaveFileBusy(false);
           renderSaveFileResults(result);
         })
         .catch(function (err) {
+          setSaveFileBusy(false);
           setStatusText("Error: " + (err.message || err));
         });
     };
     reader.onerror = function () {
+      setSaveFileBusy(false);
       setStatusText("Failed to read file.");
     };
     reader.readAsArrayBuffer(file);
@@ -100,6 +99,7 @@
     const order = (result && result.order) || Object.keys(parsed);
     let html = "<br>";
     let cardCount = 0;
+    const selectedTypes = new Set();
 
     for (const type of order) {
       const data = parsed[type];
@@ -107,8 +107,9 @@
       cardCount++;
 
       const bodyHtml = buildSaveFileCategoryBody(type, data);
-      // Mark categories that were compared and have no differences.
       const noDiff = /sfDiffNone/.test(bodyHtml);
+      const checked = sfTypeChecked(type) && !noDiff;
+      if (checked) selectedTypes.add(type);
 
       html += '<div class="sfCategory">';
       html +=
@@ -118,7 +119,7 @@
         '<input type="checkbox" class="sfCategoryCheckbox" data-sheettype="' +
         escSaveFileHtml(type) +
         '" ' +
-        (sfTypeChecked(type) ? "checked" : "") +
+        (checked ? "checked" : "") +
         ' onclick="event.stopPropagation()">';
       html +=
         '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
@@ -138,6 +139,8 @@
       html +=
         '<div class="sfMissingSection">No recognizable data found in this save file.</div>';
     }
+
+    saveFileSelectedTypes = selectedTypes;
 
     container.innerHTML = html;
     container.style.display = "block";
@@ -164,8 +167,6 @@
     updateSaveFileViewControls();
   }
 
-  // #region Save file diff (compare parsed save vs linked sheet data)
-
   function resetSaveFileDiffState() {
     saveFileViewMode = "all";
     sheetExportData = {};
@@ -187,14 +188,12 @@
     saveFileSelectedTypes = set;
   }
 
-  // Reflects the current view mode on the static button/legend in the section.
   function updateSaveFileViewControls() {
     const controls = document.getElementById("saveFileViewControls");
     const btn = document.getElementById("saveFileViewToggleBtn");
     const legend = document.getElementById("saveFileDiffLegend");
     if (!controls || !btn) return;
 
-    // Diffing needs a linked sheet and parsed data to compare against.
     const show = !!idMasterID && !!lastSaveFileResult;
     controls.style.display = show ? "" : "none";
 
@@ -238,7 +237,6 @@
         return;
       }
       if (!sheetExportFetched) {
-        // Lock the whole workflow while the export runs in the background.
         setSaveFileBusy(true);
         const ok = await fetchSaveFileSheetData();
         setSaveFileBusy(false);
@@ -350,10 +348,6 @@
     }
   }
 
-  // ── Diff value helpers ──
-
-  // Sheet cells for levels can be "level | effect | current cost | next cost";
-  // we only care about the level (first segment).
   function sfTrimLevel(v) {
     if (v === null || v === undefined) return null;
     let s = String(v);
@@ -361,7 +355,6 @@
     return s.trim();
   }
 
-  // Normalize a level for comparison: empty/null → "0", numbers lose padding.
   function sfNormLevel(v) {
     const t = sfTrimLevel(v);
     if (t === null || t === "") return "0";
@@ -369,11 +362,10 @@
     return t.toLowerCase();
   }
 
-  // Normalize a generic value (stats, names, multipliers) for comparison.
   function sfNormGeneric(v) {
     if (v === true || v === "true" || v === "TRUE") return "true";
     if (v === false || v === "false" || v === "FALSE") return "false";
-    if (v === null || v === undefined || v === "") return "";
+    if (v === null || v === undefined || v === "" || v === "-") return "";
     const t = sfTrimLevel(v);
     if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
     return t.toLowerCase();
@@ -399,14 +391,10 @@
     return sfTrimLevel(v);
   }
 
-  // For unlock/boolean fields: empty/null means "not unlocked", so show ✗
-  // (never a bare "-") to make the on/off state explicit.
   function sfDisplayBool(v) {
     return sfNormBool(v) ? "✓" : "✗";
   }
 
-  // The sheet marks "no bot sync" as blank or "X"; the save uses null. Treat
-  // all of those as "not synced" so they don't read as a difference.
   function sfSyncIsNone(v) {
     const t = sfNormGeneric(v);
     return t === "" || t === "x" || t === "-" || t === "0" || t === "false";
@@ -419,8 +407,6 @@
   function sfDisplaySync(v) {
     return sfSyncIsNone(v) ? "-" : sfTrimLevel(v);
   }
-
-  // ── Diff rendering helpers ──
 
   function sfDiffRow(oldDisp, newDisp, name) {
     return (
@@ -537,7 +523,6 @@
     presetNames.forEach(function (presetName, presetIndex) {
       let upRows = "";
       let enRows = "";
-      // Only show a preset if the save file actually configured it (non-zero).
       let presetHasValue = false;
 
       tracks.forEach(function (track) {
@@ -579,8 +564,6 @@
     return html;
   }
 
-  // The sheet stores a Tourney value as blank when it inherits the Farming
-  // preset, so fall back to the Farming index to avoid spurious differences.
   function sfSheetPresetVal(arr, idx, presetIndex, farmingIdx) {
     if (!arr) return undefined;
     let v = arr[idx];
@@ -691,10 +674,24 @@
         const sPreset = (sBot.presets || {})[presetName] || {};
         const pProps = pPreset.props || {};
         const sProps = sPreset.props || {};
+        const farmingProps =
+          presetIndex > 0
+            ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
+            : sProps;
         let rows = "";
         attrs.forEach(function (attr) {
           const pv = pProps[attr];
           let sv = sProps[attr];
+          if (
+            presetIndex > 0 &&
+            (sv === null || sv === undefined || String(sv).trim() === "")
+          ) {
+            sv = farmingProps[attr];
+          }
+          if (sv === null || sv === undefined || String(sv).trim() === "") {
+            sv = pv === "Lo" ? "Lo" : null;
+          };
+
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
         });
@@ -735,8 +732,6 @@
     return '<div class="sfDiffChips">' + items + "</div>";
   }
 
-  // The sheet lists every node (locked ones with a blank value); the parse only
-  // lists unlocked nodes. Treat any truthy value as "owned".
   function sfVaultOwned(v) {
     return !(
       v === null ||
@@ -773,8 +768,6 @@
       if (!name) return;
       const pv = pP[name];
       const sv = sP[name];
-      // "Unlock" nodes are on/off (shown like the all-data view); the rest are
-      // multipliers, shown as an old value → new value change.
       if (name.indexOf("Unlock") !== -1) {
         if (sfNormBool(pv) !== sfNormBool(sv)) {
           powerRows += sfDiffRow(sfDisplayBool(sv), sfDisplayBool(pv), name);
@@ -873,7 +866,6 @@
       const sCat = sInv[cat] || {};
       let colInner = "";
 
-      // Levels (Highest / Assist) first, above the Assist Slot.
       metaKeys.forEach(function (key) {
         if (!pCat.hasOwnProperty(key)) return;
         if (sfNormLevel(pCat[key]) !== sfNormLevel(sCat[key])) {
@@ -885,7 +877,6 @@
         }
       });
 
-      // Assist Slot (rarity, multiplier, substat).
       const pAssist = (pPre[cat] && pPre[cat]["Assist Slot"]) || null;
       const sAssist = (sPre[cat] && sPre[cat]["Assist Slot"]) || {};
       if (pAssist) {
@@ -1074,8 +1065,6 @@
     });
     return html;
   }
-
-  // #endregion
 
   function categoryHasData(data) {
     if (!data || typeof data !== "object") return false;
@@ -2107,7 +2096,7 @@
     if (harmonyKeys.length) {
       html += sfSubLabel("Harmony") + '<div class="sfVaultGrid">';
       harmonyOrder.forEach(function (name) {
-        if (!harmony.hasOwnProperty(name)) return;
+        if (!harmony.hasOwnProperty(name) || !harmony[name]) return;
         html +=
           '<span class="sfArrayItem">' + escSaveFileHtml(name) + "</span>";
       });
@@ -2118,7 +2107,7 @@
     if (powerKeys.length) {
       html += sfSubLabel("Power") + '<div class="sfVaultGrid">';
       powerOrder.forEach(function (name) {
-        if (!power.hasOwnProperty(name)) return;
+        if (!power.hasOwnProperty(name) || !sfNormGeneric(power[name])) return;
         const value = power[name];
         const valueHtml = value === true || value === "true"
             ? sfUnlockMark(true)
