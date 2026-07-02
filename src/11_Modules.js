@@ -50,7 +50,8 @@ const modules = {
       var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
-        "Assist Level": "DVT_Mod_Assist_Bonus_Level",
+        "Main Efficiency": "DVT_Mod_Assist_Bonus_Level",
+        "Substat Efficiency": "DVT_Mod_Assist_Substat_Level",
       };
 
       Object.keys(dvtNamedRanges).forEach(function (item) {
@@ -252,7 +253,7 @@ const modules = {
                 )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
                   rowIdx + 1
                 }`;
-                var lockedValues = [[presetData.locked || null]];
+                var lockedValues = [[presetData.locked || false]];
                 var rarityRange = `${sheetName}!${shared.columnToLetter(
                   presetCol + 2,
                 )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
@@ -268,11 +269,11 @@ const modules = {
                 // Transform values using DVT
                 var dvtMultiplier = shared.getDVTValue(
                   presetData.multiplier || null,
-                  dvtNamedRangesData["Assist Level"],
+                  dvtNamedRangesData["Main Efficiency"],
                 );
                 var dvtSubstat = shared.getDVTValue(
-                  presetData.substat || "",
-                  dvtNamedRangesData["Assist Level"],
+                  presetData.substat || null,
+                  dvtNamedRangesData["Substat Efficiency"],
                 );
 
                 var multiSubValues = [[dvtMultiplier], [dvtSubstat]];

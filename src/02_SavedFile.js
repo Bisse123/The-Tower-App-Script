@@ -98,14 +98,18 @@ const PlayerStuffHeaders = {
 
 function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
   const uint8 = Uint8Array.from(byteArray);
+  // Decompress the GZIP data
   const decompressedBlob = Utilities.ungzip(
     Utilities.newBlob(Array.from(uint8), "application/x-gzip"),
   );
+  // Convert the decompressed Blob to a Uint8Array
   const bytes = blobToUint8Array_(decompressedBlob);
+  // Parse the NRBF data
+  // .NET's BinaryFormatter uses a format called NRBF (Net Remote Binary Format) to serialize objects. This format is not natively supported in JavaScript, so we need to implement a parser for it.
+  // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
+  // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
   const data = parseNRBF(bytes);
 
-  // Per-sheet-type sheet IDs so parsers can read their indices from the live
-  // sheet (and warm the cache for the importData step) instead of a hardcoded list.
   sheetIDs = sheetIDs || {};
   
   function extratctDataByHeaders(headers) {

@@ -1,4 +1,4 @@
-const collection = {
+﻿const collection = {
   // #region Export Functions
   exportData: function (versionDifference) {
     try {
@@ -144,7 +144,8 @@ const collection = {
       };
 
       var dvtNamedRangesModules = {
-        "Assist Level": "DVT_Mod_Assist_Level",
+        "Main Efficiency": "DVT_Mod_Assist_Bonus_Level",
+        "Substat Efficiency": "DVT_Mod_Assist_Substat_Level",
       };
 
       var dvtNamedRangesGuardians = {
