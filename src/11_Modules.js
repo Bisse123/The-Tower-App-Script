@@ -217,103 +217,138 @@ const modules = {
         targetModuleTypes,
         newModulePresetsValues,
       );
-      var batchUpdate = [];
+      
+      var presetNames = oldModulesPresets.presetNames;
+      
+      var moduleContexts = {};
       targetModuleTypes.forEach(function (moduleType) {
-        if (oldModulesPresets.hasOwnProperty(moduleType)) {
-          var rowIdx = newModuleTypeIndex[moduleType] + 1;
-          if (typeof rowIdx === "undefined") return;
-          var row = newModulePresetsValues[rowIdx];
-          var usedPresets = [];
-          Object.keys(oldModulesPresets[moduleType]).forEach(
-            function (presetName) {
-              var presetCol = row.indexOf(presetName);
-              if (presetName === "") {
-                return;
-              }
-              var presetData = oldModulesPresets[moduleType][presetName];
-              if (!presetData) {
-                return;
-              }
-              if (presetCol === -1) {
-                presetCol = row.findIndex(
-                  (cell) =>
-                    String(cell).toLowerCase().includes("preset") &&
-                    !String(cell).toLowerCase().includes("module") &&
-                    !usedPresets.includes(cell) &&
-                    !oldModulesPresets[moduleType].hasOwnProperty(cell),
-                );
-                if (presetCol === -1) {
-                  return;
-                }
-              }
-              usedPresets.push(row[presetCol]);
-              if (presetName === "Assist Slot") {
-                var lockedRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 3,
-                )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${
-                  rowIdx + 1
-                }`;
-                var lockedValues = [[presetData.locked || false]];
-                var rarityRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 2,
-                )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${
-                  rowIdx + 2
-                }`;
-                var rarityValues = [[presetData.rarity || null]];
-                var multiSubRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 3,
-                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${
-                  rowIdx + 4
-                }`;
+        if (!oldModulesPresets.hasOwnProperty(moduleType)) return;
+        if (typeof newModuleTypeIndex[moduleType] === "undefined") return;
+        var rowIdx = newModuleTypeIndex[moduleType] + 1;
+        moduleContexts[moduleType] = {
+          rowIdx: rowIdx,
+          row: newModulePresetsValues[rowIdx],
+        };
+      });
+      var referenceModuleType = targetModuleTypes.find(function (moduleType) {
+        return moduleContexts.hasOwnProperty(moduleType);
+      });
+      var batchUpdate = [];
+      if (presetNames && referenceModuleType) {
+        var referenceRow = moduleContexts[referenceModuleType].row;
+        var referencePresets = oldModulesPresets[referenceModuleType];
+        var usedPresets = [];
+        presetNames.forEach(function (presetName) {
+          if (presetName === "") {
+            return;
+          }
+          
+          var presetCol = referenceRow.indexOf(presetName);
+          if (presetCol === -1) {
+            presetCol = referenceRow.findIndex(
+              (cell) =>
+                String(cell).toLowerCase().includes("preset") &&
+                !String(cell).toLowerCase().includes("module") &&
+                !usedPresets.includes(cell) &&
+                !referencePresets.hasOwnProperty(cell),
+            );
+            if (presetCol === -1) {
+              return;
+            }
+          }
+          usedPresets.push(referenceRow[presetCol]);
+          targetModuleTypes.forEach(function (moduleType) {
+            var context = moduleContexts[moduleType];
+            if (!context) {
+              return;
+            }
+            var modulePresets = oldModulesPresets[moduleType];
+            if (!modulePresets.hasOwnProperty(presetName)) {
+              return;
+            }
+            var presetData = modulePresets[presetName];
+            if (!presetData) {
+              return;
+            }
+            var rowIdx = context.rowIdx;
+            var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
+            var presetNameValues = [[presetName]];
+            batchUpdate.push({
+              range: presetNameRange,
+              values: presetNameValues,
+            });
 
-                // Transform values using DVT
-                var dvtMultiplier = shared.getDVTValue(
-                  presetData.multiplier || null,
-                  dvtNamedRangesData["Main Efficiency"],
-                );
-                var dvtSubstat = shared.getDVTValue(
-                  presetData.substat || null,
-                  dvtNamedRangesData["Substat Efficiency"],
-                );
-
-                var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
-                batchUpdate.push({
-                  range: lockedRange,
-                  values: lockedValues,
-                });
-                batchUpdate.push({
-                  range: rarityRange,
-                  values: rarityValues,
-                });
-                batchUpdate.push({
-                  range: multiSubRange,
-                  values: multiSubValues,
-                });
-              } else {
-                var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
-                var presetNameValues = [[presetName]];
-                batchUpdate.push({
-                  range: presetNameRange,
-                  values: presetNameValues,
-                });
-
-                var presetModuleRange = `${sheetName}!${shared.columnToLetter(
-                  presetCol + 2,
-                )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
-                  rowIdx + 4
-                }`;
-                var presetModuleValues = [
-                  [presetData.primary || ""],
-                  [presetData.secondary || ""],
-                ];
-                batchUpdate.push({
-                  range: presetModuleRange,
-                  values: presetModuleValues,
-                });
-              }
-            },
-          );
+            var presetModuleRange = `${sheetName}!${shared.columnToLetter(
+              presetCol + 2,
+            )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
+              rowIdx + 4
+            }`;
+            var presetModuleValues = [
+              [presetData.primary || ""],
+              [presetData.secondary || ""],
+            ];
+            batchUpdate.push({
+              range: presetModuleRange,
+              values: presetModuleValues,
+            });
+          });
+        });
+      }
+      
+      targetModuleTypes.forEach(function (moduleType) {
+        var context = moduleContexts[moduleType];
+        if (!context) {
+          return;
         }
+        var modulePresets = oldModulesPresets[moduleType];
+        if (!modulePresets.hasOwnProperty("Assist Slot")) {
+          return;
+        }
+        var presetData = modulePresets["Assist Slot"];
+        if (!presetData) {
+          return;
+        }
+        var row = context.row;
+        var rowIdx = context.rowIdx;
+        var presetCol = row.indexOf("Assist Slot");
+        if (presetCol === -1) {
+          return;
+        }
+        var lockedRange = `${sheetName}!${shared.columnToLetter(
+          presetCol + 3,
+        )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 1}`;
+        var lockedValues = [[presetData.locked || false]];
+        var rarityRange = `${sheetName}!${shared.columnToLetter(
+          presetCol + 2,
+        )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${rowIdx + 2}`;
+        var rarityValues = [[presetData.rarity || null]];
+        var multiSubRange = `${sheetName}!${shared.columnToLetter(
+          presetCol + 3,
+        )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 4}`;
+
+        // Transform values using DVT
+        var dvtMultiplier = shared.getDVTValue(
+          presetData.multiplier || null,
+          dvtNamedRangesData["Main Efficiency"],
+        );
+        var dvtSubstat = shared.getDVTValue(
+          presetData.substat || null,
+          dvtNamedRangesData["Substat Efficiency"],
+        );
+
+        var multiSubValues = [[dvtMultiplier], [dvtSubstat]];
+        batchUpdate.push({
+          range: lockedRange,
+          values: lockedValues,
+        });
+        batchUpdate.push({
+          range: rarityRange,
+          values: rarityValues,
+        });
+        batchUpdate.push({
+          range: multiSubRange,
+          values: multiSubValues,
+        });
       });
       if (batchUpdate.length > 0) {
         return {
@@ -1054,18 +1089,30 @@ const modules = {
       );
 
       var oldModulesPresets = {};
+      var presetNames = [];
+      var presetNamesLocked = false;
       targetModuleTypes.forEach(function (moduleType) {
+        if (typeof oldModuleTypeIndex[moduleType] === "undefined") return;
         var rowIdx = oldModuleTypeIndex[moduleType] + 1;
-        if (typeof rowIdx === "undefined") return;
         oldModulesPresets[moduleType] = {};
         var row = oldModulesPresetsValues[rowIdx + 2];
+        var presetIndex = 0;
         for (var col = 0; col < row.length; col++) {
           if (String(row[col]).trim() === "Primary Slot") {
-            var presetName = oldModulesPresetsValues[rowIdx][col]
+            var rawPresetName = oldModulesPresetsValues[rowIdx][col]
               ? String(oldModulesPresetsValues[rowIdx][col]).trim()
               : "";
-            if (!presetName) {
+            if (!rawPresetName) {
               continue;
+            }
+            var presetName;
+            if (presetIndex < presetNames.length) {
+              presetName = presetNames[presetIndex];
+            } else if (!presetNamesLocked) {
+              presetName = rawPresetName;
+              presetNames.push(rawPresetName);
+            } else {
+              break;
             }
             var primaryName = oldModulesPresetsValues[rowIdx + 2][col + 1]
               ? String(oldModulesPresetsValues[rowIdx + 2][col + 1]).trim()
@@ -1077,7 +1124,11 @@ const modules = {
               primary: primaryName,
               secondary: secondaryName,
             };
+            presetIndex++;
           }
+        }
+        if (presetIndex > 0) {
+          presetNamesLocked = true;
         }
         var assistSlotCol =
           oldModulesPresetsValues[rowIdx].indexOf("Assist Slot");
@@ -1101,6 +1152,7 @@ const modules = {
           };
         }
       });
+      oldModulesPresets.presetNames = presetNames;
 
       return {
         success: true,
@@ -1125,28 +1177,45 @@ const modules = {
       );
 
       var oldModulesPresets = {};
+      var presetNames = [];
+      var presetNamesLocked = false;
       targetModuleTypes.forEach(function (moduleType) {
+        if (typeof oldModuleTypeIndex[moduleType] === "undefined") return;
         var rowIdx = oldModuleTypeIndex[moduleType] + 1;
-        if (typeof rowIdx === "undefined") return;
         oldModulesPresets[moduleType] = {};
         var row = oldModulesPresetsValues[rowIdx];
+        var presetIndex = 0;
         for (var col = 0; col < row.length; col++) {
           if (String(row[col]).trim() === "Module Name") {
-            var presetName = String(
+            var rawPresetName = String(
               oldModulesPresetsValues[rowIdx - 1][col],
             ).trim();
             var moduleName = String(
               oldModulesPresetsValues[rowIdx + 1][col],
             ).trim();
-            if (presetName && moduleName) {
+            if (rawPresetName && moduleName) {
+              var presetName;
+              if (presetIndex < presetNames.length) {
+                presetName = presetNames[presetIndex];
+              } else if (!presetNamesLocked) {
+                presetName = rawPresetName;
+                presetNames.push(rawPresetName);
+              } else {
+                break;
+              }
               oldModulesPresets[moduleType][presetName] = {
                 primary: moduleName,
                 secondary: "",
               };
+              presetIndex++;
             }
           }
         }
+        if (presetIndex > 0) {
+          presetNamesLocked = true;
+        }
       });
+      oldModulesPresets.presetNames = presetNames;
 
       return {
         success: true,
