@@ -353,11 +353,19 @@
       var buildDVTNamedRangesData = function (dvtNamedRanges) {
         var dvtNamedRangesData = {};
         Object.keys(dvtNamedRanges).forEach(function (item) {
-          dvtNamedRangesData[item] = {};
-          Object.keys(dvtNamedRanges[item]).forEach(function (prop) {
-            var rangeData = getRangeData(dvtNamedRanges[item][prop], "values");
-            dvtNamedRangesData[item][prop] = rangeData || [];
-          });
+          var value = dvtNamedRanges[item];
+          if (typeof value === "object" && value !== null) {
+            // Nested structure: { item: { prop: rangeName } }
+            dvtNamedRangesData[item] = {};
+            Object.keys(value).forEach(function (prop) {
+              var rangeData = getRangeData(value[prop], "values");
+              dvtNamedRangesData[item][prop] = rangeData || [];
+            });
+          } else {
+            // Flat structure: { item: rangeName }
+            var rangeData = getRangeData(value, "values");
+            dvtNamedRangesData[item] = rangeData || [];
+          }
         });
         return dvtNamedRangesData;
       };
