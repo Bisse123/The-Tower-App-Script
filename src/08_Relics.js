@@ -300,7 +300,7 @@ const relics = {
       oldRelicsData.slice(startRow - 1).forEach(function (row) {
         var relicName = row[relicNameIndex].trim();
         if (relicName.includes("T:")) {
-          relicName = relicName.replace(/T:\s+/g, "T: ");
+          relicName = relicName.replace(/T:\s*/g, "T: ");
         }
         var isUnlocked = row[relicUnlockedIndex];
 
