@@ -41,7 +41,7 @@
       document.getElementById("saveFileParseBtn").disabled = !file;
 
       if (file) {
-        setStatusText("Ready to parse. Click \"Parse File\" to continue...");
+        setStatusText('Ready to parse. Click "Parse File" to continue...');
       } else {
         setStatusText("Choose saved file...");
       }
@@ -124,8 +124,7 @@
       html +=
         '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
       if (noDiff) {
-        html +=
-          '<span class="sfCategoryCheck" title="No differences">✓</span>';
+        html += '<span class="sfCategoryCheck" title="No differences">✓</span>';
       }
       html += "</span>";
       html += '<span class="sfCategoryChevron">►</span>';
@@ -155,8 +154,7 @@
 
     const importSummary = document.getElementById("saveFileImportSummary");
     if (!idMasterID) {
-      importSummary.innerHTML =
-        `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
+      importSummary.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
     } else if (saveFileCollectionOutdated) {
       renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
     } else {
@@ -315,7 +313,8 @@
               );
               if (!compat || !compat.success || !compat.versionDifference) {
                 result[type] = {
-                  __error: (compat && compat.message) || "Version check failed.",
+                  __error:
+                    (compat && compat.message) || "Version check failed.",
                 };
                 return;
               }
@@ -372,9 +371,7 @@
   }
 
   function sfNormBool(v) {
-    return (
-      v === true || v === "true" || v === "TRUE" || v === 1 || v === "1"
-    );
+    return v === true || v === "true" || v === "TRUE" || v === 1 || v === "1";
   }
 
   function sfDisplayLevel(v) {
@@ -690,7 +687,7 @@
           }
           if (sv === null || sv === undefined || String(sv).trim() === "") {
             sv = pv === "Lo" ? "Lo" : null;
-          };
+          }
 
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
@@ -761,7 +758,10 @@
       else if (!inP && inS) harmonyChips += sfDiffRemItem(name);
     });
     if (harmonyChips)
-      html += sfDiffSub("Harmony", '<div class="sfDiffChips">' + harmonyChips + "</div>");
+      html += sfDiffSub(
+        "Harmony",
+        '<div class="sfDiffChips">' + harmonyChips + "</div>",
+      );
 
     let powerRows = "";
     powerOrder.forEach(function (name) {
@@ -895,7 +895,9 @@
             "Rarity",
           );
         }
-        if (sfNormLevel(pAssist.multiplier) !== sfNormLevel(sAssist.multiplier)) {
+        if (
+          sfNormLevel(pAssist.multiplier) !== sfNormLevel(sAssist.multiplier)
+        ) {
           assistRows += sfDiffRow(
             sfDisplayLevel(sAssist.multiplier),
             sfDisplayLevel(pAssist.multiplier),
@@ -909,7 +911,8 @@
             "Substat",
           );
         }
-        if (assistRows) colInner += sfModuleDiffEntry("Assist Slot", assistRows);
+        if (assistRows)
+          colInner += sfModuleDiffEntry("Assist Slot", assistRows);
       }
 
       Object.keys(pCat).forEach(function (key) {
@@ -1017,20 +1020,32 @@
   function renderPlayerDiff(parsed, sheet) {
     const pStats = parsed.oldPlayerStuffStatsData || {};
     const sStats = sheet.oldPlayerStuffStatsData || {};
+    const statsOrder = parsed.statOrder || Object.keys(pStats.Stat);
+    const premiumPackOrder = parsed.premiumOrder || Object.keys(pStats["Premium Packs"]);
     let html = "";
 
     let statRows = "";
-    Object.keys(pStats).forEach(function (section) {
-      const pObj = pStats[section] || {};
-      const sObj = sStats[section] || {};
-      Object.keys(pObj).forEach(function (key) {
-        if (sfNormGeneric(pObj[key]) === sfNormGeneric(sObj[key])) return;
-        statRows += sfDiffRow(
-          sfDisplayValue(sObj[key]),
-          sfDisplayValue(pObj[key]),
-          key,
-        );
-      });
+    
+    const pPack = pStats["Premium Packs"] || {};
+    const sPack = sStats["Premium Packs"] || {};
+    premiumPackOrder.forEach(function (key) {
+      if (sfNormGeneric(pPack[key]) === sfNormGeneric(sPack[key])) return;
+      statRows += sfDiffRow(
+        sfDisplayValue(sPack[key]),
+        sfDisplayValue(pPack[key]),
+        key,
+      );
+    });
+
+    const pStat = pStats.Stat || {};
+    const sStat = sStats.Stat || {};
+    statsOrder.forEach(function (key) {
+      if (sfNormGeneric(pStat[key]) === sfNormGeneric(sStat[key])) return;
+      statRows += sfDiffRow(
+        sfDisplayValue(sStat[key]),
+        sfDisplayValue(pStat[key]),
+        key,
+      );
     });
     if (statRows) html += sfDiffSub("Stats", sfDiffGrid(statRows));
 
@@ -1046,7 +1061,11 @@
       const sd = st.diss || {};
       let rows = "";
       if (sfNormLevel(pt.wave) !== sfNormLevel(st.wave))
-        rows += sfDiffRow(sfDisplayLevel(st.wave), sfDisplayLevel(pt.wave), "Wave");
+        rows += sfDiffRow(
+          sfDisplayLevel(st.wave),
+          sfDisplayLevel(pt.wave),
+          "Wave",
+        );
       ["attack", "defense", "utility", "ultimate"].forEach(function (k) {
         if (sfNormLevel(pd[k]) !== sfNormLevel(sd[k]))
           rows += sfDiffRow(
@@ -1123,7 +1142,9 @@
       return;
     }
     if (!idMasterID) {
-      setStatusText(`Could not determine your ${saveFileSheetType} automatically.`);
+      setStatusText(
+        `Could not determine your ${saveFileSheetType} automatically.`,
+      );
       return;
     }
     if (saveFileCollectionOutdated) {
@@ -1171,7 +1192,10 @@
     if (!saveFileSheetType && typeof sheetType === "string") {
       saveFileSheetType = sheetType;
     }
-    if (saveFileSheetType !== "IDS Master" && saveFileSheetType !== "IDS Collection") {
+    if (
+      saveFileSheetType !== "IDS Master" &&
+      saveFileSheetType !== "IDS Collection"
+    ) {
       await resolveSaveFileSheetType();
     }
 
@@ -1186,14 +1210,18 @@
     if (!saveFileImportTargets) {
       setStatusWithSpinner("Resolving your IDS Master sheets...");
       try {
-        const result = await runAppsScript("getSaveFileImportTargets", idMasterID);
+        const result = await runAppsScript(
+          "getSaveFileImportTargets",
+          idMasterID,
+        );
         if (result && result.success) saveFileImportTargets = result;
       } catch (err) {
         console.error("Could not resolve IDS Master sheets:", err);
       }
     }
 
-    const targets = (saveFileImportTargets && saveFileImportTargets.targets) || {};
+    const targets =
+      (saveFileImportTargets && saveFileImportTargets.targets) || {};
     const targetIds = Object.keys(targets).map(function (type) {
       return targets[type];
     });
@@ -1274,19 +1302,18 @@
     document.getElementById("saveFileInputRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
-    document.getElementById("saveFileAccessControls").style.display =
-      "block";
+    document.getElementById("saveFileAccessControls").style.display = "block";
     document.getElementById("saveFileAccessBtn").disabled = false;
     const summaryEl = document.getElementById("saveFileAccessSummary");
     if (summaryEl) {
-      summaryEl.textContent = "The script needs access to your sheet(s) before you can import data.";
+      summaryEl.textContent =
+        "The script needs access to your sheet(s) before you can import data.";
     }
     setStatusText("File access required. Please grant access...");
   }
 
   function showSaveFileWorkflow() {
-    document.getElementById("saveFileAccessControls").style.display =
-      "none";
+    document.getElementById("saveFileAccessControls").style.display = "none";
     document.getElementById("saveFileInputRow").style.display = "";
     document.getElementById("saveFileImportSummary").style.display = "";
     document.getElementById("saveFileResults").style.display = "";
@@ -1554,8 +1581,7 @@
     }
 
     if (skipped && skipped.length) {
-      html +=
-        `<div class="sfImportGroup"><strong>⚠️️ Not found in this ${saveFileSheetType}:</strong><br>`;
+      html += `<div class="sfImportGroup"><strong>⚠️️ Not found in this ${saveFileSheetType}:</strong><br>`;
       skipped.forEach(function (type) {
         html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
       });
@@ -1569,8 +1595,7 @@
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
 
-    let html =
-      `<div class="sfImportGroup"><strong>⛔ Import blocked - update your sheets first.</strong>
+    let html = `<div class="sfImportGroup"><strong>⛔ Import blocked - update your sheets first.</strong>
         <br>All selected subsheets must be linked in your ${saveFileSheetType} and on the 
         latest version before importing a save file.</div>`;
 
@@ -1765,7 +1790,7 @@
       setStatusText("File access was not granted.");
       return false;
     }
-    
+
     saveFilePendingAccessIds = saveFilePendingAccessIds.filter(function (id) {
       return pickedIds.indexOf(id) === -1;
     });
@@ -2109,7 +2134,8 @@
       powerOrder.forEach(function (name) {
         if (!power.hasOwnProperty(name) || !sfNormGeneric(power[name])) return;
         const value = power[name];
-        const valueHtml = value === true || value === "true"
+        const valueHtml =
+          value === true || value === "true"
             ? sfUnlockMark(true)
             : '<span class="sfMul">' + escSaveFileHtml(value) + "</span>";
         html +=
@@ -2306,14 +2332,20 @@
   function renderPlayerBody(data) {
     const stats = data.oldPlayerStuffStatsData || {};
     const tiers = data.oldPlayerStuffTierData || {};
+    const statOrder = data.statOrder || Object.keys(stats.Stat || []);
+    const premiumPackOrder =
+      data.premiumOrder || Object.keys(stats["Premium Packs"] || []);
     let html = "";
 
     html += '<div class="sfInlineKV">';
-    Object.keys(stats).forEach(function (section) {
-      const obj = stats[section] || {};
-      Object.keys(obj).forEach(function (k) {
-        html += sfInlinePair(k + ": ", obj[k]);
-      });
+    premiumPackOrder.forEach(function (key) {
+      const val = stats["Premium Packs"][key] || {};
+      console.log("Rendering premium pack key:", key, "value:", val);
+      html += sfInlinePair(key + ": ", val);
+    });
+    statOrder.forEach(function (key) {
+      const val = stats.Stat[key] || {};
+      html += sfInlinePair(key + ": ", val);
     });
     html += "</div>";
 
