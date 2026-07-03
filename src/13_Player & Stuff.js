@@ -1037,12 +1037,80 @@ const playerStuff = {
     const coinDissonance = data.coinDissonance || [];
     const uwDissonance = data.uwDissonance || [];
 
+    const lifetimeCoins = data.totalCoinsEarned || 0;
+    const lifetimeStones = data.totalStonesEarned + data.totalStonesBought || 0;
+    const lifetimeGems = data.totalGemsEarned + data.totalGemsBought || 0;
+
+    function formatLifeTime(value) {
+      if (value === null || value === undefined || value === "") {
+        return null;
+      }
+      if (typeof value !== "number" || !isFinite(value)) {
+        return value;
+      }
+
+      // Suffix for a given power-of-1000 group.
+      // 0 -> "", 1 -> K, 2 -> M, ... 11 -> D, then aa, ab, ac, ...
+      function getSuffix(group) {
+        var named = [
+          "",
+          "K",
+          "M",
+          "B",
+          "T",
+          "q",
+          "Q",
+          "s",
+          "S",
+          "O",
+          "N",
+          "D",
+        ];
+        if (group < named.length) {
+          return named[group];
+        }
+        var n = group - named.length; // 0-based index into aa, ab, ac, ...
+        var first = Math.floor(n / 26);
+        var second = n % 26;
+        return (
+          String.fromCharCode(97 + first) + String.fromCharCode(97 + second)
+        );
+      }
+
+      var negative = value < 0;
+      var num = Math.abs(value);
+
+      // Below 1000 there is no suffix.
+      if (num < 1000) {
+        return (negative ? "-" : "") + String(Math.round(num * 100) / 100);
+      }
+
+      var group = Math.floor(Math.log10(num) / 3);
+      var mantissa = num / Math.pow(1000, group);
+
+      // Guard against floating point / rounding pushing the mantissa to 1000+.
+      if (mantissa >= 1000) {
+        mantissa /= 1000;
+        group += 1;
+      }
+      var rounded = Math.round(mantissa * 100) / 100;
+      if (rounded >= 1000) {
+        rounded /= 1000;
+        group += 1;
+      }
+
+      return (negative ? "-" : "") + rounded.toFixed(2) + getSuffix(group);
+    }
+    
     var oldPlayerStuffTierData = {};
     var oldPlayerStuffStatsData = {
       Stat: {
         "Player ID": data.playerID,
         "Farming Tier": "Tier " + data.currentTier,
         "Tourney League": tourneyName,
+        "Lifetime Coins": formatLifeTime(lifetimeCoins),
+        "Stones": formatLifeTime(lifetimeStones),
+        "Gems": formatLifeTime(lifetimeGems),
       },
       "Premium Packs": {
         "Disable Ads": data.addPack,
@@ -1078,6 +1146,8 @@ const playerStuff = {
     return {
       oldPlayerStuffTierData: oldPlayerStuffTierData,
       oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+      statOrder: Object.keys(oldPlayerStuffStatsData.Stat),
+      premiumOrder: Object.keys(oldPlayerStuffStatsData["Premium Packs"]),
     };
   },
 

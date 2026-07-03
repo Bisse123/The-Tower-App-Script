@@ -94,6 +94,11 @@ const PlayerStuffHeaders = {
   hpDissonance: "dissonanceHealthBoost",
   coinDissonance: "dissonanceCoinBoost",
   uwDissonance: "dissonanceUltDamageBoost",
+  totalCoinsEarned: "totalCoinsEarned",
+  totalStonesEarned: "totalStonesEarned",
+  totalStonesBought: "totalStonesBought",
+  totalGemsEarned: "totalGemsEarned",
+  totalGemsBought: "totalGemsBought",
 }
 
 function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
