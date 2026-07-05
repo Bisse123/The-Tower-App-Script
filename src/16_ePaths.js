@@ -57,7 +57,7 @@ const ePaths = {
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!O3:O5";
-      var eDiscountLabRange = "eEcon!AP3:AP5";
+      var eDiscountLabRange = "eEcon!AQ3:AQ5";
       var ranges = [
         "IDS",
         eHPRange,
@@ -788,7 +788,7 @@ const ePaths = {
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!O3:O5";
-      var eDiscountLabRange = "eEcon!AP3:AP5";
+      var eDiscountLabRange = "eEcon!AQ3:AQ5";
       var CLDmgRange = "eDamage!AL149:AM149";
       var ranges = [
         eHPRange,
