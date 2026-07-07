@@ -266,7 +266,7 @@ const workshop = {
         }
         if (enhancementName && oldWorkshopPlusLevels.data[enhancementName]) {
           var enhancementData = oldWorkshopPlusLevels.data[enhancementName];
-          workshopPlusLevels.push(enhancementData || []);
+          workshopPlusLevels.push(enhancementData);
         }
       }
 

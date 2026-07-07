@@ -211,7 +211,7 @@ const lab = {
 
           var oldLabLevel = oldLabLevels[cellValue];
           if (oldLabLevel && oldLabLevel.length >= 2) {
-            newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || ""]);
+            newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || null]);
           } else {
             var currentLevel = masterSheetData[row][col] || 0;
             var currentTarget = masterSheetData[row][col + 1] || "";
