@@ -622,8 +622,8 @@ const vault = {
       "Discount Rerolls 5",               // 26
       "Smart Missile Barrage Automation", // 27
       "Discount Enhancements 6",          // 28
-      "Daily Mission - Set Shard Type",   // 29
-      "Auto Shatter Rare Modules",        // 30
+      "Auto Shatter Rare Modules",        // 29
+      "Daily Mission - Set Shard Type",   // 30
       "Additional Card Slot 5",           // 31
       "Discount Rerolls 6",               // 32
       "Auto Restart Run",                 // 33
@@ -659,23 +659,23 @@ const vault = {
       "Super Crit Chance 1",      // 12
       "Enemy Health Skip 1",      // 13
       "Ultimate Weapon Damage 2", // 14
-      "Tier x2 Unlock",           // 15
-      "Bot Range 2",              // 16
-      "Thorn Damage 1",           // 17
-      "Rend Armor Mult 1",        // 18
-      "Recovery Amount 1",        // 19
-      "Knockback Force 1",        // 20
-      "Critical Factor 1",        // 21
-      "Free Attack Upgrade 1",    // 22
-      "Orb Speed 1",              // 23
-      "Attack Speed 1",           // 24
-      "Free Defense Upgrade 1",   // 25
-      "Wall Rebuild 1",           // 26
-      "Super Crit Mult 1",        // 27
-      "Free Utility Upgrade 1",   // 28
+      "Bot Range 2",              // 15
+      "Thorn Damage 1",           // 16
+      "Rend Armor Mult 1",        // 17
+      "Recovery Amount 1",        // 18
+      "Knockback Force 1",        // 19
+      "Critical Factor 1",        // 20
+      "Free Attack Upgrade 1",    // 21
+      "Orb Speed 1",              // 22
+      "Attack Speed 1",           // 23
+      "Free Defense Upgrade 1",   // 24
+      "Wall Rebuild 1",           // 25
+      "Super Crit Mult 1",        // 26
+      "Free Utility Upgrade 1",   // 27
+      "Tier x2 Unlock",           // 28
       "Ultimate Weapon Damage 3", // 29
-      "Tier x3 Unlock",           // 30
-      "Bot Range 3",              // 31
+      "Bot Range 3",              // 30
+      "Tier x3 Unlock",           // 31
       "Knockback Chance 1",       // 32
       "Rend Armor Chance 1",      // 33
       "Max Recovery 1",           // 34
@@ -712,7 +712,7 @@ const vault = {
         var powerLevel = powerIndices[index].includes("Unlock") ? true : "x" + (powerLevels[index] + 1);
         oldVaultPower[powerIndices[index]] = powerLevel;
       } else {
-        oldVaultPower[powerIndices[index]] = "-";
+        oldVaultPower[powerIndices[index]] = powerIndices[index].includes("Unlock") ? false : "-";
       }
     });
 

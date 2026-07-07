@@ -633,22 +633,23 @@ const ePaths = {
       for (var row = 0; row < eEconData.length; row++) {
         for (var column = 0; column < eEconData[row].length; column++) {
           var cell = eEconData[row][column];
-          if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names to update
-            for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
-              var customName = eEconData[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
-              if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
-                var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
-                var cellAddress = `${cellCol}${nextRow + 1}`;
-                batchUpdate.push({
-                  range: `${sheetName}!${cellAddress}`,
-                  values: [[newValue]],
-                });
-              }
-            }
-          } else if (cell === "Perks") {
+          // if (cell === "Total Value") {
+          //   // Search rows below "Total Value" in column j - 2 for custom names to update
+          //   for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
+          //     var customName = eEconData[nextRow][column - 2];
+          //     if (!customName) break; // Stop when customName is empty
+          //     if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
+          //       var newValue = oldData.Custom[customName];
+          //       var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+          //       var cellAddress = `${cellCol}${nextRow + 1}`;
+          //       batchUpdate.push({
+          //         range: `${sheetName}!${cellAddress}`,
+          //         values: [[newValue]],
+          //       });
+          //     }
+          //   }
+          // } else 
+          if (cell === "Perks") {
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
               var perksCol = shared.columnToLetter(columnOffset + column + 5);
@@ -2513,26 +2514,27 @@ const ePaths = {
       for (var row = 0; row < oldValues.length; row++) {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
-          if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
-              var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
-              if (customData.includes(customName)) {
-                var customValue = oldValues[nextRow][column - 1];
-                if (
-                  !String(customValue) ||
-                  String(customValue).startsWith("=")
-                ) {
-                  continue;
-                }
-                if (!oldData.hasOwnProperty("Custom")) {
-                  oldData.Custom = {};
-                }
-                oldData.Custom[customName] = customValue;
-              }
-            }
-          } else if (cell === "Perks") {
+          // if (cell === "Total Value") {
+          //   // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+          //   for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+          //     var customName = oldValues[nextRow][column - 2];
+          //     if (!customName) break; // Stop when customName is empty
+          //     if (customData.includes(customName)) {
+          //       var customValue = oldValues[nextRow][column - 1];
+          //       if (
+          //         !String(customValue) ||
+          //         String(customValue).startsWith("=")
+          //       ) {
+          //         continue;
+          //       }
+          //       if (!oldData.hasOwnProperty("Custom")) {
+          //         oldData.Custom = {};
+          //       }
+          //       oldData.Custom[customName] = customValue;
+          //     }
+          //   }
+          // } else
+          if (cell === "Perks") {
             var perksAreActive = oldValues[row][column + 4];
             if (
               String(perksAreActive) &&

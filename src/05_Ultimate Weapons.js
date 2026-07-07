@@ -337,7 +337,7 @@ const ultimate = {
               );
               newValues.push(dvtLevelValue);
             } else {
-              newValues.push(nextRowData[4]);
+              newValues.push(null);
             }
 
             if (
@@ -350,7 +350,7 @@ const ultimate = {
               );
               newValues.push(dvtTargetValue);
             } else {
-              newValues.push(nextRowData[5]);
+              newValues.push(null);
             }
             newUltimateLevel.push(newValues);
 
