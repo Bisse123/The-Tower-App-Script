@@ -199,7 +199,7 @@ const themes = {
           var checkboxArr = [];
 
           for (var row = startRow; row < newThemesData.length; row++) {
-            var newThemeName = newThemesData[row][checkboxCol + 1].trim();
+            var newThemeName = newThemesData[row][checkboxCol + 1];
             if (
               newThemeName === "" ||
               newThemeName === null ||
@@ -208,7 +208,7 @@ const themes = {
             ) {
               break;
             }
-            checkboxArr.push([checkedSet.has(String(newThemeName))]);
+            checkboxArr.push([checkedSet.has(String(newThemeName).trim())]);
           }
 
           if (checkboxArr.length > 0) {
