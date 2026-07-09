@@ -7,6 +7,7 @@
 
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
+  let saveFileNotOwnedFiles = [];
 
   let saveFileViewMode = "all";
   let sheetExportData = {};
@@ -1021,11 +1022,12 @@
     const pStats = parsed.oldPlayerStuffStatsData || {};
     const sStats = sheet.oldPlayerStuffStatsData || {};
     const statsOrder = parsed.statOrder || Object.keys(pStats.Stat);
-    const premiumPackOrder = parsed.premiumOrder || Object.keys(pStats["Premium Packs"]);
+    const premiumPackOrder =
+      parsed.premiumOrder || Object.keys(pStats["Premium Packs"]);
     let html = "";
 
     let statRows = "";
-    
+
     const pPack = pStats["Premium Packs"] || {};
     const sPack = sStats["Premium Packs"] || {};
     premiumPackOrder.forEach(function (key) {
@@ -1165,6 +1167,8 @@
     document.getElementById("saveFileSection").style.display = "block";
     if (ready) {
       showSaveFileWorkflow();
+    } else if (saveFileNotOwnedFiles.length > 0) {
+      showSaveFileNotOwned();
     } else {
       showSaveFileAccessPrompt();
     }
@@ -1172,6 +1176,7 @@
 
   async function evaluateSaveFileAccess() {
     saveFilePendingAccessIds = [];
+    saveFileNotOwnedFiles = [];
     if (!idMasterID) return true;
 
     if (accessToken && !userEmail) {
@@ -1180,6 +1185,10 @@
 
     setStatusWithSpinner("Checking sheet access...");
     const primaryAccess = await checkSaveFileSheetAccess([idMasterID]);
+    if ((primaryAccess.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = primaryAccess.notOwnedFiles;
+      return false;
+    }
     if ((primaryAccess.inaccessibleFiles || []).length > 0) {
       saveFilePendingAccessIds = [idMasterID];
       return false;
@@ -1189,6 +1198,7 @@
   }
 
   async function resolveSaveFileSubsheetAccess() {
+    saveFileNotOwnedFiles = [];
     if (!saveFileSheetType && typeof sheetType === "string") {
       saveFileSheetType = sheetType;
     }
@@ -1232,6 +1242,11 @@
 
     setStatusWithSpinner("Checking access to your IDS Master sheets...");
     const subAccess = await checkSaveFileSheetAccess(targetIds);
+    if ((subAccess.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = subAccess.notOwnedFiles;
+      saveFilePendingAccessIds = [];
+      return false;
+    }
     saveFilePendingAccessIds = (subAccess.inaccessibleFiles || []).map(
       function (f) {
         return f.id;
@@ -1299,6 +1314,7 @@
   }
 
   function showSaveFileAccessPrompt() {
+    hideSaveFileNotOwned();
     document.getElementById("saveFileInputRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
@@ -1312,7 +1328,47 @@
     setStatusText("File access required. Please grant access...");
   }
 
+  function hideSaveFileNotOwned() {
+    const controls = document.getElementById("saveFileNotOwnedControls");
+    if (controls) controls.style.display = "none";
+  }
+
+  function showSaveFileNotOwned() {
+    document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileImportSummary").style.display = "none";
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileAccessControls").style.display = "none";
+
+    const controls = document.getElementById("saveFileNotOwnedControls");
+    if (controls) controls.style.display = "block";
+
+    const files = saveFileNotOwnedFiles || [];
+    const multiple = files.length > 1;
+
+    const summaryEl = document.getElementById("saveFileNotOwnedSummary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `⛔ <strong>${files.length} ${multiple ? "files" : "file"} not owned by you </strong><br>`;
+    }
+
+    const listEl = document.getElementById("saveFileNotOwnedList");
+    if (listEl) {
+      listEl.innerHTML =
+        '<div class="sfImportGroup"><strong>📂 Please ensure you own the following files </strong>' +
+        files
+          .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
+          .join("<br>") +
+        `</div>`;
+    }
+
+    setStatusText(
+      multiple
+        ? "You don't own some of these sheets. Sign in with the owner account."
+        : "You don't own this sheet. Sign in with the owner account.",
+    );
+  }
+
   function showSaveFileWorkflow() {
+    hideSaveFileNotOwned();
     document.getElementById("saveFileAccessControls").style.display = "none";
     document.getElementById("saveFileInputRow").style.display = "";
     document.getElementById("saveFileImportSummary").style.display = "";
@@ -1350,6 +1406,8 @@
 
     if (ready) {
       showSaveFileWorkflow();
+    } else if (saveFileNotOwnedFiles.length > 0) {
+      showSaveFileNotOwned();
     } else {
       showSaveFileAccessPrompt();
     }
@@ -1679,17 +1737,24 @@
 
     const accessibleFiles = [];
     const inaccessibleFiles = [];
+    const notOwnedFiles = [];
     results.forEach(function (entry) {
-      if (entry.result && entry.result.accessible) {
+      if (!entry.result || !entry.result.accessible) {
+        inaccessibleFiles.push({ id: entry.id });
+        return;
+      }
+
+      if (entry.result.owned) {
         accessibleFiles.push({ id: entry.id, name: entry.result.name });
       } else {
-        inaccessibleFiles.push({ id: entry.id });
+        notOwnedFiles.push({ id: entry.id, name: entry.result.name });
       }
     });
 
     return {
       accessibleFiles: accessibleFiles,
       inaccessibleFiles: inaccessibleFiles,
+      notOwnedFiles: notOwnedFiles,
     };
   }
   function openSaveFileAccessPicker(fileIds) {
@@ -1723,6 +1788,7 @@
           .setOAuthToken(accessToken)
           .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
           .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .enableFeature(google.picker.Feature.MINE_ONLY)
           .addView(view)
           .setCallback(function (data) {
             if (data.action === google.picker.Action.PICKED) {
