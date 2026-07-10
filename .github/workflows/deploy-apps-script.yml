@@ -38,11 +38,21 @@ jobs:
             "isLocalCreds": false
           }' > ~/.clasprc.json
 
+      - name: Pull current production HEAD
+        run: |
+          mkdir -p remote_head
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('.clasp.prod.json','utf8'));c.rootDir='remote_head';c.fileExtension='js';fs.writeFileSync('.clasp.json',JSON.stringify(c));"
+          clasp pull
+
+      - name: Verify tested HEAD matches this commit
+        run: |
+          if ! node .github/scripts/compare-src.js src remote_head; then
+            echo "::error::Production HEAD does not match this commit. The code on 'main' was not the code you pushed and tested via 'npm run dev'. Run 'npm run dev' with the exact 'main' code, verify it, then re-run this workflow. Nothing was deployed."
+            exit 1
+          fi
+
       - name: Use production configuration
         run: cp .clasp.prod.json .clasp.json
 
-      - name: Push to Google Apps Script
-        run: clasp push --force
-
       - name: Redeploy to production
-        run: clasp deploy -i ${{secrets.DEPLOYMENT_ID}} --description "Public Link"
+        run: clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} --description "Public Link"
