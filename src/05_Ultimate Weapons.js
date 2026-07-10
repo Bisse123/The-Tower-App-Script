@@ -327,8 +327,10 @@ const ultimate = {
             }
             var newWeaponAttribute = nextRowData[2];
             var newValues = [];
+
             if (
               oldWeapon.hasOwnProperty("levels") &&
+              newWeaponAttribute &&
               oldWeapon.levels.hasOwnProperty(newWeaponAttribute)
             ) {
               var dvtLevelValue = shared.getDVTValue(
@@ -342,6 +344,7 @@ const ultimate = {
 
             if (
               oldWeapon.hasOwnProperty("targets") &&
+              newWeaponAttribute &&
               oldWeapon.targets.hasOwnProperty(newWeaponAttribute)
             ) {
               var dvtTargetValue = shared.getDVTValue(

@@ -269,19 +269,21 @@ const guardians = {
               row = nextRow - 1;
               break;
             }
-            var newGuardianProp = nextRowData[2];
-            if (oldGuardian.props.hasOwnProperty(newGuardianProp)) {
-              var dvtPropValue = shared.getDVTValue(
-                oldGuardian.props[newGuardianProp],
-                dvtNamedRangesData[guardianName][newGuardianProp]
-              );
-              newGuardianLevel.push([dvtPropValue]);
-            } else {
-              newGuardianLevel.push([null]);
-            }
             if (nextRow == newGuardianData.length - 1) {
               row = nextRow;
             }
+
+            var newGuardianProp = nextRowData[2];
+            if (!oldGuardian.hasOwnProperty("props") || !newGuardianProp || !oldGuardian.props.hasOwnProperty(newGuardianProp)) {
+              newGuardianLevel.push([null]);
+              continue;
+            }
+
+            var dvtPropValue = shared.getDVTValue(
+              oldGuardian.props[newGuardianProp],
+              dvtNamedRangesData[guardianName][newGuardianProp]
+            );
+            newGuardianLevel.push([dvtPropValue]);
           }
         } else {
           newGuardianUnlocked.push([null]);
@@ -662,10 +664,10 @@ const guardians = {
         if (attr === null) return;
         var idx = i * upgrades.length + j;
         var level = guardianLevelData[idx];
-        chipLevels[attr] = level ? String(level).padStart(2, "0") : null;
+        chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
       });
       oldGuardians[guardianName] = {
-        unlocked: alwaysUnlocked ? null : (guardianUnlockedData[i] || null),
+        unlocked: alwaysUnlocked ? null : (guardianUnlockedData[i] || false),
         props: chipLevels,
       };
     });

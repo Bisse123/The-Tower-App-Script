@@ -2,6 +2,9 @@
 .clasprc.json
 .clasp.json
 
+# Scratch folder used by the deploy workflow to pull the project's HEAD
+remote_head/
+
 # docs
 docs/
 

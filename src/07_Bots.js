@@ -343,9 +343,6 @@ const bots = {
             break;
           }
           var newBotProp = nextRowData[2];
-          if (!newBotProp) {
-            continue;
-          }
 
           for (
             var presetIdx = 0;
@@ -375,17 +372,12 @@ const bots = {
               newBotSync[presetName].push([null]);
             }
 
-            if (!presetData.props) {
+            if (!presetData.hasOwnProperty("props") || !newBotProp || !presetData.props.hasOwnProperty(newBotProp)) {
               newBotLevels[presetName].push([null]);
               continue;
             }
 
             newBotLevels[presetName] = newBotLevels[presetName] || [];
-            if (!presetData.props.hasOwnProperty(newBotProp)) {
-              newBotLevels[presetName].push([null]);
-              continue;
-            }
-
             var oldPropValue = presetData.props[newBotProp];
             var dvtPropValue = shared.getDVTValue(
               oldPropValue,
@@ -915,11 +907,11 @@ const bots = {
           idx,
         ) {
           var level = botLevels[idx];
-          acc[upgrade] = level ? String(level).padStart(2, "0") : null ;
+          acc[upgrade] = level ? String(level).padStart(2, "0") : "00" ;
           return acc;
         }, {});
         props[targetBots[botName].plusUpgrade] = botPreset.plusUnlocked
-          ? (botPreset.plusLevel ? String(botPreset.plusLevel).padStart(2, "0") : null)
+          ? (botPreset.plusLevel ? String(botPreset.plusLevel).padStart(2, "0") : "Lo")
           : "Lo";
         if (!oldBots.data.hasOwnProperty(botName)) {
           oldBots.data[botName] = {
