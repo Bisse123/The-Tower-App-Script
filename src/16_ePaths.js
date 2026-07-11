@@ -57,6 +57,7 @@ const ePaths = {
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!O3:O5";
+      var eEconStoneMult = "eEcon!X3:X5";
       var eDiscountLabRange = "eEcon!AQ3:AQ5";
       var ranges = [
         "IDS",
@@ -67,6 +68,7 @@ const ePaths = {
         eRegenLabRange,
         eDamageLabRange,
         eEconLabRange,
+        eEconStoneMult,
         eDiscountLabRange,
       ];
 
@@ -91,7 +93,8 @@ const ePaths = {
       var eRegenLabValues = batchGetResult[5].values;
       var eDamageLabValues = batchGetResult[6].values;
       var eEconLabValues = batchGetResult[7].values;
-      var eDiscountLabValues = batchGetResult[8].values;
+      var eEconStoneMultValues = batchGetResult[8].values;
+      var eDiscountLabValues = batchGetResult[9].values;
 
       // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
@@ -158,6 +161,7 @@ const ePaths = {
           eEconValues,
           eEconColumnOffset,
           eEconLabValues,
+          eEconStoneMultValues,
           eDiscountLabValues
         );
         if (!eEconResult || !eEconResult.success) {
@@ -341,6 +345,14 @@ const ePaths = {
                 });
               }
             }
+          } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
+            var moduleValue = oldData.Modules[cell];
+            var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+            var moduleCellAddress = `${moduleCol}${row + 1}`;
+            batchUpdate.push({
+              range: `${sheetName}!${moduleCellAddress}`,
+              values: [[moduleValue]],
+            });
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
@@ -574,6 +586,7 @@ const ePaths = {
     eEconData,
     columnOffset,
     eEconLabData,
+    eEconStoneMultData,
     eDiscountLabData
   ) {
     try {
@@ -606,6 +619,19 @@ const ePaths = {
           batchUpdate.push({
             range: `${sheetName}!O5`,
             values: [[eEconRunningTimeValue]],
+          });
+        }
+      }
+      if (
+        eEconStoneMultData &&
+        eEconStoneMultData[1] &&
+        eEconStoneMultData[1][0] === "Stone Multiplier"
+      ) {
+        if (oldData.hasOwnProperty("eEconStoneMult")) {
+          var eEconStoneMultValue = oldData.eEconStoneMult;
+          batchUpdate.push({
+            range: `${sheetName}!X5`,
+            values: [[eEconStoneMultValue]],
           });
         }
       }
@@ -789,8 +815,8 @@ const ePaths = {
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!O3:O5";
+      var eEconStoneMult = "eEcon!X3:X5";
       var eDiscountLabRange = "eEcon!AQ3:AQ5";
-      var CLDmgRange = "eDamage!AL149:AM149";
       var ranges = [
         eHPRange,
         eDamageRange,
@@ -799,8 +825,8 @@ const ePaths = {
         eRegenLabRange,
         eDamageLabRange,
         eEconLabRange,
+        eEconStoneMult,
         eDiscountLabRange,
-        CLDmgRange,
       ];
       var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
       if (!batchResult || !batchResult.length === 0) {
@@ -816,22 +842,22 @@ const ePaths = {
       var eRegenLabValues = batchResult[4].values;
       var eDamageLabValues = batchResult[5].values;
       var eEconLabValues = batchResult[6].values;
-      var eDiscountLabValues = batchResult[7].values;
-      var cLDmgValues = batchResult[8].values;
+      var eEconStoneMultValues = batchResult[7].values;
+      var eDiscountLabValues = batchResult[8].values;
 
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion5_05_00_00eDamage(
+      var eDamageData = this.getVersion5_06_02_00eDamage(
         eDamageValues,
-        eDamageLabValues,
-        cLDmgValues
+        eDamageLabValues
       );
       var eEconData = this.getVersion5_08_00_00eEcon(
         eEconValues,
         eEconLabValues,
+        eEconStoneMultValues,
         eDiscountLabValues
       );
 
@@ -875,7 +901,6 @@ const ePaths = {
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!L3:L5";
       var eDiscountLabRange = "eEcon!AG3:AG5";
-      var CLDmgRange = "eDamage!AL149:AM149";
       var ranges = [
         eHPRange,
         eDamageRange,
@@ -885,7 +910,6 @@ const ePaths = {
         eDamageLabRange,
         eEconLabRange,
         eDiscountLabRange,
-        CLDmgRange,
       ];
       var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
       if (!batchResult || !batchResult.length === 0) {
@@ -902,17 +926,15 @@ const ePaths = {
       var eDamageLabValues = batchResult[5].values;
       var eEconLabValues = batchResult[6].values;
       var eDiscountLabValues = batchResult[7].values;
-      var cLDmgValues = batchResult[8].values;
 
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
         eRegenLabValues
       );
-      var eDamageData = this.getVersion5_05_00_00eDamage(
+      var eDamageData = this.getVersion5_06_02_00eDamage(
         eDamageValues,
-        eDamageLabValues,
-        cLDmgValues
+        eDamageLabValues
       );
       var eEconData = this.getVersion5_06_02_00eEcon(
         eEconValues,
@@ -2058,6 +2080,149 @@ const ePaths = {
 
   // #endregion
   // #region Get eDamage
+  getVersion5_06_02_00eDamage: function (oldValues, oldeDamageLabValues) {
+    try {
+      console.log("Called: ePaths.getVersion5_06_02_00eDamage");
+
+      var customData = ["Range", "Max Rend Mult ⚠️", "Shock Mult ⚠️"];
+      var modulesData = ["Cannon", "Core"];
+      var oldData = {};
+
+      if (
+        oldeDamageLabValues &&
+        oldeDamageLabValues[1] &&
+        oldeDamageLabValues[1][0] === "Running Time"
+      ) {
+        var eDamageLabCost = oldeDamageLabValues[0][0];
+        if (String(eDamageLabCost)) {
+          oldData.eDamageLabCost = eDamageLabCost;
+        }
+        var eDamageRunningTime = oldeDamageLabValues[2][0];
+        if (String(eDamageRunningTime)) {
+          oldData.eDamageRunningTime = eDamageRunningTime;
+        }
+      }
+
+      for (var row = 0; row < oldValues.length; row++) {
+        for (var column = 0; column < oldValues[row].length; column++) {
+          var cell = oldValues[row][column];
+          if (cell === "Total Value") {
+            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var customName = oldValues[nextRow][column - 2];
+              if (!customName) break; // Stop when customName is empty
+              if (customData.includes(customName)) {
+                var customValue = oldValues[nextRow][column - 1];
+                if (
+                  !String(customValue) ||
+                  String(customValue).startsWith("=")
+                ) {
+                  continue;
+                }
+                if (!oldData.hasOwnProperty("Custom")) {
+                  oldData.Custom = {};
+                }
+                oldData.Custom[customName] = customValue;
+              }
+            }
+          } else if (cell === "Perks") {
+            var perksAreActive = oldValues[row][column + 4];
+            if (
+              String(perksAreActive) &&
+              !String(perksAreActive).startsWith("=")
+            ) {
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
+              oldData.Perks["Active"] = perksAreActive;
+            }
+            for (var nextRow = row + 2; nextRow < oldValues.length; nextRow++) {
+              var perkName = oldValues[nextRow][column];
+              if (!perkName) break;
+              if (perkName.startsWith("=")) {
+                var parts = perkName.split("&");
+                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+              }
+              if (!oldData.hasOwnProperty("Perks")) {
+                oldData.Perks = {};
+              }
+              oldData.Perks[perkName] = oldValues[nextRow][column + 4];
+            }
+          } else if (cell === "User Specific Guesses") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var guessName = oldValues[nextRow][column];
+              if (!guessName) break;
+              var guessValueIndex = 4;
+              if (["Run Type", "Simulated Tier"].includes(guessName)) {
+                guessValueIndex -= 1;
+              }
+              var guessValue = oldValues[nextRow][column + guessValueIndex];
+              if (!String(guessValue) || String(guessValue).startsWith("=")) {
+                continue;
+              }
+              if (guessName.startsWith("=")) {
+                var parts = guessName.split(",");
+                guessName = parts[parts.length - 2]
+                  .replace(/["\(\)]/g, "")
+                  .trim();
+              }
+              if (!oldData.hasOwnProperty("UserGuess")) {
+                oldData.UserGuess = {};
+              }
+              oldData.UserGuess[guessName] = guessValue;
+            }
+          } else if (modulesData.includes(cell)) {
+            var moduleLevel = oldValues[row][column + 1];
+            if (!moduleLevel || moduleLevel.startsWith("=")) {
+              continue;
+            }
+            if (!oldData.hasOwnProperty("Modules")) {
+              oldData.Modules = {};
+            }
+            oldData.Modules[cell] = moduleLevel;
+          } else if (cell === "Rows Calculated") {
+            var rowsCalculated = oldValues[row + 1][column];
+            if (
+              !String(rowsCalculated) ||
+              String(rowsCalculated).startsWith("=")
+            ) {
+              continue;
+            }
+            oldData.rowsCalculated = rowsCalculated;
+          } else if (cell === "Running Time") {
+            var runningTime = oldValues[row + 1][column];
+            if (!String(runningTime)) {
+              continue;
+            }
+            oldData.runningTime = runningTime;
+          } else if (cell === "Presets") {
+            for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
+              var presetName = oldValues[nextRow][column];
+              if (!presetName) break;
+              if (!oldData.hasOwnProperty("Presets")) {
+                oldData.Presets = {};
+              }
+              oldData.Presets[presetName] = oldValues[nextRow][column + 3];
+            }
+          } else if (cell === "PS Beta Testing") {
+            oldData.PSBeta = oldValues[row - 1][column];
+          }
+        }
+      }
+      return {
+        success: true,
+        message: "eDamage data extracted successfully",
+        oldData: oldData,
+      };
+    } catch (error) {
+      console.log(`Error in getVersion5_06_02_00eDamage: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error in getVersion5_06_02_00eDamage: " + error.message,
+      };
+    }
+  },
+
   getVersion5_05_00_00eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
     try {
       console.log("Called: ePaths.getVersion5_05_00_00eDamage");
@@ -2474,6 +2639,7 @@ const ePaths = {
   getVersion5_08_00_00eEcon: function (
     oldValues,
     oldeEconLabValues,
+    oldeEconStoneMultValues,
     oldeDiscountLabValues
   ) {
     try {
@@ -2494,6 +2660,16 @@ const ePaths = {
         var eEconRunningTime = oldeEconLabValues[2][0];
         if (String(eEconRunningTime)) {
           oldData.eEconRunningTime = eEconRunningTime;
+        }
+      }
+      if (
+        oldeEconStoneMultValues &&
+        oldeEconStoneMultValues[1] &&
+        oldeEconStoneMultValues[1][0] === "Stone Multiplier"
+      ) {
+        var eEconStoneMult = oldeEconStoneMultValues[2][0];
+        if (String(eEconStoneMult)) {
+          oldData.eEconStoneMult = eEconStoneMult;
         }
       }
       if (
