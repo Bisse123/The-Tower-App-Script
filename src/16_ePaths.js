@@ -630,8 +630,8 @@ const ePaths = {
         if (oldData.hasOwnProperty("eEconStoneMult")) {
           var eEconStoneMultValue = oldData.eEconStoneMult;
           batchUpdate.push({
-            range: `${sheetName}!X3`,
-            values: [[eEconCostValue]],
+            range: `${sheetName}!X5`,
+            values: [[eEconStoneMultValue]],
           });
         }
       }
@@ -2668,7 +2668,7 @@ const ePaths = {
         oldeEconStoneMultValues[1][0] === "Stone Multiplier"
       ) {
         var eEconStoneMult = oldeEconStoneMultValues[2][0];
-        if (String(eStoneMult)) {
+        if (String(eEconStoneMult)) {
           oldData.eEconStoneMult = eEconStoneMult;
         }
       }
