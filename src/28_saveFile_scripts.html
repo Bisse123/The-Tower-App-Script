@@ -8,6 +8,7 @@
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
   let saveFileNotOwnedFiles = [];
+  let saveFileWarningFiles = [];
 
   let saveFileViewMode = "all";
   let sheetExportData = {};
@@ -1177,11 +1178,8 @@
   async function evaluateSaveFileAccess() {
     saveFilePendingAccessIds = [];
     saveFileNotOwnedFiles = [];
+    saveFileWarningFiles = [];
     if (!idMasterID) return true;
-
-    if (accessToken && !userEmail) {
-      await getUserEmailFromToken(accessToken);
-    }
 
     setStatusWithSpinner("Checking sheet access...");
     const primaryAccess = await checkSaveFileSheetAccess([idMasterID]);
@@ -1193,6 +1191,10 @@
       saveFilePendingAccessIds = [idMasterID];
       return false;
     }
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      primaryAccess.warningFiles,
+    );
 
     return await resolveSaveFileSubsheetAccess();
   }
@@ -1247,6 +1249,10 @@
       saveFilePendingAccessIds = [];
       return false;
     }
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      subAccess.warningFiles,
+    );
     saveFilePendingAccessIds = (subAccess.inaccessibleFiles || []).map(
       function (f) {
         return f.id;
@@ -1315,6 +1321,7 @@
 
   function showSaveFileAccessPrompt() {
     hideSaveFileNotOwned();
+    clearSaveFileWarning();
     document.getElementById("saveFileInputRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
@@ -1333,7 +1340,14 @@
     if (controls) controls.style.display = "none";
   }
 
+  // Clears the non-blocking amber warning callout (hidden while empty).
+  function clearSaveFileWarning() {
+    const warn = document.getElementById("saveFileWarning");
+    if (warn) warn.innerHTML = "";
+  }
+
   function showSaveFileNotOwned() {
+    clearSaveFileWarning();
     document.getElementById("saveFileInputRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
@@ -1347,13 +1361,13 @@
 
     const summaryEl = document.getElementById("saveFileNotOwnedSummary");
     if (summaryEl) {
-      summaryEl.innerHTML = `⛔ <strong>${files.length} ${multiple ? "files" : "file"} not owned by you </strong><br>`;
+      summaryEl.innerHTML = `⛔ <strong>${files.length} ${multiple ? "files" : "file"} not owned or editable by you </strong><br>`;
     }
 
     const listEl = document.getElementById("saveFileNotOwnedList");
     if (listEl) {
       listEl.innerHTML =
-        '<div class="sfImportGroup"><strong>📂 Please ensure you own the following files </strong>' +
+        '<div class="sfImportGroup"><strong>📂 You must be the owner or an editor of the following files to continue </strong>' +
         files
           .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
           .join("<br>") +
@@ -1362,8 +1376,8 @@
 
     setStatusText(
       multiple
-        ? "You don't own some of these sheets. Sign in with the owner account."
-        : "You don't own this sheet. Sign in with the owner account.",
+        ? "You are not the owner or an editor of some of these sheets. Sign in with an account that can edit them."
+        : "You are not the owner or an editor of this sheet. Sign in with an account that can edit it.",
     );
   }
 
@@ -1374,14 +1388,38 @@
     document.getElementById("saveFileImportSummary").style.display = "";
     document.getElementById("saveFileResults").style.display = "";
     document.getElementById("saveFileInput").disabled = false;
+    renderSaveFileWarning(saveFileWarningFiles);
     if (saveFileCollectionOutdated) {
       renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
       setStatusText(
         "Update your IDS Collection to the latest version before importing.",
       );
+    } else if (saveFileWarningFiles && saveFileWarningFiles.length > 0) {
+      setStatusText(
+        "You have edit access (but do not own some sheets). You can continue. Choose saved file...",
+      );
     } else {
       setStatusText("Choose saved file...");
     }
+  }
+
+  // Non-blocking warning shown when the user can edit (but does not own) some of
+  // the required sheets. Rendered in its own distinct amber callout (separate
+  // from the blue import summary) so it stands out. The import workflow is still
+  // allowed to continue.
+  function renderSaveFileWarning(files) {
+    const el = document.getElementById("saveFileWarning");
+    if (!el) return;
+    if (!files || files.length === 0) {
+      el.innerHTML = "";
+      return;
+    }
+    const items = files
+      .map((file) => `<li>${escSaveFileHtml(file.name || file.id)}</li>`)
+      .join("");
+    el.innerHTML =
+      '<div class="saveFileWarningTitle">⚠️ You are not the owner of the following sheet(s), but you have edit access so you can continue:</div>' +
+      `<ul class="saveFileWarningList">${items}</ul>`;
   }
 
   async function grantSaveFileAccess() {
@@ -1395,7 +1433,13 @@
     );
 
     if (!grantedAll) {
-      document.getElementById("saveFileAccessBtn").disabled = false;
+      // A picked file may be accessible but not owned/editable - block and
+      // explain rather than silently re-prompting for access.
+      if (saveFileNotOwnedFiles.length > 0) {
+        showSaveFileNotOwned();
+      } else {
+        document.getElementById("saveFileAccessBtn").disabled = false;
+      }
       return;
     }
 
@@ -1418,10 +1462,6 @@
     if (!idMasterID || selected.length === 0) return;
 
     setSaveFileBusy(true);
-
-    if (accessToken && !userEmail) {
-      await getUserEmailFromToken(accessToken);
-    }
 
     if (saveFileSheetType === "IDS Collection") {
       await runSaveFileCollectionImport(selected);
@@ -1714,17 +1754,29 @@
     }
   }
 
+  // Merge two lists of "editable but not owned" warning files, de-duplicating
+  // by file id.
+  function mergeSaveFileWarnings(existing, additions) {
+    const merged = (existing || []).slice();
+    (additions || []).forEach(function (file) {
+      if (!merged.some(function (f) { return f.id === file.id; })) {
+        merged.push(file);
+      }
+    });
+    return merged;
+  }
+
   async function checkSaveFileSheetAccess(fileIds) {
     const ids = (fileIds || []).filter(function (id) {
       return typeof id === "string" && id.length > 0;
     });
     if (ids.length === 0) {
-      return { accessibleFiles: [], inaccessibleFiles: [] };
+      return { accessibleFiles: [], inaccessibleFiles: [], notOwnedFiles: [], warningFiles: [] };
     }
 
     const results = await Promise.all(
       ids.map(function (id) {
-        return runAppsScript("checkSheetAccess", id, userEmail)
+        return runAppsScript("checkSheetAccess", id)
           .then(function (result) {
             return { id: id, result: result };
           })
@@ -1738,15 +1790,22 @@
     const accessibleFiles = [];
     const inaccessibleFiles = [];
     const notOwnedFiles = [];
+    const warningFiles = [];
     results.forEach(function (entry) {
       if (!entry.result || !entry.result.accessible) {
         inaccessibleFiles.push({ id: entry.id });
         return;
       }
 
-      if (entry.result.owned) {
+      // The user can proceed if they own the file OR have edit access.
+      if (entry.result.owned || entry.result.canEdit) {
         accessibleFiles.push({ id: entry.id, name: entry.result.name });
+        if (!entry.result.owned) {
+          // Editable but not owned - allowed to continue, but warn the user.
+          warningFiles.push({ id: entry.id, name: entry.result.name });
+        }
       } else {
+        // Accessible but neither owner nor editor - cannot continue.
         notOwnedFiles.push({ id: entry.id, name: entry.result.name });
       }
     });
@@ -1755,6 +1814,7 @@
       accessibleFiles: accessibleFiles,
       inaccessibleFiles: inaccessibleFiles,
       notOwnedFiles: notOwnedFiles,
+      warningFiles: warningFiles,
     };
   }
   function openSaveFileAccessPicker(fileIds) {
@@ -1788,7 +1848,6 @@
           .setOAuthToken(accessToken)
           .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
           .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-          .enableFeature(google.picker.Feature.MINE_ONLY)
           .addView(view)
           .setCallback(function (data) {
             if (data.action === google.picker.Action.PICKED) {
@@ -1857,8 +1916,34 @@
       return false;
     }
 
+    setStatusWithSpinner("Verifying access to the selected sheet(s)...");
+    let recheck;
+    try {
+      recheck = await checkSaveFileSheetAccess(pickedIds);
+    } catch (error) {
+      console.error("Error re-checking access to picked files:", error);
+      setStatusText(`Error verifying access: ${error.message || error}`);
+      return false;
+    }
+
+    // Accessible but neither owned nor editable - the user cannot continue.
+    if ((recheck.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = recheck.notOwnedFiles;
+      return false;
+    }
+
+    // Editable but not owned - allowed to continue, but warn the user.
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      recheck.warningFiles,
+    );
+
+    // Only clear the pending list for files that are now genuinely accessible.
+    const nowAccessibleIds = (recheck.accessibleFiles || []).map(function (f) {
+      return f.id;
+    });
     saveFilePendingAccessIds = saveFilePendingAccessIds.filter(function (id) {
-      return pickedIds.indexOf(id) === -1;
+      return nowAccessibleIds.indexOf(id) === -1;
     });
 
     if (saveFilePendingAccessIds.length > 0) {

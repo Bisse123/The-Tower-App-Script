@@ -13,6 +13,7 @@
   let accessibleFilesCache = [];
   let inaccessibleFilesCache = [];
   let notOwnedFilesCache = [];
+  let warningFilesCache = [];
   let templateAccessibleFilesCache = [];
   let templateInaccessibleFilesCache = [];
   let copiedTemplateFiles = [];
@@ -163,12 +164,12 @@
       checkCollectionsAccess();
       return;
     } else if (sheetType === "Effective Paths" && oldSheetID && !newSheetID) {
-      checkMultipleSheetAccess([oldSheetID], userEmail)
+      checkMultipleSheetAccess([oldSheetID])
         .then(onSheetAccessCheckSuccess)
         .catch(onSheetAccessCheckFailure);
       return;
     } else if (oldSheetID && !newSheetID) {
-      checkMultipleSheetAccess(fileIds, userEmail)
+      checkMultipleSheetAccess(fileIds)
         .then(onSheetAccessCheckSuccess)
         .catch(onSheetAccessCheckFailure);
       return;
@@ -203,7 +204,7 @@
     }
 
     showFileAccessSection();
-    checkMultipleSheetAccess(fileIds, userEmail)
+    checkMultipleSheetAccess(fileIds)
       .then(onSheetAccessCheckSuccess)
       .catch(onSheetAccessCheckFailure);
   }
@@ -269,8 +270,6 @@
       );
     }
 
-    const hasTemplates = templateInaccessibleFilesCache.length > 0;
-
     console.log("Opening picker with inaccessible files:", {
       total: inaccessibleFileIds.length,
       templates: templateInaccessibleFilesCache.length,
@@ -312,10 +311,6 @@
         .setOrigin(google.script.host.origin)
         .setSize(pickerSize.width, pickerSize.height);
 
-      // Only add MINE_ONLY if no templates need access (templates are not owned by user)
-      if (!hasTemplates) {
-        picker.enableFeature(google.picker.Feature.MINE_ONLY);
-      }
 
       if (!isMobile || !isTouchOnlyDevice()) {
         picker.enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
@@ -432,13 +427,13 @@
           } else if (currentCopyMode) {
             copyTemplates(currentCopyMode);
           } else {
-            checkMultipleSheetAccess([oldSheetID], userEmail)
+            checkMultipleSheetAccess([oldSheetID])
               .then(onSheetAccessCheckSuccess)
               .catch(onSheetAccessCheckFailure);
           }
           return;
         } else if (sheetType === "Effective Paths") {
-          checkMultipleSheetAccess([oldSheetID], userEmail)
+          checkMultipleSheetAccess([oldSheetID])
             .then(onSheetAccessCheckSuccess)
             .catch(onSheetAccessCheckFailure);
           return;
@@ -447,7 +442,7 @@
           return;
         }
         console.log("Re-checking access for selected files:", fileIds);
-        checkMultipleSheetAccess(fileIds, userEmail)
+        checkMultipleSheetAccess(fileIds)
           .then(onSheetAccessCheckSuccess)
           .catch(onSheetAccessCheckFailure);
       } else if (data.action === google.picker.Action.CANCEL) {
@@ -520,10 +515,6 @@
         .setOrigin(google.script.host.origin)
         .setSize(pickerSize.width, pickerSize.height);
 
-      if (options.allowSharedFiles !== true) {
-        picker.enableFeature(google.picker.Feature.MINE_ONLY);
-      }
-
       // Mobile-specific optimizations
       if (isMobile) {
         picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
@@ -545,10 +536,10 @@
     try {
       // First check access to the oldSheetID
       console.log("Checking access to oldSheetID:", oldSheetID);
-      const sheetAccess = await checkMultipleSheetAccess(
-        [newSheetID, oldSheetID],
-        userEmail,
-      );
+      const sheetAccess = await checkMultipleSheetAccess([
+        newSheetID,
+        oldSheetID,
+      ]);
 
       if (!sheetAccess.success || sheetAccess.inaccessibleFiles.length > 0) {
         onSheetAccessCheckSuccess(sheetAccess);
@@ -597,7 +588,7 @@
       setStatusWithSpinner(`Checking access to ${sheetIds.length} sheets...`);
 
       // Check access to all sheets using the existing success/failure handlers
-      checkMultipleSheetAccess(sheetIds, userEmail)
+      checkMultipleSheetAccess(sheetIds)
         .then(onSheetAccessCheckSuccess)
         .catch(onSheetAccessCheckFailure);
     } catch (error) {
@@ -620,7 +611,7 @@
       // Check access to both template and sheet in parallel
       const [templateResults, oldSheetResults] = await Promise.all([
         checkMultipleTemplateAccess(templateInfo),
-        checkMultipleSheetAccess(sheetIds, userEmail),
+        checkMultipleSheetAccess(sheetIds),
       ]);
 
       if (!templateResults.success || !oldSheetResults.success) {
@@ -768,7 +759,7 @@
       if (templateInfo.length !== 0 && sheetIds.length !== 0) {
         [templateResults, oldSheetResults] = await Promise.all([
           checkMultipleTemplateAccess(templateInfo),
-          checkMultipleSheetAccess(sheetIds, userEmail),
+          checkMultipleSheetAccess(sheetIds),
         ]);
         if (!templateResults.success) {
           message = `${templateResults.message}`;
@@ -808,6 +799,7 @@
         accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
         inaccessibleFilesCache = result.oldSheetResults.inaccessibleFiles || [];
         notOwnedFilesCache = result.oldSheetResults.notOwnedFiles || [];
+        warningFilesCache = result.oldSheetResults.warningFiles || [];
         templateAccessibleFilesCache =
           result.templateResults.accessibleFiles || [];
         templateInaccessibleFilesCache =
@@ -880,6 +872,7 @@
         accessibleFilesCache = [];
         inaccessibleFilesCache = [];
         notOwnedFilesCache = [];
+        warningFilesCache = [];
         templateAccessibleFilesCache = [];
         templateInaccessibleFilesCache = [];
         // document.getElementById("copyButton").disabled = false;
@@ -900,6 +893,7 @@
     accessibleFilesCache = [];
     inaccessibleFilesCache = [];
     notOwnedFilesCache = [];
+    warningFilesCache = [];
     templateAccessibleFilesCache = [];
     templateInaccessibleFilesCache = [];
     resetIDSMasterState();
@@ -1352,7 +1346,7 @@
   }
 
   // Client-side wrapper functions for parallel access checking
-  async function checkMultipleSheetAccess(fileIds, userEmail) {
+  async function checkMultipleSheetAccess(fileIds) {
     try {
       if (!Array.isArray(fileIds) || fileIds.length === 0) {
         return {
@@ -1360,6 +1354,7 @@
           accessibleFiles: [],
           inaccessibleFiles: [],
           notOwnedFiles: [],
+          warningFiles: [],
           message: "No files to check.",
         };
       }
@@ -1374,7 +1369,7 @@
           google.script.run
             .withSuccessHandler((result) => resolve({ id: fileId, result }))
             .withFailureHandler((error) => reject({ id: fileId, error }))
-            .checkSheetAccess(fileId, userEmail);
+            .checkSheetAccess(fileId);
         });
       });
 
@@ -1385,13 +1380,15 @@
       const accessibleFiles = [];
       const inaccessibleFiles = [];
       const notOwnedFiles = [];
+      const warningFiles = [];
 
       results.forEach((promiseResult) => {
         if (promiseResult.status === "fulfilled") {
           const { id, result } = promiseResult.value;
 
           if (result.accessible) {
-            if (result.owned) {
+            // The user can proceed if they own the file OR they have edit access.
+            if (result.owned || result.canEdit) {
               if (!parentFolderID && result.parentFolderID) {
                 parentFolderID = result.parentFolderID;
                 console.log(
@@ -1399,7 +1396,12 @@
                 );
               }
               accessibleFiles.push({ id: id, name: result.name });
+              if (!result.owned) {
+                // Editable but not owned - allowed to continue, but warn the user.
+                warningFiles.push({ id: id, name: result.name });
+              }
             } else {
+              // Accessible but neither owner nor editor - cannot continue.
               notOwnedFiles.push({ id: id, name: result.name });
             }
           } else {
@@ -1420,13 +1422,15 @@
       if (inaccessibleFiles.length > 0) {
         message = `${inaccessibleFiles.length} file(s) need access permission.`;
       } else if (notOwnedFiles.length > 0) {
-        message = `All files accessible. ${notOwnedFiles.length} file(s) are shared with you.`;
+        message = `${notOwnedFiles.length} file(s) are not owned or editable by you.`;
+      } else if (warningFiles.length > 0) {
+        message = `All files accessible. ${warningFiles.length} file(s) are shared with edit access (not owned by you).`;
       } else {
         message = "All files are accessible and owned by you.";
       }
 
       console.log(
-        `Client-side access check complete: ${accessibleFiles.length} accessible, ${inaccessibleFiles.length} inaccessible, ${notOwnedFiles.length} not owned`,
+        `Client-side access check complete: ${accessibleFiles.length} accessible, ${inaccessibleFiles.length} inaccessible, ${notOwnedFiles.length} blocked, ${warningFiles.length} editable-not-owned`,
       );
 
       return {
@@ -1434,6 +1438,7 @@
         accessibleFiles: accessibleFiles,
         inaccessibleFiles: inaccessibleFiles,
         notOwnedFiles: notOwnedFiles,
+        warningFiles: warningFiles,
         message: message,
       };
     } catch (error) {
@@ -1443,6 +1448,7 @@
         accessibleFiles: [],
         inaccessibleFiles: [],
         notOwnedFiles: [],
+        warningFiles: [],
         message: `Error checking sheet access: ${error.message || error}`,
       };
     }
@@ -1542,6 +1548,7 @@
       accessibleFilesCache = result.accessibleFiles || [];
       inaccessibleFilesCache = result.inaccessibleFiles || [];
       notOwnedFilesCache = result.notOwnedFiles || [];
+      warningFilesCache = result.warningFiles || [];
       templateAccessibleFilesCache = [];
       templateInaccessibleFilesCache = [];
 
@@ -1549,6 +1556,7 @@
         accessible: accessibleFilesCache,
         inaccessible: inaccessibleFilesCache,
         notOwned: notOwnedFilesCache,
+        warning: warningFilesCache,
       });
       showContinueSection();
 
@@ -1561,6 +1569,7 @@
       accessibleFilesCache = [];
       inaccessibleFilesCache = [];
       notOwnedFilesCache = [];
+      warningFilesCache = [];
       templateAccessibleFilesCache = [];
       templateInaccessibleFilesCache = [];
       showContinueSection();
@@ -1573,6 +1582,7 @@
     accessibleFilesCache = [];
     inaccessibleFilesCache = [];
     notOwnedFilesCache = [];
+    warningFilesCache = [];
     templateAccessibleFilesCache = [];
     templateInaccessibleFilesCache = [];
     showContinueSection();

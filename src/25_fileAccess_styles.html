@@ -38,4 +38,37 @@
   .fileAccessSection a {
     color: #4caf50;
   }
+
+  /* Prominent, non-blocking warning callout (e.g. editable-but-not-owned files).
+     Amber styling deliberately contrasts with the green file-access section.
+     High-contrast, near-black text keeps it readable and colorblind-friendly;
+     the boundary does not rely on hue alone. */
+  .notOwnedWarning {
+    margin: 16px 0 4px;
+    padding: 12px 14px;
+    background-color: #fff3cd;
+    border: 1px solid #d39e00;
+    border-left: 5px solid #b36b00;
+    border-radius: 6px;
+    color: #2b2200;
+    font-size: 15px;
+    line-height: 1.5;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18);
+  }
+
+  .notOwnedWarningTitle {
+    font-weight: 700;
+    color: #3d2f00;
+    margin-bottom: 6px;
+  }
+
+  .notOwnedWarningList {
+    margin: 0;
+    padding-left: 22px;
+  }
+
+  .notOwnedWarningList li {
+    margin: 2px 0;
+    word-break: break-word;
+  }
 </style>

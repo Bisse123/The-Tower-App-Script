@@ -396,7 +396,6 @@
         stopAddonConsentReadyPolling();
         consentScopeCheckOutcome = "granted";
         accessToken = result.token;
-        await getUserEmailFromToken(accessToken);
         hideConsentModal();
         return true;
       }
@@ -431,7 +430,7 @@
 
     if (accessRequired && newSheetID) {
       console.log("Access required for new sheet:", newSheetID);
-      await findAndGrantNewSheet(newSheetID, userEmail);
+      await findAndGrantNewSheet(newSheetID);
     }
 
     const isContextReady = await getSideBarUpdateContext();
@@ -529,22 +528,4 @@
     return true;
   }
 
-  function getUserEmailFromToken(token) {
-    return fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("User email fetched:", data);
-        console.log("User email:", data.email);
-        userEmail = data.email || "";
-        return userEmail;
-      })
-      .catch((error) => {
-        console.error("Error fetching user email:", error);
-        return null;
-      });
-  }
 </script>

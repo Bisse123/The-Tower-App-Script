@@ -335,7 +335,8 @@ const CacheManager = {
 
   /**
    * Get or fetch file metadata from Drive with caching
-   * Caches all fields (id, name, parents, owners, trashed)
+   * Caches only the fields we need (id, name, parents, owners/me,
+   * capabilities/canEdit, trashed)
    * Automatically handles chunking for large file metadata
    * @param {string} fileID - File ID to fetch/cache
    * @returns {Object} File metadata or null
@@ -354,7 +355,8 @@ const CacheManager = {
       return JSON.parse(cached);
     }
 
-    const allFieldsNeeded = "id, name, parents, owners, trashed";
+    const allFieldsNeeded =
+      "id, name, parents, owners/me, capabilities/canEdit, trashed";
     try {
       const file = Drive.Files.get(fileID, { fields: allFieldsNeeded });
 
@@ -1757,14 +1759,15 @@ function checkScopePermissions() {
   }
 }
 
-function checkSheetAccess(sheetID, userEmail) {
+function checkSheetAccess(sheetID) {
   try {
-    if (!sheetID || !userEmail) {
+    if (!sheetID) {
       return {
         success: false,
-        message: "Missing sheetID or userEmail parameter",
+        message: "Missing sheetID parameter",
         accessible: false,
         owned: false,
+        canEdit: false,
       };
     }
 
@@ -1773,17 +1776,15 @@ function checkSheetAccess(sheetID, userEmail) {
       const parentFolderID =
         file.parents && file.parents.length > 0 ? file.parents[0] : null;
       const owners = file.owners || [];
-      const isOwner = owners.some(
-        (owner) =>
-          owner.emailAddress &&
-          owner.emailAddress.toLowerCase() === userEmail.toLowerCase(),
-      );
+      const isOwner = owners.some((owner) => owner.me === true);
+      const canEdit = !!(file.capabilities && file.capabilities.canEdit);
 
       return {
         success: true,
         message: `Sheet access verified`,
         accessible: true,
         owned: isOwner,
+        canEdit: canEdit,
         sheetID: sheetID,
         name: file.name,
         parentFolderID: parentFolderID,
@@ -1796,6 +1797,7 @@ function checkSheetAccess(sheetID, userEmail) {
         message: `Sheet access denied`,
         accessible: false,
         owned: false,
+        canEdit: false,
         sheetID: sheetID,
       };
     }
@@ -1806,6 +1808,7 @@ function checkSheetAccess(sheetID, userEmail) {
       message: `Error checking sheet access: ${error.toString()}`,
       accessible: false,
       owned: false,
+      canEdit: false,
     };
   }
 }

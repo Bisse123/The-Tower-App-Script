@@ -1,8 +1,16 @@
 <style>
   /* Hidden until authorizeSaveFile() acquires the token (continueSaveFile). */
   .saveFileSection {
-    background-color: #fff;
-    border-color: #c7d3ec;
+    background-color: #e8eefb;
+    border-color: #2752b0;
+  }
+
+  .saveFileTitle {
+    color: #1f4391;
+  }
+
+  .saveFileSection a {
+    color: #2752b0;
   }
 
   /* Shown only when the IDS Master needs access (hides the rest) */
@@ -18,7 +26,7 @@
     line-height: 1.6;
     background: #fdecec;
     border: 1px solid #f3c2c2;
-    border-left: 4px solid #d64545;
+    border-left: 5px solid #d64545;
     border-radius: 6px;
   }
   .saveFileNotOwnedControls .selectedFileSummary {
@@ -27,6 +35,41 @@
   }
   .saveFileNotOwnedControls .sfImportGroup {
     margin-bottom: 0;
+  }
+
+  /* Prominent, non-blocking warning callout (editable-but-not-owned sheets).
+     Amber stands apart from the blue import summary and the red not-owned hard
+     stop. High-contrast, near-black text keeps it readable and colorblind
+     friendly; the boundary does not rely on hue alone. */
+  .saveFileWarning {
+    margin: 14px 0;
+    padding: 12px 14px;
+    background-color: #fff3cd;
+    border: 1px solid #d39e00;
+    border-left: 5px solid #b36b00;
+    border-radius: 6px;
+    color: #2b2200;
+    font-size: 1em;
+    line-height: 1.6;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18);
+  }
+  .saveFileWarning:empty {
+    display: none;
+  }
+
+  .saveFileWarningTitle {
+    font-weight: 700;
+    color: #3d2f00;
+    margin-bottom: 6px;
+  }
+
+  .saveFileWarningList {
+    margin: 0;
+    padding-left: 22px;
+  }
+  .saveFileWarningList li {
+    margin: 2px 0;
+    word-break: break-word;
   }
 
   /* Input + Import button side by side */
@@ -215,6 +258,7 @@
     padding: 8px 12px;
     background: #fff8f0;
     border: 1px solid #f5c885;
+    border-left: 5px solid #b36b00;
     border-radius: 6px;
     font-size: 0.95em;
     color: #7a4a00;
@@ -256,7 +300,7 @@
     line-height: 1.6;
     background: #eef1f8;
     border: 1px solid #c7d3ec;
-    border-left: 4px solid #2752b0;
+    border-left: 5px solid #2752b0;
     border-radius: 6px;
   }
   .saveFileImportSummary:empty { display: none; }
@@ -655,7 +699,8 @@
     color: #7a4a00;
     background: #fff8f0;
     border: 1px solid #f5c885;
-    border-radius: 4px;
+    border-left: 5px solid #b36b00;
+    border-radius: 6px;
     padding: 6px 10px;
     font-size: 0.95em;
   }

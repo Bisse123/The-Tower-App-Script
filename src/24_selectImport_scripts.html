@@ -223,7 +223,7 @@
           ).innerText = `Import ${sheetType} data`;
           showFileAccessSection();
           const fileIds = [newSheetID, oldSheetID, idMasterID];
-          checkMultipleSheetAccess(fileIds, userEmail)
+          checkMultipleSheetAccess(fileIds)
             .then(onSheetAccessCheckSuccess)
             .catch(onSheetAccessCheckFailure);
         } else {
@@ -254,15 +254,15 @@
       document.getElementById("statusText").innerText =
         "Checking access to Sheet™...";
 
-      checkMultipleSheetAccess([newFileID], userEmail)
+      checkMultipleSheetAccess([newFileID])
         .then(function (result) {
           if (result.success) {
             if (result.notOwnedFiles && result.notOwnedFiles.length > 0) {
               document.getElementById(
                 "selectImportTitle"
-              ).innerText = `⛔ ${result.notOwnedFiles.length} Files Not Owned By You`;
+              ).innerText = `⛔ ${result.notOwnedFiles.length} Files Not Owned Or Editable By You`;
               document.getElementById("selectImportText").innerHTML =
-                `<strong>📂 Please ensure you own the following file </strong><br>` +
+                `<strong>📂 You must be the owner or an editor of the following file to continue </strong><br>` +
                 result.notOwnedFiles
                   .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
                   .join("<br>");
@@ -321,7 +321,7 @@
             idMasterID = idMasterResult.sheetID;
             sheetType = idMasterResult.sheetType;
 
-            checkMultipleSheetAccess([idMasterResult.sheetID], userEmail)
+            checkMultipleSheetAccess([idMasterResult.sheetID])
               .then(function (result) {
                 if (result.success) {
                   if (
@@ -395,7 +395,7 @@
           if (oldSheetResult && oldSheetResult.success) {
             oldSheetID = oldSheetResult.sheetID;
 
-            checkMultipleSheetAccess([oldSheetResult.sheetID], userEmail)
+            checkMultipleSheetAccess([oldSheetResult.sheetID])
               .then(function (result) {
                 if (result.success) {
                   if (
