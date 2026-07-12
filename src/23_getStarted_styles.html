@@ -24,6 +24,29 @@
     background-color: #9c27b0;
   }
 
+  .getStartedSection button:hover:not(:disabled) {
+    background-color: #7b1fa2;
+  }
+
+  .getStartedSection select {
+    border-color: #9c27b0;
+  }
+
+  .getStartedSection select:hover {
+    border-color: #7b1fa2;
+    transform: translateY(-1px);
+  }
+
+  .getStartedSection select:focus {
+    outline: none;
+    border-color: #7b1fa2;
+    box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.2);
+  }
+
+  .getStartedSection label {
+    color: #7b1fa2;
+  }
+
   .getStartedContent {
     display: block;
     background: #e1bee7;
@@ -61,18 +84,21 @@
   .copyResultBlock {
     border-radius: 6px;
     border: 1px solid;
-    padding: 10px 12px;
+    border-left-width: 5px;
+    padding: 12px 14px;
     margin-top: 8px;
   }
 
   .copyResultSuccess {
     background: #edf7ed;
     border-color: #9ccc65;
+    border-left-color: #4caf50;
   }
 
   .copyResultFailure {
     background: #fdecea;
     border-color: #ef9a9a;
+    border-left-color: #d64545;
   }
 
   .copyResultBlock ul {

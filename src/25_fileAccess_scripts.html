@@ -1657,12 +1657,30 @@
     const summary = document.getElementById("selectedFileSummary");
     if (accessibleFilesCache.length > 0) {
       summary.innerHTML +=
-        `The app will access the following files:` +
-        "<br>" +
+        `The app will access the following files:<br>` +
         accessibleFilesCache
           .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
-          .join("<br>");
+          .join("<br>") +
+        `<br>`;
     }
+  }
+
+  // Non-blocking warning shown when the user can edit (but does not own) some of
+  // the required files. Rendered as a distinct amber callout so it stands out
+  // from the rest of the summary. The workflow is still allowed to continue.
+  function showNotOwnedWarning() {
+    if (!warningFilesCache || warningFilesCache.length === 0) {
+      return;
+    }
+    const summary = document.getElementById("selectedFileSummary");
+    const items = warningFilesCache
+      .map((file) => `<li>${file.name || file.id}</li>`)
+      .join("");
+    summary.innerHTML +=
+      `<div class="notOwnedWarning">` +
+      `<div class="notOwnedWarningTitle">⚠️ You are not the owner of the following file(s), but you have edit access so you can continue:</div>` +
+      `<ul class="notOwnedWarningList">${items}</ul>` +
+      `</div>`;
   }
 
   async function renderIdMasterOptions() {
@@ -1741,7 +1759,7 @@
       );
       updateMasterAndSubsheetsButton.style.display = "inline-block";
       updateMasterAndSubsheetsButton.disabled = false;
-      summary.innerHTML = `
+      summary.innerHTML += `<br>
         <strong>🔧 Select your preferred update method:</strong><br>
         <small>
           <strong>🔄 Update IDS Master & Subsheets:</strong> Updates the IDS Master and subsheets with new versions</strong><br>
@@ -1750,7 +1768,7 @@
       `;
     } else {
       setStatusText("Ready to update subsheets.");
-      summary.innerHTML = `
+      summary.innerHTML += `<br>
         <strong> IDS Master is up to date!</strong><br>
         <strong> Update Subsheets with new versions</strong>
       `;
@@ -1880,7 +1898,7 @@
 
     const [templateAccess, sheetAccess] = await Promise.all([
       checkMultipleTemplateAccess(templateInfoForAccess),
-      checkMultipleSheetAccess(sheetIdsToCheck, userEmail),
+      checkMultipleSheetAccess(sheetIdsToCheck),
     ]);
 
     if (!templateAccess.success || !sheetAccess.success) {
@@ -1893,6 +1911,7 @@
       accessibleFilesCache = [];
       inaccessibleFilesCache = [];
       notOwnedFilesCache = [];
+      warningFilesCache = [];
       return;
     }
 
@@ -1901,10 +1920,11 @@
     accessibleFilesCache = sheetAccess.accessibleFiles || [];
     inaccessibleFilesCache = sheetAccess.inaccessibleFiles || [];
     notOwnedFilesCache = sheetAccess.notOwnedFiles || [];
+    warningFilesCache = sheetAccess.warningFiles || [];
 
     if (notOwnedFilesCache.length > 0) {
       setStatusText(
-        "Some files are not owned by you. Please confirm ownership before continuing.",
+        "Some files are not owned or editable by you. You must be the owner or an editor to continue.",
       );
       showContinueSection();
       return;
@@ -1935,7 +1955,8 @@
   function showContinueSection() {
     console.log("Accessible files:", accessibleFilesCache);
     console.log("Inaccessible files:", inaccessibleFilesCache);
-    console.log("Not owned files:", notOwnedFilesCache);
+    console.log("Not owned/editable files:", notOwnedFilesCache);
+    console.log("Editable (not owned) files:", warningFilesCache);
     console.log("Template inaccessible files:", templateInaccessibleFilesCache);
 
     const fileAccessTitle = document.getElementById("fileAccessTitle");
@@ -1964,10 +1985,10 @@
       inaccessibleFilesCache.length + templateInaccessibleFilesCache.length;
 
     if (notOwnedFilesCache.length > 0) {
-      fileAccessTitle.innerHTML = `⛔ ${notOwnedFilesCache.length} files not owned by you`;
+      fileAccessTitle.innerHTML = `⛔ ${notOwnedFilesCache.length} files not owned or editable by you`;
 
       summary.innerHTML =
-        `<br><strong>📂 Please ensure you own the following files </strong><br>` +
+        `<br><strong>📂 You must be the owner or an editor of the following files to continue </strong><br>` +
         notOwnedFilesCache
           .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
           .join("<br>");
@@ -1982,6 +2003,7 @@
     } else if (totalInaccessibleFiles === 0) {
       fileAccessTitle.innerText = `✅ All Required Files Access Granted`;
       summary.innerHTML = "";
+      showNotOwnedWarning();
       showAccessibleFilesSummary();
       addAnotherButton.style.display = "none";
       instructionsSection.style.display = "none";
@@ -2348,10 +2370,8 @@
         `Checking access to ${allSubsheetIds.length} subsheets...`,
       );
 
-      const subsheetAccessResult = await checkMultipleSheetAccess(
-        allSubsheetIds,
-        userEmail,
-      );
+      const subsheetAccessResult =
+        await checkMultipleSheetAccess(allSubsheetIds);
 
       if (!subsheetAccessResult.success) {
         setStatusText(
@@ -2375,6 +2395,7 @@
         inaccessibleFilesCache = subsheetAccessResult.inaccessibleFiles;
         accessibleFilesCache = subsheetAccessResult.accessibleFiles || [];
         notOwnedFilesCache = subsheetAccessResult.notOwnedFiles || [];
+        warningFilesCache = subsheetAccessResult.warningFiles || [];
         templateInaccessibleFilesCache = []; // No template access issues for IDS Master only
         templateAccessibleFilesCache = [];
 
@@ -2543,9 +2564,9 @@
     });
   }
 
-  function showIDSMasterButtons() {
-    renderIdMasterOptions();
-  }
+  // function showIDSMasterButtons() {
+  //   renderIdMasterOptions();
+  // }
 
   function resetIDSMasterState() {
     // Reset any combined update state

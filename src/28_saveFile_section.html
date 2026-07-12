@@ -1,5 +1,5 @@
 <div id="saveFileSection" class="section saveFileSection">
-  <h2 class="title">Load Data From Save File</h2>
+  <h3 class="title saveFileTitle">Load Data From Save File</h3>
 
   <div id="saveFileAccessControls" class="saveFileAccessControls" style="display: none;">
     <p id="saveFileAccessSummary" class="selectedFileSummary">
@@ -14,6 +14,9 @@
     <p id="saveFileNotOwnedSummary" class="selectedFileSummary"></p>
     <div id="saveFileNotOwnedList" class="saveFileNotOwnedList"></div>
   </div>
+
+  <!-- Non-blocking amber warning for editable-but-not-owned sheets. Hidden while empty. -->
+  <div id="saveFileWarning" class="saveFileWarning"></div>
 
   <div id="saveFileInputRow" class="saveFileInputRow">
     <input type="file" id="saveFileInput" accept=".dat" disabled>

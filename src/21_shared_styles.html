@@ -145,6 +145,10 @@
     border-radius: 6px;
     border-width: 1px;
     border-style: solid;
+    /* Thicker accent bar on the left edge, shared by every root section and
+       subsection. Each section supplies its own scheme colour via border-color;
+       must stay after border-width so the shorthand doesn't reset it. */
+    border-left-width: 5px;
     box-sizing: border-box;
     word-wrap: break-word;
     overflow-wrap: break-word;
