@@ -52,13 +52,22 @@ const ePaths = {
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
-      var eEconRange = "eEcon!AS1:BG65";
+      var eEconRange = "eEcon!AJ1:AX65";
+
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
       var eDamageLabRange = "eDamage!L3:L5";
       var eEconLabRange = "eEcon!O3:O5";
       var eEconStoneMult = "eEcon!X3:X5";
-      var eDiscountLabRange = "eEcon!AQ3:AQ5";
+      var eDiscountLabRange = "eEcon!AH3:AH5";
+
+      var eHPLabColumn = "L";
+      var eRegenLabColumn = "AH";
+      var eDamageLabColumn = "L";
+      var eEconLabColumn = "O";
+      var eEconStoneMultColumn = "X";
+      var eDiscountLabColumn = "AH";
+
       var ranges = [
         "IDS",
         eHPRange,
@@ -124,7 +133,9 @@ const ePaths = {
           eHPValues,
           eHPColumnOffset,
           eHPLabValues,
-          eRegenLabValues
+          eRegenLabValues,
+          eHPLabColumn,
+          eRegenLabColumn
         );
         if (!eHPResult || !eHPResult.success) {
           console.log(`eHP update failed: ${eHPResult.message}`);
@@ -142,7 +153,8 @@ const ePaths = {
           data.eDamage.oldData,
           eDamageValues,
           eDamageColumnOffset,
-          eDamageLabValues
+          eDamageLabValues,
+          eDamageLabColumn
         );
         if (!eDamageResult || !eDamageResult.success) {
           console.log(`eDamage update failed: ${eDamageResult.message}`);
@@ -162,7 +174,10 @@ const ePaths = {
           eEconColumnOffset,
           eEconLabValues,
           eEconStoneMultValues,
-          eDiscountLabValues
+          eDiscountLabValues,
+          eEconLabColumn,
+          eEconStoneMultColumn,
+          eDiscountLabColumn
         );
         if (!eEconResult || !eEconResult.success) {
           console.log(`eEcon update failed: ${eEconResult.message}`);
@@ -221,7 +236,9 @@ const ePaths = {
     eHPData,
     columnOffset,
     eHPLabData,
-    eRegenLabData
+    eRegenLabData,
+    eHPLabColumn,
+    eRegenLabColumn
   ) {
     try {
       console.log("Called: ePaths.updateEHP");
@@ -244,14 +261,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eHPLabCost")) {
           var eHPCostValue = oldData.eHPLabCost;
           batchUpdate.push({
-            range: `${sheetName}!L3`,
+            range: `${sheetName}!${eHPLabColumn}3`,
             values: [[eHPCostValue]],
           });
         }
         if (oldData.hasOwnProperty("eHPRunningTime")) {
           var eHPRunningTimeValue = oldData.eHPRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!L5`,
+            range: `${sheetName}!${eHPLabColumn}5`,
             values: [[eHPRunningTimeValue]],
           });
         }
@@ -264,14 +281,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eRegenLabCost")) {
           var eRegenLabCostValue = oldData.eRegenLabCost;
           batchUpdate.push({
-            range: `${sheetName}!AH3`,
+            range: `${sheetName}!${eRegenLabColumn}3`,
             values: [[eRegenLabCostValue]],
           });
         }
         if (oldData.hasOwnProperty("eRegenRunningTime")) {
           var eRegenRunningTimeValue = oldData.eRegenRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!AH5`,
+            range: `${sheetName}!${eRegenLabColumn}5`,
             values: [[eRegenRunningTimeValue]],
           });
         }
@@ -402,7 +419,8 @@ const ePaths = {
     oldData,
     eDamageData,
     columnOffset,
-    eDamageLabData
+    eDamageLabData,
+    eDamageLabColumn
   ) {
     try {
       console.log("Called: ePaths.updateEDamage");
@@ -425,14 +443,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eDamageLabCost")) {
           var eDamageCostValue = oldData.eDamageLabCost;
           batchUpdate.push({
-            range: `${sheetName}!L3`,
+            range: `${sheetName}!${eDamageLabColumn}3`,
             values: [[eDamageCostValue]],
           });
         }
         if (oldData.hasOwnProperty("eDamageRunningTime")) {
           var eDamageRunningTimeValue = oldData.eDamageRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!L5`,
+            range: `${sheetName}!${eDamageLabColumn}5`,
             values: [[eDamageRunningTimeValue]],
           });
         }
@@ -587,7 +605,10 @@ const ePaths = {
     columnOffset,
     eEconLabData,
     eEconStoneMultData,
-    eDiscountLabData
+    eDiscountLabData,
+    eEconLabColumn,
+    eEconStoneMultColumn,
+    eDiscountLabColumn
   ) {
     try {
       console.log("Called: ePaths.updateEEcon");
@@ -610,14 +631,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eEconLabRoi")) {
           var eEconCostValue = oldData.eEconLabRoi;
           batchUpdate.push({
-            range: `${sheetName}!O3`,
+            range: `${sheetName}!${eEconLabColumn}3`,
             values: [[eEconCostValue]],
           });
         }
         if (oldData.hasOwnProperty("eEconRunningTime")) {
           var eEconRunningTimeValue = oldData.eEconRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!O5`,
+            range: `${sheetName}!${eEconLabColumn}5`,
             values: [[eEconRunningTimeValue]],
           });
         }
@@ -630,7 +651,7 @@ const ePaths = {
         if (oldData.hasOwnProperty("eEconStoneMult")) {
           var eEconStoneMultValue = oldData.eEconStoneMult;
           batchUpdate.push({
-            range: `${sheetName}!X5`,
+            range: `${sheetName}!${eEconStoneMultColumn}5`,
             values: [[eEconStoneMultValue]],
           });
         }
@@ -643,14 +664,14 @@ const ePaths = {
         if (oldData.hasOwnProperty("eDiscountLabRoi")) {
           var eDiscountLabRoi = oldData.eDiscountLabRoi;
           batchUpdate.push({
-            range: `${sheetName}!AP3`,
+            range: `${sheetName}!${eDiscountLabColumn}3`,
             values: [[eDiscountLabRoi]],
           });
         }
         if (oldData.hasOwnProperty("eDiscountRunningTime")) {
           var eDiscountRunningTime = oldData.eDiscountRunningTime;
           batchUpdate.push({
-            range: `${sheetName}!AP5`,
+            range: `${sheetName}!${eDiscountLabColumn}5`,
             values: [[eDiscountRunningTime]],
           });
         }
@@ -791,6 +812,93 @@ const ePaths = {
   
   // #endregion
   // #region Convert Versions
+  version5_08_04_00: function () {
+    try {
+      console.log("Called: ePaths.version5_08_04_00");
+      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+      if (
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
+        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
+      ) {
+        return {
+          success: false,
+          message:
+            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
+        };
+      }
+
+      var eHPRange = "eHP!AJ1:AX50";
+      var eDamageRange = "eDamage!AI1:AX100";
+      var eEconRange = "eEcon!AJ1:AX65";
+
+      var eHPLabRange = "eHP!L3:L5";
+      var eRegenLabRange = "eHP!AH3:AH5";
+      var eDamageLabRange = "eDamage!L3:L5";
+      var eEconLabRange = "eEcon!O3:O5";
+      var eEconStoneMult = "eEcon!X3:X5";
+      var eDiscountLabRange = "eEcon!AH3:AH5";
+
+      var ranges = [
+        eHPRange,
+        eDamageRange,
+        eEconRange,
+        eHPLabRange,
+        eRegenLabRange,
+        eDamageLabRange,
+        eEconLabRange,
+        eEconStoneMult,
+        eDiscountLabRange,
+      ];
+      var batchResult = SheetsAPI.batchGetFormulas(oldSheetID, ranges);
+      if (!batchResult || !batchResult.length === 0) {
+        return {
+          success: false,
+          message: "Failed to fetch data from old spreadsheet™.",
+        };
+      }
+      var eHPValues = batchResult[0].values;
+      var eDamageValues = batchResult[1].values;
+      var eEconValues = batchResult[2].values;
+      var eHPLabValues = batchResult[3].values;
+      var eRegenLabValues = batchResult[4].values;
+      var eDamageLabValues = batchResult[5].values;
+      var eEconLabValues = batchResult[6].values;
+      var eEconStoneMultValues = batchResult[7].values;
+      var eDiscountLabValues = batchResult[8].values;
+
+      var eHPData = this.getVersion5_05_01_00eHP(
+        eHPValues,
+        eHPLabValues,
+        eRegenLabValues
+      );
+      var eDamageData = this.getVersion5_06_02_00eDamage(
+        eDamageValues,
+        eDamageLabValues
+      );
+      var eEconData = this.getVersion5_08_00_00eEcon(
+        eEconValues,
+        eEconLabValues,
+        eEconStoneMultValues,
+        eDiscountLabValues
+      );
+
+      return {
+        success: true,
+        eHP: eHPData,
+        eDamage: eDamageData,
+        eEcon: eEconData,
+      };
+    } catch (error) {
+      console.log(`Error in ePaths.version5_08_04_00: ${error.toString()}`);
+      return {
+        success: false,
+        message: "Error exporting Effective Paths data: " + error.message,
+      };
+    }
+  },
+
   version5_08_00_00: function () {
     try {
       console.log("Called: ePaths.version5_08_00_00");
@@ -3428,6 +3536,7 @@ const ePaths = {
       "v5.05.01.00": this.version5_05_01_00.bind(this),
       "v5.06.02.00": this.version5_06_02_00.bind(this),
       "v5.08.00.00": this.version5_08_00_00.bind(this),
+      "v5.08.04.00": this.version5_08_04_00.bind(this),
     };
   },
   
