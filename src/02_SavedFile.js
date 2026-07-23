@@ -99,6 +99,8 @@ const PlayerStuffHeaders = {
   totalStonesBought: "totalStonesBought",
   totalGemsEarned: "totalGemsEarned",
   totalGemsBought: "totalGemsBought",
+  totalKeysEarned: "totalKeysEarned",
+  battleHistory: "battleHistory",
 }
 
 function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {

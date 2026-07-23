@@ -445,9 +445,9 @@ const modules = {
               }
             }
           }
-          var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || 0;
+          var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
           var assistLevel =
-            oldModulesInventory[moduleType]["Assist Level"] || 0;
+            oldModulesInventory[moduleType]["Assist Level"] || null;
           var highestLevelCol =
             newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level");
           var assistLevelCol =
@@ -1560,7 +1560,7 @@ const modules = {
       const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
         ? moduleRarities[module.currentRarity]
         : "Epic";
-      const moduleLevel = module.level || 1;
+      const moduleLevel = module.level > 0 ? module.level : null;
       const substatData = module.effects || [];
       var moduleSubstats = [];
       substatData.forEach(function (effectID, substatIndex) {

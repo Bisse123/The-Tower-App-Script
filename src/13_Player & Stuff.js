@@ -1040,6 +1040,9 @@ const playerStuff = {
     const lifetimeCoins = data.totalCoinsEarned || 0;
     const lifetimeStones = data.totalStonesEarned + data.totalStonesBought || 0;
     const lifetimeGems = data.totalGemsEarned + data.totalGemsBought || 0;
+    const lifetimeKeys = data.totalKeysEarned || 0;
+
+    const battleHistory = data.battleHistory || [];
 
     function formatLifeTime(value) {
       if (value === null || value === undefined || value === "") {
@@ -1102,6 +1105,25 @@ const playerStuff = {
       return (negative ? "-" : "") + rounded.toFixed(2) + getSuffix(group);
     }
     
+    var allBattlesCoinPerHour = battleHistory.map(function (battle) {
+      if (battle && battle.coinsEarned && battle.realTime) {
+        var hours = battle.realTime / 3600;
+        if (hours > 0) {
+          return battle.coinsEarned / hours;
+        }
+      }
+      return null;
+    }).filter(function (cph) {
+      return cph !== null;
+    }).sort(function (a, b) {
+      return b - a;
+    });
+
+    var numBattles = 3;
+    const coinPerHour = allBattlesCoinPerHour.length > 0 ? allBattlesCoinPerHour.slice(0, numBattles).reduce(function (sum, cph) {
+      return sum + cph;
+    }, 0) / Math.min(numBattles, allBattlesCoinPerHour.length) : null;
+    
     var oldPlayerStuffTierData = {};
     var oldPlayerStuffStatsData = {
       Stat: {
@@ -1111,6 +1133,8 @@ const playerStuff = {
         "Lifetime Coins": formatLifeTime(lifetimeCoins),
         "Stones": formatLifeTime(lifetimeStones),
         "Gems": formatLifeTime(lifetimeGems),
+        "Keys": formatLifeTime(lifetimeKeys),
+        "Coin / Hour": formatLifeTime(coinPerHour),
       },
       "Premium Packs": {
         "Disable Ads": data.addPack,
