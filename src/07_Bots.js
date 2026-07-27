@@ -918,12 +918,15 @@ const bots = {
           acc[upgrade] = level ? String(level).padStart(2, "0") : "00";
           return acc;
         }, {});
-        console.log(botPreset);
+        
         props[targetBots[botName].plusUpgrade] = "Lo";
         if (botPreset.plusUnlocked) {
-          props[targetBots[botName].plusUpgrade] = botPreset.plusLevel
-            ? String(botPreset.plusLevel).padStart(2, "0")
-            : "Lo";
+          props[targetBots[botName].plusUpgrade] =
+            botPreset.plusLevel === null ||
+            botPreset.plusLevel === undefined ||
+            botPreset.plusLevel === ""
+              ? "Lo"
+              : String(botPreset.plusLevel).padStart(2, "0");
         }
         if (!oldBots.data.hasOwnProperty(botName)) {
           oldBots.data[botName] = {
