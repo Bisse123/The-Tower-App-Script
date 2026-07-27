@@ -15,6 +15,7 @@
   let sheetExportFetched = false;
   let lastSaveFileResult = null;
   let saveFileSelectedTypes = null;
+  let saveFilePendingDriveFile = null;
 
   function runAppsScript(method, ...args) {
     return new Promise((resolve, reject) => {
@@ -30,17 +31,9 @@
     .addEventListener("change", function () {
       const file = this.files[0];
 
-      parsedSaveData = null;
-      resetSaveFileDiffState();
-      document.getElementById("saveFileResults").style.display = "none";
-      document.getElementById("saveFileResults").innerHTML = "";
-      document.getElementById("saveFileViewControls").style.display = "none";
-      document.getElementById("saveFileImportControls").style.display = "none";
-      document.getElementById("saveFileImportBtn").disabled = true;
-      const summary = document.getElementById("saveFileImportSummary");
-      if (summary) summary.innerHTML = "";
-
+      clearSaveFileParseUI();
       document.getElementById("saveFileParseBtn").disabled = !file;
+      updateHeldSaveFileLabel();
 
       if (file) {
         setStatusText('Ready to parse. Click "Parse File" to continue...');
@@ -49,39 +42,224 @@
       }
     });
 
+  function clearSaveFileParseUI() {
+    parsedSaveData = null;
+    saveFilePendingDriveFile = null;
+    resetSaveFileDiffState();
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileResults").innerHTML = "";
+    document.getElementById("saveFileViewControls").style.display = "none";
+    document.getElementById("saveFileImportControls").style.display = "none";
+    document.getElementById("saveFileImportBtn").disabled = true;
+    refreshSaveFileImportSummary();
+  }
+
+  function updateHeldSaveFileLabel() {
+    const el = document.getElementById("saveFileHeldName");
+    if (!el) return;
+
+    const localFile = document.getElementById("saveFileInput").files[0];
+    let name = "";
+    let source = "";
+    if (localFile) {
+      name = localFile.name;
+      source = "your computer";
+    } else if (saveFilePendingDriveFile) {
+      name = saveFilePendingDriveFile.name;
+      source = "Google Drive";
+    }
+
+    if (!name) {
+      el.style.display = "none";
+      el.innerHTML = "";
+      return;
+    }
+
+    el.innerHTML =
+      '<span class="saveFileHeldLabel">Selected file</span>' +
+      '<span class="saveFileHeldValue">' +
+      escSaveFileHtml(name) +
+      "</span>" +
+      '<span class="saveFileHeldSource">from ' +
+      escSaveFileHtml(source) +
+      "</span>";
+    el.style.display = "";
+  }
+
   function parseFile() {
     const file = document.getElementById("saveFileInput").files[0];
-    if (!file) return;
+    if (file) {
+      setSaveFileBusy(true);
+      resetSaveFileDiffState();
+      setStatusWithSpinner("Reading file…");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const byteArray = Array.from(new Uint8Array(e.target.result));
+        parseSaveFileByteArray(byteArray, file.name);
+      };
+      reader.onerror = function () {
+        setSaveFileBusy(false);
+        setStatusText("Failed to read file.");
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
+    if (saveFilePendingDriveFile) {
+      parsePendingDriveFile();
+    }
+  }
+
+  async function parsePendingDriveFile() {
+    const picked = saveFilePendingDriveFile;
+    if (!picked) return;
+    if (!accessToken) {
+      setStatusText(
+        "Google Drive access isn't authorized yet. Please reload the page and try again.",
+      );
+      return;
+    }
+
     setSaveFileBusy(true);
     resetSaveFileDiffState();
-    setStatusWithSpinner("Reading file…");
+    setStatusWithSpinner('Downloading "' + picked.name + '" from Google Drive…');
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const byteArray = Array.from(new Uint8Array(e.target.result));
-      setStatusWithSpinner("Parsing…");
-
-      runAppsScript(
-        "parseSaveFileBytes",
-        byteArray
-      )
-        .then(function (result) {
-          parsedSaveData = (result && result.parsed) || {};
-          lastSaveFileResult = result;
-          setStatusText(`${file.name} parsed successfully`);
-          setSaveFileBusy(false);
-          renderSaveFileResults(result);
-        })
-        .catch(function (err) {
-          setSaveFileBusy(false);
-          setStatusText("Error: " + (err.message || err));
-        });
-    };
-    reader.onerror = function () {
+    let byteArray;
+    try {
+      byteArray = await downloadDriveFileBytes(picked.id);
+    } catch (err) {
       setSaveFileBusy(false);
-      setStatusText("Failed to read file.");
-    };
-    reader.readAsArrayBuffer(file);
+      setStatusText(
+        "Could not download the file from Google Drive: " + (err.message || err),
+      );
+      return;
+    }
+
+    await parseSaveFileByteArray(byteArray, picked.name);
+  }
+
+  function parseSaveFileByteArray(byteArray, fileName) {
+    setStatusWithSpinner("Parsing…");
+    return runAppsScript("parseSaveFileBytes", byteArray)
+      .then(function (result) {
+        parsedSaveData = (result && result.parsed) || {};
+        lastSaveFileResult = result;
+        setStatusText(`${fileName} parsed successfully`);
+        setSaveFileBusy(false);
+        renderSaveFileResults(result);
+      })
+      .catch(function (err) {
+        setSaveFileBusy(false);
+        setStatusText("Error: " + (err.message || err));
+      });
+  }
+
+  async function pickSaveFileFromDrive() {
+    if (!saveFilePickerReady || typeof google === "undefined" || !google.picker) {
+      setStatusText(
+        "The Google Drive picker isn't ready yet. Please reload the page and try again.",
+      );
+      return;
+    }
+    if (!accessToken) {
+      setStatusText(
+        "Google Drive access isn't authorized yet. Please reload the page and try again.",
+      );
+      return;
+    }
+
+    let picked;
+    try {
+      picked = await openSaveFileDrivePicker();
+    } catch (err) {
+      setStatusText(
+        "Error opening the Google Drive picker: " + (err.message || err),
+      );
+      return;
+    }
+    if (!picked) {
+      setStatusText("No file selected from Google Drive.");
+      return;
+    }
+
+    clearSaveFileParseUI();
+    document.getElementById("saveFileInput").value = "";
+    saveFilePendingDriveFile = picked;
+    document.getElementById("saveFileParseBtn").disabled = false;
+    updateHeldSaveFileLabel();
+    setStatusText(
+      'Ready to parse "' + picked.name + '". Click "Parse File" to continue...',
+    );
+  }
+
+  async function downloadDriveFileBytes(fileId) {
+    const res = await fetch(
+      "https://www.googleapis.com/drive/v3/files/" +
+        encodeURIComponent(fileId) +
+        "?alt=media&supportsAllDrives=true",
+      { headers: { Authorization: "Bearer " + accessToken } },
+    );
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = (body && body.error && body.error.message) || "";
+      } catch (e) {}
+      throw new Error(detail || "Google Drive returned HTTP " + res.status);
+    }
+    const buffer = await res.arrayBuffer();
+    return Array.from(new Uint8Array(buffer));
+  }
+
+  function openSaveFileDrivePicker() {
+    return new Promise(function (resolve, reject) {
+      try {
+        const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setQuery("playerInfo.dat");
+
+        const pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        const picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setTitle("Select your save file")
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const doc = (data.docs || [])[0];
+              resolve(doc ? { id: doc.id, name: doc.name } : null);
+            } else if (data.action === google.picker.Action.CANCEL) {
+              resolve(null);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (isMobile) {
+          picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+        }
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        picker.build().setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   function renderSaveFileResults(result) {
@@ -92,7 +270,6 @@
     let html = "<br>";
     let cardCount = 0;
     const selectedTypes = new Set();
-    const outdatedTypes = [];
 
     for (const type of order) {
       const data = parsed[type];
@@ -103,11 +280,6 @@
       const noDiff = /sfDiffNone/.test(bodyHtml);
       const outdatedInfo = sfTypeOutdatedInfo(type);
       const isOutdated = !!outdatedInfo;
-      if (isOutdated) {
-        outdatedTypes.push(Object.assign({ type: type }, outdatedInfo));
-      }
-      // Outdated sheets can never be imported, so they are force-unchecked and
-      // their checkbox is disabled below.
       const checked = sfTypeChecked(type) && !noDiff && !isOutdated;
       if (checked) selectedTypes.add(type);
 
@@ -161,16 +333,7 @@
       });
     });
 
-    const importSummary = document.getElementById("saveFileImportSummary");
-    if (!idMasterID) {
-      importSummary.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
-    } else if (saveFileCollectionOutdated) {
-      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
-    } else if (outdatedTypes.length > 0) {
-      renderSaveFileOutdatedSheets(outdatedTypes);
-    } else {
-      importSummary.innerHTML = "";
-    }
+    refreshSaveFileImportSummary();
 
     updateImportButtonState();
     updateSaveFileViewControls();
@@ -187,21 +350,13 @@
     return saveFileSelectedTypes === null || saveFileSelectedTypes.has(type);
   }
 
-  // Returns version info ({ currentVersion, latestVersion }) when the sheet
-  // backing this category is out of date, or null when it is up to date (or its
-  // version can't be assessed yet). Outdated categories are disabled for import.
   function sfTypeOutdatedInfo(type) {
-    // An IDS Collection is a single sheet with one version, so when it is
-    // outdated every category it holds is outdated too.
     if (saveFileCollectionOutdated) {
       return {
         currentVersion: saveFileCollectionOutdated.currentVersion,
         latestVersion: saveFileCollectionOutdated.latestVersion,
       };
     }
-    // An IDS Master maps each category to its own subsheet, each with its own
-    // version. A linked subsheet that isn't up to date is outdated. Categories
-    // that aren't linked are left alone here (handled at import time).
     if (!saveFileImportTargets) return null;
     const targets = saveFileImportTargets.targets || {};
     const versions = saveFileImportTargets.versions || {};
@@ -212,6 +367,42 @@
       currentVersion: v ? v.currentVersion : "",
       latestVersion: v ? v.latestVersion : "",
     };
+  }
+
+  function getSaveFileOutdatedTargets() {
+    if (!saveFileImportTargets || !saveFileImportTargets.versions) return [];
+    const versions = saveFileImportTargets.versions;
+    const targets = saveFileImportTargets.targets || {};
+    return Object.keys(versions)
+      .filter(function (type) {
+        return targets[type] && !versions[type].upToDate;
+      })
+      .map(function (type) {
+        return {
+          type: type,
+          currentVersion: versions[type].currentVersion,
+          latestVersion: versions[type].latestVersion,
+        };
+      });
+  }
+
+  function refreshSaveFileImportSummary() {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    if (!idMasterID) {
+      el.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
+      return;
+    }
+    if (saveFileCollectionOutdated) {
+      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
+      return;
+    }
+    const outdated = getSaveFileOutdatedTargets();
+    if (outdated.length > 0) {
+      renderSaveFileOutdatedSheets(outdated);
+      return;
+    }
+    el.innerHTML = "";
   }
 
   function captureSaveFileSelection() {
@@ -1157,12 +1348,12 @@
 
   function setSaveFileBusy(busy) {
     document.getElementById("saveFileInput").disabled = busy;
+    const driveBtn = document.getElementById("saveFileDriveBtn");
+    if (driveBtn) driveBtn.disabled = busy;
     const viewBtn = document.getElementById("saveFileViewToggleBtn");
     document
       .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
       .forEach(function (cb) {
-        // Outdated categories stay disabled regardless of busy state — they can
-        // never be imported.
         cb.disabled = busy || cb.getAttribute("data-outdated") === "1";
       });
     if (busy) {
@@ -1171,7 +1362,8 @@
       if (viewBtn) viewBtn.disabled = true;
     } else {
       document.getElementById("saveFileParseBtn").disabled =
-        !document.getElementById("saveFileInput").files[0];
+        !document.getElementById("saveFileInput").files[0] &&
+        !saveFilePendingDriveFile;
       if (viewBtn) viewBtn.disabled = false;
       updateImportButtonState();
     }
@@ -1357,8 +1549,6 @@
       "</div>";
   }
 
-  // Warns that some subsheets are out of date. Those categories are disabled for
-  // import in renderSaveFileResults; the up-to-date ones can still be imported.
   function renderSaveFileOutdatedSheets(outdated) {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -1386,6 +1576,7 @@
     hideSaveFileNotOwned();
     clearSaveFileWarning();
     document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileActionRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
     document.getElementById("saveFileAccessControls").style.display = "block";
@@ -1403,7 +1594,6 @@
     if (controls) controls.style.display = "none";
   }
 
-  // Clears the non-blocking amber warning callout (hidden while empty).
   function clearSaveFileWarning() {
     const warn = document.getElementById("saveFileWarning");
     if (warn) warn.innerHTML = "";
@@ -1412,6 +1602,7 @@
   function showSaveFileNotOwned() {
     clearSaveFileWarning();
     document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileActionRow").style.display = "none";
     document.getElementById("saveFileImportSummary").style.display = "none";
     document.getElementById("saveFileResults").style.display = "none";
     document.getElementById("saveFileAccessControls").style.display = "none";
@@ -1448,14 +1639,21 @@
     hideSaveFileNotOwned();
     document.getElementById("saveFileAccessControls").style.display = "none";
     document.getElementById("saveFileInputRow").style.display = "";
+    document.getElementById("saveFileActionRow").style.display = "";
     document.getElementById("saveFileImportSummary").style.display = "";
     document.getElementById("saveFileResults").style.display = "";
     document.getElementById("saveFileInput").disabled = false;
+    const driveBtn = document.getElementById("saveFileDriveBtn");
+    if (driveBtn) driveBtn.disabled = false;
     renderSaveFileWarning(saveFileWarningFiles);
+    refreshSaveFileImportSummary();
     if (saveFileCollectionOutdated) {
-      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
       setStatusText(
         "Update your IDS Collection to the latest version before importing.",
+      );
+    } else if (getSaveFileOutdatedTargets().length > 0) {
+      setStatusText(
+        "Some of your sheets are out of date and can't be imported. Choose saved file...",
       );
     } else if (saveFileWarningFiles && saveFileWarningFiles.length > 0) {
       setStatusText(
@@ -1466,10 +1664,6 @@
     }
   }
 
-  // Non-blocking warning shown when the user can edit (but does not own) some of
-  // the required sheets. Rendered in its own distinct amber callout (separate
-  // from the blue import summary) so it stands out. The import workflow is still
-  // allowed to continue.
   function renderSaveFileWarning(files) {
     const el = document.getElementById("saveFileWarning");
     if (!el) return;
@@ -1496,8 +1690,6 @@
     );
 
     if (!grantedAll) {
-      // A picked file may be accessible but not owned/editable - block and
-      // explain rather than silently re-prompting for access.
       if (saveFileNotOwnedFiles.length > 0) {
         showSaveFileNotOwned();
       } else {
@@ -1817,8 +2009,6 @@
     }
   }
 
-  // Merge two lists of "editable but not owned" warning files, de-duplicating
-  // by file id.
   function mergeSaveFileWarnings(existing, additions) {
     const merged = (existing || []).slice();
     (additions || []).forEach(function (file) {
@@ -1860,15 +2050,12 @@
         return;
       }
 
-      // The user can proceed if they own the file OR have edit access.
       if (entry.result.owned || entry.result.canEdit) {
         accessibleFiles.push({ id: entry.id, name: entry.result.name });
         if (!entry.result.owned) {
-          // Editable but not owned - allowed to continue, but warn the user.
           warningFiles.push({ id: entry.id, name: entry.result.name });
         }
       } else {
-        // Accessible but neither owner nor editor - cannot continue.
         notOwnedFiles.push({ id: entry.id, name: entry.result.name });
       }
     });
@@ -1989,19 +2176,16 @@
       return false;
     }
 
-    // Accessible but neither owned nor editable - the user cannot continue.
     if ((recheck.notOwnedFiles || []).length > 0) {
       saveFileNotOwnedFiles = recheck.notOwnedFiles;
       return false;
     }
 
-    // Editable but not owned - allowed to continue, but warn the user.
     saveFileWarningFiles = mergeSaveFileWarnings(
       saveFileWarningFiles,
       recheck.warningFiles,
     );
 
-    // Only clear the pending list for files that are now genuinely accessible.
     const nowAccessibleIds = (recheck.accessibleFiles || []).map(function (f) {
       return f.id;
     });

@@ -1,5 +1,4 @@
 <style>
-  /* Hidden until authorizeSaveFile() acquires the token (continueSaveFile). */
   .saveFileSection {
     background-color: #e8eefb;
     border-color: #2752b0;
@@ -13,13 +12,11 @@
     color: #2752b0;
   }
 
-  /* Shown only when the IDS Master needs access (hides the rest) */
   .saveFileAccessControls .selectedFileSummary {
     margin: 0 0 14px;
     color: #2a3550;
   }
 
-  /* Shown when the signed-in account doesn't own the sheet(s) — hard stop */
   .saveFileNotOwnedControls {
     padding: 12px 14px;
     color: #7a1d1d;
@@ -37,10 +34,6 @@
     margin-bottom: 0;
   }
 
-  /* Prominent, non-blocking warning callout (editable-but-not-owned sheets).
-     Amber stands apart from the blue import summary and the red not-owned hard
-     stop. High-contrast, near-black text keeps it readable and colorblind
-     friendly; the boundary does not rely on hue alone. */
   .saveFileWarning {
     margin: 14px 0;
     padding: 12px 14px;
@@ -72,12 +65,116 @@
     word-break: break-word;
   }
 
-  /* Input + Import button side by side */
   .saveFileInputRow {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .saveFileActionRow {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .saveFileHeldName {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    max-width: 100%;
+    font-size: 1.05em;
+    color: #1f2d4a;
+  }
+  .saveFileHeldName .saveFileHeldLabel {
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #2752b0;
+  }
+  .saveFileHeldName .saveFileHeldValue {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: #14264a;
+    word-break: break-all;
+  }
+  .saveFileHeldName .saveFileHeldSource {
+    font-size: 0.95em;
+    font-weight: 500;
+    color: #556080;
+  }
+
+  .saveFileSource {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .saveFileSourceLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1f4391;
+  }
+  .saveFileSourceIcon {
+    font-size: 1.1em;
+    line-height: 1;
+  }
+  .saveFileSourceControls {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 12px;
+  }
+  .saveFileDriveLogo {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .saveFileSourceDivider {
+    display: flex;
+    align-items: center;
+    padding-bottom: 8px;
+    color: #7a86a3;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .saveFileSection button.saveFileDriveBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    color: #1f4391;
+    border: 1px solid #c7d3ec;
+  }
+  .saveFileSection button.saveFileDriveBtn:hover:not(:disabled) {
+    background-color: #eef1f8;
+    border-color: #2752b0;
+  }
+  .saveFileSection button.saveFileDriveBtn:disabled {
+    background-color: #f4f6fb;
+    color: #9aa4bd;
+    border-color: #dbe2f0;
+  }
+  .saveFileSection button.saveFileDriveBtn .saveFileDriveLogo {
+    width: 18px;
+    height: 18px;
+  }
+  .saveFileSection button.saveFileDriveBtn:disabled .saveFileDriveLogo {
+    opacity: 0.45;
   }
 
   .saveFileSection button {
@@ -91,25 +188,37 @@
   .saveFileSection input[type="file"] {
     border-color: #c7d3ec;
     background-color: #f4f6fb;
+    width: fit-content;
+    max-width: 100%;
   }
-  .saveFileSection input[type="file"]:hover {
+  .saveFileSection input[type="file"]:hover:not(:disabled) {
     border-color: #2752b0;
     background-color: #eef1f8;
   }
   .saveFileSection input[type="file"]::file-selector-button {
     background-color: #2752b0;
   }
-  .saveFileSection input[type="file"]::file-selector-button:hover {
+  .saveFileSection
+    input[type="file"]:not(:disabled)::file-selector-button:hover {
     background-color: #1f4391;
   }
+  .saveFileSection input[type="file"]:disabled {
+    border-color: #dbe2f0;
+    background-color: #f4f6fb;
+    color: #9aa4bd;
+    cursor: not-allowed;
+  }
+  .saveFileSection input[type="file"]:disabled::file-selector-button {
+    background-color: #e0e0e0;
+    color: #888;
+    cursor: not-allowed;
+  }
 
-  /* ── Results ── */
   .saveFileResults {
     margin-top: 18px;
     display: none;
   }
 
-  /* ── Collapsible category ── */
   .sfCategory {
     margin-bottom: 8px;
     border: 1px solid #e0e0e0;
@@ -155,7 +264,6 @@
   }
   .sfCategory.open .sfCategoryBody { display: block; }
 
-  /* ── Field rows ── */
   .sfFieldRow {
     display: grid;
     grid-template-columns: minmax(160px, 30%) 1fr;
@@ -197,7 +305,6 @@
   .sfArrayItem.is-true  { background: #e6f4ea; color: #1e7e34; }
   .sfArrayItem.is-false { background: #f4f4f4; color: #999; }
 
-  /* ── Nested objects / arrays ── */
   .sfNestedList,
   .sfNestedObject {
     display: flex;
@@ -252,7 +359,6 @@
     font-style: italic;
   }
 
-  /* ── Missing fields ── */
   .sfMissingSection {
     margin-top: 12px;
     padding: 8px 12px;
@@ -284,9 +390,6 @@
     opacity: 0.5;
   }
 
-  /* Outdated subsheets can't be imported: amber-tinted header + "Outdated"
-     badge so the disabled checkbox reads as intentional, not broken. Color is
-     paired with the badge text so it doesn't rely on hue alone. */
   .sfCategoryOutdated .sfCategoryHeader {
     background: #fff8f0;
   }
@@ -310,7 +413,6 @@
     white-space: nowrap;
   }
 
-  /* ── Import controls (inline, right of the file input) ── */
   .saveFileImportControls {
     display: inline-flex;
   }
@@ -321,7 +423,6 @@
     cursor: not-allowed;
   }
 
-  /* ── Import result summary ── */
   .saveFileImportSummary {
     margin-top: 16px;
     padding: 12px 14px;
@@ -368,7 +469,6 @@
     margin: 10px 0 4px;
   }
 
-  /* Inline "chip" key/value pairs */
   .sfInlineKV {
     display: flex;
     flex-wrap: wrap;
@@ -425,7 +525,6 @@
   .sfPairKey { color: #555; word-break: break-word; }
   .sfPairVal { color: #222; flex-shrink: 0; }
 
-  /* Themes & Songs: one column per type */
   .sfThemeColumns {
     display: flex;
     flex-wrap: wrap;
@@ -548,7 +647,6 @@
     margin-bottom: 3px;
   }
 
-  /* Player & Stuff: 4-column tier rows */
   .sfTierRow {
     display: flex;
     gap: 8px;
@@ -577,7 +675,7 @@
 
   .sfTierColHeader {
     font-weight: 600;
-    font-size: 0.9em; /* column label */
+    font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: #555;
@@ -596,7 +694,6 @@
   .sfTierStatKey { color: #888; }
   .sfTierStatVal { color: #222; }
 
-  /* Bots: one column per preset */
   .sfBotsColumns {
     display: flex;
     flex-wrap: wrap;
@@ -647,7 +744,6 @@
     margin-bottom: 3px;
   }
 
-  /* ── Diff view (compare save file vs linked sheet) ── */
   .sfViewControls {
     display: flex;
     align-items: center;
@@ -662,7 +758,6 @@
     font-size: 0.9em;
   }
 
-  /* Green check on category headers that have no differences (diff view). */
   .sfCategoryCheck {
     color: #1e7e34;
     font-weight: 700;
@@ -673,8 +768,6 @@
   .sfDiffNew { color: #2752b0; font-weight: 600; }
   .sfDiffArrow { color: #888; flex-shrink: 0; }
 
-  /* Diff rows flow and wrap as whole units; each row sizes to its content and
-     never breaks "old → new name" across lines (see .sfDiffRow nowrap). */
   .sfDiffGrid {
     display: flex;
     flex-wrap: wrap;
@@ -695,8 +788,6 @@
   }
   .sfDiffName { color: #333; }
 
-  /* Module diff: columns size to content so their (no-wrap) rows always fit,
-     and stack their rows with a little breathing room between each. */
   .sfDiffModuleColumns .sfModuleColumn {
     display: flex;
     flex-direction: column;
