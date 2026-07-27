@@ -49,13 +49,6 @@
       }
     });
 
-  function getSaveFileSheetIds() {
-    if (saveFileSheetType === "IDS Collection") {
-      return { Relics: idMasterID, "Themes & Songs": idMasterID };
-    }
-    return (saveFileImportTargets && saveFileImportTargets.targets) || {};
-  }
-
   function parseFile() {
     const file = document.getElementById("saveFileInput").files[0];
     if (!file) return;
@@ -70,10 +63,7 @@
 
       runAppsScript(
         "parseSaveFileBytes",
-        byteArray,
-        file.name,
-        false,
-        getSaveFileSheetIds(),
+        byteArray
       )
         .then(function (result) {
           parsedSaveData = (result && result.parsed) || {};
@@ -102,6 +92,7 @@
     let html = "<br>";
     let cardCount = 0;
     const selectedTypes = new Set();
+    const outdatedTypes = [];
 
     for (const type of order) {
       const data = parsed[type];
@@ -110,10 +101,18 @@
 
       const bodyHtml = buildSaveFileCategoryBody(type, data);
       const noDiff = /sfDiffNone/.test(bodyHtml);
-      const checked = sfTypeChecked(type) && !noDiff;
+      const outdatedInfo = sfTypeOutdatedInfo(type);
+      const isOutdated = !!outdatedInfo;
+      if (isOutdated) {
+        outdatedTypes.push(Object.assign({ type: type }, outdatedInfo));
+      }
+      // Outdated sheets can never be imported, so they are force-unchecked and
+      // their checkbox is disabled below.
+      const checked = sfTypeChecked(type) && !noDiff && !isOutdated;
       if (checked) selectedTypes.add(type);
 
-      html += '<div class="sfCategory">';
+      html +=
+        '<div class="sfCategory' + (isOutdated ? " sfCategoryOutdated" : "") + '">';
       html +=
         '<div class="sfCategoryHeader" onclick="toggleSaveFileCategory(this)">';
       html += '<span class="sfCategoryHeaderMain">';
@@ -122,10 +121,18 @@
         escSaveFileHtml(type) +
         '" ' +
         (checked ? "checked" : "") +
+        (isOutdated ? ' disabled data-outdated="1"' : "") +
         ' onclick="event.stopPropagation()">';
       html +=
         '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
-      if (noDiff) {
+      if (isOutdated) {
+        html +=
+          '<span class="sfCategoryOutdatedBadge" title="This sheet is out of date (' +
+          escSaveFileHtml(outdatedInfo.currentVersion || "?") +
+          " → " +
+          escSaveFileHtml(outdatedInfo.latestVersion || "?") +
+          ')">⚠️ Outdated</span>';
+      } else if (noDiff) {
         html += '<span class="sfCategoryCheck" title="No differences">✓</span>';
       }
       html += "</span>";
@@ -159,6 +166,8 @@
       importSummary.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
     } else if (saveFileCollectionOutdated) {
       renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
+    } else if (outdatedTypes.length > 0) {
+      renderSaveFileOutdatedSheets(outdatedTypes);
     } else {
       importSummary.innerHTML = "";
     }
@@ -176,6 +185,33 @@
 
   function sfTypeChecked(type) {
     return saveFileSelectedTypes === null || saveFileSelectedTypes.has(type);
+  }
+
+  // Returns version info ({ currentVersion, latestVersion }) when the sheet
+  // backing this category is out of date, or null when it is up to date (or its
+  // version can't be assessed yet). Outdated categories are disabled for import.
+  function sfTypeOutdatedInfo(type) {
+    // An IDS Collection is a single sheet with one version, so when it is
+    // outdated every category it holds is outdated too.
+    if (saveFileCollectionOutdated) {
+      return {
+        currentVersion: saveFileCollectionOutdated.currentVersion,
+        latestVersion: saveFileCollectionOutdated.latestVersion,
+      };
+    }
+    // An IDS Master maps each category to its own subsheet, each with its own
+    // version. A linked subsheet that isn't up to date is outdated. Categories
+    // that aren't linked are left alone here (handled at import time).
+    if (!saveFileImportTargets) return null;
+    const targets = saveFileImportTargets.targets || {};
+    const versions = saveFileImportTargets.versions || {};
+    if (!targets[type]) return null;
+    const v = versions[type];
+    if (v && v.upToDate) return null;
+    return {
+      currentVersion: v ? v.currentVersion : "",
+      latestVersion: v ? v.latestVersion : "",
+    };
   }
 
   function captureSaveFileSelection() {
@@ -1125,7 +1161,9 @@
     document
       .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
       .forEach(function (cb) {
-        cb.disabled = busy;
+        // Outdated categories stay disabled regardless of busy state — they can
+        // never be imported.
+        cb.disabled = busy || cb.getAttribute("data-outdated") === "1";
       });
     if (busy) {
       document.getElementById("saveFileParseBtn").disabled = true;
@@ -1317,6 +1355,31 @@
       escSaveFileHtml((info && info.latestVersion) || "?") +
       "). Please update it to the latest version before importing a save file." +
       "</div>";
+  }
+
+  // Warns that some subsheets are out of date. Those categories are disabled for
+  // import in renderSaveFileResults; the up-to-date ones can still be imported.
+  function renderSaveFileOutdatedSheets(outdated) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    let html =
+      '<div class="sfImportGroup"><strong>⚠️ Some sheets are out of date and cannot be imported.</strong>' +
+      "<br>Update the sheets listed below in your " +
+      escSaveFileHtml(saveFileSheetType || "sheet") +
+      " to the latest version to import them. You can still import the up-to-date sheets in the meantime.</div>";
+    html += '<div class="sfImportGroup"><strong>Out of date:</strong>';
+    outdated.forEach(function (o) {
+      html +=
+        "&nbsp;&nbsp;• " +
+        escSaveFileHtml(o.type) +
+        " (" +
+        escSaveFileHtml(o.currentVersion || "?") +
+        " → " +
+        escSaveFileHtml(o.latestVersion || "?") +
+        ")<br>";
+    });
+    html += "</div>";
+    el.innerHTML = html;
   }
 
   function showSaveFileAccessPrompt() {
@@ -2491,7 +2554,6 @@
     html += '<div class="sfInlineKV">';
     premiumPackOrder.forEach(function (key) {
       const val = stats["Premium Packs"][key] || {};
-      console.log("Rendering premium pack key:", key, "value:", val);
       html += sfInlinePair(key + ": ", val);
     });
     statOrder.forEach(function (key) {

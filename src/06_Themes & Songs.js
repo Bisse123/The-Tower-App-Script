@@ -66,7 +66,7 @@ const themes = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -88,7 +88,7 @@ const themes = {
         var themesResult = this.updateThemes(
           "Themes & Songs",
           oldThemesNames,
-          newThemesData
+          newThemesData,
         );
         if (!themesResult || !themesResult.success) {
           console.log(`Error updating themes: ${themesResult.message}`);
@@ -111,7 +111,7 @@ const themes = {
         "Themes & Songs",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       // Apply all updates (including ID setting and import status)
@@ -429,82 +429,197 @@ const themes = {
 
   // #endregion
   // #region Parse Saved File
-  parseThemesData: function (data, sheetID) {
-    var emptyThemesNames = {
-      "Tower Skin": [],
-      "Background Skin": [],
-      "Songs": [],
-      "Guardians": [],
-      "Menu": [],
-      "Profile Banner": [],
-      "Milestone Skin": [],
+  parseThemesData: function (data) {
+    var towerSkins = {
+      1: "Star",
+      2: "Eye of the Lord",
+      3: "Plasma Ball",
+      4: "Bee",
+      5: "North Spirit",
+      6: "Alien",
+      7: "Water Droplet",
+      8: "Cherry Blossom",
+      22: "Bunny",
+      23: "Neo Turbo",
+      24: "Prisma",
+      27: "Spider",
+      28: "Sentinel",
+      29: "Howling Wolf",
+      30: "Virus",
+      31: "Hourglass",
+      32: "Pumpkin",
+      33: "Autumn Leaf",
+      34: "Invader",
+      35: "Toast Glass",
+      36: "Dark Tower",
+      37: "Dive Helmet",
+      38: "Starship",
+      39: "Elite Tower",
+      40: "Fisherman",
+      41: "Storm Eye",
+      42: "Umbrella",
+      43: "Noise Tower",
+      47: "Unlucky Cow",
+      48: "Snowman",
+      49: "Black Cat",
+      50: "Black Hole",
+      51: "Pocket Watch",
+      52: "Crown",
+      53: "Neon Pi",
+      54: "Mech Warrior",
+      55: "Marshmallow",
+      56: "Cthulhu",
+      57: "Frog",
+      58: "Dj",
+      59: "4th Anniversary",
+      63: "Pixel Soldier",
+      64: "Flying Car",
+      65: "Crystal",
+      66: "Balloon",
+      67: "Restless Eye",
+      68: "Shining Star",
+      69: "Heart",
+      70: "Glitch",
+      71: "Space Telescope",
+      72: "Bear",
+      73: "Brain",
+      74: "Rabbit In Hat",
+      75: "Cake",
+      76: "Meteorite",
     };
-    
-    var themesSheetData = null;
-    if (sheetID) {
-      var batchResult = SheetsAPI.batchGetValues(sheetID, ["Themes & Songs"]);
-      if (batchResult && batchResult[0] && batchResult[0].values) {
-        themesSheetData = batchResult[0].values;
-      }
-    }
-
-    if (!themesSheetData) {
-      console.log("Could not read Themes & Songs sheet to map theme indices");
-      return {
-        oldThemesNames: emptyThemesNames,
-      };
-    }
-
-    function buildThemeIndexMap(nameHeader, idHeader) {
-      var nameCol = -1;
-      var idCol = -1;
-      var headerRow = -1;
-      for (var row = 0; row < themesSheetData.length; row++) {
-        var rowValues = themesSheetData[row];
-        var foundName = rowValues.indexOf(nameHeader);
-        var foundId = rowValues.indexOf(idHeader);
-        if (foundName !== -1 && foundId !== -1) {
-          nameCol = foundName + 1;
-          idCol = foundId;
-          headerRow = row;
-          break;
-        }
-      }
-
-      var map = {};
-      if (headerRow === -1) {
-        console.log(
-          "Could not find '" +
-            nameHeader +
-            "' and '" +
-            idHeader +
-            "' headers in Themes & Songs sheet"
-        );
-        return map;
-      }
-
-      for (var r = headerRow + 1; r < themesSheetData.length; r++) {
-        var dataRow = themesSheetData[r];
-        var name = (dataRow[nameCol] || "").toString().trim();
-        var id = dataRow[idCol];
-        if (name === "" || id === "" || id === null || id === undefined) {
-          break;
-        }
-        var index = parseInt(id, 10);
-        if (!isNaN(index)) {
-          map[index] = name;
-        }
-      }
-      return map;
-    }
-
-    var towerSkins = buildThemeIndexMap("Tower Skin", "Tower_ID");
-    var backgroundSkins = buildThemeIndexMap("Background Skin", "Background_ID");
-    var milestoneSkins = buildThemeIndexMap("Milestone Skin", "Milestone_ID");
-    var songs = buildThemeIndexMap("Songs", "Songs_ID");
-    var guardianSkins = buildThemeIndexMap("Guardians", "Guardians_ID");
-    var menuThemes = buildThemeIndexMap("Menu", "Menu_ID");
-    var profileBanners = buildThemeIndexMap("Profile Banner", "Banner_ID");
+    var backgroundSkins = {
+      1: "Interstellar",
+      2: "Volcano",
+      3: "Plasma Field",
+      4: "Honeycomb",
+      5: "Aurora",
+      6: "Alien Ship",
+      7: "Ocean Night",
+      8: "Sakura",
+      9: "Easter",
+      10: "Retrowave",
+      11: "Prismatic Lines",
+      12: "Cobweb",
+      13: "Matrix",
+      14: "Mountain Night",
+      15: "Virus Field",
+      16: "Sand Storm",
+      17: "Haunted House",
+      18: "Autumn Forest",
+      19: "Arcade",
+      20: "New Year",
+      21: "Dark Strands",
+      22: "Deep Sea",
+      23: "Hyper Space",
+      24: "Invasion",
+      25: "Sunset River",
+      26: "Hurricane",
+      27: "Rainfall",
+      28: "TV Wall",
+      29: "Abduction",
+      30: "Snowstorm",
+      31: "Forest of Cats",
+      32: "Event Horizon",
+      33: "Clock Tower",
+      34: "Throne Room",
+      35: "Pi Disk",
+      36: "Mech World",
+      37: "Camping",
+      38: "Cthulhu",
+      39: "Koi Pond",
+      40: "Party",
+      41: "Pixel Alien War",
+      42: "Cyberpunk",
+      43: "Crystal Cave",
+      44: "Amusement Park",
+      45: "Crimson Horror",
+      46: "Cozy Cosmos",
+      47: "Valentine",
+      48: "Glitch",
+      49: "Supernova",
+      50: "Claw Machine",
+      51: "Neuron",
+      52: "Magician",
+      53: "5th Anniversary",
+      54: "Meteor Shower",
+    };
+    var milestoneSkins = {
+      9: "Shuriken",
+      10: "Donut",
+      11: "Yin-Yang",
+      12: "Smile",
+      13: "Butterfly",
+      14: "Sheep",
+      15: "Fried Egg",
+      16: "Mush-mush",
+      17: "Turtle",
+      18: "Cheese",
+      19: "Creepy Clown",
+      20: "Cat",
+      21: "Skull",
+      25: "Panda",
+      26: "Tech Tree",
+      44: "Cactus",
+      45: "Dragon",
+      46: "Rhino",
+      60: "Atomic",
+      61: "Cyber",
+      62: "Eclipse",
+      77: "Vortex",
+      78: "Stellar",
+      79: "Cosmic",
+    };
+    var guardianSkins = {
+      1: "Butter",
+      2: "Muse",
+      4: "Finn",
+      5: "Nyra",
+      6: "Rolo",
+      7: "Glenn",
+      8: "Zepe",
+      9: "Iris",
+      10: "Silk",
+      11: "Mickey",
+      12: "Gaia",
+      13: "Arwing",
+      14: "Frank",
+      15: "Earl",
+      16: "Mei",
+      17: "Shelly",
+      18: "Disco",
+      19: "Hermie",
+      20: "Waddles",
+    };
+    var profileBanners = {
+      1: "Arcade Banner",
+      2: "What Time Is It Banner",
+      3: "Mech World",
+      4: "Party",
+      5: "Pixel Alien War",
+      6: "Crimson Horror",
+      7: "Cosy Cosmos",
+      8: "Supernova",
+      9: "Claw Machine",
+      10: "Magician",
+      11: "Coral Reef",
+    };
+    var menuThemes = {
+      1: "Dark Being",
+      2: "Mech World",
+      3: "Party",
+      4: "Pixel Alien War",
+      5: "Crimson Horror",
+      6: "Cosy Cosmos",
+      7: "Supernova",
+      8: "Claw Machine",
+      9: "Magician",
+      10: "Coral Reef",
+    };
+    var songs = {
+      6: "Krisu - Ocean Sings",
+      7: "Krisu - Hiding in Himalaya",
+      8: "Krisu - Forest Bathing",
+    };
 
     const towerSkinsData = data.towerSkins || [];
     const backgroundSkinsData = data.backgroundSkins || [];
@@ -517,10 +632,10 @@ const themes = {
       "Tower Skin": [],
       "Background Skin": [],
       "Milestone Skin": [],
-      "Guardians": [],
+      Guardians: [],
       "Profile Banner": [],
-      "Menu": [],
-      "Songs": [],
+      Menu: [],
+      Songs: [],
     };
 
     towerSkinsData.forEach(function (isUnlocked, index) {

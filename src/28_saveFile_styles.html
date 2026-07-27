@@ -279,6 +279,36 @@
     cursor: pointer;
     accent-color: #2752b0;
   }
+  .sfCategoryCheckbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Outdated subsheets can't be imported: amber-tinted header + "Outdated"
+     badge so the disabled checkbox reads as intentional, not broken. Color is
+     paired with the badge text so it doesn't rely on hue alone. */
+  .sfCategoryOutdated .sfCategoryHeader {
+    background: #fff8f0;
+  }
+  .sfCategoryOutdated .sfCategoryHeader:hover {
+    background: #fdf0e2;
+  }
+  .sfCategoryOutdated .sfCategoryTitle {
+    color: #7a4a00;
+  }
+  .sfCategoryOutdatedBadge {
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #7a4a00;
+    background: #ffe8cc;
+    border: 1px solid #f5c885;
+    border-radius: 3px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 
   /* ── Import controls (inline, right of the file input) ── */
   .saveFileImportControls {
