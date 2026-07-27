@@ -2378,6 +2378,13 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
     var missing = [];
     var versions = {};
 
+    function readSheetVersion(cell) {
+      if (!cell || !cell.value) return "";
+      var value = String(cell.value).trim();
+      if (value.toLowerCase().indexOf("loading") === 0) return "";
+      return value;
+    }
+
     for (var i = 0; i < requestedTypes.length; i++) {
       var sheetType = requestedTypes[i];
       var sheetTypeInfo = shared.findSheetTypeURL(
@@ -2398,14 +2405,8 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
 
       targets[sheetType] = targetID;
 
-      var latestVersion =
-        sheetTypeInfo.version && sheetTypeInfo.version.value
-          ? String(sheetTypeInfo.version.value).trim()
-          : "";
-      var currentVersion =
-        sheetTypeInfo.oldVersion && sheetTypeInfo.oldVersion.value
-          ? String(sheetTypeInfo.oldVersion.value).trim()
-          : "";
+      var latestVersion = readSheetVersion(sheetTypeInfo.version);
+      var currentVersion = readSheetVersion(sheetTypeInfo.oldVersion);
 
       var upToDate =
         latestVersion && currentVersion

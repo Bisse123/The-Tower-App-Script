@@ -103,7 +103,7 @@ const PlayerStuffHeaders = {
   battleHistory: "battleHistory",
 }
 
-function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
+function parseSaveFileBytes(byteArray) {
   const uint8 = Uint8Array.from(byteArray);
   // Decompress the GZIP data
   const decompressedBlob = Utilities.ungzip(
@@ -116,8 +116,6 @@ function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
   // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
   // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
   const data = parseNRBF(bytes);
-
-  sheetIDs = sheetIDs || {};
   
   function extratctDataByHeaders(headers) {
     var values = {};
@@ -142,10 +140,7 @@ function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
 
   // Extract Themes & Songs data
   var themesValues = extratctDataByHeaders(themesHeaders);
-  var themesData = themes.parseThemesData(
-    themesValues,
-    sheetIDs["Themes & Songs"],
-  );
+  var themesData = themes.parseThemesData(themesValues);
 
   // Extract bot data
   var botValues = extratctDataByHeaders(botHeaders);
@@ -153,7 +148,7 @@ function parseSaveFileBytes(byteArray, fileName, showAll, sheetIDs) {
 
   // Extract relic data
   var relicValues = extratctDataByHeaders(relicHeaders);
-  var relicData = relics.parseRelicsData(relicValues, sheetIDs["Relics"]);
+  var relicData = relics.parseRelicsData(relicValues);
 
   // Extract vault data
   var vaultValues = extratctDataByHeaders(vaultHeaders);

@@ -372,7 +372,11 @@ const bots = {
               newBotSync[presetName].push([null]);
             }
 
-            if (!presetData.hasOwnProperty("props") || !newBotProp || !presetData.props.hasOwnProperty(newBotProp)) {
+            if (
+              !presetData.hasOwnProperty("props") ||
+              !newBotProp ||
+              !presetData.props.hasOwnProperty(newBotProp)
+            ) {
               newBotLevels[presetName].push([null]);
               continue;
             }
@@ -870,12 +874,16 @@ const bots = {
 
     const presetNameOverride = ["Farming", "Tourney"];
 
-    const presetNames = (data.presetNames || []).map((name, index) => (name || `Preset ${index + 1}`));
+    const presetNames = (data.presetNames || []).map(
+      (name, index) => name || `Preset ${index + 1}`,
+    );
 
     presetNameOverride
       .filter((override) => !presetNames.includes(override))
       .forEach((override) => {
-        const slotIndex = presetNames.findIndex((name) => !presetNameOverride.includes(name));
+        const slotIndex = presetNames.findIndex(
+          (name) => !presetNameOverride.includes(name),
+        );
         if (slotIndex !== -1) presetNames[slotIndex] = override;
       });
     const flameBotData = data.flameBotPresets || {};
@@ -907,12 +915,19 @@ const bots = {
           idx,
         ) {
           var level = botLevels[idx];
-          acc[upgrade] = level ? String(level).padStart(2, "0") : "00" ;
+          acc[upgrade] = level ? String(level).padStart(2, "0") : "00";
           return acc;
         }, {});
-        props[targetBots[botName].plusUpgrade] = botPreset.plusUnlocked
-          ? (botPreset.plusLevel ? String(botPreset.plusLevel).padStart(2, "0") : "Lo")
-          : "Lo";
+        
+        props[targetBots[botName].plusUpgrade] = "Lo";
+        if (botPreset.plusUnlocked) {
+          props[targetBots[botName].plusUpgrade] =
+            botPreset.plusLevel === null ||
+            botPreset.plusLevel === undefined ||
+            botPreset.plusLevel === ""
+              ? "Lo"
+              : String(botPreset.plusLevel).padStart(2, "0");
+        }
         if (!oldBots.data.hasOwnProperty(botName)) {
           oldBots.data[botName] = {
             unlocked: false,
