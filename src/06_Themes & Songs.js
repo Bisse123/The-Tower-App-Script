@@ -616,7 +616,7 @@ const themes = {
       10: "Coral Reef",
     };
     var songs = {
-      6: "Krisu - Ocean Sings",
+      6: "Krisu - Oceans Sings",
       7: "Krisu - Hiding in Himalaya",
       8: "Krisu - Forest Bathing",
     };
