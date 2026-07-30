@@ -249,10 +249,13 @@ const workshop = {
             .trim()
             .replace(/['"()]/g, "");
         }
-        if (workshopName && oldWorkshopLevels.data[workshopName]) {
+        if (workshopName && oldWorkshopLevels.data.hasOwnProperty(workshopName)) {
           var oldWorkshopRowData = oldWorkshopLevels.data[workshopName];
           workshopUnlocked.push([oldWorkshopRowData.unlocked || ""]);
           workshopLevels.push(oldWorkshopRowData.levels || []);
+        } else {
+          workshopUnlocked.push([""]);
+          workshopLevels.push([]);
         }
         var enhancementName = row[enhancementCol - 1];
         if (enhancementName && enhancementName.startsWith("=")) {
@@ -264,9 +267,11 @@ const workshop = {
           }
           enhancementName = enhancementName.replace(/['"()]/g, "");
         }
-        if (enhancementName && oldWorkshopPlusLevels.data[enhancementName]) {
+        if (enhancementName && oldWorkshopPlusLevels.data.hasOwnProperty(enhancementName)) {
           var enhancementData = oldWorkshopPlusLevels.data[enhancementName];
           workshopPlusLevels.push(enhancementData);
+        } else {
+          workshopPlusLevels.push([]);
         }
       }
 
@@ -1291,9 +1296,9 @@ const workshop = {
         }
         const unlockedIndex = upgradeUnlockIndices.findIndex((unlocked) => unlocked === upgradeName);
         if (unlockedIndex !== -1 && !oldWorkshopLevels.data[upgradeName].unlocked) {
-          oldWorkshopLevels.data[upgradeName].unlocked = upgradeUnlockedData[presetUpgradeIndex + unlockedIndex] || null;
+          oldWorkshopLevels.data[upgradeName].unlocked = upgradeUnlockedData[presetUpgradeIndex + unlockedIndex];
         }
-        const levelValue = upgradeData[presetUpgradeIndex + upgradeIndex] || null;
+        const levelValue = upgradeData[presetUpgradeIndex + upgradeIndex];
         oldWorkshopLevels.data[upgradeName].levels.push(levelValue, null);
       })
     }
@@ -1303,7 +1308,7 @@ const workshop = {
         if (!oldWorkshopPlusLevels.data[enhancementName]) {
           oldWorkshopPlusLevels.data[enhancementName] = [];
         }
-        const levelValue = enhancementData[presetEnhancementIndex + enhancementIndex] || null;
+        const levelValue = enhancementData[presetEnhancementIndex + enhancementIndex];
         oldWorkshopPlusLevels.data[enhancementName].push(levelValue);
       })
     }
