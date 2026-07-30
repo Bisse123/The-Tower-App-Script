@@ -209,9 +209,9 @@ const lab = {
           var cellValue = masterSheetData[row][col - 1];
           if (!cellValue || cellValue.trim() === "") break;
 
-          var oldLabLevel = oldLabLevels[cellValue];
-          if (oldLabLevel && oldLabLevel.length >= 2) {
-            newLabLevels.push([oldLabLevel[0] || 0, oldLabLevel[1] || null]);
+          if (oldLabLevels.hasOwnProperty(cellValue)) {
+            var oldLabLevel = oldLabLevels[cellValue];
+            newLabLevels.push(oldLabLevel);
           } else {
             var currentLevel = masterSheetData[row][col] || 0;
             var currentTarget = masterSheetData[row][col + 1] || "";
