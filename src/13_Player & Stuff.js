@@ -1145,7 +1145,9 @@ const playerStuff = {
 
     var nextPremium = 0;
     for (var tier = 0; tier < highestWavePerTier.length; tier++) {
-      var wave = Math.min(4500, highestWavePerTier[tier]);
+      // Waves are kept uncapped here; the save file UI decides whether to show
+      // and import them at the cap or as the highest wave actually reached.
+      var wave = highestWavePerTier[tier];
       if (wave <= 0) {
         continue;
       }
@@ -1158,10 +1160,10 @@ const playerStuff = {
       oldPlayerStuffTierData["Tier " + (tier)] = {
         wave: wave,
         diss: {
-          attack: Math.min(5000, atkDissonance[tier] || 0),
-          defense: Math.min(5000, hpDissonance[tier] || 0),
-          utility: Math.min(5000, coinDissonance[tier] || 0),
-          ultimate: Math.min(5000, uwDissonance[tier] || 0),
+          attack: atkDissonance[tier] || 0,
+          defense: hpDissonance[tier] || 0,
+          utility: coinDissonance[tier] || 0,
+          ultimate: uwDissonance[tier] || 0,
         },
         premium: premium,
       };
