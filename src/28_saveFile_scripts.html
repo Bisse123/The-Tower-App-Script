@@ -10,6 +10,10 @@
   let saveFileNotOwnedFiles = [];
   let saveFileWarningFiles = [];
 
+  const SF_PLAYER_WAVE_CAP = 4500;
+  const SF_PLAYER_DISS_CAP = 5000;
+  let saveFilePlayerWavesAtCap = true;
+
   let saveFileViewMode = "all";
   let sheetExportData = {};
   let sheetExportFetched = false;
@@ -270,6 +274,7 @@
     let html = "<br>";
     let cardCount = 0;
     const selectedTypes = new Set();
+    const openTypes = sfOpenCategoryTypes(container);
 
     for (const type of order) {
       const data = parsed[type];
@@ -284,7 +289,10 @@
       if (checked) selectedTypes.add(type);
 
       html +=
-        '<div class="sfCategory' + (isOutdated ? " sfCategoryOutdated" : "") + '">';
+        '<div class="sfCategory' +
+        (isOutdated ? " sfCategoryOutdated" : "") +
+        (openTypes.has(type) ? " open" : "") +
+        '">';
       html +=
         '<div class="sfCategoryHeader" onclick="toggleSaveFileCategory(this)">';
       html += '<span class="sfCategoryHeaderMain">';
@@ -344,6 +352,18 @@
     sheetExportData = {};
     sheetExportFetched = false;
     saveFileSelectedTypes = null;
+  }
+
+  // Keeps expanded categories expanded when the results are re-rendered
+  // (view mode / wave cap toggles).
+  function sfOpenCategoryTypes(container) {
+    const open = new Set();
+    if (!container) return open;
+    container.querySelectorAll(".sfCategory.open").forEach(function (card) {
+      const cb = card.querySelector(".sfCategoryCheckbox");
+      if (cb) open.add(cb.getAttribute("data-sheettype"));
+    });
+    return open;
   }
 
   function sfTypeChecked(type) {
@@ -450,9 +470,13 @@
     }
     const diffHtml = renderSaveFileDiffBody(type, data, entry);
     if (!diffHtml || !diffHtml.trim()) {
-      return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
+      return sfDiffNoneHtml();
     }
     return diffHtml;
+  }
+
+  function sfDiffNoneHtml() {
+    return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
   }
 
   async function toggleSaveFileViewMode() {
@@ -1246,7 +1270,8 @@
     return html;
   }
 
-  function renderPlayerDiff(parsed, sheet) {
+  function renderPlayerDiff(rawParsed, sheet) {
+    const parsed = sfPlayerWaveData(rawParsed);
     const pStats = parsed.oldPlayerStuffStatsData || {};
     const sStats = sheet.oldPlayerStuffStatsData || {};
     const statsOrder = parsed.statOrder || Object.keys(pStats.Stat);
@@ -1312,7 +1337,7 @@
         );
       if (rows) html += sfDiffSub(tierKey, sfDiffGrid(rows));
     });
-    return html;
+    return sfPlayerWaveToggle() + (html || sfDiffNoneHtml());
   }
 
   function categoryHasData(data) {
@@ -1355,6 +1380,11 @@
       .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
       .forEach(function (cb) {
         cb.disabled = busy || cb.getAttribute("data-outdated") === "1";
+      });
+    document
+      .querySelectorAll("#saveFileResults .sfPlayerWaveCheckbox")
+      .forEach(function (cb) {
+        cb.disabled = busy;
       });
     if (busy) {
       document.getElementById("saveFileParseBtn").disabled = true;
@@ -1776,7 +1806,7 @@
           "importData",
           task.targetID,
           task.type,
-          parsedSaveData[task.type],
+          sfImportPayload(task.type, parsedSaveData[task.type]),
           {},
           resolvedIdMasterID,
         )
@@ -1831,7 +1861,7 @@
     const filtered = {};
     selected.forEach(function (type) {
       if (parsedSaveData && parsedSaveData[type] !== undefined) {
-        filtered[type] = parsedSaveData[type];
+        filtered[type] = sfImportPayload(type, parsedSaveData[type]);
       }
     });
 
@@ -2727,13 +2757,83 @@
     return m ? parseInt(m[1], 10) : 0;
   }
 
-  function renderPlayerBody(data) {
+  function sfCapWave(value, cap) {
+    const num = typeof value === "number" ? value : parseFloat(value);
+    if (!isFinite(num)) return value;
+    return num > cap ? cap : value;
+  }
+
+  function sfPlayerWaveData(data) {
+    if (!saveFilePlayerWavesAtCap || !data || !data.oldPlayerStuffTierData) {
+      return data;
+    }
+    const tiers = data.oldPlayerStuffTierData;
+    const cappedTiers = {};
+    Object.keys(tiers).forEach(function (tierKey) {
+      const tier = tiers[tierKey] || {};
+      const diss = tier.diss;
+      let cappedDiss = diss;
+      if (diss) {
+        cappedDiss = {};
+        Object.keys(diss).forEach(function (key) {
+          cappedDiss[key] = sfCapWave(diss[key], SF_PLAYER_DISS_CAP);
+        });
+      }
+      cappedTiers[tierKey] = Object.assign({}, tier, {
+        wave: sfCapWave(tier.wave, SF_PLAYER_WAVE_CAP),
+        diss: cappedDiss,
+      });
+    });
+    return Object.assign({}, data, { oldPlayerStuffTierData: cappedTiers });
+  }
+
+  function sfImportPayload(type, data) {
+    return type === "Player & Stuff" ? sfPlayerWaveData(data) : data;
+  }
+
+  function sfPlayerWaveToggle() {
+    const capped = saveFilePlayerWavesAtCap;
+    return (
+      '<div class="sfPlayerWaveToggle">' +
+      '<span class="sfPlayerWaveOption' +
+      (capped ? " is-active" : "") +
+      '" onclick="setSaveFilePlayerWaveMode(true)">Capped waves</span>' +
+      '<label class="sfPlayerWaveSwitch" title="Capped: ' +
+      SF_PLAYER_WAVE_CAP +
+      " tier / " +
+      SF_PLAYER_DISS_CAP +
+      ' dissonant">' +
+      '<input type="checkbox" class="sfPlayerWaveCheckbox"' +
+      (capped ? "" : " checked") +
+      ' aria-label="Use max waves instead of capped waves"' +
+      ' onchange="setSaveFilePlayerWaveMode(!this.checked)">' +
+      '<span class="sfPlayerWaveSlider"></span>' +
+      "</label>" +
+      '<span class="sfPlayerWaveOption' +
+      (capped ? "" : " is-active") +
+      '" onclick="setSaveFilePlayerWaveMode(false)">Max waves</span>' +
+      "</div>"
+    );
+  }
+
+  function setSaveFilePlayerWaveMode(atCap) {
+    const input = document.querySelector(
+      "#saveFileResults .sfPlayerWaveCheckbox",
+    );
+    if (input && input.disabled) return;
+    if (saveFilePlayerWavesAtCap === !!atCap) return;
+    saveFilePlayerWavesAtCap = !!atCap;
+    renderSaveFileResults(lastSaveFileResult);
+  }
+
+  function renderPlayerBody(rawData) {
+    const data = sfPlayerWaveData(rawData);
     const stats = data.oldPlayerStuffStatsData || {};
     const tiers = data.oldPlayerStuffTierData || {};
     const statOrder = data.statOrder || Object.keys(stats.Stat || []);
     const premiumPackOrder =
       data.premiumOrder || Object.keys(stats["Premium Packs"] || []);
-    let html = "";
+    let html = sfPlayerWaveToggle();
 
     html += '<div class="sfInlineKV">';
     premiumPackOrder.forEach(function (key) {

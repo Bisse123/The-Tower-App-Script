@@ -684,6 +684,77 @@
     margin-bottom: 3px;
   }
 
+  .sfPlayerWaveToggle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    background: #f6f7f8;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px 8px;
+    margin-bottom: 8px;
+  }
+  .sfPlayerWaveOption {
+    font-size: 0.95em;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sfPlayerWaveOption.is-active { color: #2752b0; font-weight: 600; }
+
+  .sfPlayerWaveSwitch {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 38px;
+    height: 20px;
+  }
+  .sfPlayerWaveSwitch input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .sfPlayerWaveSlider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #b9bec5;
+    border-radius: 999px;
+    transition: background 0.15s ease;
+    pointer-events: none;
+  }
+  .sfPlayerWaveSlider::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease;
+  }
+  .sfPlayerWaveSwitch input:checked ~ .sfPlayerWaveSlider { background: #2752b0; }
+  .sfPlayerWaveSwitch input:checked ~ .sfPlayerWaveSlider::before {
+    transform: translateX(18px);
+  }
+  .sfPlayerWaveSwitch input:focus-visible ~ .sfPlayerWaveSlider {
+    outline: 2px solid #2752b0;
+    outline-offset: 2px;
+  }
+  .sfPlayerWaveSwitch input:disabled { cursor: not-allowed; }
+  .sfPlayerWaveSwitch input:disabled ~ .sfPlayerWaveSlider { opacity: 0.5; }
+
   .sfTierStat {
     display: flex;
     justify-content: flex-start;
