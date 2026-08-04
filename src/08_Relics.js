@@ -624,6 +624,10 @@ const relics = {
       290: "T:  XXII Vortex",
       291: "T:  XXIII Stellar",
       292: "T:  XXIV Cosmic",
+      293: "Ancinent Footprint",
+      294: "Hunter's Realm",
+      295: "Spiral Nautilus",
+      296: "Tyrant's Skull",
     };
 
     const relicsData = data.relicsUnlocked || [];
