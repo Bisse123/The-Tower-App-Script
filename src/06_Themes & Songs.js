@@ -571,7 +571,7 @@ const themes = {
       53: "5th Anniversary",
       54: "Meteor Shower",
       55: "Coral Reef",
-      56: "Jurassic Forrest",
+      56: "Jurassic Forest",
     };
     var guardianSkins = {
       1: "Butter",
