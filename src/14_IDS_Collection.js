@@ -576,44 +576,66 @@
         }
       }
 
-      // Themes & Songs updates
-      if (data["Themes & Songs"]) {
+      // Themes, Songs & Relics updates - one sheet type, but still written to
+      // the two separate sheets the IDS Collection keeps them in.
+      if (data["Themes, Songs & Relics"]) {
         try {
-          var themesData = data["Themes & Songs"];
+          var themesAndRelicsData = data["Themes, Songs & Relics"];
           var themesMasterSheetData = getRangeData("Themes & Songs", "values");
-          var themesSuccess = true;
-          var themesMessages = [];
+          var relicsMasterSheetData = getRangeData("Relics", "values");
+          var themesAndRelicsSuccess = true;
+          var themesAndRelicsMessages = [];
           var themesResult;
+          var relicsResult;
           if (
-            themesData.hasOwnProperty("oldThemesNames") &&
+            themesAndRelicsData.hasOwnProperty("oldThemesNames") &&
             themesMasterSheetData
           ) {
-            themesResult = themes.updateThemes(
+            themesResult = themesAndRelics.updateThemes(
               sheetRequiredRanges.values["Themes & Songs"].sheetName,
-              themesData.oldThemesNames,
+              themesAndRelicsData.oldThemesNames,
               themesMasterSheetData,
             );
             if (themesResult && themesResult.success) {
               batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
             } else {
-              themesSuccess = false;
-              themesMessages.push(
+              themesAndRelicsSuccess = false;
+              themesAndRelicsMessages.push(
                 themesResult ? themesResult.message : "Unknown error in Themes",
               );
             }
           }
+          if (
+            themesAndRelicsData.hasOwnProperty("oldRelics") &&
+            relicsMasterSheetData
+          ) {
+            relicsResult = themesAndRelics.updateRelics(
+              sheetRequiredRanges.values["Relics"].sheetName,
+              themesAndRelicsData.oldRelics,
+              relicsMasterSheetData,
+            );
+            if (relicsResult && relicsResult.success) {
+              batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
+            } else {
+              themesAndRelicsSuccess = false;
+              themesAndRelicsMessages.push(
+                relicsResult ? relicsResult.message : "Unknown error in Relics",
+              );
+            }
+          }
           updateResults.push({
-            sheetType: "Themes & Songs",
-            success: themesSuccess,
-            message: themesSuccess
-              ? "Themes & Songs updated successfully"
-              : "Themes & Songs update failed: " + themesMessages.join(", "),
+            sheetType: "Themes, Songs & Relics",
+            success: themesAndRelicsSuccess,
+            message: themesAndRelicsSuccess
+              ? "Themes, Songs & Relics updated successfully"
+              : "Themes, Songs & Relics update failed: " +
+                themesAndRelicsMessages.join(", "),
           });
         } catch (error) {
           updateResults.push({
-            sheetType: "Themes & Songs",
+            sheetType: "Themes, Songs & Relics",
             success: false,
-            message: "Error in Themes & Songs update: " + error.message,
+            message: "Error in Themes, Songs & Relics update: " + error.message,
           });
         }
       }
@@ -659,45 +681,6 @@
             sheetType: "Bots",
             success: false,
             message: "Error in Bots update: " + error.message,
-          });
-        }
-      }
-
-      // Relics updates
-      if (data.Relics) {
-        try {
-          var relicsData = data.Relics;
-          var relicsMasterSheetData = getRangeData("Relics", "values");
-          var relicsSuccess = true;
-          var relicsMessages = [];
-          var relicsResult;
-          if (relicsData.hasOwnProperty("oldRelics") && relicsMasterSheetData) {
-            relicsResult = relics.updateRelics(
-              sheetRequiredRanges.values["Relics"].sheetName,
-              relicsData.oldRelics,
-              relicsMasterSheetData,
-            );
-            if (relicsResult && relicsResult.success) {
-              batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
-            } else {
-              relicsSuccess = false;
-              relicsMessages.push(
-                relicsResult ? relicsResult.message : "Unknown error in Relics",
-              );
-            }
-          }
-          updateResults.push({
-            sheetType: "Relics",
-            success: relicsSuccess,
-            message: relicsSuccess
-              ? "Relics updated successfully"
-              : "Relics update failed: " + relicsMessages.join(", "),
-          });
-        } catch (error) {
-          updateResults.push({
-            sheetType: "Relics",
-            success: false,
-            message: "Error in Relics update: " + error.message,
           });
         }
       }
@@ -1367,12 +1350,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -1381,14 +1376,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -1776,12 +1763,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -1790,14 +1789,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -2174,12 +2165,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -2188,14 +2191,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -2572,12 +2567,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -2586,14 +2593,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -2970,12 +2969,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -2984,14 +2995,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -3371,12 +3374,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -3385,14 +3400,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -3772,12 +3779,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion2_1_6Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion2_1_6Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -3786,14 +3805,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -4173,12 +4184,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion1_0Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion1_0Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -4187,14 +4210,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -4574,12 +4589,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion1_0Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion1_0Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -4588,14 +4615,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -4977,12 +4996,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion1_0Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion1_0Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -4991,14 +5022,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -5362,12 +5385,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion1_0Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion1_0Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -5376,14 +5411,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data
@@ -5745,12 +5772,24 @@
         };
       }
 
-      // Themes & Songs data
+      // Themes, Songs & Relics data - the IDS Collection keeps the two as
+      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
-      if (themesResult && themesResult.values) {
-        var themesValues = themesResult.values;
-        var themesData = themes.getVersion1_0Themes(themesValues);
-        collectedData["Themes & Songs"] = themesData;
+      var relicsResult = getBatchResult("Relics", "values");
+      if (
+        themesResult &&
+        themesResult.values &&
+        relicsResult &&
+        relicsResult.values
+      ) {
+        var themesData = themes.getVersion1_0Themes(themesResult.values);
+        var relicsData = relics.getVersion1_0Relics(relicsResult.values);
+        collectedData["Themes, Songs & Relics"] = {
+          success: themesData.success && relicsData.success,
+          message: themesData.message || relicsData.message,
+          oldThemesNames: themesData.oldThemesNames,
+          oldRelics: relicsData.oldRelics,
+        };
       }
 
       // Bots data
@@ -5759,14 +5798,6 @@
         var botsValues = botsResult.values;
         var botsData = bots.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
-      }
-
-      // Relics data
-      var relicsResult = getBatchResult("Relics", "values");
-      if (relicsResult && relicsResult.values) {
-        var relicsValues = relicsResult.values;
-        var relicsData = relics.getVersion1_0Relics(relicsValues);
-        collectedData.Relics = relicsData;
       }
 
       // Vault data

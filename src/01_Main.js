@@ -3,6 +3,7 @@ const sheetVars = (sheetType) => {
     Laboratory: lab,
     Workshop: workshop,
     "Ultimate Weapon": ultimate,
+    "Themes, Songs & Relics": themesAndRelics,
     "Themes & Songs": themes,
     Bots: bots,
     Relics: relics,

@@ -723,12 +723,10 @@
         return renderWorkshopDiff(parsed, sheet);
       case "Ultimate Weapon":
         return renderUltimateDiff(parsed, sheet);
-      case "Themes & Songs":
-        return renderThemesDiff(parsed, sheet);
+      case "Themes, Songs & Relics":
+        return renderThemesAndRelicsDiff(parsed, sheet);
       case "Bots":
         return renderBotsDiff(parsed, sheet);
-      case "Relics":
-        return renderRelicsDiff(parsed, sheet);
       case "Vault":
         return renderVaultDiff(parsed, sheet);
       case "Cards":
@@ -859,6 +857,14 @@
       if (rows) html += sfDiffBlock(name, sfDiffGrid(rows));
     });
     return html;
+  }
+
+  function renderThemesAndRelicsDiff(parsed, sheet) {
+    const relicsDiff = renderRelicsDiff(parsed, sheet);
+    return (
+      renderThemesDiff(parsed, sheet) +
+      (relicsDiff ? sfDiffSub("Relics", relicsDiff) : "")
+    );
   }
 
   function renderThemesDiff(parsed, sheet) {
@@ -2241,12 +2247,10 @@
         return renderWorkshopBody(data);
       case "Ultimate Weapon":
         return renderUltimateBody(data);
-      case "Themes & Songs":
-        return renderThemesBody(data);
+      case "Themes, Songs & Relics":
+        return renderThemesAndRelicsBody(data);
       case "Bots":
         return renderBotsBody(data);
-      case "Relics":
-        return renderRelicsBody(data);
       case "Vault":
         return renderVaultBody(data);
       case "Cards":
@@ -2458,6 +2462,15 @@
         "</div>";
     });
     return html;
+  }
+
+  function renderThemesAndRelicsBody(data) {
+    const relics = data.oldRelics || [];
+    return (
+      renderThemesBody(data) +
+      sfSubLabel("Relics (" + relics.length + ")") +
+      renderRelicsBody(data)
+    );
   }
 
   function renderThemesBody(data) {
