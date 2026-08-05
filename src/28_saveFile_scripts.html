@@ -645,18 +645,6 @@
     return sfNormBool(v) ? "✓" : "✗";
   }
 
-  function sfSyncIsNone(v) {
-    const t = sfNormGeneric(v);
-    return t === "" || t === "x" || t === "-" || t === "0" || t === "false";
-  }
-
-  function sfNormSync(v) {
-    return sfSyncIsNone(v) ? "" : sfNormGeneric(v);
-  }
-
-  function sfDisplaySync(v) {
-    return sfSyncIsNone(v) ? "-" : sfTrimLevel(v);
-  }
 
   function sfDiffRow(oldDisp, newDisp, name) {
     return (
@@ -912,15 +900,6 @@
       if (!def) return;
 
       let botInner = "";
-      if (sfNormBool(pBot.unlocked) !== sfNormBool(sBot.unlocked)) {
-        botInner += sfDiffGrid(
-          sfDiffRow(
-            sfDisplayBool(sBot.unlocked),
-            sfDisplayBool(pBot.unlocked),
-            "Unlocked",
-          ),
-        );
-      }
 
       const attrs = (def.upgrades || []).filter(Boolean);
       if (def.plusUpgrade) attrs.push(def.plusUpgrade);
@@ -935,6 +914,20 @@
             ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
             : sProps;
         let rows = "";
+        if (sfNormBool(pPreset.active) !== sfNormBool(sPreset.active)) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.active),
+            sfDisplayBool(pPreset.active),
+            "Active",
+          );
+        }
+        if (sfNormBool(pPreset.sync) !== sfNormBool(sPreset.sync)) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.sync),
+            sfDisplayBool(pPreset.sync),
+            "Sync",
+          );
+        }
         attrs.forEach(function (attr) {
           const pv = pProps[attr];
           let sv = sProps[attr];
@@ -951,13 +944,6 @@
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
         });
-        if (sfNormSync(pPreset.sync) !== sfNormSync(sPreset.sync)) {
-          rows += sfDiffRow(
-            sfDisplaySync(sPreset.sync),
-            sfDisplaySync(pPreset.sync),
-            "Sync",
-          );
-        }
         if (rows) botInner += sfDiffSub(presetName, sfDiffGrid(rows));
       });
 
@@ -2512,8 +2498,6 @@
       html +=
         '<div class="sfBlock"><div class="sfBlockHeader">' +
         escSaveFileHtml(botName) +
-        " " +
-        sfUnlockMark(bot.unlocked) +
         "</div>";
       html += '<div class="sfBotsColumns">';
 
@@ -2521,19 +2505,16 @@
         const preset = presets[presetName];
         if (!preset) return;
         const props = preset.props || {};
-        const syncTag = preset.sync
-          ? ' <span class="sfTag">sync ' +
-            escSaveFileHtml(preset.sync) +
-            "</span>"
-          : "";
+        const activeTag = `<span class="sfTag"> active ${sfUnlockMark(preset.active)} </span>`;
+        const syncTag = `<span class="sfTag"> sync ${sfUnlockMark(preset.sync)} </span>`;
         html +=
-          '<div class="sfBotColumn">' +
-          '<div class="sfBotColHeader">' +
-          escSaveFileHtml(presetName) +
-          syncTag +
-          "</div>" +
-          sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, props) +
-          "</div>";
+          `<div class="sfBotColumn">
+          <div class="sfBotColHeader">
+          ${escSaveFileHtml(presetName)}
+          </div>
+          ${activeTag} ${syncTag}
+          ${sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, props)}
+          </div>`;
       });
 
       html += "</div></div>";

@@ -255,11 +255,11 @@ const bots = {
         var presetName = header && header.trim() !== "" ? header.trim() : null;
         if (presetName) {
           if (oldBots.presetNames.includes(presetName)) {
-            endCol = index + 1;
+            endCol = index + 2;
             presetColumnMapping.push({
               presetName: presetName,
               levelColIndex: index,
-              syncColIndex: index + 1,
+              toggleColIndex: endCol
             });
             return;
           }
@@ -268,11 +268,11 @@ const bots = {
             if (presetNumber) {
               var oldPresetName = oldBots.presetNames[presetNumber - 1];
               if (oldPresetName) {
-                endCol = index + 1;
+                endCol = index + 2;
                 presetColumnMapping.push({
                   presetName: oldPresetName,
                   levelColIndex: index,
-                  syncColIndex: index + 1,
+                  toggleColIndex: endCol,
                 });
                 batchUpdate.push({
                   range: `${sheetName}!${shared.columnToLetter(index + 1)}1`,
@@ -286,9 +286,9 @@ const bots = {
       });
 
       var newBotDataValues = masterSheetData
-        .slice(1) // Skip header row
+        .slice(2)
         .map(function (row) {
-          return row.slice(startCol - 1, endCol); // Extract columns (convert to 0-based)
+          return row.slice(startCol - 1, endCol);
         })
         .filter(function (row) {
           return row.some(function (cell) {
@@ -318,9 +318,8 @@ const bots = {
         ),
       );
 
-      var newBotUnlocked = [];
       var newBotLevels = {};
-      var newBotSync = {};
+      var newBotToggle = {};
 
       for (var row = 0; row < newBotData.length; row++) {
         var rowData = newBotData[row];
@@ -330,11 +329,6 @@ const bots = {
         }
 
         var oldBot = oldBots.data[botName];
-        newBotUnlocked.push([botName]);
-        newBotUnlocked.push([null]);
-        newBotUnlocked.push([null]);
-        newBotUnlocked.push([oldBot.unlocked]);
-        newBotUnlocked.push([null]);
 
         for (var nextRow = row; nextRow < newBotData.length; nextRow++) {
           var nextRowData = newBotData[nextRow];
@@ -342,7 +336,7 @@ const bots = {
             row = nextRow - 1;
             break;
           }
-          var newBotProp = nextRowData[2];
+          var newBotProp = nextRowData[1];
 
           for (
             var presetIdx = 0;
@@ -359,17 +353,30 @@ const bots = {
             if (!presetData) {
               continue;
             }
+            
+            if (!newBotToggle.hasOwnProperty(presetName)) {
+              newBotToggle[presetName] = [];
+            }
 
-            if (
-              presetData.hasOwnProperty("sync") &&
-              presetData.sync !== null &&
-              nextRow === row
-            ) {
-              newBotSync[presetName] = newBotSync[presetName] || [];
-              newBotSync[presetName].push([presetData.sync]);
+            newBotToggle[presetName].push([null])
+
+            if (presetData.hasOwnProperty("active")) {
+              newBotToggle[presetName].push([presetData.active]);
             } else {
-              newBotSync[presetName] = newBotSync[presetName] || [];
-              newBotSync[presetName].push([null]);
+              newBotToggle[presetName].push([null]);
+            }
+            
+            newBotToggle[presetName].push([null])
+            newBotToggle[presetName].push([null])
+
+            if (presetData.hasOwnProperty("sync")) {
+              newBotToggle[presetName].push([presetData.sync]);
+            } else {
+              newBotToggle[presetName].push([null]);
+            }
+
+            if (!newBotLevels.hasOwnProperty(presetName)) {
+              newBotLevels[presetName] = [];
             }
 
             if (
@@ -380,8 +387,6 @@ const bots = {
               newBotLevels[presetName].push([null]);
               continue;
             }
-
-            newBotLevels[presetName] = newBotLevels[presetName] || [];
             var oldPropValue = presetData.props[newBotProp];
             var dvtPropValue = shared.getDVTValue(
               oldPropValue,
@@ -390,14 +395,6 @@ const bots = {
             newBotLevels[presetName].push([dvtPropValue]);
           }
         }
-      }
-
-      if (newBotUnlocked.length > 0) {
-        var unlockedColLetter = shared.columnToLetter(botCol + 1);
-        batchUpdate.push({
-          range: `${sheetName}!${unlockedColLetter}3:${unlockedColLetter}${newBotUnlocked.length + 2}`,
-          values: newBotUnlocked,
-        });
       }
 
       if (Object.keys(newBotLevels).length > 0) {
@@ -417,18 +414,18 @@ const bots = {
         });
       }
 
-      if (Object.keys(newBotSync).length > 0) {
-        Object.keys(newBotSync).forEach(function (presetName) {
+      if (Object.keys(newBotToggle).length > 0) {
+        Object.keys(newBotToggle).forEach(function (presetName) {
           var presetMap = presetColumnMapping.find(function (map) {
             return map.presetName === presetName;
           });
           if (presetMap) {
-            var syncColLetter = shared.columnToLetter(
-              presetMap.syncColIndex + 1,
+            var toggleColLetter = shared.columnToLetter(
+              presetMap.toggleColIndex + 1,
             );
             batchUpdate.push({
-              range: `${sheetName}!${syncColLetter}3:${syncColLetter}${newBotSync[presetName].length + 2}`,
-              values: newBotSync[presetName],
+              range: `${sheetName}!${toggleColLetter}3:${toggleColLetter}${newBotToggle[presetName].length + 2}`,
+              values: newBotToggle[presetName],
             });
           }
         });
@@ -456,6 +453,48 @@ const bots = {
 
   // #endregion
   // #region Convert Versions
+  version3_2: function () {
+    try {
+      console.log("Called: bots.version3_2");
+      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+
+      var botsLevelsRange = "EXPORT!C4:L";
+      var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        botsLevelsRange,
+      ]);
+      if (
+        !botBatchResult ||
+        botBatchResult.length === 0 ||
+        !botBatchResult[0].values
+      ) {
+        console.log(`Could not read old bot levels data`);
+        return {
+          success: false,
+          message: `Could not read old bot levels data`,
+        };
+      }
+      var oldBotLevelsData = botBatchResult[0].values;
+
+      var botsData = this.getVersion3_2Bots(oldBotLevelsData);
+      return botsData;
+    } catch (error) {
+      console.log("Error in version3_2: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version3_2: " + error.message,
+      };
+    }
+  },
+
   version3_0: function () {
     try {
       console.log("Called: bots.version3_0");
@@ -584,6 +623,119 @@ const bots = {
 
   // #endregion
   // #region Get Bots
+  getVersion3_2Bots: function (oldBotLevelsData) {
+    try {
+      console.log("Called: bots.getVersion3_2Bots");
+      var targetBots = [
+        "Flame Bot",
+        "Thunder Bot",
+        "Golden Bot",
+        "Amplify Bot",
+        "Bot Bot",
+      ];
+
+      var oldBotLevels = oldBotLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== "",
+        ),
+      );
+
+      if (!oldBotLevels || oldBotLevels.length === 0) {
+        return {
+          success: false,
+          message: "No bot levels data found",
+        };
+      }
+
+      var oldBotsHeaderRow = oldBotLevels[0] || [];
+      var oldBotsPresetNames = [];
+      var presetColumnMapping = [];
+
+      var firstPresetIndex = oldBotsHeaderRow.indexOf("Farming");
+      for (
+        var colIdx = firstPresetIndex;
+        colIdx < oldBotsHeaderRow.length;
+        colIdx++
+      ) {
+        var presetName = String(oldBotsHeaderRow[colIdx] || "").trim();
+        if (!presetName) {
+          continue;
+        }
+
+        oldBotsPresetNames.push(presetName);
+        presetColumnMapping.push({
+          presetName: presetName,
+          levelColIndex: colIdx,
+          toggleColIndex: colIdx + 2,
+        });
+      }
+
+      var oldBots = {
+        presetNames: oldBotsPresetNames,
+        data: {},
+      };
+      for (var row = 0; row < oldBotLevels.length; row++) {
+        var botName = String(oldBotLevels[row][0] || "").trim();
+        if (!botName || !targetBots.includes(botName)) {
+          continue;
+        }
+
+        var bot = {
+          presets: {},
+        };
+
+        presetColumnMapping.forEach(function (presetMap) {
+          bot.presets[presetMap.presetName] = {
+            props: {},
+            active: oldBotLevels[row + 1][presetMap.toggleColIndex],
+            sync: oldBotLevels[row + 4][presetMap.toggleColIndex],
+          };
+        });
+
+        for (var nextRow = row; nextRow < oldBotLevels.length; nextRow++) {
+          var nextRowData = oldBotLevels[nextRow];
+
+          if (nextRow !== row && targetBots.includes(nextRowData[0])) {
+            row = nextRow - 1;
+            break;
+          }
+          var key = String(nextRowData[1] || "").trim();
+          if (!key) {
+            continue;
+          }
+          var defaultLevelValue = nextRowData[firstPresetIndex];
+          presetColumnMapping.forEach(function (presetMap) {
+            var levelValue = nextRowData[presetMap.levelColIndex];
+            if (
+              presetMap.presetName !== "Farming" &&
+              levelValue === defaultLevelValue
+            ) {
+              levelValue = null;
+            }
+            bot.presets[presetMap.presetName].props[key] = levelValue;
+          });
+        }
+
+        oldBots.data[botName] = bot;
+      }
+
+      return {
+        success: true,
+        message: "Bots processed successfully",
+        oldBots: oldBots,
+      };
+    } catch (error) {
+      console.log("Error in getVersion3_2Bots: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion3_2Bots: " + error.message,
+      };
+    }
+  },
+
   getVersion3_0Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion3_0Bots");
@@ -630,7 +782,7 @@ const bots = {
         presetColumnMapping.push({
           presetName: presetName,
           levelColIndex: colIdx,
-          syncColIndex: colIdx + 1,
+          toggleColIndex: colIdx + 1,
         });
       }
 
@@ -650,14 +802,14 @@ const bots = {
             : null;
 
         var bot = {
-          unlocked: unlocked,
           presets: {},
         };
 
         presetColumnMapping.forEach(function (presetMap) {
           bot.presets[presetMap.presetName] = {
             props: {},
-            sync: oldBotLevels[row][presetMap.syncColIndex],
+            sync: oldBotLevels[row][presetMap.toggleColIndex],
+            active: presetMap.presetName === "Farming" ? unlocked : null,
           };
         });
 
@@ -731,11 +883,11 @@ const bots = {
         if (botName && targetBots.includes(botName)) {
           var unlocked = oldBotLevels[row + 3][0];
           var bot = {
-            unlocked: unlocked,
             presets: {
               Farming: {
                 props: {},
                 sync: null,
+                active: unlocked,
               },
             },
           };
@@ -799,11 +951,11 @@ const bots = {
         if (botName && targetBots.includes(botName)) {
           var unlocked = oldBotLevels[row + 3][0];
           var bot = {
-            unlocked: unlocked,
             presets: {
               Farming: {
                 props: {},
                 sync: null,
+                active: unlocked,
               },
             },
           };
@@ -930,16 +1082,13 @@ const bots = {
         }
         if (!oldBots.data.hasOwnProperty(botName)) {
           oldBots.data[botName] = {
-            unlocked: false,
             presets: {},
           };
-        }
-        if (botPreset.unlocked) {
-          oldBots.data[botName].unlocked = botPreset.unlocked;
         }
         oldBots.data[botName].presets[presetName] = {
           props: props,
           sync: syncPresets[index][botIndex] || null,
+          active: botPreset.unlocked || null,
         };
       });
     });
@@ -958,6 +1107,7 @@ const bots = {
       "v1.0": this.version1_0.bind(this),
       "v2.0": this.version2_0.bind(this),
       "v3.0": this.version3_0.bind(this),
+      "v3.2": this.version3_2.bind(this),
     };
   },
 
