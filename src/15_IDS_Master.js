@@ -164,6 +164,53 @@ const master = {
 
   // #endregion
   // #region Convert Versions
+  version4_0: function () {
+    try {
+      console.log("Called: master.version4_0");
+      var oldSpreadsheet = spreadsheets("IDS Master oldSpreadsheet");
+      if (!oldSpreadsheet) {
+        console.log(`Old spreadsheet not found`);
+        return {
+          success: false,
+          message: "Old spreadsheet not found",
+        };
+      }
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      // Get IDS sheet data
+      var idsResult = SheetsAPI.batchGetValues(oldSheetID, ["IDS"]);
+      if (!idsResult || !idsResult[0] || !idsResult[0].values) {
+        console.log(`Could not read IDS data from old spreadsheet`);
+        return {
+          success: false,
+          message: "Could not read IDS data from old spreadsheet",
+        };
+      }
+
+      var idsValues = idsResult[0].values;
+      var idsDataResult = this.getVersion4_0IDSData(idsValues);
+
+      if (!idsDataResult.success) {
+        console.log(`${idsDataResult.message}`);
+        return idsDataResult;
+      }
+
+      return {
+        success: true,
+        data: {
+          idsData: idsDataResult.data,
+        },
+        message: "IDS Master v2.0 data exported successfully",
+      };
+    } catch (error) {
+      console.log("Error in version4_0: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version4_0: " + error.message,
+      };
+    }
+  },
+
   version2_0: function () {
     try {
       console.log("Called: master.version2_0");
@@ -213,6 +260,53 @@ const master = {
 
   // #endregion
   // #region Get IDS Data
+  getVersion4_0IDSData: function (idsValues) {
+    try {
+      console.log("Called: master.getVersion4_0IDSData");
+
+      // Extract all sheet references from the IDS sheet
+      var sheetReferences = {};
+      var sheetTypes = [
+        "Laboratory",
+        "Workshop",
+        "Ultimate Weapon",
+        "Themes, Songs & Relics",
+        "Bots",
+        "Vault",
+        "Cards",
+        "Modules",
+        "Guardians",
+        "Player & Stuff",
+      ];
+
+      for (var i = 0; i < sheetTypes.length; i++) {
+        var sheetType = sheetTypes[i];
+        var sheetInfo = shared.findSheetTypeID(
+          null,
+          "IDS",
+          sheetType,
+          idsValues
+        );
+        if (sheetInfo && sheetInfo.id) {
+          var sheetID = shared.extractSheetId(sheetInfo.id);
+          sheetReferences[sheetType] = sheetID;
+        }
+      }
+
+      return {
+        success: true,
+        data: sheetReferences,
+        message: "IDS Master data extracted successfully",
+      };
+    } catch (error) {
+      console.log("Error in getVersion4_0IDSData: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion4_0IDSData: " + error.message,
+      };
+    }
+  },
+
   getVersion2_0IDSData: function (idsValues) {
     try {
       console.log("Called: master.getVersion2_0IDSData");
@@ -266,6 +360,7 @@ const master = {
   get convertVersionFunctions() {
     return {
       "v2.0": this.version2_0.bind(this),
+      "v4.0": this.version4_0.bind(this),
     };
   },
 

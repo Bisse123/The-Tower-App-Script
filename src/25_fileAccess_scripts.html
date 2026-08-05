@@ -1,4 +1,101 @@
 <script>
+  const MERGED_THEMES_SHEET_TYPE = "Themes, Songs & Relics";
+  const LEGACY_THEMES_SHEET_TYPE = "Themes & Songs";
+  const LEGACY_RELICS_SHEET_TYPE = "Relics";
+  let mergeLegacyThemesSheets = false;
+
+  function detectLegacyThemesSheets(templateInfo) {
+    mergeLegacyThemesSheets =
+      templateInfo.some(
+        (template) => template.sheetType === LEGACY_THEMES_SHEET_TYPE,
+      ) &&
+      templateInfo.some(
+        (template) => template.sheetType === LEGACY_RELICS_SHEET_TYPE,
+      );
+
+    if (mergeLegacyThemesSheets) {
+      console.log(
+        `IDS Master is older than v4.0 - merging ${LEGACY_THEMES_SHEET_TYPE} and ${LEGACY_RELICS_SHEET_TYPE} into ${MERGED_THEMES_SHEET_TYPE}`,
+      );
+    }
+    return mergeLegacyThemesSheets;
+  }
+
+  function mergeLegacyThemesTemplates(templateInfo) {
+    if (!detectLegacyThemesSheets(templateInfo)) {
+      return templateInfo;
+    }
+
+    const themesTemplate = templateInfo.find(
+      (template) => template.sheetType === LEGACY_THEMES_SHEET_TYPE,
+    );
+    const relicsTemplate = templateInfo.find(
+      (template) => template.sheetType === LEGACY_RELICS_SHEET_TYPE,
+    );
+
+    return templateInfo
+      .filter(
+        (template) =>
+          template !== themesTemplate && template !== relicsTemplate,
+      )
+      .concat([
+        {
+          ...relicsTemplate,
+          sheetType: MERGED_THEMES_SHEET_TYPE,
+          merged: true,
+          oldSheetIDs: [themesTemplate.oldSheetID, relicsTemplate.oldSheetID],
+        },
+      ]);
+  }
+
+  function expandMergedTemplateFiles(templateFiles) {
+    if (!mergeLegacyThemesSheets) {
+      return templateFiles;
+    }
+
+    return templateFiles.reduce((expanded, file) => {
+      if (file.sheetType !== MERGED_THEMES_SHEET_TYPE) {
+        expanded.push(file);
+        return expanded;
+      }
+      expanded.push({ ...file, sheetType: LEGACY_THEMES_SHEET_TYPE });
+      expanded.push({ ...file, sheetType: LEGACY_RELICS_SHEET_TYPE });
+      return expanded;
+    }, []);
+  }
+
+  function collapseMergedImportTasks(tasks) {
+    if (!mergeLegacyThemesSheets) {
+      return tasks;
+    }
+
+    const mergeSources = tasks.filter(
+      (task) =>
+        task.sheetType === LEGACY_THEMES_SHEET_TYPE ||
+        task.sheetType === LEGACY_RELICS_SHEET_TYPE,
+    );
+    if (mergeSources.length === 0) {
+      return tasks;
+    }
+
+    return tasks
+      .filter((task) => !mergeSources.includes(task))
+      .concat([
+        {
+          ...mergeSources[0],
+          sheetType: MERGED_THEMES_SHEET_TYPE,
+          // Every old sheet the merged sheet replaces, so they all get deleted
+          // once the new one is moved into place.
+          oldSheetIDs: mergeSources.map((task) => task.oldSheetID),
+          exportSources: mergeSources.map((task) => ({
+            sheetType: task.sheetType,
+            oldSheetID: task.oldSheetID,
+            versionDifference: task.versionDifference,
+          })),
+        },
+      ]);
+  }
+
   function showFileAccessSection() {
     var selectImportSection = document.getElementById("selectImportSection");
     var fileAccessSection = document.getElementById("fileAccessSection");
@@ -129,9 +226,9 @@
         const prepareResult = await runAppsScript(
           "prepareImportData",
           oldSheetID,
-          copiedTemplateFiles || [],
-          importedFilesFailed || [],
-          exportedFilesFailed || [],
+          expandMergedTemplateFiles(copiedTemplateFiles || []),
+          expandMergedTemplateFiles(importedFilesFailed || []),
+          expandMergedTemplateFiles(exportedFilesFailed || []),
         );
         await onprepareImportDataSuccess(prepareResult);
       } catch (error) {
@@ -144,9 +241,8 @@
         "Laboratory",
         "Workshop",
         "Ultimate Weapon",
-        "Themes & Songs",
+        MERGED_THEMES_SHEET_TYPE,
         "Bots",
-        "Relics",
         "Vault",
         "Cards",
         "Modules",
@@ -164,7 +260,7 @@
         result = await runAppsScript(
           "prepareImportData",
           oldSheetID,
-          copiedTemplateFiles,
+          expandMergedTemplateFiles(copiedTemplateFiles),
         );
       } catch (error) {
         document.getElementById("importButton").disabled = false;
@@ -204,10 +300,11 @@
       }
 
       try {
+        const exportTasks = collapseMergedImportTasks(result.succeededTasks);
         setStatusWithSpinner(
-          `Exporting data from ${result.succeededTasks.length} sheets...`,
+          `Exporting data from ${exportTasks.length} sheets...`,
         );
-        const exportResults = await exportAllData(result.succeededTasks);
+        const exportResults = await exportAllData(exportTasks);
 
         console.log("Export results:", exportResults);
 
@@ -302,14 +399,12 @@
     if (!result.succeededTasks || result.succeededTasks.length === 0) {
       document.getElementById("importButton").disabled = false;
 
-      // Show generic message in status text
       const statusMessage =
         result.failedTasks && result.failedTasks.length > 0
           ? "Import preparation failed for all tasks."
           : "No valid import tasks prepared.";
       setStatusText(statusMessage);
 
-      // Show detailed error messages for each failed task in the summary
       if (result.failedTasks && result.failedTasks.length > 0) {
         let summaryHtml = "<strong>❌ Import Preparation Failed:</strong><br>";
         result.failedTasks.forEach((task) => {
@@ -329,11 +424,9 @@
     }
 
     try {
-      // First, export all data
-      setStatusWithSpinner(
-        `Exporting data from ${result.succeededTasks.length} sheets...`,
-      );
-      const exportResults = await exportAllData(result.succeededTasks);
+      const exportTasks = collapseMergedImportTasks(result.succeededTasks);
+      setStatusWithSpinner(`Exporting data from ${exportTasks.length} sheets...`);
+      const exportResults = await exportAllData(exportTasks);
 
       console.log("Export results:", exportResults);
 
@@ -377,6 +470,53 @@
     console.error("Import preparation failed:", error);
   }
 
+  async function runExportForTask(task) {
+    const sources = task.exportSources || [
+      {
+        sheetType: task.sheetType,
+        oldSheetID: task.oldSheetID,
+        versionDifference: task.versionDifference,
+      },
+    ];
+
+    const results = await Promise.all(
+      sources.map((source) =>
+        runAppsScript(
+          "exportData",
+          source.oldSheetID,
+          source.sheetType,
+          source.versionDifference,
+        ),
+      ),
+    );
+
+    if (results.length === 1) {
+      return results[0];
+    }
+
+    const failedIndex = results.findIndex(
+      (result) => !result || !result.success,
+    );
+    if (failedIndex !== -1) {
+      const failed = results[failedIndex];
+      return {
+        success: false,
+        message:
+          (failed && failed.message) ||
+          `Unknown error exporting ${sources[failedIndex].sheetType}`,
+      };
+    }
+
+    const data = {};
+    const sheetVisibility = {};
+    results.forEach((result) => {
+      Object.assign(data, result.data || {});
+      Object.assign(sheetVisibility, result.sheetVisibility || {});
+    });
+
+    return { success: true, data: data, sheetVisibility: sheetVisibility };
+  }
+
   async function exportAllData(exportTasks) {
     let completedCount = 0;
     let successCount = 0;
@@ -391,8 +531,8 @@
         return new Promise((resolve) => {
           console.log(`Starting export for ${task.sheetType}`);
 
-          google.script.run
-            .withSuccessHandler(function (result) {
+          runExportForTask(task).then(
+            function (result) {
               completedCount++;
               if (result.success) {
                 successCount++;
@@ -444,6 +584,7 @@
                   exportedFilesSuccess.push({
                     ...exportedFile,
                     oldSheetID: task.oldSheetID,
+                    oldSheetIDs: task.oldSheetIDs,
                     idMasterID: task.idMasterID,
                     exportData: result.data,
                     sheetVisibility: result.sheetVisibility,
@@ -506,8 +647,8 @@
                 sheetType: task.sheetType,
                 taskIndex: index,
               });
-            })
-            .withFailureHandler(function (error) {
+            },
+            function (error) {
               completedCount++;
               failedCount++;
               console.error(`❌ ${task.sheetType} export error:`, error);
@@ -561,12 +702,8 @@
                 sheetType: task.sheetType,
                 taskIndex: index,
               });
-            })
-            .exportData(
-              task.oldSheetID,
-              task.sheetType,
-              task.versionDifference,
-            );
+            },
+          );
         });
       });
 
@@ -988,7 +1125,12 @@
                   fileData: file,
                 });
               })
-              [moveMethod](file.sheetType, file.fileId, oldIdForMove);
+              [moveMethod](
+                file.sheetType,
+                file.fileId,
+                oldIdForMove,
+                file.oldSheetIDs || [],
+              );
           });
         });
 
@@ -1854,8 +1996,12 @@
 
       if (subsheetsResult && subsheetsResult.success) {
         cachedSheetIds = subsheetsResult.sheetIds || [];
+        // The IDS Collection only knows the merged sheet type, so a pre-v4.0
+        // IDS Master still has to have its two old sheets combined.
+        detectLegacyThemesSheets(subsheetsResult.templateInfo || []);
       } else {
         cachedSheetIds = [];
+        mergeLegacyThemesSheets = false;
         console.warn(
           "Unable to collect subsheet IDs for cleanup:",
           subsheetsResult,
@@ -1863,6 +2009,7 @@
       }
     } catch (error) {
       cachedSheetIds = [];
+      mergeLegacyThemesSheets = false;
       console.error("Error collecting subsheet IDs for cleanup:", error);
     }
 
@@ -2499,20 +2646,31 @@
         );
       }
 
-      const templatesWithUpdates = subsheetsResult.templateInfo.filter(
-        (template) => template.templateVersion !== template.oldVersion,
+      const templateInfo = mergeLegacyThemesTemplates(
+        subsheetsResult.templateInfo,
       );
-      const templatesWithSameVersion = subsheetsResult.templateInfo.filter(
-        (template) => template.templateVersion === template.oldVersion,
+
+      const templatesWithUpdates = templateInfo.filter(
+        (template) =>
+          template.merged || template.templateVersion !== template.oldVersion,
+      );
+      const templatesWithSameVersion = templateInfo.filter(
+        (template) =>
+          !template.merged && template.templateVersion === template.oldVersion,
       );
 
       cachedTemplateInfo = templatesWithUpdates;
       cachedTemplatesWithSameVersion = templatesWithSameVersion;
       cachedSheetIds = [oldSheetID];
       templatesWithUpdates.forEach((template) => {
-        if (template.oldSheetID) {
-          cachedSheetIds.push(template.oldSheetID);
-        }
+        // The merged sheet is exported from more than one old sheet, so all of
+        // its sources need to be access checked.
+        const oldSheetIDs = template.oldSheetIDs || [template.oldSheetID];
+        oldSheetIDs.forEach((id) => {
+          if (id && !cachedSheetIds.includes(id)) {
+            cachedSheetIds.push(id);
+          }
+        });
       });
 
       copyTemplates(currentCopyMode);
@@ -2572,6 +2730,9 @@
     // Reset any combined update state
     isCombinedUpdate = false;
 
+    // Reset the Themes, Songs & Relics merge state
+    mergeLegacyThemesSheets = false;
+
     // Reset IDS Master only update state
     isUpdateSingleSheetFlow = false;
 
@@ -2597,6 +2758,7 @@
 
   function resetToCollectionState() {
     isCombinedUpdate = false;
+    mergeLegacyThemesSheets = false;
     isUpdateSingleSheetFlow = false;
     isConvertToMasterFlow = false;
     isConvertToCollectionFlow = false;

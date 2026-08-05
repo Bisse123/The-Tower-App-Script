@@ -220,7 +220,57 @@ const guardians = {
       var startCol = guardianCol + 1;
       var endCol = guardianCol + 5;
 
-      var newGuardianDataValues = masterSheetData
+      var presetColumnMapping = [];
+      var firstPresetIndex = headerRow.indexOf("Farming");
+
+      if (firstPresetIndex === -1) {
+        console.log(`Preset columns not found in Master Sheet`);
+        return {
+          success: false,
+          message: `Preset columns not found in Master Sheet™`,
+        };
+      }
+
+      var batchUpdate = [];
+
+      headerRow.forEach(function (header, index) {
+        if (index < firstPresetIndex) {
+          return;
+        }
+        var presetName = header && header.trim() !== "" ? header.trim() : null;
+        if (!presetName) {
+          return;
+        }
+        if (oldGuardians.presetNames.includes(presetName)) {
+          endCol = index + 1;
+          presetColumnMapping.push({
+            presetName: presetName,
+            equippedColIndex: index,
+            levelColIndex: endCol,
+          });
+          return;
+        }
+        if (presetName.startsWith("Preset")) {
+          var presetNumber = presetName.substring(6).trim();
+          if (presetNumber) {
+            var oldPresetName = oldGuardians.presetNames[presetNumber - 1];
+            if (oldPresetName) {
+              endCol = index + 1;
+              presetColumnMapping.push({
+                presetName: oldPresetName,
+                equippedColIndex: index,
+                levelColIndex: endCol,
+              });
+              batchUpdate.push({
+                range: `${sheetName}!${shared.columnToLetter(index + 1)}1`,
+                values: [[oldPresetName]],
+              });
+            }
+          }
+        }
+      });
+
+      var newGuardianData = masterSheetData
         .slice(1)
         .map(function (row) {
           return row.slice(startCol - 1, endCol);
@@ -235,83 +285,133 @@ const guardians = {
           });
         });
 
-      if (!newGuardianDataValues || newGuardianDataValues.length === 0) {
+      if (!newGuardianData || newGuardianData.length === 0) {
         return {
           success: false,
           message: "Could not read guardian data",
         };
       }
 
-      var newGuardianData = newGuardianDataValues.filter((row) =>
-        row.some(
-          (cell) =>
-            cell !== null &&
-            cell !== undefined &&
-            String(cell || "").trim() !== ""
-        )
-      );
-
       var newGuardianUnlocked = [];
-      var newGuardianLevel = [];
+      var newGuardianLevels = {};
+      var newGuardianEquipped = {};
+
+      presetColumnMapping.forEach(function (presetMap) {
+        newGuardianLevels[presetMap.presetName] = [];
+        newGuardianEquipped[presetMap.presetName] = [];
+      });
+
+      var currentGuardianName = null;
+      var currentGuardian = null;
+      var guardianRow = -1;
 
       for (var row = 0; row < newGuardianData.length; row++) {
         var rowData = newGuardianData[row];
-        var guardianName = rowData[0];
-        if (oldGuardians.hasOwnProperty(guardianName)) {
-          var oldGuardian = oldGuardians[guardianName];
-          newGuardianUnlocked.push([guardianName]);
-          newGuardianUnlocked.push([null]);
-          newGuardianUnlocked.push([oldGuardian.unlocked]);
+        var rowGuardianName = String(rowData[0] || "").trim();
 
-          for (var nextRow = row; nextRow < newGuardianData.length; nextRow++) {
-            var nextRowData = newGuardianData[nextRow];
-            if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
-              row = nextRow - 1;
-              break;
-            }
-            if (nextRow == newGuardianData.length - 1) {
-              row = nextRow;
-            }
+        if (rowGuardianName && targetGuardians.includes(rowGuardianName)) {
+          currentGuardianName = rowGuardianName;
+          currentGuardian = oldGuardians.data.hasOwnProperty(rowGuardianName)
+            ? oldGuardians.data[rowGuardianName]
+            : null;
+          guardianRow = row;
+        }
 
-            var newGuardianProp = nextRowData[2];
-            if (!oldGuardian.hasOwnProperty("props") || !newGuardianProp || !oldGuardian.props.hasOwnProperty(newGuardianProp)) {
-              newGuardianLevel.push([null]);
-              continue;
-            }
-
-            var dvtPropValue = shared.getDVTValue(
-              oldGuardian.props[newGuardianProp],
-              dvtNamedRangesData[guardianName][newGuardianProp]
-            );
-            newGuardianLevel.push([dvtPropValue]);
-          }
+        // The guardian column doubles as the unlocked column: the guardian name
+        // sits on its own row and its unlocked state two rows below it.
+        if (currentGuardian && row === guardianRow) {
+          newGuardianUnlocked.push([currentGuardianName]);
+        } else if (currentGuardian && row === guardianRow + 2) {
+          newGuardianUnlocked.push([currentGuardian.unlocked]);
         } else {
           newGuardianUnlocked.push([null]);
         }
+
+        var newGuardianProp = rowData[2];
+        var dvtGuardianRanges = currentGuardianName
+          ? dvtNamedRangesData[currentGuardianName]
+          : null;
+
+        presetColumnMapping.forEach(function (presetMap) {
+          var presetName = presetMap.presetName;
+          var presetData =
+            currentGuardian &&
+            currentGuardian.presets &&
+            currentGuardian.presets[presetName]
+              ? currentGuardian.presets[presetName]
+              : null;
+
+          // Guardians are equipped per preset, on the guardian's own row.
+          if (
+            presetData &&
+            row === guardianRow &&
+            presetData.hasOwnProperty("equipped")
+          ) {
+            newGuardianEquipped[presetName].push([presetData.equipped]);
+          } else {
+            newGuardianEquipped[presetName].push([null]);
+          }
+
+          if (
+            !presetData ||
+            !presetData.hasOwnProperty("props") ||
+            !newGuardianProp ||
+            !presetData.props.hasOwnProperty(newGuardianProp) ||
+            !dvtGuardianRanges
+          ) {
+            newGuardianLevels[presetName].push([null]);
+            return;
+          }
+
+          var dvtPropValue = shared.getDVTValue(
+            presetData.props[newGuardianProp],
+            dvtGuardianRanges[newGuardianProp]
+          );
+          newGuardianLevels[presetName].push([dvtPropValue]);
+        });
       }
 
-      var batchUpdate = [];
       if (newGuardianUnlocked.length > 0) {
         var unlockedCol = shared.columnToLetter(guardianCol + 1);
-        var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
-          newGuardianUnlocked.length + 1
-        }`;
         batchUpdate.push({
-          range: unlockedRange,
+          range: `${sheetName}!${unlockedCol}2:${unlockedCol}${
+            newGuardianUnlocked.length + 1
+          }`,
           values: newGuardianUnlocked,
         });
       }
 
-      if (newGuardianLevel.length > 0) {
-        var levelCol = shared.columnToLetter(guardianCol + 5);
-        var levelRange = `${sheetName}!${levelCol}2:${levelCol}${
-          newGuardianLevel.length + 1
-        }`;
+      presetColumnMapping.forEach(function (presetMap) {
+        var levels = newGuardianLevels[presetMap.presetName];
+        if (!levels || levels.length === 0) {
+          return;
+        }
+        var levelCol = shared.columnToLetter(presetMap.levelColIndex + 1);
         batchUpdate.push({
-          range: levelRange,
-          values: newGuardianLevel,
+          range: `${sheetName}!${levelCol}2:${levelCol}${levels.length + 1}`,
+          values: levels,
         });
-      }
+      });
+
+      presetColumnMapping.forEach(function (presetMap) {
+        var equipped = newGuardianEquipped[presetMap.presetName];
+        if (
+          !equipped ||
+          !equipped.some(function (value) {
+            return value[0] !== null && value[0] !== undefined;
+          })
+        ) {
+          return;
+        }
+        var equippedCol = shared.columnToLetter(presetMap.equippedColIndex + 1);
+        batchUpdate.push({
+          range: `${sheetName}!${equippedCol}2:${equippedCol}${
+            equipped.length + 1
+          }`,
+          values: equipped,
+        });
+      });
+
       if (batchUpdate.length !== 0) {
         return {
           success: true,
@@ -334,6 +434,48 @@ const guardians = {
 
   // #endregion
   // #region Convert Versions
+  version3_1: function () {
+    try {
+      console.log("Called: guardians.version3_1");
+      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
+      var oldSheetID = oldSpreadsheet.spreadsheetId;
+
+      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
+        console.log(`EXPORT sheet not found in old spreadsheet`);
+        return {
+          success: false,
+          message: "EXPORT sheet not found in old spreadsheet",
+        };
+      }
+
+      var guardianLevelsRange = "EXPORT!B4:O";
+      var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        guardianLevelsRange,
+      ]);
+      if (
+        !guardianBatchResult ||
+        guardianBatchResult.length === 0 ||
+        !guardianBatchResult[0].values
+      ) {
+        console.log(`Could not read guardian levels data`);
+        return {
+          success: false,
+          message: `Could not read guardian levels data`,
+        };
+      }
+      var oldGuardianLevelsData = guardianBatchResult[0].values;
+
+      var guardiansData = this.getVersion3_1Guardians(oldGuardianLevelsData);
+      return guardiansData;
+    } catch (error) {
+      console.log("Error in version3_1: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version3_1: " + error.message,
+      };
+    }
+  },
+
   version2_2: function () {
     try {
       console.log("Called: guardians.version2_2");
@@ -462,6 +604,135 @@ const guardians = {
 
   // #endregion
   // #region Get Guardians
+  getVersion3_1Guardians: function (oldGuardianLevelsData) {
+    try {
+      console.log("Called: guardians.getVersion3_1Guardians");
+      var targetGuardians = ["Attack", "Ally", "Bounty", "Fetch", "Summon", "Scout"];
+      var oldGuardianLevels = oldGuardianLevelsData.filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== null &&
+            cell !== undefined &&
+            String(cell || "").trim() !== ""
+        )
+      );
+
+      if (!oldGuardianLevels || oldGuardianLevels.length === 0) {
+        return {
+          success: false,
+          message: "No guardian levels data found",
+        };
+      }
+
+      var oldGuardiansHeaderRow =
+        oldGuardianLevels.find(function (row) {
+          return row.indexOf("Farming") !== -1;
+        }) || [];
+      var firstPresetIndex = oldGuardiansHeaderRow.indexOf("Farming");
+
+      if (firstPresetIndex === -1) {
+        console.log(`Could not find the preset header row in guardian data`);
+        return {
+          success: false,
+          message: "Could not find the preset header row in guardian data",
+        };
+      }
+
+      var oldGuardiansPresetNames = [];
+      var presetColumnMapping = [];
+
+      for (
+        var colIdx = firstPresetIndex;
+        colIdx < oldGuardiansHeaderRow.length;
+        colIdx++
+      ) {
+        var presetName = String(oldGuardiansHeaderRow[colIdx] || "").trim();
+        if (!presetName) {
+          continue;
+        }
+
+        oldGuardiansPresetNames.push(presetName);
+        presetColumnMapping.push({
+          presetName: presetName,
+          equippedColIndex: colIdx,
+          levelColIndex: colIdx + 1,
+        });
+      }
+
+      var oldGuardians = {
+        presetNames: oldGuardiansPresetNames,
+        data: {},
+      };
+
+      for (var row = 0; row < oldGuardianLevels.length; row++) {
+        var guardianRowData = oldGuardianLevels[row];
+        var guardianName = String(guardianRowData[0] || "").trim();
+        if (!guardianName || !targetGuardians.includes(guardianName)) {
+          continue;
+        }
+
+        var unlocked;
+        if (guardianName === "Attack" || guardianName === "Ally") {
+          unlocked = null;
+        } else {
+          unlocked = oldGuardianLevels[row + 2]
+            ? oldGuardianLevels[row + 2][0]
+            : null;
+        }
+
+        var guardian = {
+          unlocked: unlocked,
+          presets: {},
+        };
+
+        // Guardians are equipped per preset, on the guardian's own row.
+        presetColumnMapping.forEach(function (presetMap) {
+          guardian.presets[presetMap.presetName] = {
+            props: {},
+            equipped: guardianRowData[presetMap.equippedColIndex],
+          };
+        });
+
+        for (var nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
+          var nextRowData = oldGuardianLevels[nextRow];
+          if (nextRow !== row && targetGuardians.includes(nextRowData[0])) {
+            row = nextRow - 1;
+            break;
+          }
+          var key = String(nextRowData[2] || "").trim();
+          if (!key) {
+            continue;
+          }
+          var defaultLevelValue =
+            nextRowData[presetColumnMapping[0].levelColIndex];
+          presetColumnMapping.forEach(function (presetMap) {
+            var levelValue = nextRowData[presetMap.levelColIndex];
+            if (
+              presetMap.presetName !== "Farming" &&
+              levelValue === defaultLevelValue
+            ) {
+              levelValue = null;
+            }
+            guardian.presets[presetMap.presetName].props[key] = levelValue;
+          });
+        }
+
+        oldGuardians.data[guardianName] = guardian;
+      }
+
+      return {
+        success: true,
+        oldGuardians: oldGuardians,
+      };
+    } catch (error) {
+      console.log("Error in getVersion3_1Guardians: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion3_1Guardians: " + error.message,
+      };
+    }
+  },
+
   getVersion2_2Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion2_2Guardians");
@@ -475,7 +746,11 @@ const guardians = {
         )
       );
 
-      var oldGuardians = {};
+      // Predates presets, so everything lands in the single Farming preset.
+      var oldGuardians = {
+        presetNames: ["Farming"],
+        data: {},
+      };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
         // Only proceed if guardianName is in targetGuardians
@@ -488,7 +763,11 @@ const guardians = {
           }
           var guardian = {
             unlocked: unlocked,
-            props: {},
+            presets: {
+              Farming: {
+                props: {},
+              },
+            },
           };
 
           for (nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
@@ -500,10 +779,10 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              guardian.props[key] = value;
+              guardian.presets.Farming.props[key] = value;
             }
           }
-          oldGuardians[guardianName] = guardian;
+          oldGuardians.data[guardianName] = guardian;
         }
       }
 
@@ -533,7 +812,11 @@ const guardians = {
         )
       );
 
-      var oldGuardians = {};
+      // Predates presets, so everything lands in the single Farming preset.
+      var oldGuardians = {
+        presetNames: ["Farming"],
+        data: {},
+      };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
         // Only proceed if guardianName is in targetGuardians
@@ -546,7 +829,11 @@ const guardians = {
           }
           var guardian = {
             unlocked: unlocked,
-            props: {},
+            presets: {
+              Farming: {
+                props: {},
+              },
+            },
           };
 
           for (nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
@@ -558,10 +845,10 @@ const guardians = {
             var key = nextRowData[2];
             var value = nextRowData[4];
             if (key && value) {
-              guardian.props[key] = value;
+              guardian.presets.Farming.props[key] = value;
             }
           }
-          oldGuardians[guardianName] = guardian;
+          oldGuardians.data[guardianName] = guardian;
         }
       }
 
@@ -591,7 +878,11 @@ const guardians = {
         )
       );
 
-      var oldGuardians = {};
+      // Predates presets, so everything lands in the single Farming preset.
+      var oldGuardians = {
+        presetNames: ["Farming"],
+        data: {},
+      };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
         // Only proceed if guardianName is in targetGuardians
@@ -604,7 +895,11 @@ const guardians = {
           }
           var guardian = {
             unlocked: unlocked,
-            props: {},
+            presets: {
+              Farming: {
+                props: {},
+              },
+            },
           };
 
           for (nextRow = row; nextRow < oldGuardianLevels.length; nextRow++) {
@@ -617,11 +912,11 @@ const guardians = {
             var value = nextRowData[4];
             if (key && value) {
               value = (value - 1).toString().padStart(2, "0");
-              guardian.props[key] = value;
+              guardian.presets.Farming.props[key] = value;
             }
           }
           guardianName = guardianName === "Steal" ? "Bounty" : guardianName;
-          oldGuardians[guardianName] = guardian;
+          oldGuardians.data[guardianName] = guardian;
         }
       }
       return {
@@ -655,7 +950,11 @@ const guardians = {
     const guardianUnlockedData = data.guardianChipUnlocked || [];
     const guardianLevelData = data.guardianChipLevel || [];
 
-    var oldGuardians = {};
+    // Save files hold no guardian presets, so everything lands in Farming.
+    var oldGuardians = {
+      presetNames: ["Farming"],
+      data: {},
+    };
 
     Object.keys(targetGuardians).forEach(function (guardianName, i) {
       var { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
@@ -666,9 +965,13 @@ const guardians = {
         var level = guardianLevelData[idx];
         chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
       });
-      oldGuardians[guardianName] = {
+      oldGuardians.data[guardianName] = {
         unlocked: alwaysUnlocked ? null : (guardianUnlockedData[i] || false),
-        props: chipLevels,
+        presets: {
+          Farming: {
+            props: chipLevels,
+          },
+        },
       };
     });
     
@@ -690,6 +993,7 @@ const guardians = {
       "v1.0": this.version1_0.bind(this),
       "v2.1": this.version2_1.bind(this),
       "v2.2": this.version2_2.bind(this),
+      "v3.1": this.version3_1.bind(this),
     };
   },
 

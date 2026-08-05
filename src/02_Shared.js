@@ -709,6 +709,10 @@ const shared = {
   },
 
   compareVersions: function (oldVersion, newVersion) {
+    // Dev only
+    // if (newVersion.includes("WIP")) {
+    //   return "older";
+    // }
     function parseVersion(v) {
       var match = String(v || "").match(/\d+(?:\.\d+)*/);
       if (!match) {
@@ -1087,7 +1091,7 @@ const shared = {
   },
 };
 
-function moveSheet(sheetType, newSheetID, oldSheetID) {
+function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
   try {
     var newSpreadsheet = spreadsheets(
       `${sheetType} newSpreadsheet`,
@@ -1138,6 +1142,18 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
     if (sheetType === "IDS Collection") {
       newFileName = newFileName.replace("IDS Master", "IDS Collection");
     }
+    // The merged sheet takes over from the two sheets it replaced, so the name
+    // inherited from whichever one it was built from is renamed with it.
+    if (
+      sheetType === "Themes, Songs & Relics" &&
+      newFileName.indexOf(sheetType) === -1
+    ) {
+      if (newFileName.indexOf("Themes & Songs") !== -1) {
+        newFileName = newFileName.replace("Themes & Songs", sheetType);
+      } else if (newFileName.indexOf("Relics") !== -1) {
+        newFileName = newFileName.replace("Relics", sheetType);
+      }
+    }
     console.log(
       `Updating file name from "${oldFile.name}" to "${newFileName}"`,
     );
@@ -1183,6 +1199,27 @@ function moveSheet(sheetType, newSheetID, oldSheetID) {
         message: `Error deleting old sheet™: ${error.toString()}`,
       };
     }
+
+    // A merged sheet replaces more than one old sheet, so every sheet it was
+    // built from is deleted. The new sheet is already moved and renamed at this
+    // point, so a leftover here is logged rather than failing the whole move.
+    var extraOldSheetIDs = (mergedOldSheetIDs || []).filter(function (sheetID) {
+      return sheetID && sheetID !== oldSheetID;
+    });
+    for (var i = 0; i < extraOldSheetIDs.length; i++) {
+      try {
+        Drive.Files.update({ trashed: true }, extraOldSheetIDs[i]);
+        CacheManager.RemoveFile(extraOldSheetIDs[i]);
+        console.log(`Deleted merged old sheet: ${extraOldSheetIDs[i]}`);
+      } catch (error) {
+        console.log(
+          `Error deleting merged old sheet ${
+            extraOldSheetIDs[i]
+          }: ${error.toString()}`,
+        );
+      }
+    }
+
     CacheManager.RemoveSpreadsheet(`${sheetType} newSpreadsheet`);
     CacheManager.RemoveSpreadsheet(`${sheetType} oldSpreadsheet`);
     CacheManager.RemoveFile(newSheetID);
@@ -1815,10 +1852,15 @@ function checkSheetAccess(sheetID) {
 
 function getTemplateAndsheetIds(idMasterID, copyMode) {
   try {
+    // "Themes, Songs & Relics" only exists on a v4.0 or later IDS Master; older
+    // ones still have the two sheet types it replaced. It is looked up first
+    // because "Relics" matches it by name too, and the two old sheet types are
+    // skipped once it has been found.
     const sheetTypes = [
       "Laboratory",
       "Workshop",
       "Ultimate Weapon",
+      "Themes, Songs & Relics",
       "Themes & Songs",
       "Bots",
       "Relics",
@@ -1828,6 +1870,8 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       "Guardians",
       "Player & Stuff",
     ];
+    const legacyThemesSheetTypes = ["Themes & Songs", "Relics"];
+    var foundMergedThemes = false;
 
     copyMode = copyMode || "all";
     console.log(
@@ -1849,6 +1893,9 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
 
     for (var i = 0; i < sheetTypes.length; i++) {
       var sheetType = sheetTypes[i];
+      if (foundMergedThemes && legacyThemesSheetTypes.indexOf(sheetType) !== -1) {
+        continue;
+      }
       try {
         var templateResult = getTemplateInfo(
           idsMasterData,
@@ -1857,6 +1904,9 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
         );
 
         if (templateResult && templateResult.success) {
+          if (sheetType === "Themes, Songs & Relics") {
+            foundMergedThemes = true;
+          }
           if (templateResult.versionFiltered) {
             console.log(`Skipping ${sheetType} - version filtering applied`);
             continue;
@@ -2350,9 +2400,8 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
             "Laboratory",
             "Workshop",
             "Ultimate Weapon",
-            "Themes & Songs",
+            "Themes, Songs & Relics",
             "Bots",
-            "Relics",
             "Vault",
             "Cards",
             "Modules",

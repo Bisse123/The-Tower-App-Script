@@ -31,13 +31,14 @@ const ultimateWeaponHeaders = {
   ultimateWeaponPlusUnlocked: "ultimateWeaponPlusUnlocked",
 }
 
-const themesHeaders = {
+const themesAndRelicsHeaders = {
   towerSkins: "towerUnlocked",
   backgroundSkins: "backgroundUnlocked",
   menuSkins: "menuUnlocked",
   guardianSkins: "guardianSkinUnlocked",
   profileBanners: "profileBannerUnlocked",
   songs: "trackAvailable",
+  relicsUnlocked: "relicsUnlocked",
 }
 
 const botHeaders = {
@@ -48,10 +49,6 @@ const botHeaders = {
   amplifyBotPresets: "amplifyBotPresets",
   botBotPresets: "botBotPresets",
   synchronicityPresets: "synchronicityPresets",
-}
-
-const relicHeaders = {
-  relicsUnlocked: "relicsUnlocked",
 }
 
 const vaultHeaders = {
@@ -138,17 +135,14 @@ function parseSaveFileBytes(byteArray) {
   var ultimateWeaponValues = extratctDataByHeaders(ultimateWeaponHeaders);
   var ultimateWeaponData = ultimate.parseUltimateWeaponData(ultimateWeaponValues);
 
-  // Extract Themes & Songs data
-  var themesValues = extratctDataByHeaders(themesHeaders);
-  var themesData = themes.parseThemesData(themesValues);
+  // Extract Themes, Songs & Relics data
+  var themesAndRelicsValues = extratctDataByHeaders(themesAndRelicsHeaders);
+  var themesAndRelicsData =
+    themesAndRelics.parseThemesAndRelicsData(themesAndRelicsValues);
 
   // Extract bot data
   var botValues = extratctDataByHeaders(botHeaders);
   var botData = bots.parseBotsData(botValues);
-
-  // Extract relic data
-  var relicValues = extratctDataByHeaders(relicHeaders);
-  var relicData = relics.parseRelicsData(relicValues);
 
   // Extract vault data
   var vaultValues = extratctDataByHeaders(vaultHeaders);
@@ -175,9 +169,8 @@ function parseSaveFileBytes(byteArray) {
     "Laboratory": laboratoryData,
     "Workshop": workshopData,
     "Ultimate Weapon": ultimateWeaponData,
-    "Themes & Songs": themesData,
+    "Themes, Songs & Relics": themesAndRelicsData,
     "Bots": botData,
-    "Relics": relicData,
     "Vault": vaultData,
     "Cards": cardsData,
     "Modules": moduleData,
