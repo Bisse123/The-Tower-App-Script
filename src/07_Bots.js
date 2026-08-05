@@ -286,7 +286,7 @@ const bots = {
       });
 
       var newBotDataValues = masterSheetData
-        .slice(2)
+        .slice(1)
         .map(function (row) {
           return row.slice(startCol - 1, endCol);
         })
@@ -467,7 +467,7 @@ const bots = {
         };
       }
 
-      var botsLevelsRange = "EXPORT!C4:L";
+      var botsLevelsRange = "EXPORT!C4:N";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         botsLevelsRange,
       ]);
@@ -669,7 +669,7 @@ const bots = {
         presetColumnMapping.push({
           presetName: presetName,
           levelColIndex: colIdx,
-          toggleColIndex: colIdx + 2,
+          toggleColIndex: colIdx + 1,
         });
       }
 

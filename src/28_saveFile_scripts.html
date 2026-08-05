@@ -1227,8 +1227,10 @@
   }
 
   function renderGuardiansDiff(parsed, sheet) {
-    const p = parsed.oldGuardians || {};
-    const s = sheet.oldGuardians || {};
+    const p = (parsed.oldGuardians && parsed.oldGuardians.data) || {};
+    const s = (sheet.oldGuardians && sheet.oldGuardians.data) || {};
+    const presetNames =
+      (parsed.oldGuardians && parsed.oldGuardians.presetNames) || [];
     const defs = parsed.targetGuardians || {};
     const order = parsed.guardianOrder || Object.keys(defs);
     let html = "";
@@ -1238,26 +1240,37 @@
       const sg = s[name] || {};
       const def = defs[name];
       if (!def) return;
-      let rows = "";
+
+      let guardianInner = "";
       if (
         !def.alwaysUnlocked &&
         sfNormBool(pg.unlocked) !== sfNormBool(sg.unlocked)
       ) {
-        rows += sfDiffRow(
-          sfDisplayBool(sg.unlocked),
-          sfDisplayBool(pg.unlocked),
-          "Unlocked",
+        guardianInner += sfDiffGrid(
+          sfDiffRow(
+            sfDisplayBool(sg.unlocked),
+            sfDisplayBool(pg.unlocked),
+            "Unlocked",
+          ),
         );
       }
-      const pProps = pg.props || {};
-      const sProps = sg.props || {};
-      (def.upgrades || []).filter(Boolean).forEach(function (attr) {
-        const pv = pProps[attr];
-        const sv = sProps[attr];
-        if (sfNormLevel(pv) === sfNormLevel(sv)) return;
-        rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+
+      presetNames.forEach(function (presetName) {
+        const pPreset = (pg.presets || {})[presetName] || {};
+        const sPreset = (sg.presets || {})[presetName] || {};
+        const pProps = pPreset.props || {};
+        const sProps = sPreset.props || {};
+        let rows = "";
+        (def.upgrades || []).filter(Boolean).forEach(function (attr) {
+          const pv = pProps[attr];
+          const sv = sProps[attr];
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+        });
+        if (rows) guardianInner += sfDiffSub(presetName, sfDiffGrid(rows));
       });
-      if (rows) html += sfDiffBlock(name, sfDiffGrid(rows));
+
+      if (guardianInner) html += sfDiffBlock(name, guardianInner);
     });
     return html;
   }
@@ -2723,7 +2736,9 @@
   }
 
   function renderGuardiansBody(data) {
-    const gData = data.oldGuardians || {};
+    const guardians = data.oldGuardians || {};
+    const gData = guardians.data || {};
+    const presetNames = guardians.presetNames || [];
     const defs = data.targetGuardians || {};
     const order = data.guardianOrder || Object.keys(defs);
     let html = "";
@@ -2732,16 +2747,34 @@
       if (!g) return;
       const def = defs[name];
       if (!def) return;
-      const props = g.props || {};
-      const rows = sfEntityUpgradeRows(def.upgrades, null, props);
+      const presets = g.presets || {};
+
       html +=
         '<div class="sfBlock"><div class="sfBlockHeader">' +
         escSaveFileHtml(name) +
         " " +
         sfUnlockMark(g.unlocked || def.alwaysUnlocked) +
-        "</div>" +
-        (rows || '<div class="sfModMeta">-</div>') +
         "</div>";
+      html += '<div class="sfBotsColumns">';
+
+      presetNames.forEach(function (presetName) {
+        const preset = presets[presetName];
+        if (!preset) return;
+        const equippedTag = preset.hasOwnProperty("equipped")
+          ? `<span class="sfTag"> equipped ${sfUnlockMark(preset.equipped)} </span>`
+          : "";
+        const rows = sfEntityUpgradeRows(def.upgrades, null, preset.props || {});
+        html +=
+          `<div class="sfBotColumn">
+          <div class="sfBotColHeader">
+          ${escSaveFileHtml(presetName)}
+          </div>
+          ${equippedTag}
+          ${rows || '<div class="sfModMeta">-</div>'}
+          </div>`;
+      });
+
+      html += "</div></div>";
     });
     return html;
   }
