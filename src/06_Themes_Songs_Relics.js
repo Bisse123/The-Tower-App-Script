@@ -1013,17 +1013,16 @@ const themesAndRelics = {
       285: "Space Nebula",
       286: "Binary System",
       287: "Rogue Planet",
-      288: "Manta Ray",
-      289: "Pearl Shell",
-      290: "T:  XXII Vortex",
-      291: "T:  XXIII Stellar",
-      292: "T:  XXIV Cosmic",
-      293: "Ancinent Footprint",
-      294: "Hunter's Realm",
-      295: "Spiral Nautilus",
-      296: "Tyrant's Skull",
+      288: "Ancient Footprint",
+      289: "Hunter's Realm",
+      290: "Spiral Nautilus",
+      291: "Tyrant's Skull",
+      292: "Manta Ray",
+      293: "Pearl Shell",
+      294: "T: XXII Vortex",
+      295: "T: XXIII Stellar",
+      296: "T: XXIV Cosmic",
     };
-
 
     const towerSkinsData = data.towerSkins || [];
     const backgroundSkinsData = data.backgroundSkins || [];
