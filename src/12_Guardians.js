@@ -45,7 +45,6 @@ const guardians = {
         };
       }
 
-      // Batch fetch required sheet data
       var requiredRanges = ["Master Sheet", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
@@ -112,7 +111,6 @@ const guardians = {
         });
       });
 
-      // Get import status range from IDS data
       var newSheetInfo = shared.findSheetTypeID(
         newSheetID,
         "IDS",
@@ -133,7 +131,6 @@ const guardians = {
 
       var batchUpdate = [];
 
-      // Only update guardians if key exists
       if (data.hasOwnProperty("oldGuardians")) {
         var oldGuardians = data.oldGuardians;
         var guardiansResult = this.updateGuardianLevels(
@@ -149,7 +146,6 @@ const guardians = {
         batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
       }
 
-      // Add import status update to batch if there were data updates
       if (batchUpdate.length > 0) {
         batchUpdate.push({
           range: newSheetInfo.importStatus.range,
@@ -157,7 +153,6 @@ const guardians = {
         });
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Guardians",
@@ -317,8 +312,6 @@ const guardians = {
           guardianRow = row;
         }
 
-        // The guardian column doubles as the unlocked column: the guardian name
-        // sits on its own row and its unlocked state two rows below it.
         if (currentGuardian && row === guardianRow) {
           newGuardianUnlocked.push([currentGuardianName]);
         } else if (currentGuardian && row === guardianRow + 2) {
@@ -341,7 +334,6 @@ const guardians = {
               ? currentGuardian.presets[presetName]
               : null;
 
-          // Guardians are equipped per preset, on the guardian's own row.
           if (
             presetData &&
             row === guardianRow &&
@@ -685,7 +677,6 @@ const guardians = {
           presets: {},
         };
 
-        // Guardians are equipped per preset, on the guardian's own row.
         presetColumnMapping.forEach(function (presetMap) {
           guardian.presets[presetMap.presetName] = {
             props: {},
@@ -746,14 +737,12 @@ const guardians = {
         )
       );
 
-      // Predates presets, so everything lands in the single Farming preset.
       var oldGuardians = {
         presetNames: ["Farming"],
         data: {},
       };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
-        // Only proceed if guardianName is in targetGuardians
         if (guardianName && targetGuardians.includes(guardianName)) {
           var unlocked;
           if (guardianName === "Attack" || guardianName === "Ally") {
@@ -812,14 +801,12 @@ const guardians = {
         )
       );
 
-      // Predates presets, so everything lands in the single Farming preset.
       var oldGuardians = {
         presetNames: ["Farming"],
         data: {},
       };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
-        // Only proceed if guardianName is in targetGuardians
         if (guardianName && targetGuardians.includes(guardianName)) {
           var unlocked;
           if (guardianName === "Attack" || guardianName === "Ally") {
@@ -878,14 +865,12 @@ const guardians = {
         )
       );
 
-      // Predates presets, so everything lands in the single Farming preset.
       var oldGuardians = {
         presetNames: ["Farming"],
         data: {},
       };
       for (var row = 0; row < oldGuardianLevels.length; row++) {
         var guardianName = oldGuardianLevels[row][0];
-        // Only proceed if guardianName is in targetGuardians
         if (guardianName && targetGuardians.includes(guardianName)) {
           var unlocked;
           if (guardianName === "Attack" || guardianName === "Ally") {
@@ -947,22 +932,22 @@ const guardians = {
       "Scout":   { upgrades: ["Cooldown", "Range Bonus", "Duration"] },
     };
 
+    const guardianSlotData = data.guardianChipSlot || [];
     const guardianUnlockedData = data.guardianChipUnlocked || [];
     const guardianLevelData = data.guardianChipLevel || [];
 
-    // Save files hold no guardian presets, so everything lands in Farming.
     var oldGuardians = {
       presetNames: ["Farming"],
       data: {},
     };
 
     Object.keys(targetGuardians).forEach(function (guardianName, i) {
-      var { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
+      const { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
       var chipLevels = {};
       upgrades.forEach(function (attr, j) {
         if (attr === null) return;
-        var idx = i * upgrades.length + j;
-        var level = guardianLevelData[idx];
+        const idx = i * upgrades.length + j;
+        const level = guardianLevelData[idx];
         chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
       });
       oldGuardians.data[guardianName] = {
@@ -970,6 +955,7 @@ const guardians = {
         presets: {
           Farming: {
             props: chipLevels,
+            equipped: guardianSlotData.includes(i),
           },
         },
       };

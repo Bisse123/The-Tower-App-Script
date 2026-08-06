@@ -73,7 +73,7 @@ const moduleHeaders = {
 }
 
 const guardianHeaders = {
-  // guardianChipSlot: "guardianChipSlot",
+  guardianChipSlot: "guardianChipSlot",
   guardianChipUnlocked: "guardianChipUnlocked",
   guardianChipLevel: "guardianChipLevel",
 }
@@ -113,7 +113,7 @@ function parseSaveFileBytes(byteArray) {
   // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
   // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
   const data = parseNRBF(bytes);
-  
+
   function extratctDataByHeaders(headers) {
     var values = {};
     for (const sheetKey of Object.keys(headers)) {

@@ -329,14 +329,16 @@ const bots = {
         }
 
         var oldBot = oldBots.data[botName];
+        var botStartRow = row;
 
         for (var nextRow = row; nextRow < newBotData.length; nextRow++) {
           var nextRowData = newBotData[nextRow];
-          if (nextRow !== row && targetBots.includes(nextRowData[0])) {
+          if (nextRow !== botStartRow && targetBots.includes(nextRowData[0])) {
             row = nextRow - 1;
             break;
           }
           var newBotProp = nextRowData[1];
+          var botRowOffset = nextRow - botStartRow;
 
           for (
             var presetIdx = 0;
@@ -358,18 +360,10 @@ const bots = {
               newBotToggle[presetName] = [];
             }
 
-            newBotToggle[presetName].push([null])
-
-            if (presetData.hasOwnProperty("active")) {
+            // One entry per sheet row so the toggle column stays aligned with the levels column
+            if (botRowOffset === 1 && presetData.hasOwnProperty("active")) {
               newBotToggle[presetName].push([presetData.active]);
-            } else {
-              newBotToggle[presetName].push([null]);
-            }
-            
-            newBotToggle[presetName].push([null])
-            newBotToggle[presetName].push([null])
-
-            if (presetData.hasOwnProperty("sync")) {
+            } else if (botRowOffset === 4 && presetData.hasOwnProperty("sync")) {
               newBotToggle[presetName].push([presetData.sync]);
             } else {
               newBotToggle[presetName].push([null]);
@@ -1085,10 +1079,11 @@ const bots = {
             presets: {},
           };
         }
+        const active = botPreset.unlocked !== undefined ? botPreset.unlocked : null;
         oldBots.data[botName].presets[presetName] = {
           props: props,
           sync: syncPresets[index][botIndex] || null,
-          active: botPreset.unlocked || null,
+          active: active,
         };
       });
     });
