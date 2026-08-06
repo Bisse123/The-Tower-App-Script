@@ -528,7 +528,7 @@ const themesAndRelics = {
   },
 
   // #endregion
-  // #region Parse Saved File
+  // #region Parse Saved Files
   parseThemesAndRelicsData: function (data) {
     var towerSkins = {
       1: "Star",
