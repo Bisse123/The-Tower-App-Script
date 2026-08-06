@@ -944,7 +944,7 @@ const themesAndRelics = {
       216: "Snow Globe",
       217: "Winter Gloves",
       218: "Snowflake",
-      219: "Wreath",
+      219: "Christmas Wreath",
       220: "Party Popper",
       221: "Champagne",
       222: "Firework Rocket",
