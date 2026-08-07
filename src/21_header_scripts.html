@@ -1,0 +1,125 @@
+<script>
+  /* Every click-to-copy element in the app lives here: the creator code chips
+     in the header and the snippet blocks in the save file guide all behave the
+     same way, so they share one implementation. */
+
+  // Copies text and reports whether it worked. The Clipboard API is blocked in
+  // some sandboxed Apps Script iframes, so fall back to the old execCommand
+  // path while we are still inside the user's click handler.
+  function copyTextToClipboard(text, done) {
+    const finish = typeof done === "function" ? done : function () {};
+    if (!text) {
+      finish(false);
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          finish(true);
+        },
+        function () {
+          finish(legacyCopyText(text));
+        },
+      );
+      return;
+    }
+    finish(legacyCopyText(text));
+  }
+
+  function legacyCopyText(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  // Last resort when every copy path was refused: leave the text selected so
+  // the user can still hit Ctrl+C.
+  function selectElementText(el) {
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e) {}
+  }
+
+  // Both stylesheets render the feedback from these two classes.
+  function flashCopyState(el, ok) {
+    el.classList.remove("is-copied", "is-copyfailed");
+    el.classList.add(ok ? "is-copied" : "is-copyfailed");
+    clearTimeout(el.copyFlashTimer);
+    el.copyFlashTimer = setTimeout(function () {
+      el.classList.remove("is-copied", "is-copyfailed");
+    }, 1700);
+  }
+
+  // Turns an element into a copy button. getText() supplies what to copy and
+  // onFail (optional) runs when copying was refused.
+  function initCopyOnClick(el, getText, onFail) {
+    const run = function () {
+      const text = getText();
+      if (!text) return;
+      copyTextToClipboard(text, function (ok) {
+        if (!ok && onFail) onFail(el);
+        flashCopyState(el, ok);
+      });
+    };
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.addEventListener("click", run);
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        run();
+      }
+    });
+  }
+
+  // Creator code chips in the header: copy that creator's code.
+  (function initCreatorCodeCopy() {
+    const chips = document.querySelectorAll(".creatorChip");
+    Array.prototype.forEach.call(chips, function (chip) {
+      const codeEl = chip.querySelector(".creatorCode");
+      const code = codeEl ? codeEl.textContent.trim() : "";
+      if (!code) return;
+      chip.setAttribute("title", 'Click to copy "' + code + '"');
+      initCopyOnClick(chip, function () {
+        return code;
+      });
+    });
+  })();
+
+  // Snippet blocks in the save file guide (absent on the other pages). The
+  // multi-line <pre> keeps its line breaks; the inline boxes are written across
+  // several source lines, so their whitespace collapses back into one command.
+  (function initSaveGuideCopy() {
+    const blocks = document.querySelectorAll(".saveGuideSection .sgCode");
+    Array.prototype.forEach.call(blocks, function (el) {
+      el.setAttribute("title", "Click to copy");
+      initCopyOnClick(
+        el,
+        function () {
+          const raw = el.textContent || "";
+          return el.tagName === "PRE"
+            ? raw.replace(/\s+$/, "")
+            : raw.replace(/\s+/g, " ").trim();
+        },
+        selectElementText,
+      );
+    });
+  })();
+</script>
