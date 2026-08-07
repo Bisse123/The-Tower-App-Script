@@ -1,7 +1,7 @@
 <style>
   /* Three columns with equal side tracks, so the brand stays centred on the
-     page no matter how wide the creator code panel gets. The right track is
-     intentionally empty; the panel wraps inside its own track rather than
+     page no matter how wide the side panels get: creator codes on the left,
+     support on the right. The panels wrap inside their own track rather than
      pushing the brand off centre. */
   .appHeader {
     text-align: center;
@@ -82,18 +82,82 @@
   .creatorCodesLink {
     font-size: 0.72em;
     font-weight: 600;
-    color: #1f4391;
-    text-decoration: none;
+    color: #4b5563;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #b6bcc5;
     white-space: nowrap;
   }
   .creatorCodesLink:hover {
-    text-decoration: underline;
+    color: #1f2937;
+    text-decoration-color: #1f2937;
   }
 
   .creatorCodesList {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  /* Same neutral card as the creator codes, mirrored to the right edge. */
+  .headerSupport {
+    grid-column: 3;
+    justify-self: end;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 5px 9px;
+    border: 1px solid #d7dbe0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.72);
+    text-align: right;
+    line-height: 1.3;
+  }
+  .headerSupportTitle {
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #666;
+    white-space: nowrap;
+  }
+  .headerSupportLink {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #4b5563;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #b6bcc5;
+  }
+  .headerSupportLink:hover {
+    color: #1f2937;
+    text-decoration-color: #1f2937;
+  }
+  .headerSupportNote {
+    font-size: 0.72em;
+    color: #6b7280;
+  }
+  .headerSupportChannel {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid #d5d9df;
+    border-radius: 3px;
+    background: #f1f2f4;
+    color: #374151;
+    font-family: monospace;
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .headerSupportChannel:hover {
+    background: #e6e8ec;
+    border-color: #b6bcc5;
+    color: #1f2937;
   }
   /* One creator = one chip, tinted so the name and its code read as a pair.
      Clicking a chip copies its code (see 21_header_scripts). */
@@ -103,20 +167,20 @@
     align-items: center;
     gap: 1px;
     padding: 2px 7px;
-    border: 1px solid #dbe2f0;
+    border: 1px solid #d5d9df;
     border-radius: 4px;
-    background: #eef1f8;
+    background: #f1f2f4;
     cursor: pointer;
     transition:
       background 0.15s ease,
       border-color 0.15s ease;
   }
   .creatorChip:hover {
-    background: #e2e8f6;
-    border-color: #b9c6e4;
+    background: #e6e8ec;
+    border-color: #b6bcc5;
   }
   .creatorChip:focus-visible {
-    outline: 2px solid #2752b0;
+    outline: 2px solid #6b7280;
     outline-offset: 1px;
   }
   .creatorChip.is-copied {
@@ -146,14 +210,14 @@
   }
   .creatorName {
     font-size: 0.72em;
-    color: #5a6472;
+    color: #6b7280;
     white-space: nowrap;
   }
   .creatorCode {
     font-family: monospace;
     font-size: 0.78em;
     font-weight: 700;
-    color: #2752b0;
+    color: #374151;
     white-space: nowrap;
   }
 
@@ -177,6 +241,13 @@
     .creatorCodesHead,
     .creatorCodesList {
       justify-content: center;
+    }
+    .headerSupport {
+      grid-column: 1;
+      order: 3;
+      justify-self: center;
+      align-items: center;
+      text-align: center;
     }
 
     .appHeaderIcon {
