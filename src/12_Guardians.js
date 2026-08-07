@@ -213,10 +213,10 @@ const guardians = {
       }
 
       var startCol = guardianCol + 1;
-      var endCol = guardianCol + 5;
+      var endCol = startCol;
 
       var presetColumnMapping = [];
-      var firstPresetIndex = startCol + 4;
+      var firstPresetIndex = startCol + 2;
 
       if (firstPresetIndex === -1) {
         console.log(`Preset columns not found in Master Sheet`);
@@ -230,7 +230,7 @@ const guardians = {
 
       var presetSlots = [];
       headerRow.forEach(function (header, index) {
-        if (index < firstPresetIndex) {
+        if (index < firstPresetIndex || !String(header).trim() || presetSlots.length >= oldGuardians.presetNames.length) {
           return;
         }
         presetSlots.push({ header: String(header).trim(), colIndex: index });
