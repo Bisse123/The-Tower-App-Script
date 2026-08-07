@@ -774,20 +774,32 @@ const workshop = {
     try {
       console.log("Called: workshop.getVersion2_0WorkshopLevels");
       var oldWorkshopLevelsHeaders = oldWorkshopLevelsValues[0];
-      var oldWorkshopLevelsPresetNames = [];
+      var presetColumns = [];
       oldWorkshopLevelsHeaders.forEach(function (name, index) {
         if (index < 2) {
           return;
         }
         var presetName = name && name.trim() !== "" ? name.trim() : null;
-        if (presetName && presetName.startsWith("Preset")) {
-          oldWorkshopLevelsPresetNames.push(null);
-        } else if (presetName) {
-          oldWorkshopLevelsPresetNames.push(presetName);
+        if (presetName) {
+          presetColumns.push({ presetName: presetName, colIndex: index });
         }
       });
+
+      var presetOrder = shared.resolvePresetOrder(
+        presetColumns.map(function (column) {
+          return column.presetName;
+        }),
+        shared.templatePresetNames,
+      );
+      var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
+        return presetColumns[sourceIndex];
+      });
+      var defaultColIndex = orderedColumns.length
+        ? orderedColumns[0].colIndex
+        : -1;
+
       var oldWorkshopLevels = {
-        presetNames: oldWorkshopLevelsPresetNames,
+        presetNames: presetOrder.order,
         data: {},
       };
       oldWorkshopLevelsValues.splice(0, 2);
@@ -800,32 +812,23 @@ const workshop = {
           );
         });
         if (hasData && row[1]) {
-          oldWorkshopLevels.data[row[1]] = {
-            unlocked: row[0] || null,
-            levels: [],
-          };
-          row.forEach(function (cell, index) {
-            var presetName = oldWorkshopLevelsHeaders[index];
+          var levels = [];
+          orderedColumns.forEach(function (column) {
+            var index = column.colIndex;
             if (
-              presetName &&
-              presetName.trim() !== "" &&
-              (oldWorkshopLevelsPresetNames.includes(presetName) ||
-                presetName.includes("Preset"))
+              index !== defaultColIndex &&
+              row[index] === row[defaultColIndex] &&
+              (!row[index + 1] || row[index + 1] === row[defaultColIndex + 1])
             ) {
-              if (
-                presetName === "Tourney" &&
-                row[index] === row[index - 2] &&
-                (!row[index + 1] || row[index + 1] === row[index - 1])
-              ) {
-                oldWorkshopLevels.data[row[1]].levels.push(null, null);
-              } else {
-                oldWorkshopLevels.data[row[1]].levels.push(
-                  row[index] || null,
-                  row[index + 1] || null,
-                );
-              }
+              levels.push(null, null);
+            } else {
+              levels.push(row[index] || null, row[index + 1] || null);
             }
           });
+          oldWorkshopLevels.data[row[1]] = {
+            unlocked: row[0] || null,
+            levels: levels,
+          };
         }
       });
       return {
@@ -882,17 +885,32 @@ const workshop = {
     try {
       console.log("Called: workshop.getVersion2_0WorkshopPlusLevels");
       var oldWorkshopPlusLevelsHeaders = oldWorkshopPlusLevelsValues[0];
-      var oldWorkshopPlusPresetNames = [];
+      var presetColumns = [];
       oldWorkshopPlusLevelsHeaders.forEach(function (name, index) {
+        if (index < 2) {
+          return;
+        }
         var presetName = name && name.trim() !== "" ? name.trim() : null;
-        if (presetName && presetName.startsWith("Preset")) {
-          oldWorkshopPlusPresetNames.push(null);
-        } else if (presetName && index > 1) {
-          oldWorkshopPlusPresetNames.push(presetName);
+        if (presetName) {
+          presetColumns.push({ presetName: presetName, colIndex: index });
         }
       });
+
+      var presetOrder = shared.resolvePresetOrder(
+        presetColumns.map(function (column) {
+          return column.presetName;
+        }),
+        shared.templatePresetNames,
+      );
+      var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
+        return presetColumns[sourceIndex];
+      });
+      var defaultColIndex = orderedColumns.length
+        ? orderedColumns[0].colIndex
+        : -1;
+
       var oldWorkshopPlusLevels = {
-        presetNames: oldWorkshopPlusPresetNames,
+        presetNames: presetOrder.order,
         data: {},
       };
       oldWorkshopPlusLevelsValues.splice(0, 2);
@@ -905,22 +923,16 @@ const workshop = {
           );
         });
         if (hasData && row[0]) {
-          oldWorkshopPlusLevels.data[row[0]] = [];
-          row.forEach(function (cell, index) {
-            var presetName = oldWorkshopPlusLevelsHeaders[index];
-            if (
-              presetName &&
-              presetName.trim() !== "" &&
-              (oldWorkshopPlusPresetNames.includes(presetName) ||
-                presetName.includes("Preset"))
-            ) {
-              if (presetName === "Tourney" && row[index] === row[index - 1]) {
-                oldWorkshopPlusLevels.data[row[0]].push(null);
-              } else {
-                oldWorkshopPlusLevels.data[row[0]].push(row[index] || null);
-              }
+          var levels = [];
+          orderedColumns.forEach(function (column) {
+            var index = column.colIndex;
+            if (index !== defaultColIndex && row[index] === row[defaultColIndex]) {
+              levels.push(null);
+            } else {
+              levels.push(row[index] || null);
             }
           });
+          oldWorkshopPlusLevels.data[row[0]] = levels;
         }
       });
       return {
@@ -1214,16 +1226,12 @@ const workshop = {
       "Enemy Attack Level Skip",
     ];
 
-    const presetNameOverride = ["Farming", "Tourney"];
-
-    const presetNames = (data.presetNames || []).map((name, index) => (name || `Preset ${index + 1}`));
-
-    presetNameOverride
-      .filter((override) => !presetNames.includes(override))
-      .forEach((override) => {
-        const slotIndex = presetNames.findIndex((name) => !presetNameOverride.includes(name));
-        if (slotIndex !== -1) presetNames[slotIndex] = override;
-      });
+    const presetOrder = shared.resolvePresetOrder(
+      data.presetNames || [],
+      shared.templatePresetNames,
+    );
+    const presetNames = presetOrder.order;
+    const presetIndices = presetOrder.indices;
 
     const attackUpgradeData = data.upgradeAttackLevels || [];
     const defenseUpgradeData = data.upgradeDefenseLevels || [];
@@ -1313,7 +1321,8 @@ const workshop = {
       })
     }
 
-    presetNames.forEach((presetName, presetIndex) => {
+    presetNames.forEach((presetName, slot) => {
+      const presetIndex = presetIndices[slot];
       const attackUpgradeIndex = presetIndex * attackUpgradeMax;
       const defenseUpgradeIndex = presetIndex * defenseUpgradeMax;
       const utilityUpgradeIndex = presetIndex * utilityUpgradeMax;

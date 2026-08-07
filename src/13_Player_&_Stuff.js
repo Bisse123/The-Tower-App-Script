@@ -940,66 +940,92 @@ const playerStuff = {
       }
       var shouldRemoveUsedPerks;
       var oldPerksPreset = {};
+
+      // Every preset name may have been renamed, so the header row is located
+      // from the "Remove used perks from the pool" toggle above it, which the
+      // template always puts two rows higher.
+      var headerRowIndex = -1;
       for (
         var rowIndex = 0;
         rowIndex < oldPlayerStuffPerksValues.length;
         rowIndex++
       ) {
-        var row = oldPlayerStuffPerksValues[rowIndex];
-        var colIndex = row.indexOf("Remove used perks from the pool");
+        var colIndex = oldPlayerStuffPerksValues[rowIndex].indexOf(
+          "Remove used perks from the pool",
+        );
         if (colIndex !== -1) {
           shouldRemoveUsedPerks =
-            row[colIndex - 1] === "TRUE" ||
-            row[colIndex - 1] === "true" ||
-            row[colIndex - 1] === true;
-        }
-
-        var oldPerkPresetNameIdxs = row
-          .map(function (cell, idx) {
-            return String(cell || "").trim() !== "" ? idx : -1;
-          })
-          .filter(function (idx) {
-            return idx !== -1;
-          });
-
-        if (row.indexOf("Farming") !== -1) {
-          oldPerkPresetNameIdxs.forEach(function (colIdx, orderIndex) {
-            var presetName = row[colIdx];
-            if (!oldPerksPreset.hasOwnProperty(presetName)) {
-              oldPerksPreset[presetName] = {
-                perks: [],
-                order: orderIndex + 1,
-              };
-            }
-            var bannedAmount =
-              oldPlayerStuffPerksValues[rowIndex + 1][colIdx + 2] || 0;
-            oldPerksPreset[presetName].bannedAmount = bannedAmount;
-            for (
-              var rowIdx = rowIndex + 3;
-              rowIdx < oldPlayerStuffPerksValues.length;
-              rowIdx++
-            ) {
-              var perkValue = oldPlayerStuffPerksValues[rowIdx][colIdx + 1];
-              var perkNumber = oldPlayerStuffPerksValues[rowIdx][colIdx];
-              if (!perkNumber || String(perkNumber).trim() === "") {
-                break;
-              }
-              oldPerksPreset[presetName].perks.push(perkValue || null);
-            }
-            var lastPerk =
-              oldPerksPreset[presetName].perks[
-                oldPerksPreset[presetName].perks.length - 1
-              ];
-            if (
-              lastPerk &&
-              String(lastPerk).trim() === "Unlock a random Ultimate Weapon"
-            ) {
-              oldPerksPreset[presetName].perks.pop();
-            }
-          });
+            oldPlayerStuffPerksValues[rowIndex][colIndex - 1] === "TRUE" ||
+            oldPlayerStuffPerksValues[rowIndex][colIndex - 1] === "true" ||
+            oldPlayerStuffPerksValues[rowIndex][colIndex - 1] === true;
+          headerRowIndex = rowIndex + 2;
           break;
         }
       }
+
+      if (headerRowIndex === -1 || !oldPlayerStuffPerksValues[headerRowIndex]) {
+        console.log(`Could not find the preset header row in the perks data`);
+        return {
+          success: false,
+          message: "Could not find the preset header row in the perks data",
+        };
+      }
+
+      var row = oldPlayerStuffPerksValues[headerRowIndex];
+      var oldPerkPresetNameIdxs = row
+        .map(function (cell, idx) {
+          return String(cell || "").trim() !== "" ? idx : -1;
+        })
+        .filter(function (idx) {
+          return idx !== -1;
+        });
+
+      var presetOrder = shared.resolvePresetOrder(
+        oldPerkPresetNameIdxs.map(function (colIdx) {
+          return row[colIdx];
+        }),
+        shared.templatePresetNames,
+      );
+      var orderBySourceIndex = {};
+      presetOrder.indices.forEach(function (sourceIndex, slot) {
+        orderBySourceIndex[sourceIndex] = slot + 1;
+      });
+
+      oldPerkPresetNameIdxs.forEach(function (colIdx, sourceIndex) {
+        var presetName = row[colIdx];
+        if (!oldPerksPreset.hasOwnProperty(presetName)) {
+          oldPerksPreset[presetName] = {
+            perks: [],
+            order: orderBySourceIndex[sourceIndex],
+          };
+        }
+        var bannedAmount =
+          oldPlayerStuffPerksValues[headerRowIndex + 1][colIdx + 2] || 0;
+        oldPerksPreset[presetName].bannedAmount = bannedAmount;
+        for (
+          var rowIdx = headerRowIndex + 3;
+          rowIdx < oldPlayerStuffPerksValues.length;
+          rowIdx++
+        ) {
+          var perkValue = oldPlayerStuffPerksValues[rowIdx][colIdx + 1];
+          var perkNumber = oldPlayerStuffPerksValues[rowIdx][colIdx];
+          if (!perkNumber || String(perkNumber).trim() === "") {
+            break;
+          }
+          oldPerksPreset[presetName].perks.push(perkValue || null);
+        }
+        var lastPerk =
+          oldPerksPreset[presetName].perks[
+            oldPerksPreset[presetName].perks.length - 1
+          ];
+        if (
+          lastPerk &&
+          String(lastPerk).trim() === "Unlock a random Ultimate Weapon"
+        ) {
+          oldPerksPreset[presetName].perks.pop();
+        }
+      });
+
       return {
         success: true,
         message: "Player & Stuff perks processed successfully",

@@ -228,6 +228,7 @@ const guardians = {
 
       var batchUpdate = [];
 
+      var presetSlots = [];
       headerRow.forEach(function (header, index) {
         if (index < firstPresetIndex) {
           return;
@@ -236,34 +237,34 @@ const guardians = {
         if (!presetName) {
           return;
         }
-        if (oldGuardians.presetNames.includes(presetName)) {
-          endCol = index + 1;
+        presetSlots.push({ header: presetName, colIndex: index });
+      });
+
+      shared
+        .mapPresetSlots(
+          presetSlots.map(function (slot) {
+            return slot.header;
+          }),
+          oldGuardians.presetNames,
+        )
+        .forEach(function (assignment, slot) {
+          if (!assignment.presetName) {
+            return;
+          }
+          var colIndex = presetSlots[slot].colIndex;
+          endCol = colIndex + 1;
           presetColumnMapping.push({
-            presetName: presetName,
-            equippedColIndex: index,
+            presetName: assignment.presetName,
+            equippedColIndex: colIndex,
             levelColIndex: endCol,
           });
-          return;
-        }
-        if (presetName.startsWith("Preset")) {
-          var presetNumber = presetName.substring(6).trim();
-          if (presetNumber) {
-            var oldPresetName = oldGuardians.presetNames[presetNumber - 1];
-            if (oldPresetName) {
-              endCol = index + 1;
-              presetColumnMapping.push({
-                presetName: oldPresetName,
-                equippedColIndex: index,
-                levelColIndex: endCol,
-              });
-              batchUpdate.push({
-                range: `${sheetName}!${shared.columnToLetter(index + 1)}1`,
-                values: [[oldPresetName]],
-              });
-            }
+          if (assignment.rename) {
+            batchUpdate.push({
+              range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
+              values: [[assignment.presetName]],
+            });
           }
-        }
-      });
+        });
 
       var newGuardianData = masterSheetData
         .slice(1)
@@ -616,13 +617,14 @@ const guardians = {
         };
       }
 
-      var oldGuardiansHeaderRow =
-        oldGuardianLevels.find(function (row) {
-          return row.indexOf("Farming") !== -1;
-        }) || [];
-      var firstPresetIndex = oldGuardiansHeaderRow.indexOf("Farming");
+      var oldGuardiansHeaderRow = oldGuardianLevels[0] || [];
 
-      if (firstPresetIndex === -1) {
+      // That range is laid out as guardian name, unlocked, chip name, spacer,
+      // then one (equipped, level) pair per preset - so the presets always
+      // start at the fifth column no matter what they were renamed to.
+      var firstPresetIndex = 4;
+
+      if (oldGuardiansHeaderRow.length <= firstPresetIndex) {
         console.log(`Could not find the preset header row in guardian data`);
         return {
           success: false,
@@ -652,7 +654,10 @@ const guardians = {
       }
 
       var oldGuardians = {
-        presetNames: oldGuardiansPresetNames,
+        presetNames: shared.resolvePresetOrder(
+          oldGuardiansPresetNames,
+          shared.templatePresetNames,
+        ).order,
         data: {},
       };
 
@@ -694,16 +699,17 @@ const guardians = {
           if (!key) {
             continue;
           }
-          var defaultLevelValue =
-            nextRowData[presetColumnMapping[0].levelColIndex];
+          
+          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
+          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            if (
-              presetMap.presetName !== "Farming" &&
-              levelValue === defaultLevelValue
-            ) {
-              levelValue = null;
-            }
+            // if (
+            //   presetMap.levelColIndex !== defaultLevelColIndex &&
+            //   levelValue === defaultLevelValue
+            // ) {
+            //   levelValue = null;
+            // }
             guardian.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
