@@ -52,7 +52,7 @@ const ePaths = {
 
       var eHPRange = "eHP!AJ1:AY50";
       var eDamageRange = "eDamage!AI1:AY100";
-      var eEconRange = "eEcon!AJ1:AZ65";
+      var eEconRange = "eEcon!AK1:AZ65";
 
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
@@ -110,7 +110,7 @@ const ePaths = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -135,7 +135,7 @@ const ePaths = {
           eHPLabValues,
           eRegenLabValues,
           eHPLabColumn,
-          eRegenLabColumn
+          eRegenLabColumn,
         );
         if (!eHPResult || !eHPResult.success) {
           console.log(`eHP update failed: ${eHPResult.message}`);
@@ -154,7 +154,7 @@ const ePaths = {
           eDamageValues,
           eDamageColumnOffset,
           eDamageLabValues,
-          eDamageLabColumn
+          eDamageLabColumn,
         );
         if (!eDamageResult || !eDamageResult.success) {
           console.log(`eDamage update failed: ${eDamageResult.message}`);
@@ -177,7 +177,7 @@ const ePaths = {
           eDiscountLabValues,
           eEconLabColumn,
           eEconStoneMultColumn,
-          eDiscountLabColumn
+          eDiscountLabColumn,
         );
         if (!eEconResult || !eEconResult.success) {
           console.log(`eEcon update failed: ${eEconResult.message}`);
@@ -203,7 +203,7 @@ const ePaths = {
         "Effective Paths",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -226,7 +226,7 @@ const ePaths = {
       };
     }
   },
-  
+
   // #endregion
   // #region Update Functions
 
@@ -238,7 +238,7 @@ const ePaths = {
     eHPLabData,
     eRegenLabData,
     eHPLabColumn,
-    eRegenLabColumn
+    eRegenLabColumn,
   ) {
     try {
       console.log("Called: ePaths.updateEHP");
@@ -253,11 +253,7 @@ const ePaths = {
 
       var batchUpdate = [];
 
-      if (
-        eHPLabData &&
-        eHPLabData[1] &&
-        eHPLabData[1][0] === "Running Time"
-      ) {
+      if (eHPLabData && eHPLabData[1] && eHPLabData[1][0] === "Running Time") {
         if (oldData.hasOwnProperty("eHPLabCost")) {
           var eHPCostValue = oldData.eHPLabCost;
           batchUpdate.push({
@@ -304,7 +300,9 @@ const ePaths = {
               if (!customName) break; // Stop when customName is empty
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+                var cellCol = shared.columnToLetter(
+                  columnOffset + (column - 1) + 1,
+                );
                 var cellAddress = `${cellCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${cellAddress}`,
@@ -313,9 +311,9 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
+            var perksCol = shared.columnToLetter(columnOffset + column + 6);
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + column + 6);
               var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
@@ -331,8 +329,7 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + column + 6);
-                var perkCellAddress = `${perkCol}${nextRow + 1}`;
+                var perkCellAddress = `${perksCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -383,8 +380,8 @@ const ePaths = {
           } else if (cell === "Presets") {
             if (oldData.hasOwnProperty("Presets")) {
               var presetValues = oldData.Presets;
-              var presetCol = shared.columnToLetter(columnOffset + column + 6);
-              for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
+              var presetCol = shared.columnToLetter(columnOffset + column + 5);
+              for (var nextRow = row; nextRow < eHPData.length; nextRow++) {
                 var presetName = eHPData[nextRow][column];
                 if (!presetName) break;
                 if (presetValues.hasOwnProperty(presetName)) {
@@ -420,7 +417,7 @@ const ePaths = {
     eDamageData,
     columnOffset,
     eDamageLabData,
-    eDamageLabColumn
+    eDamageLabColumn,
   ) {
     try {
       console.log("Called: ePaths.updateEDamage");
@@ -469,12 +466,18 @@ const ePaths = {
           var cell = eDamageData[row][column];
           if (cell === "Total Value") {
             // Search rows below "Total Value" in column j - 2 for custom names to update
-            for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+            for (
+              var nextRow = row + 1;
+              nextRow < eDamageData.length;
+              nextRow++
+            ) {
               var customName = eDamageData[nextRow][column - 2];
               if (!customName) break; // Stop when customName is empty
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
+                var cellCol = shared.columnToLetter(
+                  columnOffset + (column - 1) + 1,
+                );
                 var cellAddress = `${cellCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${cellAddress}`,
@@ -483,16 +486,20 @@ const ePaths = {
               }
             }
           } else if (cell === "Perks") {
+            var perksCol = shared.columnToLetter(columnOffset + column + 6);
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + column + 6);
               var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
                 values: [[perksAreActive]],
               });
             }
-            for (var nextRow = row + 2; nextRow < eDamageData.length; nextRow++) {
+            for (
+              var nextRow = row + 2;
+              nextRow < eDamageData.length;
+              nextRow++
+            ) {
               var perkName = eDamageData[nextRow][column];
               if (!perkName) break;
               if (perkName.startsWith("=")) {
@@ -501,8 +508,7 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + column + 6);
-                var perkCellAddress = `${perkCol}${nextRow + 1}`;
+                var perkCellAddress = `${perksCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -510,7 +516,11 @@ const ePaths = {
               }
             }
           } else if (cell === "User Specific Guesses") {
-            for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+            for (
+              var nextRow = row + 1;
+              nextRow < eDamageData.length;
+              nextRow++
+            ) {
               var guessName = eDamageData[nextRow][column];
               if (!guessName) break;
               if (guessName.startsWith("=")) {
@@ -528,7 +538,9 @@ const ePaths = {
                 if (["Run Type", "Simulated Tier"].includes(guessName)) {
                   guessValueIndex -= 1;
                 }
-                var guessCol = shared.columnToLetter(columnOffset + column + guessValueIndex);
+                var guessCol = shared.columnToLetter(
+                  columnOffset + column + guessValueIndex,
+                );
                 var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${guessCellAddress}`,
@@ -558,7 +570,7 @@ const ePaths = {
             if (oldData.hasOwnProperty("Presets")) {
               var presetValues = oldData.Presets;
               var presetCol = shared.columnToLetter(columnOffset + column + 5);
-              for (var nextRow = row + 1; nextRow < eDamageData.length; nextRow++) {
+              for (var nextRow = row; nextRow < eDamageData.length; nextRow++) {
                 var presetName = eDamageData[nextRow][column];
                 if (!presetName) break;
                 if (presetValues.hasOwnProperty(presetName)) {
@@ -608,7 +620,7 @@ const ePaths = {
     eDiscountLabData,
     eEconLabColumn,
     eEconStoneMultColumn,
-    eDiscountLabColumn
+    eDiscountLabColumn,
   ) {
     try {
       console.log("Called: ePaths.updateEEcon");
@@ -695,11 +707,11 @@ const ePaths = {
           //       });
           //     }
           //   }
-          // } else 
+          // } else
           if (cell === "Perks") {
+            var perksCol = shared.columnToLetter(columnOffset + column + 6);
             if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
               var perksAreActive = oldData.Perks["Active"];
-              var perksCol = shared.columnToLetter(columnOffset + column + 6);
               var perksCellAddress = `${perksCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${perksCellAddress}`,
@@ -715,8 +727,7 @@ const ePaths = {
               }
               if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
                 var perkValue = oldData.Perks[perkName];
-                var perkCol = shared.columnToLetter(columnOffset + column + 6);
-                var perkCellAddress = `${perkCol}${nextRow + 1}`;
+                var perkCellAddress = `${perksCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${perkCellAddress}`,
                   values: [[perkValue]],
@@ -741,11 +752,18 @@ const ePaths = {
                 var guessCol = shared.columnToLetter(columnOffset + column + 6);
                 var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 if (guessName === "GB Sync Desired Ratio:") {
-                  var GbFirstCol = shared.columnToLetter(columnOffset + column + 4);
-                  guessCellAddress = `${GbFirstCol}${nextRow + 1}:${guessCol}${nextRow + 1}`;
+                  var gbFirstCol = shared.columnToLetter(
+                    columnOffset + column + 4,
+                  );
+                  guessCellAddress = `${gbFirstCol}${nextRow + 1}:${guessCol}${nextRow + 1}`;
+                  var gbValue = [
+                    guessValue["antecedent value"],
+                    null,
+                    guessValue["consequent value"],
+                  ];
                   batchUpdate.push({
                     range: `${sheetName}!${guessCellAddress}`,
-                    values: [guessValue],
+                    values: [gbValue],
                   });
                   continue;
                 }
@@ -786,7 +804,9 @@ const ePaths = {
           } else if (cell === "Coins Spent") {
             if (oldData.hasOwnProperty("enhancementDiscount")) {
               var enhancementDiscountValue = oldData.enhancementDiscount;
-              var enhancementDiscountCol = shared.columnToLetter(columnOffset + column);
+              var enhancementDiscountCol = shared.columnToLetter(
+                columnOffset + column,
+              );
               var enhancementDiscountCellAddress = `${enhancementDiscountCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${enhancementDiscountCellAddress}`,
@@ -809,7 +829,7 @@ const ePaths = {
       };
     }
   },
-  
+
   // #endregion
   // #region Convert Versions
   version5_09_00_00: function () {
@@ -831,7 +851,7 @@ const ePaths = {
 
       var eHPRange = "eHP!AJ1:AY50";
       var eDamageRange = "eDamage!AI1:AY100";
-      var eEconRange = "eEcon!AJ1:AZ65";
+      var eEconRange = "eEcon!AK1:AZ65";
 
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
@@ -871,17 +891,17 @@ const ePaths = {
       var eHPData = this.getVersion5_09_00_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_09_00_00eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
       );
       var eEconData = this.getVersion5_09_00_00eEcon(
         eEconValues,
         eEconLabValues,
         eEconStoneMultValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -918,7 +938,7 @@ const ePaths = {
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
-      var eEconRange = "eEcon!AJ1:AX65";
+      var eEconRange = "eEcon!AK1:AY65";
 
       var eHPLabRange = "eHP!L3:L5";
       var eRegenLabRange = "eHP!AH3:AH5";
@@ -958,17 +978,17 @@ const ePaths = {
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_06_02_00eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
       );
       var eEconData = this.getVersion5_08_00_00eEcon(
         eEconValues,
         eEconLabValues,
         eEconStoneMultValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1043,17 +1063,17 @@ const ePaths = {
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_06_02_00eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
       );
       var eEconData = this.getVersion5_08_00_00eEcon(
         eEconValues,
         eEconLabValues,
         eEconStoneMultValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1125,16 +1145,16 @@ const ePaths = {
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_06_02_00eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
       );
       var eEconData = this.getVersion5_06_02_00eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1151,7 +1171,6 @@ const ePaths = {
       };
     }
   },
-
 
   version5_05_01_00: function () {
     try {
@@ -1210,17 +1229,17 @@ const ePaths = {
       var eHPData = this.getVersion5_05_01_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_05_00_00eDamage(
         eDamageValues,
         eDamageLabValues,
-        cLDmgValues
+        cLDmgValues,
       );
       var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1295,17 +1314,17 @@ const ePaths = {
       var eHPData = this.getVersion5_03_00_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion5_05_00_00eDamage(
         eDamageValues,
         eDamageLabValues,
-        cLDmgValues
+        cLDmgValues,
       );
       var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1380,17 +1399,17 @@ const ePaths = {
       var eHPData = this.getVersion5_03_00_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
-        cLDmgValues
+        cLDmgValues,
       );
       var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1407,7 +1426,7 @@ const ePaths = {
       };
     }
   },
-  
+
   version5_00_01_04: function () {
     try {
       console.log("Called: ePaths.version5_00_01_04");
@@ -1465,17 +1484,17 @@ const ePaths = {
       var eHPData = this.getVersion4_11_03_21eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
-        cLDmgValues
+        cLDmgValues,
       );
       var eEconData = this.getVersion5_00_01_04eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1492,7 +1511,7 @@ const ePaths = {
       };
     }
   },
-  
+
   version4_11_03_21: function () {
     try {
       console.log("Called: ePaths.version4_11_03_21");
@@ -1550,17 +1569,17 @@ const ePaths = {
       var eHPData = this.getVersion4_11_03_21eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion4_11_03_21eDamage(
         eDamageValues,
         eDamageLabValues,
-        cLDmgValues
+        cLDmgValues,
       );
       var eEconData = this.getVersion4_11_03_21eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1632,16 +1651,16 @@ const ePaths = {
       var eHPData = this.getVersion4_11_02_00eHP(
         eHPValues,
         eHPLabValues,
-        eRegenLabValues
+        eRegenLabValues,
       );
       var eDamageData = this.getVersion4_11_02_00eDamage(
         eDamageValues,
-        eDamageLabValues
+        eDamageLabValues,
       );
       var eEconData = this.getVersion4_11_02_00eEcon(
         eEconValues,
         eEconLabValues,
-        eDiscountLabValues
+        eDiscountLabValues,
       );
 
       return {
@@ -1664,7 +1683,7 @@ const ePaths = {
   getVersion5_09_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
-    oldeRegenLabValues
+    oldeRegenLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_09_00_00eHP");
@@ -1797,13 +1816,21 @@ const ePaths = {
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Presets") {
+            var globalPreset = oldValues[row][column + 4];
+            oldData.Presets = {
+              Presets: globalPreset,
+            };
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var presetName = oldValues[nextRow][column];
+              var presetValue = oldValues[nextRow][column + 4];
               if (!presetName) break;
+              if (presetValue === globalPreset) {
+                continue;
+              }
               if (!oldData.hasOwnProperty("Presets")) {
                 oldData.Presets = {};
               }
-              oldData.Presets[presetName] = oldValues[nextRow][column + 5];
+              oldData.Presets[presetName] = presetValue;
             }
           }
         }
@@ -1825,7 +1852,7 @@ const ePaths = {
   getVersion5_05_01_00eHP: function (
     oldValues,
     oldeHPLabValues,
-    oldeRegenLabValues
+    oldeRegenLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_05_01_00eHP");
@@ -1986,7 +2013,7 @@ const ePaths = {
   getVersion5_03_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
-    oldeRegenLabValues
+    oldeRegenLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_03_00_00eHP");
@@ -2120,7 +2147,11 @@ const ePaths = {
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
             var preset = oldValues[row][column + 2];
-            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
+            oldData.Presets = {
+              Workshop: preset,
+              Cards: preset,
+              Modules: preset,
+            };
           }
         }
       }
@@ -2141,7 +2172,7 @@ const ePaths = {
   getVersion4_11_03_21eHP: function (
     oldValues,
     oldeHPLabValues,
-    oldeRegenLabValues
+    oldeRegenLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion4_11_03_21eHP");
@@ -2293,7 +2324,7 @@ const ePaths = {
   getVersion4_11_02_00eHP: function (
     oldValues,
     oldeHPLabValues,
-    oldeRegenLabValues
+    oldeRegenLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion4_11_02_00eHP");
@@ -2552,13 +2583,21 @@ const ePaths = {
             }
             oldData.runningTime = runningTime;
           } else if (cell === "Presets") {
+            var globalPreset = oldValues[row][column + 4];
+            oldData.Presets = {
+              Presets: globalPreset,
+            };
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var presetName = oldValues[nextRow][column];
+              var presetValue = oldValues[nextRow][column + 4];
               if (!presetName) break;
+              if (presetValue === globalPreset) {
+                continue;
+              }
               if (!oldData.hasOwnProperty("Presets")) {
                 oldData.Presets = {};
               }
-              oldData.Presets[presetName] = oldValues[nextRow][column + 4];
+              oldData.Presets[presetName] = presetValue;
             }
           } else if (cell === "PS Beta Testing") {
             oldData.PSBeta = oldValues[row - 1][column];
@@ -2722,7 +2761,11 @@ const ePaths = {
     }
   },
 
-  getVersion5_05_00_00eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
+  getVersion5_05_00_00eDamage: function (
+    oldValues,
+    oldeDamageLabValues,
+    cLDmgValues,
+  ) {
     try {
       console.log("Called: ePaths.getVersion5_05_00_00eDamage");
 
@@ -2868,7 +2911,11 @@ const ePaths = {
     }
   },
 
-  getVersion4_11_03_21eDamage: function (oldValues, oldeDamageLabValues, cLDmgValues) {
+  getVersion4_11_03_21eDamage: function (
+    oldValues,
+    oldeDamageLabValues,
+    cLDmgValues,
+  ) {
     try {
       console.log("Called: ePaths.getVersion4_11_03_21eDamage");
 
@@ -2984,7 +3031,11 @@ const ePaths = {
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
             var preset = oldValues[row][column + 2];
-            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
+            oldData.Presets = {
+              Workshop: preset,
+              Cards: preset,
+              Modules: preset,
+            };
           } else if (cell === "PS Beta Testing") {
             oldData.PSBeta = oldValues[row - 1][column];
           }
@@ -3113,7 +3164,11 @@ const ePaths = {
             oldData.runningTime = runningTime;
           } else if (cell === "Total Lab Time") {
             var preset = oldValues[row][column + 2];
-            oldData.Presets = {"Workshop": preset, "Card": preset, "Module": preset};
+            oldData.Presets = {
+              Workshop: preset,
+              Cards: preset,
+              Modules: preset,
+            };
           } else if (cell === "PS Beta Testing") {
             oldData.PSBeta = oldValues[row - 1][column];
           }
@@ -3139,7 +3194,7 @@ const ePaths = {
     oldValues,
     oldeEconLabValues,
     oldeEconStoneMultValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_09_00_00eEcon");
@@ -3250,15 +3305,20 @@ const ePaths = {
                 oldData.UserGuess = {};
               }
               if (guessName === "GB Sync Desired Ratio:") {
-                guessValue = [oldValues[nextRow][column + 3], guessValue];
+                guessValue = {
+                  "antecedent value": oldValues[nextRow][column + 3],
+                  "consequent value": guessValue,
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             var assModLevel = oldValues[row][column + 5];
-            var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
-            var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
+            var mainIsFormula =
+              !moduleLevel || String(moduleLevel).startsWith("=");
+            var assistIsFormula =
+              !assModLevel || String(assModLevel).startsWith("=");
             if (mainIsFormula && assistIsFormula) {
               continue;
             }
@@ -3306,7 +3366,7 @@ const ePaths = {
     oldValues,
     oldeEconLabValues,
     oldeEconStoneMultValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_08_00_00eEcon");
@@ -3417,15 +3477,20 @@ const ePaths = {
                 oldData.UserGuess = {};
               }
               if (guessName === "GB Sync Desired Ratio:") {
-                guessValue = [oldValues[nextRow][column + 3], oldValues[nextRow][column + 4]];
+                guessValue = {
+                  "antecedent value": oldValues[nextRow][column + 3],
+                  "consequent value": guessValue,
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             var assModLevel = oldValues[row][column + 5];
-            var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
-            var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
+            var mainIsFormula =
+              !moduleLevel || String(moduleLevel).startsWith("=");
+            var assistIsFormula =
+              !assModLevel || String(assModLevel).startsWith("=");
             if (mainIsFormula && assistIsFormula) {
               continue;
             }
@@ -3472,7 +3537,7 @@ const ePaths = {
   getVersion5_06_02_00eEcon: function (
     oldValues,
     oldeEconLabValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_06_02_00eEcon");
@@ -3580,15 +3645,21 @@ const ePaths = {
                 guessValue = oldValues[nextRow][column + 1];
               } else if (guessName === "GB Sync Current Ratio") {
                 guessName = "GB Sync Desired Ratio:";
-                guessValue = String(guessValue).split("/");
+                var guessValues = String(guessValue).split("/");
+                guessValue = {
+                  "antecedent value": guessValues[0].trim(),
+                  "consequent value": guessValues[1].trim(),
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             var assModLevel = oldValues[row][column + 5];
-            var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
-            var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
+            var mainIsFormula =
+              !moduleLevel || String(moduleLevel).startsWith("=");
+            var assistIsFormula =
+              !assModLevel || String(assModLevel).startsWith("=");
             if (mainIsFormula && assistIsFormula) {
               continue;
             }
@@ -3631,11 +3702,10 @@ const ePaths = {
     }
   },
 
-
   getVersion5_00_01_04eEcon: function (
     oldValues,
     oldeEconLabValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion5_00_01_04eEcon");
@@ -3743,15 +3813,21 @@ const ePaths = {
                 guessValue = oldValues[nextRow][column + 1];
               } else if (guessName === "GB Sync Current Ratio") {
                 guessName = "GB Sync Desired Ratio:";
-                guessValue = String(guessValue).split("/");
+                var guessValues = String(guessValue).split("/");
+                guessValue = {
+                  "antecedent value": guessValues[0].trim(),
+                  "consequent value": guessValues[1].trim(),
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
           } else if (modulesData.includes(cell)) {
             var moduleLevel = oldValues[row][column + 1];
             var assModLevel = oldValues[row][column + 5];
-            var mainIsFormula = !moduleLevel || String(moduleLevel).startsWith("=");
-            var assistIsFormula = !assModLevel || String(assModLevel).startsWith("=");
+            var mainIsFormula =
+              !moduleLevel || String(moduleLevel).startsWith("=");
+            var assistIsFormula =
+              !assModLevel || String(assModLevel).startsWith("=");
             if (mainIsFormula && assistIsFormula) {
               continue;
             }
@@ -3797,7 +3873,7 @@ const ePaths = {
   getVersion4_11_03_21eEcon: function (
     oldValues,
     oldeEconLabValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion4_11_03_21eEcon");
@@ -3902,7 +3978,11 @@ const ePaths = {
               }
               if (guessName === "GB Sync Current Ratio") {
                 guessName = "GB Sync Desired Ratio:";
-                guessValue = String(guessValue).split("/");
+                var guessValues = String(guessValue).split("/");
+                guessValue = {
+                  "antecedent value": guessValues[0].trim(),
+                  "consequent value": guessValues[1].trim(),
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
@@ -3915,7 +3995,7 @@ const ePaths = {
               oldData.Modules = {};
             }
             var moduleValue = String(moduleLevel).split("|")[0].trim();
-            oldData.Modules[cell] = {"main": moduleValue};
+            oldData.Modules[cell] = { main: moduleValue };
           } else if (cell === "Rows Calculated") {
             var rowsCalculated = oldValues[row + 1][column];
             if (
@@ -3945,7 +4025,7 @@ const ePaths = {
   getVersion4_11_02_00eEcon: function (
     oldValues,
     oldeEconLabValues,
-    oldeDiscountLabValues
+    oldeDiscountLabValues,
   ) {
     try {
       console.log("Called: ePaths.getVersion4_11_02_00eEcon");
@@ -4042,7 +4122,11 @@ const ePaths = {
               }
               if (guessName === "GB Sync Current Ratio") {
                 guessName = "GB Sync Desired Ratio:";
-                guessValue = String(guessValue).split("/");
+                var guessValues = String(guessValue).split("/");
+                guessValue = {
+                  "antecedent value": guessValues[0].trim(),
+                  "consequent value": guessValues[1].trim(),
+                };
               }
               oldData.UserGuess[guessName] = guessValue;
             }
@@ -4081,7 +4165,7 @@ const ePaths = {
       };
     }
   },
-  
+
   // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
@@ -4098,7 +4182,7 @@ const ePaths = {
       "v5.09.00.00": this.version5_09_00_00.bind(this),
     };
   },
-  
+
   // #endregion
   // #region Compatibility Check
   isCompatibleVersion: function (oldVersion) {
