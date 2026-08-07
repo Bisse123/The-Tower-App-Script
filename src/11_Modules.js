@@ -247,7 +247,7 @@ const modules = {
           if (presetCol === -1) {
             presetCol = referenceRow.findIndex(
               (cell) =>
-                String(cell).toLowerCase().includes("preset") &&
+                shared.isTemplatePresetName(cell) &&
                 !String(cell).toLowerCase().includes("module") &&
                 !usedPresets.includes(cell) &&
                 !referencePresets.hasOwnProperty(cell),
@@ -1152,7 +1152,10 @@ const modules = {
           };
         }
       });
-      oldModulesPresets.presetNames = presetNames;
+      oldModulesPresets.presetNames = shared.resolvePresetOrder(
+        presetNames,
+        shared.templatePresetNames,
+      ).order;
 
       return {
         success: true,

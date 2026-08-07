@@ -248,42 +248,42 @@ const bots = {
 
       var batchUpdate = [];
 
+      var presetSlots = [];
       headerRow.forEach(function (header, index) {
         if (index < firstPresetIndex) {
           return;
         }
         var presetName = header && header.trim() !== "" ? header.trim() : null;
         if (presetName) {
-          if (oldBots.presetNames.includes(presetName)) {
-            endCol = index + 2;
-            presetColumnMapping.push({
-              presetName: presetName,
-              levelColIndex: index,
-              toggleColIndex: endCol
-            });
-            return;
-          }
-          if (presetName.startsWith("Preset")) {
-            var presetNumber = presetName.substring(6).trim();
-            if (presetNumber) {
-              var oldPresetName = oldBots.presetNames[presetNumber - 1];
-              if (oldPresetName) {
-                endCol = index + 2;
-                presetColumnMapping.push({
-                  presetName: oldPresetName,
-                  levelColIndex: index,
-                  toggleColIndex: endCol,
-                });
-                batchUpdate.push({
-                  range: `${sheetName}!${shared.columnToLetter(index + 1)}1`,
-                  values: [[oldPresetName]],
-                });
-                return;
-              }
-            }
-          }
+          presetSlots.push({ header: presetName, colIndex: index });
         }
       });
+
+      shared
+        .mapPresetSlots(
+          presetSlots.map(function (slot) {
+            return slot.header;
+          }),
+          oldBots.presetNames,
+        )
+        .forEach(function (assignment, slot) {
+          if (!assignment.presetName) {
+            return;
+          }
+          var colIndex = presetSlots[slot].colIndex;
+          endCol = colIndex + 2;
+          presetColumnMapping.push({
+            presetName: assignment.presetName,
+            levelColIndex: colIndex,
+            toggleColIndex: endCol,
+          });
+          if (assignment.rename) {
+            batchUpdate.push({
+              range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
+              values: [[assignment.presetName]],
+            });
+          }
+        });
 
       var newBotDataValues = masterSheetData
         .slice(1)
@@ -648,7 +648,7 @@ const bots = {
       var oldBotsPresetNames = [];
       var presetColumnMapping = [];
 
-      var firstPresetIndex = oldBotsHeaderRow.indexOf("Farming");
+      var firstPresetIndex = 3;
       for (
         var colIdx = firstPresetIndex;
         colIdx < oldBotsHeaderRow.length;
@@ -668,7 +668,10 @@ const bots = {
       }
 
       var oldBots = {
-        presetNames: oldBotsPresetNames,
+        presetNames: shared.resolvePresetOrder(
+          oldBotsPresetNames,
+          shared.templatePresetNames,
+        ).order,
         data: {},
       };
       for (var row = 0; row < oldBotLevels.length; row++) {
@@ -700,15 +703,17 @@ const bots = {
           if (!key) {
             continue;
           }
-          var defaultLevelValue = nextRowData[firstPresetIndex];
+          
+          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
+          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            if (
-              presetMap.presetName !== "Farming" &&
-              levelValue === defaultLevelValue
-            ) {
-              levelValue = null;
-            }
+            // if (
+            //   presetMap.levelColIndex !== defaultLevelColIndex &&
+            //   levelValue === defaultLevelValue
+            // ) {
+            //   levelValue = null;
+            // }
             bot.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
@@ -761,7 +766,7 @@ const bots = {
       var oldBotsPresetNames = [];
       var presetColumnMapping = [];
 
-      var firstPresetIndex = oldBotsHeaderRow.indexOf("Farming");
+      var firstPresetIndex = 3;
       for (
         var colIdx = firstPresetIndex;
         colIdx < oldBotsHeaderRow.length;
@@ -781,7 +786,10 @@ const bots = {
       }
 
       var oldBots = {
-        presetNames: oldBotsPresetNames,
+        presetNames: shared.resolvePresetOrder(
+          oldBotsPresetNames,
+          shared.templatePresetNames,
+        ).order,
         data: {},
       };
       for (var row = 0; row < oldBotLevels.length; row++) {
@@ -803,7 +811,8 @@ const bots = {
           bot.presets[presetMap.presetName] = {
             props: {},
             sync: oldBotLevels[row][presetMap.toggleColIndex],
-            active: presetMap.presetName === "Farming" ? unlocked : null,
+            active:
+              presetMap.levelColIndex === firstPresetIndex ? unlocked : null,
           };
         });
 
@@ -818,15 +827,17 @@ const bots = {
           if (!key) {
             continue;
           }
-          var defaultLevelValue = nextRowData[firstPresetIndex];
+
+          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
+          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            if (
-              presetMap.presetName !== "Farming" &&
-              levelValue === defaultLevelValue
-            ) {
-              levelValue = null;
-            }
+            // if (
+            //   presetMap.levelColIndex !== defaultLevelColIndex &&
+            //   levelValue === defaultLevelValue
+            // ) {
+            //   levelValue = null;
+            // }
             bot.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
@@ -1018,20 +1029,13 @@ const bots = {
       },
     };
 
-    const presetNameOverride = ["Farming", "Tourney"];
-
-    const presetNames = (data.presetNames || []).map(
-      (name, index) => name || `Preset ${index + 1}`,
+    const presetOrder = shared.resolvePresetOrder(
+      data.presetNames || [],
+      shared.templatePresetNames,
     );
+    const presetNames = presetOrder.order;
+    const presetIndices = presetOrder.indices;
 
-    presetNameOverride
-      .filter((override) => !presetNames.includes(override))
-      .forEach((override) => {
-        const slotIndex = presetNames.findIndex(
-          (name) => !presetNameOverride.includes(name),
-        );
-        if (slotIndex !== -1) presetNames[slotIndex] = override;
-      });
     const flameBotData = data.flameBotPresets || {};
     const thunderBotData = data.thunderBotPresets || {};
     const goldenBotData = data.goldenBotPresets || {};
@@ -1044,7 +1048,8 @@ const bots = {
       data: {},
     };
 
-    presetNames.forEach(function (presetName, index) {
+    presetNames.forEach(function (presetName, slot) {
+      const index = presetIndices[slot];
       const allBotPresets = [
         flameBotData[index] || {},
         thunderBotData[index] || {},

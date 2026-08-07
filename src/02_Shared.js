@@ -930,6 +930,128 @@ const shared = {
     return oldValue;
   },
 
+  /**
+   * The named presets the sheet templates ship with. Everything else is called
+   * "Preset N". None of these are guaranteed to exist in a user's data - they
+   * are only the labels a freshly copied template starts out with.
+   */
+  templatePresetNames: ["Farming", "Tourney"],
+
+  /**
+   * True when a preset column header is still one of the template's own labels,
+   * i.e. a slot the user never renamed and which is therefore free to be
+   * relabelled by an import.
+   */
+  isTemplatePresetName: function (headerName) {
+    var name = String(headerName || "").trim();
+    if (!name) {
+      return false;
+    }
+    return (
+      name.startsWith("Preset") ||
+      shared.templatePresetNames.indexOf(name) !== -1
+    );
+  },
+
+  /**
+   * Reorders a save file's preset names into the fixed slot order the sheet
+   * templates expect (e.g. ["Farming", "Tourney", "Preset 3", "Preset 4", "Preset 5"]),
+   * without requiring "Farming"/"Tourney" to already be first, or to exist at all.
+   * Any name in forcedNames found anywhere in presetNames is pulled into its
+   * matching slot; everything else fills the remaining slots in its original
+   * relative order.
+   * @param {Array} presetNames - preset names as they appear in the save file
+   * @param {Array} forcedNames - names that should be pulled into the front slots when present, e.g. ["Farming", "Tourney"]
+   * @returns {{order: Array, indices: Array}} order: slot-ordered names (empty slots fall back to "Preset N"); indices: for each slot, the original index in presetNames to pull parallel data from
+   */
+  resolvePresetOrder: function (presetNames, forcedNames) {
+    var names = (presetNames || []).slice();
+    var slotCount = names.length;
+    var indices = new Array(slotCount).fill(null);
+    var assignedSourceIndices = {};
+
+    (forcedNames || []).forEach(function (forcedName, slot) {
+      if (slot >= slotCount) {
+        return;
+      }
+      var sourceIndex = names.findIndex(function (name, idx) {
+        return name === forcedName && !assignedSourceIndices.hasOwnProperty(idx);
+      });
+      if (sourceIndex !== -1) {
+        indices[slot] = sourceIndex;
+        assignedSourceIndices[sourceIndex] = true;
+      }
+    });
+
+    var remainingSourceIndices = names
+      .map(function (_, idx) {
+        return idx;
+      })
+      .filter(function (idx) {
+        return !assignedSourceIndices.hasOwnProperty(idx);
+      });
+
+    var remainingCursor = 0;
+    for (var slot = 0; slot < slotCount; slot++) {
+      if (indices[slot] === null) {
+        indices[slot] = remainingSourceIndices[remainingCursor++];
+      }
+    }
+
+    var order = indices.map(function (sourceIndex, slot) {
+      return names[sourceIndex] || `Preset ${slot + 1}`;
+    });
+
+    return { order: order, indices: indices };
+  },
+
+  /**
+   * Decides which imported preset belongs in each of a sheet's preset columns.
+   * A column whose header is exactly one of the imported presets keeps it, so a
+   * user who really does have a "Farming" or "Tourney" preset lands in the
+   * matching column. Every other column - "Farming"/"Tourney"/"Preset N" left
+   * over from the template - is just a placeholder and gets the next imported
+   * preset that has nowhere else to go.
+   * @param {Array} slotHeaders - the preset column headers, in sheet order
+   * @param {Array} presetNames - the preset names being imported, already ordered
+   * @returns {Array} one entry per slot: { presetName, rename }. presetName is null when there is no preset left to place in that slot; rename is true when the header cell has to be rewritten.
+   */
+  mapPresetSlots: function (slotHeaders, presetNames) {
+    var headers = slotHeaders || [];
+    var names = presetNames || [];
+    var assignedSourceIndices = {};
+    var slots = headers.map(function () {
+      return null;
+    });
+
+    headers.forEach(function (header, slot) {
+      var headerName = String(header || "").trim();
+      var sourceIndex = names.findIndex(function (name, idx) {
+        return name === headerName && !assignedSourceIndices.hasOwnProperty(idx);
+      });
+      if (sourceIndex !== -1) {
+        slots[slot] = { presetName: names[sourceIndex], rename: false };
+        assignedSourceIndices[sourceIndex] = true;
+      }
+    });
+
+    var remainingNames = names.filter(function (_, idx) {
+      return !assignedSourceIndices.hasOwnProperty(idx);
+    });
+
+    var remainingCursor = 0;
+    for (var slot = 0; slot < slots.length; slot++) {
+      if (!slots[slot]) {
+        slots[slot] =
+          remainingCursor < remainingNames.length
+            ? { presetName: remainingNames[remainingCursor++], rename: true }
+            : { presetName: null, rename: false };
+      }
+    }
+
+    return slots;
+  },
+
   findSheetTemplateID: function (sheetID, sheetName, sheetType) {
     try {
       console.log(

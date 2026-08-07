@@ -662,62 +662,87 @@ const cards = {
       console.log("Called: cards.getVersion1_0CardsPreset");
       var shouldRemoveUsedCards;
       var oldCardsPreset = {};
+
+      // Every preset name may have been renamed, so the header row is located
+      // from the "Remove used cards from the pool" toggle above it, which the
+      // template always puts two rows higher.
+      var headerRowIndex = -1;
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
-        var row = oldCardsPresetData[rowIndex];
-        var colIndex = row.indexOf("Remove used cards from the pool");
+        var colIndex = oldCardsPresetData[rowIndex].indexOf(
+          "Remove used cards from the pool"
+        );
         if (colIndex !== -1) {
           shouldRemoveUsedCards =
-            row[colIndex - 1] === "TRUE" ||
-            row[colIndex - 1] === "true" ||
-            row[colIndex - 1] === true;
-        }
-        var oldCardPresetNameIdxs = row
-          .map(function (cell, idx) {
-            return String(cell || "").trim() !== "" ? idx : -1;
-          })
-          .filter(function (idx) {
-            return idx !== -1;
-          });
-        if (
-          row[oldCardPresetNameIdxs[0]] === "Farming" &&
-          row[oldCardPresetNameIdxs[1]] === "Tourney"
-        ) {
-          var rowType = "cards";
-          for (
-            var rowIdx = rowIndex + 1;
-            rowIdx < oldCardsPresetData.length;
-            rowIdx++
-          ) {
-            if (
-              oldCardsPresetData[rowIdx].some(
-                (cell) => cell === "Cards to remove from the pool"
-              )
-            ) {
-              rowType = "remove";
-              continue;
-            }
-            oldCardPresetNameIdxs.forEach(function (colIdx, orderIndex) {
-              if (
-                oldCardsPresetData[rowIdx][colIdx + 1] &&
-                oldCardsPresetData[rowIdx][colIdx + 1].trim() !== ""
-              ) {
-                var presetName = row[colIdx];
-                if (!oldCardsPreset.hasOwnProperty(presetName)) {
-                  oldCardsPreset[presetName] = {
-                    cards: [],
-                    remove: [],
-                    order: orderIndex + 1,
-                  };
-                }
-                oldCardsPreset[presetName][rowType].push(
-                  oldCardsPresetData[rowIdx][colIdx + 1]
-                );
-              }
-            });
-          }
+            oldCardsPresetData[rowIndex][colIndex - 1] === "TRUE" ||
+            oldCardsPresetData[rowIndex][colIndex - 1] === "true" ||
+            oldCardsPresetData[rowIndex][colIndex - 1] === true;
+          headerRowIndex = rowIndex + 2;
           break;
         }
       }
+
+      if (headerRowIndex === -1 || !oldCardsPresetData[headerRowIndex]) {
+        console.log(`Could not find the preset header row in Card Preset sheet`);
+        return {
+          success: false,
+          message: "Could not find the preset header row in Card Preset sheet",
+        };
+      }
+
+      var row = oldCardsPresetData[headerRowIndex];
+      var oldCardPresetNameIdxs = row
+        .map(function (cell, idx) {
+          return String(cell || "").trim() !== "" ? idx : -1;
+        })
+        .filter(function (idx) {
+          return idx !== -1;
+        });
+
+      var presetOrder = shared.resolvePresetOrder(
+        oldCardPresetNameIdxs.map(function (colIdx) {
+          return row[colIdx];
+        }),
+        shared.templatePresetNames
+      );
+      var orderBySourceIndex = {};
+      presetOrder.indices.forEach(function (sourceIndex, slot) {
+        orderBySourceIndex[sourceIndex] = slot + 1;
+      });
+
+      var rowType = "cards";
+      for (
+        var rowIdx = headerRowIndex + 1;
+        rowIdx < oldCardsPresetData.length;
+        rowIdx++
+      ) {
+        if (
+          oldCardsPresetData[rowIdx].some(
+            (cell) => cell === "Cards to remove from the pool"
+          )
+        ) {
+          rowType = "remove";
+          continue;
+        }
+        oldCardPresetNameIdxs.forEach(function (colIdx, sourceIndex) {
+          if (
+            oldCardsPresetData[rowIdx][colIdx + 1] &&
+            oldCardsPresetData[rowIdx][colIdx + 1].trim() !== ""
+          ) {
+            var presetName = row[colIdx];
+            if (!oldCardsPreset.hasOwnProperty(presetName)) {
+              oldCardsPreset[presetName] = {
+                cards: [],
+                remove: [],
+                order: orderBySourceIndex[sourceIndex],
+              };
+            }
+            oldCardsPreset[presetName][rowType].push(
+              oldCardsPresetData[rowIdx][colIdx + 1]
+            );
+          }
+        });
+      }
+
       return {
         success: true,
         message: "Cards preset processed successfully",
@@ -822,16 +847,13 @@ const cards = {
     const cardLevel = data.cardLevel || [];
     const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
 
-    const presetNameOverride = ["Farming", "Tourney"];
+    const presetOrder = shared.resolvePresetOrder(
+      data.presetNames || [],
+      shared.templatePresetNames,
+    );
+    const presetNames = presetOrder.order;
+    const presetIndices = presetOrder.indices;
 
-    const presetNames = (data.presetNames || []).map((name, index) => (name || `Preset ${index + 1}`));
-
-    presetNameOverride
-      .filter((override) => !presetNames.includes(override))
-      .forEach((override) => {
-        const slotIndex = presetNames.findIndex((name) => !presetNameOverride.includes(name));
-        if (slotIndex !== -1) presetNames[slotIndex] = override;
-      });
     const presetSlots = data.presetSlots || [];
     const presetCards = data.presetCards || [];
     const slotsUnlocked = data.slotsUnlocked || 0;
@@ -844,11 +866,11 @@ const cards = {
 
     const numPresets = presetNames.length;
     const slotsPerPreset = numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
-    var nextPresetOrder = presetNameOverride.length + 1;
     var oldCardsPreset = {};
-    presetNames.forEach(function (name, p) {
+    presetNames.forEach(function (name, slot) {
       if (!name) return;
-      var slotStart = p * slotsPerPreset;
+      var sourceIndex = presetIndices[slot];
+      var slotStart = sourceIndex * slotsPerPreset;
       var cards = [];
       presetSlots.slice(slotStart, slotStart + slotsPerPreset).forEach(function (assigned, s) {
         if (assigned) {
@@ -858,11 +880,10 @@ const cards = {
           }
         }
       });
-      var overrideIndex = presetNameOverride.indexOf(name);
       oldCardsPreset[name] = {
         cards: cards,
         remove: [],
-        order: overrideIndex !== -1 ? overrideIndex + 1 : nextPresetOrder++,
+        order: slot + 1,
       };
     });
 
