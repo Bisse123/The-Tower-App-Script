@@ -1,0 +1,460 @@
+<div id="saveGuideSection" class="section saveGuideSection">
+  <button
+    type="button"
+    id="saveGuideToggle"
+    class="sgToggle"
+    onclick="toggleSaveFileGuide()"
+    aria-expanded="false"
+    aria-controls="saveGuideBody"
+  >
+    <span class="sgToggleMain">
+      <span class="sgToggleIcon" aria-hidden="true">📂</span>
+      <span class="sgToggleText">
+        <span class="sgToggleTitle">Where do I find my save file?</span>
+        <span class="sgToggleSub">
+          Step-by-step guides for getting playerInfo.dat off your phone,
+          emulator or Mac
+        </span>
+      </span>
+    </span>
+    <span class="sgChevron" aria-hidden="true">▸</span>
+  </button>
+
+  <div id="saveGuideBody" class="sgBody">
+    <p class="sgIntro">
+      The Tower keeps all your progress in a single file called
+      <code>playerInfo.dat</code>. Get that file onto this computer or into
+      Google Drive, then load it in the section below. Pick the route that
+      matches where you play.
+    </p>
+
+    <div class="sgGroupTitle">📱 Android / Emulators</div>
+
+    <div class="sgSubGroup">
+      <div class="sgSubGroupTitle">Android 12 or older</div>
+      <p class="sgSubGroupNote">
+        On these versions a file manager can still be granted access to
+        <code>/Android/data</code>, so everything can be done on the device
+        itself. Your version is under Settings → About phone → Android version.
+      </p>
+
+      <div class="sgCard">
+        <button
+          type="button"
+          class="sgCardToggle"
+          onclick="toggleSaveGuideCard(this)"
+          aria-expanded="false"
+        >
+          <span class="sgCardHead">
+            <span class="sgCardNum">1</span>
+            <span class="sgCardText">
+              <span class="sgCardTitle">Manual copy</span>
+              <span class="sgCardSub">
+                Easiest setup, but you move the file yourself every time
+              </span>
+            </span>
+          </span>
+          <span class="sgChevron" aria-hidden="true">▸</span>
+        </button>
+        <div class="sgCardBody">
+          <p>
+            Fastest to set up and works with any cloud app. Downside: nothing
+            gets overwritten, so copies pile up (playerInfo.dat, playerInfo
+            (1).dat, …) and you have to grab the newest one yourself. Not
+            automatic: you bring the file into this app however you like.
+          </p>
+          <ol>
+            <li>Install Total Commander from the Play Store.</li>
+            <li>
+              Tap "Internal Share" and grant it Manage permissions (a dialog
+              pops up).
+            </li>
+            <li>Navigate to <code>/Android/data</code>.</li>
+            <li>
+              Tap "Installed Apps", it asks for permission again. Click "Use
+              this folder" (it won't work if you open The Tower's folder before
+              clicking "Use this folder").
+            </li>
+            <li>
+              Navigate to <code>/com.TechTreeGames.TheTower/files</code>, that's
+              where <code>playerInfo.dat</code> lives.
+            </li>
+            <li>
+              Also install your cloud app (Google Drive, Dropbox, OneDrive…)
+              from the Play Store.
+            </li>
+            <li>
+              Long-press <code>playerInfo.dat</code> → "Send to" → your cloud
+              app. Grant permission if it asks.
+            </li>
+            <li>
+              On your PC, download the newest playerInfo file from that cloud
+              and load it below with "From your computer".
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="sgCard">
+        <button
+          type="button"
+          class="sgCardToggle"
+          onclick="toggleSaveGuideCard(this)"
+          aria-expanded="false"
+        >
+          <span class="sgCardHead">
+            <span class="sgCardNum">2</span>
+            <span class="sgCardText">
+              <span class="sgCardTitle">
+                Automatic sync with FolderSync
+                <span class="sgTag">recommended</span>
+              </span>
+              <span class="sgCardSub">Set it up once, then it's hands-off</span>
+            </span>
+          </span>
+          <span class="sgChevron" aria-hidden="true">▸</span>
+        </button>
+        <div class="sgCardBody">
+          <p>
+            A free app that mirrors The Tower's save folder straight to Google
+            Drive on a schedule, overwriting the same files each time, so
+            "Choose file from Drive" below always gives you your latest save
+            with no manual step.
+          </p>
+          <ol>
+            <li>
+              Install FolderSync from the Play Store (the free version is
+              enough) and open it.
+            </li>
+            <li>
+              Accept the terms. When prompted, grant "All files access" and
+              "/Android/data" access, and disable battery optimization so it
+              keeps syncing in the background. "/Android/OBB" access is NOT
+              needed. Tap Finish.
+            </li>
+            <li>
+              When it offers to connect a cloud, tap "Add account", choose
+              Google Drive, sign in, and grant permissions. (Use Google Drive so
+              this app can read it.)
+            </li>
+            <li>
+              Open the folder-pairs tab (the folder icon, 2nd from the left in
+              the bottom bar), then tap "Create folder pair" and choose "To
+              right" (one-way: phone → cloud).
+            </li>
+            <li>
+              Left side (device storage): navigate to
+              <code>/Android/data/com.TechTreeGames.TheTower/files/</code> and
+              tap "Select folder".
+            </li>
+            <li>
+              Right side (Google Drive): pick the folder you want to sync your
+              save to.
+            </li>
+            <li>
+              Open the "Scheduling" tab and turn on a sync interval (e.g. every
+              hour) so it runs on its own.
+            </li>
+            <li>
+              Scroll the pair's tabs right to "Filters" (General · Scheduling ·
+              Sync options · Connections · Filters · Webhooks) and add two rules
+              so only your save syncs, not Unity's bulky cache: Exclude · Folder
+              name contains · "Unity", and Exclude · Folder name contains ·
+              "il2cpp".
+            </li>
+            <li>
+              Review the summary, save the pair, and run it once to seed the
+              Drive folder.
+            </li>
+            <li>
+              From now on, use "Choose file from Drive" below and pick
+              <code>playerInfo.dat</code> from that folder - it's always your
+              newest save.
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="sgCard">
+        <button
+          type="button"
+          class="sgCardToggle"
+          onclick="toggleSaveGuideCard(this)"
+          aria-expanded="false"
+        >
+          <span class="sgCardHead">
+            <span class="sgCardNum">3</span>
+            <span class="sgCardText">
+              <span class="sgCardTitle">
+                Overwrite send with Total Commander
+              </span>
+              <span class="sgCardSub">
+                An alternative some find easier on a real Android phone
+              </span>
+            </span>
+          </span>
+          <span class="sgChevron" aria-hidden="true">▸</span>
+        </button>
+        <div class="sgCardBody">
+          <p>
+            More one-time setup (a personal Google OAuth client), but afterwards
+            each send <strong>overwrites</strong> the same file in Google Drive,
+            so "Choose file from Drive" below always gives you your latest save.
+            You still tap to send each time (it isn't scheduled like
+            FolderSync). Independent of the other options.
+          </p>
+          <ol>
+            <li>Install Total Commander from the Play Store.</li>
+            <li>
+              Tap "Internal Share" and grant it Manage permissions (a dialog
+              pops up).
+            </li>
+            <li>Navigate to <code>/Android/data</code>.</li>
+            <li>
+              Tap "Installed Apps", it asks for permission again. Click "Use
+              this folder" (it won't work if you open The Tower's folder before
+              clicking "Use this folder").
+            </li>
+            <li>
+              Navigate to <code>/com.TechTreeGames.TheTower/files</code>, that's
+              where <code>playerInfo.dat</code> lives.
+            </li>
+            <li>
+              Set up Total Commander's Drive plugin (one-time): download the
+              Drive plugin, then in Total Commander's home page tap "Drive" →
+              "Add Google Account".
+            </li>
+            <li>
+              Create a personal OAuth client so the plugin can reach your Drive.
+              Full reference:
+              <a
+                href="https://www.ghisler.com/googledriveandroid.htm"
+                target="_blank"
+                rel="noopener"
+                >ghisler.com/googledriveandroid.htm</a
+              >.
+              <div class="sgCard sgSubCard">
+                <button
+                  type="button"
+                  class="sgCardToggle"
+                  onclick="toggleSaveGuideCard(this)"
+                  aria-expanded="false"
+                >
+                  <span class="sgCardHead">
+                    <span class="sgCardText">
+                      <span class="sgCardTitle">Show steps</span>
+                    </span>
+                  </span>
+                  <span class="sgChevron" aria-hidden="true">▸</span>
+                </button>
+                <div class="sgCardBody">
+                  <p>
+                    Do this part on a PC, in the Google Cloud Console
+                    (console.cloud.google.com), signed in with the same Google
+                    account:
+                  </p>
+                  <ol>
+                    <li>Create a new project (any name will do).</li>
+                    <li>
+                      In "APIs &amp; Services" → "Library", find the Google
+                      Drive API and enable it.
+                    </li>
+                    <li>
+                      Configure the OAuth consent screen as "External" and add
+                      your own Google account as a test user.
+                    </li>
+                    <li>
+                      In "Credentials", create an OAuth client ID and note the
+                      client ID/secret it gives you.
+                    </li>
+                    <li>
+                      Enter those in Total Commander's Drive plugin when it
+                      asks.
+                    </li>
+                  </ol>
+                  <p class="sgNote">
+                    Google reshuffles this console fairly often - the
+                    ghisler.com page linked above keeps click-by-click
+                    screenshots, so follow it if anything looks different.
+                  </p>
+                </div>
+              </div>
+            </li>
+            <li>
+              Back in Total Commander, tap "Drive" → your Google account and
+              grant permissions; you should see the "app" you just created.
+            </li>
+            <li>
+              Long-press <code>playerInfo.dat</code> → "Send to" → choose
+              <strong>Total Commander</strong> (not the Google Drive app
+              directly) and navigate to your Drive folder. Doing it this way
+              OVERWRITES the file each time instead of piling up copies.
+            </li>
+            <li>
+              From now on, use "Choose file from Drive" below and pick that
+              file.
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="sgSubGroup">
+      <div class="sgSubGroupTitle">Android 13 or newer</div>
+      <p class="sgSubGroupNote">
+        Android 13 locked down <code>/Android/data</code>: file managers, the
+        system picker and cloud apps can no longer open it, so options 1–3 do
+        not work here. Pull the file from a PC with <code>adb</code> instead -
+        that also covers emulators, which run Android too.
+      </p>
+
+      <div class="sgCard">
+        <button
+          type="button"
+          class="sgCardToggle"
+          onclick="toggleSaveGuideCard(this)"
+          aria-expanded="false"
+        >
+          <span class="sgCardHead">
+            <span class="sgCardNum">4</span>
+            <span class="sgCardText">
+              <span class="sgCardTitle">Pull the file with adb from a PC</span>
+              <span class="sgCardSub">
+                Works on any Android version and any emulator (LDPlayer,
+                BlueStacks…)
+              </span>
+            </span>
+          </span>
+          <span class="sgChevron" aria-hidden="true">▸</span>
+        </button>
+        <div class="sgCardBody">
+          <p>
+            <code>adb</code> is Android's debug tool and it can read
+            <code>/Android/data</code> even when apps can't. Emulators already
+            ship a copy of it; for a real phone, download "SDK Platform Tools"
+            from Google and turn on USB debugging (Settings → About phone → tap
+            "Build number" 7 times → Developer options → USB debugging).
+          </p>
+          <ol>
+            <li>
+              Close The Tower first so your latest progress is written to the
+              file, then leave the emulator running / plug the phone in.
+            </li>
+            <li>
+              Find your <code>adb</code>:
+              <ul>
+                <li>
+                  LDPlayer: its install folder, e.g.
+                  <code>C:\Program Files\LDPlayer\LDPlayer9</code> - the file is called "adb" or "adb.exe".
+                </li>
+                <li>
+                  BlueStacks: its install folder, e.g.
+                  <code>C:\Program Files\BlueStacks_nxt\</code> - the file is called "HD-adb.exe".
+                </li>
+                <li>
+                  Real phone: <code>adb.exe</code> from the SDK Platform Tools
+                  folder you downloaded.
+                </li>
+              </ul>
+            </li>
+            <li>
+              Open PowerShell in that folder: Shift + right click in the folder →
+              "Open PowerShell window here".
+            </li>
+            <li>
+              Check the device is seen (on a phone, accept the "Allow USB
+              debugging" prompt):
+              <div class="sgCode">./adb.exe devices</div>
+            </li>
+            <li>
+              Pull the save into that same folder:
+              <div class="sgCode">
+                ./adb.exe pull
+                /sdcard/Android/data/com.TechTreeGames.TheTower/files/playerInfo.dat
+                .
+              </div>
+            </li>
+            <li>
+              <code>playerInfo.dat</code> is now in that folder - load it below
+              with "From your computer".
+            </li>
+          </ol>
+
+          <div class="sgCard sgSubCard">
+            <button
+              type="button"
+              class="sgCardToggle"
+              onclick="toggleSaveGuideCard(this)"
+              aria-expanded="false"
+            >
+              <span class="sgCardHead">
+                <span class="sgCardText">
+                  <span class="sgCardTitle">
+                    Turn it into a one-click .bat script
+                  </span>
+                </span>
+              </span>
+              <span class="sgChevron" aria-hidden="true">▸</span>
+            </button>
+            <div class="sgCardBody">
+              <p>
+                If you do this often, save the lines below as e.g.
+                <code>getSave.bat</code> and just double-click it. This example
+                is for BlueStacks and drops the save on your Desktop - change
+                the <code>ADB</code> path to your own emulator (or SDK Platform
+                Tools) and <code>SAVE</code> to wherever you want the file.
+              </p>
+<pre class="sgCode sgCodeBlock">@echo off
+set ADB="C:\Program Files\BlueStacks_nxt\HD-adb.exe"
+set SAVE="%USERPROFILE%\Desktop\playerInfo.dat"
+
+echo Connecting to BlueStacks...
+%ADB% devices
+
+echo.
+echo Saving The Tower...
+%ADB% pull /sdcard/Android/data/com.TechTreeGames.TheTower/files/playerInfo.dat %SAVE%
+
+echo.
+echo Done!
+pause</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sgGroupTitle">🍎 Mac</div>
+
+    <div class="sgCard">
+      <button
+        type="button"
+        class="sgCardToggle"
+        onclick="toggleSaveGuideCard(this)"
+        aria-expanded="false"
+      >
+        <span class="sgCardHead">
+          <span class="sgCardNum sgCardNumIcon">🍎</span>
+          <span class="sgCardText">
+            <span class="sgCardTitle">Find the save on Mac</span>
+            <span class="sgCardSub">
+              One Terminal command reveals it in Finder
+            </span>
+          </span>
+        </span>
+        <span class="sgChevron" aria-hidden="true">▸</span>
+      </button>
+      <div class="sgCardBody">
+        <p>Open Terminal and run:</p>
+        <div class="sgCode">
+          open -R "$(find ~/Library/Containers -name playerInfo.dat -print
+          -quit)"
+        </div>
+        <p>
+          Finder opens with <code>playerInfo.dat</code> selected - load it below
+          with "From your computer".
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
