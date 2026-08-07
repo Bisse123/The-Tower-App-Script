@@ -35,6 +35,7 @@
   let isConvertToCollectionFlow = false; // Flag to track if we're in convertToCollection flow
   let hasSubsheetsToUpdate = false; // Flag to track if there are subsheets to update in combined flow
   let hasMasterUpdate = false; // Flag to track if there is a master update in combined flow
+  let masterIdsWritten = false; // True once a combined update's IDS Master import has written its own sheet IDs
   let parentFolderID = null; // To store parent folder ID for new sheets created during conversion
 
   let CONVERT_TO_TEMPLATES = {
