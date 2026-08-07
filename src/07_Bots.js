@@ -662,7 +662,7 @@ const bots = {
         presetColumnMapping.push({
           presetName: presetName,
           levelColIndex: colIdx,
-          toggleColIndex: colIdx + 1,
+          toggleColIndex: colIdx + 2,
         });
       }
 
@@ -765,7 +765,7 @@ const bots = {
       var oldBotsPresetNames = [];
       var presetColumnMapping = [];
 
-      var firstPresetIndex = 2;
+      var firstPresetIndex = 4;
       for (
         var colIdx = firstPresetIndex;
         colIdx < oldBotsHeaderRow.length;
@@ -791,6 +791,7 @@ const bots = {
         ).order,
         data: {},
       };
+      
       for (var row = 0; row < oldBotLevels.length; row++) {
         var botName = String(oldBotLevels[row][0] || "").trim();
         if (!botName || !targetBots.includes(botName)) {
