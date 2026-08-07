@@ -765,7 +765,7 @@ const bots = {
       var oldBotsPresetNames = [];
       var presetColumnMapping = [];
 
-      var firstPresetIndex = 3;
+      var firstPresetIndex = 2;
       for (
         var colIdx = firstPresetIndex;
         colIdx < oldBotsHeaderRow.length;
