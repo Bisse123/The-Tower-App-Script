@@ -2,6 +2,7 @@
 <html>
   <head>
     <?!= include('21_shared_styles'); ?>
+    <?!= include('21_header_styles'); ?>
     <?!= include('22_status_styles'); ?>
     <?!= include('23_getStarted_styles'); ?>
     <?!= include('27_consent_styles'); ?>
@@ -14,7 +15,7 @@
     />
   </head>
   <body>
-    <?!= include('21_header'); ?>
+    <?!= include('21_header_section'); ?>
     <?!= include('22_status_section'); ?>
     <?!= include('23_getStarted_section'); ?>
     <?!= include('27_consent_section'); ?>
@@ -29,6 +30,7 @@
       let effectivePathsID = "<?= effectivePathsID ? effectivePathsID : '' ?>";
     </script>
     
+    <?!= include('21_header_scripts'); ?>
     <?!= include('22_status_scripts'); ?>
     <?!= include('23_getStarted_scripts'); ?>
     <?!= include('27_consent_scripts'); ?>

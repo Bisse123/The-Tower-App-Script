@@ -1,0 +1,263 @@
+<style>
+  /* Three columns with equal side tracks, so the brand stays centred on the
+     page no matter how wide the side panels get: creator codes on the left,
+     support on the right. The panels wrap inside their own track rather than
+     pushing the brand off centre. */
+  .appHeader {
+    text-align: center;
+    padding: 18px 12px;
+    border-radius: 8px;
+    border: 1px solid #d0d0d0;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #e6e8ea 0%, #f1f2f3 100%);
+    box-shadow: 0 2px 8px rgba(60, 64, 67, 0.1);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+  }
+  .appHeaderBrand {
+    grid-column: 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    min-width: 0;
+  }
+  .appHeaderIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(60, 64, 67, 0.1);
+    background: #f8f9fa;
+    object-fit: contain;
+    margin: 0;
+    transition:
+      box-shadow 0.2s,
+      transform 0.2s;
+    border: 1px solid #e0e0e0;
+  }
+  .appHeaderTitle {
+    display: inline-block;
+    font-size: 2.1em;
+    color: #222;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 2px rgba(60, 64, 67, 0.07);
+    vertical-align: middle;
+  }
+
+  /* Title + links on top, one chip per creator underneath. Everything wraps,
+     so the panel gets taller instead of stealing space from the brand. */
+  .creatorCodes {
+    grid-column: 1;
+    justify-self: start;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 5px 9px;
+    border: 1px solid #d7dbe0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.72);
+    text-align: left;
+    line-height: 1.3;
+  }
+  .creatorCodesHead {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+  .creatorCodesTitle {
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #666;
+    white-space: nowrap;
+  }
+  .creatorCodesLink {
+    font-size: 0.72em;
+    font-weight: 600;
+    color: #4b5563;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #b6bcc5;
+    white-space: nowrap;
+  }
+  .creatorCodesLink:hover {
+    color: #1f2937;
+    text-decoration-color: #1f2937;
+  }
+
+  .creatorCodesList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Same neutral card as the creator codes, mirrored to the right edge. */
+  .headerSupport {
+    grid-column: 3;
+    justify-self: end;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 5px 9px;
+    border: 1px solid #d7dbe0;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.72);
+    text-align: right;
+    line-height: 1.3;
+  }
+  .headerSupportTitle {
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #666;
+    white-space: nowrap;
+  }
+  .headerSupportLink {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #4b5563;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: #b6bcc5;
+  }
+  .headerSupportLink:hover {
+    color: #1f2937;
+    text-decoration-color: #1f2937;
+  }
+  .headerSupportNote {
+    font-size: 0.72em;
+    color: #6b7280;
+  }
+  .headerSupportChannel {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid #d5d9df;
+    border-radius: 3px;
+    background: #f1f2f4;
+    color: #374151;
+    font-family: monospace;
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .headerSupportChannel:hover {
+    background: #e6e8ec;
+    border-color: #b6bcc5;
+    color: #1f2937;
+  }
+  /* One creator = one chip, tinted so the name and its code read as a pair.
+     Clicking a chip copies its code (see 21_header_scripts). */
+  .creatorChip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 2px 7px;
+    border: 1px solid #d5d9df;
+    border-radius: 4px;
+    background: #f1f2f4;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .creatorChip:hover {
+    background: #e6e8ec;
+    border-color: #b6bcc5;
+  }
+  .creatorChip:focus-visible {
+    outline: 2px solid #6b7280;
+    outline-offset: 1px;
+  }
+  .creatorChip.is-copied {
+    background: #e6f4ea;
+    border-color: #1e7e34;
+  }
+  .creatorChip.is-copyfailed {
+    background: #fff3cd;
+    border-color: #b36b00;
+  }
+  /* The name row doubles as the copy feedback, so the chip keeps its size. */
+  .creatorChip.is-copied .creatorName,
+  .creatorChip.is-copyfailed .creatorName {
+    font-size: 0;
+  }
+  .creatorChip.is-copied .creatorName::after {
+    content: "Copied!";
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e7e34;
+  }
+  .creatorChip.is-copyfailed .creatorName::after {
+    content: "Ctrl+C";
+    font-size: 11px;
+    font-weight: 700;
+    color: #b36b00;
+  }
+  .creatorName {
+    font-size: 0.72em;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+  .creatorCode {
+    font-family: monospace;
+    font-size: 0.78em;
+    font-weight: 700;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .appHeader {
+      padding: 15px 10px;
+      margin-bottom: 15px;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    /* Stacked: brand on top, creator codes underneath it. */
+    .appHeaderBrand {
+      grid-column: 1;
+      order: 1;
+    }
+    .creatorCodes {
+      grid-column: 1;
+      order: 2;
+      justify-self: center;
+    }
+    .creatorCodesHead,
+    .creatorCodesList {
+      justify-content: center;
+    }
+    .headerSupport {
+      grid-column: 1;
+      order: 3;
+      justify-self: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .appHeaderIcon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .appHeaderTitle {
+      font-size: 1.3em;
+      display: block;
+    }
+  }
+</style>

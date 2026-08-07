@@ -1,0 +1,347 @@
+<style>
+  /* "Where do I find my save file?" guide. Sits between Status and the save
+     file section and uses a teal-leaning blue so it reads as its own area
+     without leaving the blue scheme of the save file workflow. */
+  .saveGuideSection {
+    padding: 0;
+    background-color: #e4f3f9;
+    border-color: #0e7490;
+    overflow: hidden;
+  }
+
+  .saveGuideSection a {
+    color: #0b5f78;
+  }
+
+  .saveGuideSection code {
+    padding: 1px 5px;
+    background: #d5eaf3;
+    border: 1px solid #b6dbe8;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #0b4b60;
+    word-break: break-word;
+  }
+
+  /* Header row that folds the whole guide open/closed. Overrides the global
+     button styling, which is built for the big solid action buttons. */
+  .saveGuideSection button.sgToggle,
+  .saveGuideSection button.sgCardToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: #0b5a6f;
+    font-size: 1em;
+    font-family: inherit;
+    text-align: left;
+    line-height: 1.4;
+  }
+  .saveGuideSection button.sgToggle:hover,
+  .saveGuideSection button.sgCardToggle:hover {
+    background: #d8edf6;
+    transform: none;
+  }
+  .saveGuideSection button.sgToggle:focus-visible,
+  .saveGuideSection button.sgCardToggle:focus-visible {
+    outline: 2px solid #0e7490;
+    outline-offset: -2px;
+  }
+
+  .sgToggleMain {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .sgToggleIcon {
+    font-size: 1.5em;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .sgToggleText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sgToggleTitle {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: #0b5a6f;
+  }
+  .sgToggleSub {
+    font-size: 0.85em;
+    font-weight: 400;
+    color: #4b7688;
+  }
+
+  .sgChevron {
+    flex-shrink: 0;
+    font-size: 1.1em;
+    color: #0e7490;
+    transition: transform 0.2s ease;
+  }
+  .saveGuideSection.open > .sgToggle .sgChevron,
+  .sgCard.open > .sgCardToggle .sgChevron {
+    transform: rotate(90deg);
+  }
+
+  .sgBody {
+    display: none;
+    padding: 0 16px 16px;
+  }
+  .saveGuideSection.open .sgBody {
+    display: block;
+  }
+
+  .sgIntro {
+    margin: 0 0 14px;
+    padding-top: 12px;
+    border-top: 1px solid #bcdfec;
+    font-size: 1em;
+    line-height: 1.6;
+    color: #1d4453;
+  }
+
+  .sgGroupTitle {
+    margin: 16px 0 8px;
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #0e7490;
+  }
+
+  /* Android version split: the on-device routes only work up to Android 12,
+     everything newer has to go through adb. */
+  .sgSubGroup {
+    margin-bottom: 14px;
+    padding-left: 12px;
+    border-left: 3px solid #a9d8e8;
+  }
+  .sgSubGroupTitle {
+    margin-bottom: 4px;
+    font-size: 1em;
+    font-weight: 700;
+    color: #0b4b60;
+  }
+  .sgSubGroupNote {
+    margin: 0 0 10px;
+    font-size: 0.9em;
+    line-height: 1.55;
+    color: #4b7688;
+  }
+
+  .sgCard {
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #bcdfec;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .sgCard.open {
+    border-color: #0e7490;
+  }
+
+  .saveGuideSection button.sgCardToggle {
+    padding: 10px 14px;
+  }
+  .saveGuideSection button.sgCardToggle:hover {
+    background: #f0fafd;
+  }
+
+  .sgCardHead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .sgCardNum {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    background: #0e7490;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .sgCardNum.sgCardNumIcon {
+    background: transparent;
+    font-size: 1.2em;
+  }
+
+  .sgCardText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sgCardTitle {
+    font-size: 1em;
+    font-weight: 700;
+    color: #0b4b60;
+  }
+  .sgCardSub {
+    font-size: 0.85em;
+    font-weight: 400;
+    color: #5d8090;
+  }
+
+  .sgTag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    background: #0e7490;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    vertical-align: middle;
+  }
+
+  .sgCardBody {
+    display: none;
+    padding: 4px 14px 12px;
+    border-top: 1px solid #e2f0f6;
+    font-size: 0.95em;
+    line-height: 1.6;
+    color: #23414c;
+  }
+  .sgCard.open > .sgCardBody {
+    display: block;
+  }
+  .sgCardBody > p:first-child {
+    margin-top: 10px;
+  }
+  .sgCardBody ol,
+  .sgCardBody ul {
+    margin: 8px 0 0;
+    padding-left: 24px;
+  }
+  .sgCardBody li {
+    margin: 5px 0;
+  }
+
+  /* Click-to-copy snippet. The badge in the corner doubles as the copy
+     feedback, so no extra markup is needed around each block. */
+  .sgCode {
+    position: relative;
+    margin: 6px 0;
+    padding: 8px 76px 8px 10px;
+    background: #0b3d4d;
+    border-radius: 4px;
+    color: #d6f1fb;
+    font-family: monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    word-break: break-word;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .sgCode:hover {
+    background: #10556b;
+  }
+  .sgCode:focus-visible {
+    outline: 2px solid #0e7490;
+    outline-offset: 2px;
+  }
+  .sgCode::after {
+    content: "Copy";
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    padding: 1px 8px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 3px;
+    color: #a8dced;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  .sgCode:hover::after {
+    background: rgba(255, 255, 255, 0.26);
+    color: #eaf9ff;
+  }
+  .sgCode.is-copied::after {
+    content: "Copied!";
+    background: #1e7e34;
+    color: #fff;
+  }
+  .sgCode.is-copyfailed::after {
+    content: "Ctrl+C";
+    background: #b36b00;
+    color: #fff;
+  }
+
+  /* Multi-line snippet (the .bat script): keep the author's line breaks and
+     let long lines scroll rather than reflow. */
+  pre.sgCodeBlock {
+    margin: 8px 0 0;
+    overflow-x: auto;
+    white-space: pre;
+    word-break: normal;
+  }
+
+  .sgNote {
+    margin: 8px 0 0;
+    font-size: 0.9em;
+    color: #5d8090;
+  }
+
+  /* Nested fold (e.g. the OAuth client steps inside option 3). */
+  .sgCard.sgSubCard {
+    margin: 6px 0 2px;
+    background: #f5fbfd;
+  }
+  .saveGuideSection .sgSubCard button.sgCardToggle {
+    padding: 7px 10px;
+  }
+  .sgSubCard .sgCardTitle {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #0e7490;
+    text-decoration: underline;
+  }
+  .sgSubCard .sgCardBody {
+    padding: 4px 10px 10px;
+    font-size: 0.95em;
+  }
+
+  @media (max-width: 768px) {
+    .saveGuideSection button.sgToggle,
+    .saveGuideSection button.sgCardToggle {
+      justify-content: space-between;
+      text-align: left;
+    }
+    .sgToggleTitle {
+      font-size: 1.05em;
+    }
+    .sgCardBody ol,
+    .sgCardBody ul {
+      padding-left: 20px;
+    }
+  }
+</style>

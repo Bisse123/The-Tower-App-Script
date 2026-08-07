@@ -1428,8 +1428,30 @@
     runSaveFileImport();
   }
 
+  // Folds the "Where do I find my save file?" guide that sits above the
+  // workflow. Collapsed on load; the section itself is revealed together with
+  // the save file section.
+  function toggleSaveFileGuide() {
+    const section = document.getElementById("saveGuideSection");
+    const btn = document.getElementById("saveGuideToggle");
+    if (!section || !btn) return;
+    const open = section.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  // Shared by the individual option cards inside the guide, including the
+  // nested "Show steps" fold (closest() picks the innermost card).
+  function toggleSaveGuideCard(btn) {
+    const card = btn.closest(".sgCard");
+    if (!card) return;
+    const open = card.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
   async function continueSaveFile() {
     const ready = await evaluateSaveFileAccess();
+    const guide = document.getElementById("saveGuideSection");
+    if (guide) guide.style.display = "block";
     document.getElementById("saveFileSection").style.display = "block";
     if (ready) {
       showSaveFileWorkflow();
