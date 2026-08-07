@@ -72,7 +72,7 @@ const cards = {
         newSheetID,
         "IDS",
         "IDS Master's",
-        idsData
+        idsData,
       );
       if (
         !newSheetInfo ||
@@ -99,7 +99,7 @@ const cards = {
           "Master Sheet",
           oldCardsLevel,
           oldCardSlots,
-          masterSheetData
+          masterSheetData,
         );
         if (!levelsResult || !levelsResult.success) {
           console.log(`Error updating cards levels: ${levelsResult.message}`);
@@ -111,12 +111,14 @@ const cards = {
       // Only update cards preset if key exists
       if (data.hasOwnProperty("oldCardsPreset")) {
         var oldCardsPreset = data.oldCardsPreset;
-        var shouldRemoveUsedCards = data.hasOwnProperty("shouldRemoveUsedCards") ? data.shouldRemoveUsedCards : true;
+        var shouldRemoveUsedCards = data.hasOwnProperty("shouldRemoveUsedCards")
+          ? data.shouldRemoveUsedCards
+          : true;
         var presetResult = this.updateCardsPreset(
           "Card Preset",
           oldCardsPreset,
           shouldRemoveUsedCards,
-          cardPresetsData
+          cardPresetsData,
         );
         if (!presetResult || !presetResult.success) {
           console.log(`Error updating cards preset: ${presetResult.message}`);
@@ -130,7 +132,7 @@ const cards = {
         var trackerResult = this.updateCardsTracker(
           "Card and Mastery Tracker",
           oldCardsTracker,
-          cardTrackerData
+          cardTrackerData,
         );
         if (!trackerResult || !trackerResult.success) {
           console.log(`Error updating cards tracker: ${trackerResult.message}`);
@@ -153,7 +155,7 @@ const cards = {
         "Cards",
         newSheetID,
         idsData,
-        data.idMasterID
+        data.idMasterID,
       );
 
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
@@ -184,7 +186,7 @@ const cards = {
     sheetName,
     oldCardsLevel,
     oldCardSlots,
-    masterSheetData
+    masterSheetData,
   ) {
     try {
       console.log("Called: cards.updateCardsLevels");
@@ -272,7 +274,7 @@ const cards = {
     sheetName,
     oldCardsPreset,
     shouldRemoveUsedCards,
-    cardPresetsData
+    cardPresetsData,
   ) {
     try {
       console.log("Called: cards.updateCardsPreset");
@@ -296,52 +298,46 @@ const cards = {
       var batchUpdate = [];
 
       for (var row = 0; row < cardPresetsData.length; row++) {
-        if (
-          cardPresetsData[row].indexOf("Remove used cards from the pool") !== -1
-        ) {
-          var removeUsedCardsCol = shared.columnToLetter(
-            cardPresetsData[row].indexOf("Remove used cards from the pool")
-          );
-          batchUpdate.push({
-            range: sheetName + "!" + removeUsedCardsCol + (row + 1),
-            values: [[shouldRemoveUsedCards]],
-          });
+        var removeUsedCardsIndex = cardPresetsData[row].indexOf(
+          "Remove used cards from the pool",
+        );
+        if (removeUsedCardsIndex === -1) {
           continue;
         }
-        var nonEmptyCells = cardPresetsData[row].filter(function (cell) {
-          return (
-            cell !== null && cell !== undefined && String(cell).trim() !== ""
-          );
+        batchUpdate.push({
+          range:
+            sheetName +
+            "!" +
+            shared.columnToLetter(removeUsedCardsIndex) +
+            (row + 1),
+          values: [[shouldRemoveUsedCards]],
         });
-
-        if (
-          nonEmptyCells.length >= 2 &&
-          nonEmptyCells[0] === "Farming" &&
-          nonEmptyCells[1] === "Tourney"
-        ) {
-          headerRowIndex = row;
-
-          nonEmptyCells.forEach(function (header) {
-            var colIndex = cardPresetsData[row].indexOf(header);
-            if (colIndex !== -1) {
-              headerColIndices.push(colIndex);
-            }
-          });
-          break;
-        }
+        headerRowIndex = row + 2;
+        break;
       }
 
-      if (headerRowIndex === -1) {
-        console.log(`Could not find header row with "Farming" and "Tourney"`);
+      if (headerRowIndex === -1 || headerRowIndex >= cardPresetsData.length) {
+        console.log(`Could not find "Remove used cards from the pool"`);
         return {
           success: false,
-          message: "Could not find header row with Farming and Tourney",
+          message: "Could not find Remove used cards from the pool",
         };
+      }
+
+      var presetHeaderRow = cardPresetsData[headerRowIndex];
+      for (
+        var col = 0;
+        col < presetHeaderRow.length && headerColIndices.length < 5;
+        col++
+      ) {
+        if (String(presetHeaderRow[col] || "").trim() !== "") {
+          headerColIndices.push(col);
+        }
       }
 
       if (headerColIndices.length < 5) {
         console.log(
-          `Expected 5 preset columns but found ${headerColIndices.length}`
+          `Expected 5 preset columns but found ${headerColIndices.length}`,
         );
         return {
           success: false,
@@ -355,75 +351,76 @@ const cards = {
         if (!presetData.order) return;
 
         var orderIndex = presetData.order - 1;
-        if (orderIndex >= 0 && orderIndex < headerColIndices.length) {
-          var colIndex = headerColIndices[orderIndex];
+        if (orderIndex < 0 || orderIndex >= headerColIndices.length) {
+          return;
+        }
+        var colIndex = headerColIndices[orderIndex];
 
-          var headerCell =
-            shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
-          batchUpdate.push({
-            range: sheetName + "!" + headerCell,
-            values: [[presetName]],
+        var headerCell =
+          shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+        batchUpdate.push({
+          range: sheetName + "!" + headerCell,
+          values: [[presetName]],
+        });
+
+        var cardsStartRow = headerRowIndex + 1;
+        var removeStartRow = -1;
+
+        for (
+          var row = headerRowIndex + 1;
+          row < cardPresetsData.length;
+          row++
+        ) {
+          if (
+            cardPresetsData[row].some((cell) =>
+              String(cell).includes("Cards to remove from the pool"),
+            )
+          ) {
+            removeStartRow = row + 1;
+            break;
+          }
+        }
+
+        if (removeStartRow === -1) {
+          removeStartRow = cardPresetsData.length;
+        }
+
+        if (presetData.cards && presetData.cards.length > 0) {
+          var cardsData = presetData.cards.map(function (card) {
+            return [card];
           });
 
-          var cardsStartRow = headerRowIndex + 1;
-          var removeStartRow = -1;
+          var startCell =
+            shared.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
+          var endCell =
+            shared.columnToLetter(colIndex + 2) +
+            (cardsStartRow + cardsData.length);
 
-          for (
-            var row = headerRowIndex + 1;
-            row < cardPresetsData.length;
-            row++
-          ) {
-            if (
-              cardPresetsData[row].some((cell) =>
-                String(cell).includes("Cards to remove from the pool")
-              )
-            ) {
-              removeStartRow = row + 1;
-              break;
-            }
-          }
+          batchUpdate.push({
+            range: sheetName + "!" + startCell + ":" + endCell,
+            values: cardsData,
+          });
+        }
 
-          if (removeStartRow === -1) {
-            removeStartRow = cardPresetsData.length;
-          }
+        if (
+          presetData.remove &&
+          presetData.remove.length > 0 &&
+          removeStartRow !== -1
+        ) {
+          var removeData = presetData.remove.map(function (card) {
+            return [card];
+          });
 
-          if (presetData.cards && presetData.cards.length > 0) {
-            var cardsData = presetData.cards.map(function (card) {
-              return [card];
-            });
+          var startCell =
+            shared.columnToLetter(colIndex + 2) + (removeStartRow + 1);
+          var endCell =
+            shared.columnToLetter(colIndex + 2) +
+            (removeStartRow + removeData.length);
 
-            var startCell =
-              shared.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
-            var endCell =
-              shared.columnToLetter(colIndex + 2) +
-              (cardsStartRow + cardsData.length);
-
-            batchUpdate.push({
-              range: sheetName + "!" + startCell + ":" + endCell,
-              values: cardsData,
-            });
-          }
-
-          if (
-            presetData.remove &&
-            presetData.remove.length > 0 &&
-            removeStartRow !== -1
-          ) {
-            var removeData = presetData.remove.map(function (card) {
-              return [card];
-            });
-
-            var startCell =
-              shared.columnToLetter(colIndex + 2) + (removeStartRow + 1);
-            var endCell =
-              shared.columnToLetter(colIndex + 2) +
-              (removeStartRow + removeData.length);
-
-            batchUpdate.push({
-              range: sheetName + "!" + startCell + ":" + endCell,
-              values: removeData,
-            });
-          }
+          batchUpdate.push({
+            range: sheetName + "!" + startCell + ":" + endCell,
+            values: removeData,
+          });
         }
       });
 
@@ -557,14 +554,15 @@ const cards = {
         return cardsPresetData;
       }
 
-      var cardsTrackerData = this.getVersion1_0CardsTracker(oldCardsTrackerData);
+      var cardsTrackerData =
+        this.getVersion1_0CardsTracker(oldCardsTrackerData);
       if (!cardsTrackerData || !cardsTrackerData.success) {
         return cardsTrackerData;
       }
 
       var cardsLevelData = this.getVersion1_0CardsLevel(
         oldCardsLevelData,
-        oldCardSlotsData
+        oldCardSlotsData,
       );
       if (!cardsLevelData || !cardsLevelData.success) {
         return cardsLevelData;
@@ -612,7 +610,7 @@ const cards = {
           "progressColIndex:",
           progressColIndex,
           "priorityColIndex:",
-          priorityColIndex
+          priorityColIndex,
         );
         if (cardNameColIndex !== -1) {
           for (
@@ -669,7 +667,7 @@ const cards = {
       var headerRowIndex = -1;
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
         var colIndex = oldCardsPresetData[rowIndex].indexOf(
-          "Remove used cards from the pool"
+          "Remove used cards from the pool",
         );
         if (colIndex !== -1) {
           shouldRemoveUsedCards =
@@ -682,7 +680,9 @@ const cards = {
       }
 
       if (headerRowIndex === -1 || !oldCardsPresetData[headerRowIndex]) {
-        console.log(`Could not find the preset header row in Card Preset sheet`);
+        console.log(
+          `Could not find the preset header row in Card Preset sheet`,
+        );
         return {
           success: false,
           message: "Could not find the preset header row in Card Preset sheet",
@@ -702,7 +702,7 @@ const cards = {
         oldCardPresetNameIdxs.map(function (colIdx) {
           return row[colIdx];
         }),
-        shared.templatePresetNames
+        shared.templatePresetNames,
       );
       var orderBySourceIndex = {};
       presetOrder.indices.forEach(function (sourceIndex, slot) {
@@ -717,7 +717,7 @@ const cards = {
       ) {
         if (
           oldCardsPresetData[rowIdx].some(
-            (cell) => cell === "Cards to remove from the pool"
+            (cell) => cell === "Cards to remove from the pool",
           )
         ) {
           rowType = "remove";
@@ -737,7 +737,7 @@ const cards = {
               };
             }
             oldCardsPreset[presetName][rowType].push(
-              oldCardsPresetData[rowIdx][colIdx + 1]
+              oldCardsPresetData[rowIdx][colIdx + 1],
             );
           }
         });
@@ -865,21 +865,25 @@ const cards = {
     });
 
     const numPresets = presetNames.length;
-    const slotsPerPreset = numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
+    const slotsPerPreset =
+      numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
     var oldCardsPreset = {};
     presetNames.forEach(function (name, slot) {
       if (!name) return;
       var sourceIndex = presetIndices[slot];
       var slotStart = sourceIndex * slotsPerPreset;
       var cards = [];
-      presetSlots.slice(slotStart, slotStart + slotsPerPreset).forEach(function (assigned, s) {
-        if (assigned) {
-          var resolvedName = cardNameIndices[presetCards[slotStart + s]] || null;
-          if (resolvedName) {
-            cards.push(resolvedName);
+      presetSlots
+        .slice(slotStart, slotStart + slotsPerPreset)
+        .forEach(function (assigned, s) {
+          if (assigned) {
+            var resolvedName =
+              cardNameIndices[presetCards[slotStart + s]] || null;
+            if (resolvedName) {
+              cards.push(resolvedName);
+            }
           }
-        }
-      });
+        });
       oldCardsPreset[name] = {
         cards: cards,
         remove: [],
@@ -923,6 +927,6 @@ const cards = {
 
     return null;
   },
-  
+
   // #endregion
 };
