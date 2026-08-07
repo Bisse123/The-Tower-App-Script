@@ -390,43 +390,41 @@ const playerStuff = {
       var batchUpdate = [];
 
       for (var row = 0; row < perksSheetData.length; row++) {
-        if (
-          perksSheetData[row].indexOf("Remove used perks from the pool") !== -1
-        ) {
-          var removeUsedPerksCol = shared.columnToLetter(
-            perksSheetData[row].indexOf("Remove used perks from the pool"),
-          );
-          batchUpdate.push({
-            range: sheetName + "!" + removeUsedPerksCol + (row + 1),
-            values: [[shouldRemoveUsedPerks]],
-          });
+        var removeUsedPerksIndex = perksSheetData[row].indexOf(
+          "Remove used perks from the pool",
+        );
+        if (removeUsedPerksIndex === -1) {
           continue;
         }
-        var nonEmptyCells = perksSheetData[row].filter(function (cell) {
-          return (
-            cell !== null && cell !== undefined && String(cell).trim() !== ""
-          );
+        batchUpdate.push({
+          range:
+            sheetName +
+            "!" +
+            shared.columnToLetter(removeUsedPerksIndex) +
+            (row + 1),
+          values: [[shouldRemoveUsedPerks]],
         });
-
-        if (nonEmptyCells.indexOf("Farming") !== -1) {
-          headerRowIndex = row;
-
-          nonEmptyCells.forEach(function (header) {
-            var colIndex = perksSheetData[row].indexOf(header);
-            if (colIndex !== -1) {
-              headerColIndices.push(colIndex);
-            }
-          });
-          break;
-        }
+        headerRowIndex = row + 2;
+        break;
       }
 
-      if (headerRowIndex === -1) {
-        console.log(`Could not find header row with "Farming"`);
+      if (headerRowIndex === -1 || headerRowIndex >= perksSheetData.length) {
+        console.log(`Could not find "Remove used perks from the pool"`);
         return {
           success: false,
-          message: "Could not find header row with Farming",
+          message: "Could not find Remove used perks from the pool",
         };
+      }
+
+      var presetHeaderRow = perksSheetData[headerRowIndex];
+      for (
+        var col = 0;
+        col < presetHeaderRow.length && headerColIndices.length < 5;
+        col++
+      ) {
+        if (String(presetHeaderRow[col] || "").trim() !== "") {
+          headerColIndices.push(col);
+        }
       }
 
       if (headerColIndices.length < 5) {
@@ -445,43 +443,44 @@ const playerStuff = {
         if (!presetData || !presetData.order) return;
 
         var orderIndex = presetData.order - 1;
-        if (orderIndex >= 0 && orderIndex < headerColIndices.length) {
-          var colIndex = headerColIndices[orderIndex];
+        if (orderIndex < 0 || orderIndex >= headerColIndices.length) {
+          return;
+        }
+        var colIndex = headerColIndices[orderIndex];
 
-          var headerCell =
-            shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+        var headerCell =
+          shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+        batchUpdate.push({
+          range: sheetName + "!" + headerCell,
+          values: [[presetName]],
+        });
+
+        var perksStartRow = headerRowIndex + 3;
+
+        if (presetData.bannedAmount && presetData.bannedAmount > 0) {
+          var bannedAmountCell =
+            shared.columnToLetter(colIndex + 3) + (headerRowIndex + 2);
           batchUpdate.push({
-            range: sheetName + "!" + headerCell,
-            values: [[presetName]],
+            range: sheetName + "!" + bannedAmountCell,
+            values: [[presetData.bannedAmount]],
+          });
+        }
+
+        if (presetData.perks && presetData.perks.length > 0) {
+          var perksData = presetData.perks.map(function (perk) {
+            return [perk];
           });
 
-          var perksStartRow = headerRowIndex + 3;
+          var startCell =
+            shared.columnToLetter(colIndex + 2) + (perksStartRow + 1);
+          var endCell =
+            shared.columnToLetter(colIndex + 2) +
+            (perksStartRow + perksData.length);
 
-          if (presetData.bannedAmount && presetData.bannedAmount > 0) {
-            var bannedAmountCell =
-              shared.columnToLetter(colIndex + 3) + (headerRowIndex + 2);
-            batchUpdate.push({
-              range: sheetName + "!" + bannedAmountCell,
-              values: [[presetData.bannedAmount]],
-            });
-          }
-
-          if (presetData.perks && presetData.perks.length > 0) {
-            var perksData = presetData.perks.map(function (perk) {
-              return [perk];
-            });
-
-            var startCell =
-              shared.columnToLetter(colIndex + 2) + (perksStartRow + 1);
-            var endCell =
-              shared.columnToLetter(colIndex + 2) +
-              (perksStartRow + perksData.length);
-
-            batchUpdate.push({
-              range: sheetName + "!" + startCell + ":" + endCell,
-              values: perksData,
-            });
-          }
+          batchUpdate.push({
+            range: sheetName + "!" + startCell + ":" + endCell,
+            values: perksData,
+          });
         }
       });
 
@@ -1054,7 +1053,7 @@ const playerStuff = {
       4: "Champions",
       5: "Legends",
     };
-    
+
     const tourneyName = data.tourneyID ? tourneyNames[data.tourneyID] : null;
     const highestWavePerTier = data.highestWavePerTier || [];
     const premiumPass = data.premiumPass || [];
@@ -1081,20 +1080,7 @@ const playerStuff = {
       // Suffix for a given power-of-1000 group.
       // 0 -> "", 1 -> K, 2 -> M, ... 11 -> D, then aa, ab, ac, ...
       function getSuffix(group) {
-        var named = [
-          "",
-          "K",
-          "M",
-          "B",
-          "T",
-          "q",
-          "Q",
-          "s",
-          "S",
-          "O",
-          "N",
-          "D",
-        ];
+        var named = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "D"];
         if (group < named.length) {
           return named[group];
         }
@@ -1130,26 +1116,35 @@ const playerStuff = {
 
       return (negative ? "-" : "") + rounded.toFixed(2) + getSuffix(group);
     }
-    
-    var allBattlesCoinPerHour = battleHistory.map(function (battle) {
-      if (battle && battle.coinsEarned && battle.realTime) {
-        var hours = battle.realTime / 3600;
-        if (hours > 0) {
-          return battle.coinsEarned / hours;
+
+    var allBattlesCoinPerHour = battleHistory
+      .map(function (battle) {
+        if (battle && battle.coinsEarned && battle.realTime) {
+          var hours = battle.realTime / 3600;
+          if (hours > 0) {
+            return battle.coinsEarned / hours;
+          }
         }
-      }
-      return null;
-    }).filter(function (cph) {
-      return cph !== null;
-    }).sort(function (a, b) {
-      return b - a;
-    });
+        return null;
+      })
+      .filter(function (cph) {
+        return cph !== null;
+      })
+      .sort(function (a, b) {
+        return b - a;
+      });
 
     var numBattles = 3;
-    const coinPerHour = allBattlesCoinPerHour.length > 0 ? allBattlesCoinPerHour.slice(0, numBattles).reduce(function (sum, cph) {
-      return sum + cph;
-    }, 0) / Math.min(numBattles, allBattlesCoinPerHour.length) : null;
-    
+    const coinPerHour =
+      allBattlesCoinPerHour.length > 0
+        ? allBattlesCoinPerHour.slice(0, numBattles).reduce(function (
+            sum,
+            cph,
+          ) {
+            return sum + cph;
+          }, 0) / Math.min(numBattles, allBattlesCoinPerHour.length)
+        : null;
+
     var oldPlayerStuffTierData = {};
     var oldPlayerStuffStatsData = {
       Stat: {
@@ -1157,9 +1152,9 @@ const playerStuff = {
         "Farming Tier": "Tier " + data.currentTier,
         "Tourney League": tourneyName,
         "Lifetime Coins": formatLifeTime(lifetimeCoins),
-        "Stones": formatLifeTime(lifetimeStones),
-        "Gems": formatLifeTime(lifetimeGems),
-        "Keys": formatLifeTime(lifetimeKeys),
+        Stones: formatLifeTime(lifetimeStones),
+        Gems: formatLifeTime(lifetimeGems),
+        Keys: formatLifeTime(lifetimeKeys),
         "Coin / Hour": formatLifeTime(coinPerHour),
       },
       "Premium Packs": {
@@ -1183,7 +1178,7 @@ const playerStuff = {
         nextPremium++;
       }
 
-      oldPlayerStuffTierData["Tier " + (tier)] = {
+      oldPlayerStuffTierData["Tier " + tier] = {
         wave: wave,
         diss: {
           attack: atkDissonance[tier] || 0,
@@ -1234,6 +1229,6 @@ const playerStuff = {
 
     return null;
   },
-  
+
   // #endregion
 };
