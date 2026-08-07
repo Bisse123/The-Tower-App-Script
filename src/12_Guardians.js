@@ -216,7 +216,7 @@ const guardians = {
       var endCol = guardianCol + 5;
 
       var presetColumnMapping = [];
-      var firstPresetIndex = headerRow.indexOf("Farming");
+      var firstPresetIndex = startCol + 4;
 
       if (firstPresetIndex === -1) {
         console.log(`Preset columns not found in Master Sheet`);
@@ -230,7 +230,7 @@ const guardians = {
 
       var presetSlots = [];
       headerRow.forEach(function (header, index) {
-        if (index < firstPresetIndex || !shared.isTemplatePresetName(header)) {
+        if (index < firstPresetIndex) {
           return;
         }
         presetSlots.push({ header: String(header).trim(), colIndex: index });

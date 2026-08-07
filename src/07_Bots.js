@@ -240,11 +240,11 @@ const bots = {
         };
       }
 
-      var startCol = botCol + 1; // Column after "Bot" (1-based)
+      var startCol = botCol + 1;
       var endCol = startCol;
 
       var presetColumnMapping = [];
-      var firstPresetIndex = headerRow.indexOf("Farming");
+      var firstPresetIndex = startCol + 3;
 
       if (firstPresetIndex === -1) {
         console.log(`Preset columns not found in Master Sheet`);
@@ -258,7 +258,7 @@ const bots = {
 
       var presetSlots = [];
       headerRow.forEach(function (header, index) {
-        if (index < firstPresetIndex || !shared.isTemplatePresetName(header)) {
+        if (index < firstPresetIndex) {
           return;
         }
         presetSlots.push({ header: String(header).trim(), colIndex: index });

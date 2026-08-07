@@ -936,23 +936,7 @@ const shared = {
    * are only the labels a freshly copied template starts out with.
    */
   templatePresetNames: ["Farming", "Tourney"],
-
-  /**
-   * True when a preset column header is still one of the template's own labels,
-   * i.e. a slot the user never renamed and which is therefore free to be
-   * relabelled by an import.
-   */
-  isTemplatePresetName: function (headerName) {
-    var name = String(headerName || "").trim();
-    if (!name) {
-      return false;
-    }
-    return (
-      name.startsWith("Preset") ||
-      shared.templatePresetNames.indexOf(name) !== -1
-    );
-  },
-
+  
   /**
    * Reorders a save file's preset names into the fixed slot order the sheet
    * templates expect (e.g. ["Farming", "Tourney", "Preset 3", "Preset 4", "Preset 5"]),
