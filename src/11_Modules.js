@@ -217,9 +217,29 @@ const modules = {
         targetModuleTypes,
         newModulePresetsValues,
       );
-      
+
+      var presetColIndices = [];
+      for (var row = 0; row < newModulePresetsValues.length; row++) {
+        (newModulePresetsValues[row] || []).forEach(function (cell, index) {
+          if (String(cell).trim() === "Primary Slot") {
+            presetColIndices.push(index);
+          }
+        });
+        if (presetColIndices.length > 0) {
+          break;
+        }
+      }
+
+      if (presetColIndices.length === 0) {
+        console.log(`Could not find "Primary Slot" columns in sheet`);
+        return {
+          success: false,
+          message: `Could not find "Primary Slot" columns in sheet`,
+        };
+      }
+
       var presetNames = oldModulesPresets.presetNames;
-      
+
       var moduleContexts = {};
       targetModuleTypes.forEach(function (moduleType) {
         if (!oldModulesPresets.hasOwnProperty(moduleType)) return;
@@ -230,71 +250,59 @@ const modules = {
           row: newModulePresetsValues[rowIdx],
         };
       });
-      var referenceModuleType = targetModuleTypes.find(function (moduleType) {
-        return moduleContexts.hasOwnProperty(moduleType);
-      });
+
       var batchUpdate = [];
-      if (presetNames && referenceModuleType) {
-        var referenceRow = moduleContexts[referenceModuleType].row;
-        var referencePresets = oldModulesPresets[referenceModuleType];
-        var usedPresets = [];
-        presetNames.forEach(function (presetName) {
-          if (presetName === "") {
+      if (!presetNames || Object.keys(moduleContexts).length === 0) {
+        return {
+          success: false,
+          message: `Could not find preset names or module rows for updating presets`,
+        };
+      }
+
+      presetNames.forEach(function (presetName, slot) {
+        var presetCol = presetColIndices[slot];
+        if (!presetName || typeof presetCol === "undefined") {
+          return;
+        }
+
+        targetModuleTypes.forEach(function (moduleType) {
+          var context = moduleContexts[moduleType];
+          if (!context) {
             return;
           }
-          
-          var presetCol = referenceRow.indexOf(presetName);
-          if (presetCol === -1) {
-            presetCol = referenceRow.findIndex(
-              (cell) =>
-                shared.isTemplatePresetName(cell) &&
-                !String(cell).toLowerCase().includes("module") &&
-                !usedPresets.includes(cell) &&
-                !referencePresets.hasOwnProperty(cell),
-            );
-            if (presetCol === -1) {
-              return;
-            }
+          var modulePresets = oldModulesPresets[moduleType];
+          if (!modulePresets.hasOwnProperty(presetName)) {
+            return;
           }
-          usedPresets.push(referenceRow[presetCol]);
-          targetModuleTypes.forEach(function (moduleType) {
-            var context = moduleContexts[moduleType];
-            if (!context) {
-              return;
-            }
-            var modulePresets = oldModulesPresets[moduleType];
-            if (!modulePresets.hasOwnProperty(presetName)) {
-              return;
-            }
-            var presetData = modulePresets[presetName];
-            if (!presetData) {
-              return;
-            }
-            var rowIdx = context.rowIdx;
+          var presetData = modulePresets[presetName];
+          if (!presetData) {
+            return;
+          }
+          var rowIdx = context.rowIdx;
+          var currentName = String(context.row[presetCol] || "").trim();
+          if (currentName !== String(presetName).trim()) {
             var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
             var presetNameValues = [[presetName]];
             batchUpdate.push({
               range: presetNameRange,
               values: presetNameValues,
             });
+          }
 
-            var presetModuleRange = `${sheetName}!${shared.columnToLetter(
-              presetCol + 2,
-            )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${
-              rowIdx + 4
-            }`;
-            var presetModuleValues = [
-              [presetData.primary || ""],
-              [presetData.secondary || ""],
-            ];
-            batchUpdate.push({
-              range: presetModuleRange,
-              values: presetModuleValues,
-            });
+          var presetModuleRange = `${sheetName}!${shared.columnToLetter(
+            presetCol + 2,
+          )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${rowIdx + 4}`;
+          var presetModuleValues = [
+            [presetData.primary || ""],
+            [presetData.secondary || ""],
+          ];
+          batchUpdate.push({
+            range: presetModuleRange,
+            values: presetModuleValues,
           });
         });
-      }
-      
+      });
+
       targetModuleTypes.forEach(function (moduleType) {
         var context = moduleContexts[moduleType];
         if (!context) {
