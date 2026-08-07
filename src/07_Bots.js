@@ -244,7 +244,7 @@ const bots = {
       var endCol = startCol;
 
       var presetColumnMapping = [];
-      var firstPresetIndex = startCol + 3;
+      var firstPresetIndex = startCol + 1;
 
       if (firstPresetIndex === -1) {
         console.log(`Preset columns not found in Master Sheet`);
@@ -258,7 +258,7 @@ const bots = {
 
       var presetSlots = [];
       headerRow.forEach(function (header, index) {
-        if (index < firstPresetIndex) {
+        if (index < firstPresetIndex || !String(header).trim() || presetSlots.length >= oldBots.presetNames.length) {
           return;
         }
         presetSlots.push({ header: String(header).trim(), colIndex: index });
@@ -662,7 +662,7 @@ const bots = {
         presetColumnMapping.push({
           presetName: presetName,
           levelColIndex: colIdx,
-          toggleColIndex: colIdx + 1,
+          toggleColIndex: colIdx + 2,
         });
       }
 
@@ -765,7 +765,7 @@ const bots = {
       var oldBotsPresetNames = [];
       var presetColumnMapping = [];
 
-      var firstPresetIndex = 2;
+      var firstPresetIndex = 4;
       for (
         var colIdx = firstPresetIndex;
         colIdx < oldBotsHeaderRow.length;
@@ -791,6 +791,7 @@ const bots = {
         ).order,
         data: {},
       };
+
       for (var row = 0; row < oldBotLevels.length; row++) {
         var botName = String(oldBotLevels[row][0] || "").trim();
         if (!botName || !targetBots.includes(botName)) {
