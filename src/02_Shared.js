@@ -1542,6 +1542,46 @@ function updateIdsMaster(idMasterID, idDataEntries) {
   }
 }
 
+/**
+ * The combined update writes the new IDS Master's sheet IDs as part of its own
+ * import, so nothing is left to set afterwards. This resolves just the IDS tab's
+ * gid for the summary link, without the read and write updateIdsMaster spends on
+ * IDs that are already in place.
+ */
+function getIdsMasterGid(idMasterID) {
+  try {
+    var idsMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
+    if (!idsMasterSpreadsheet) {
+      console.log(`IDS Master Spreadsheet not found with ID: ${idMasterID}`);
+      return {
+        success: false,
+        message: `IDS Master Spreadsheet™ not found with ID: ${idMasterID}`,
+      };
+    }
+
+    var idMasterIDSheet = SheetsAPI.getSheetByName(idsMasterSpreadsheet, "IDS");
+    if (!idMasterIDSheet) {
+      console.log(`IDS sheet not found in ID master spreadsheet`);
+      return {
+        success: false,
+        message: `IDS sheet™ not found in ID master spreadsheet™`,
+      };
+    }
+
+    return {
+      success: true,
+      message: "IDS Master IDs already set during import",
+      gid: idMasterIDSheet.sheetId,
+    };
+  } catch (error) {
+    console.log(`Error in getIdsMasterGid: ${error.toString()}`);
+    return {
+      success: false,
+      message: error.toString(),
+    };
+  }
+}
+
 function compareSheetVersions(sheetID, sheetType) {
   var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, sheetID);
   if (!spreadsheet) {

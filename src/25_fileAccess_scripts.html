@@ -425,8 +425,19 @@
 
     try {
       const exportTasks = collapseMergedImportTasks(result.succeededTasks);
-      setStatusWithSpinner(`Exporting data from ${exportTasks.length} sheets...`);
-      const exportResults = await exportAllData(exportTasks);
+      setStatusWithSpinner(
+        `Exporting data from ${
+          exportTasks.length + (isCombinedUpdate ? 1 : 0)
+        } sheets...`,
+      );
+
+      // The IDS Master exports alongside its subsheets - nothing in its export
+      // depends on them. Only the ID remap below does, so that waits for all of
+      // them to land.
+      const [exportResults, masterFile] = await Promise.all([
+        exportAllData(exportTasks),
+        isCombinedUpdate ? stageMasterExport() : Promise.resolve(null),
+      ]);
 
       console.log("Export results:", exportResults);
 
@@ -442,8 +453,15 @@
         setStatusText("No data was exported. Cannot proceed with import.");
         return;
       }
+      console.log(masterFile)
+      // Every subsheet copy that will actually receive data is known by now, so
+      // the IDS Master can be pointed at them before it is imported.
+      if (masterFile) {
+        masterFile.exportData = remapMasterIdsToNewSheets(masterFile.exportData);
+      }
 
-      // Create import tasks based on successfully exported files
+      // Create import tasks based on successfully exported files, the IDS Master
+      // among them since stageMasterExport put it in exportedFilesSuccess.
       const importTasks = exportedFilesSuccess.map((exportedFile) => ({
         newSheetID: exportedFile.fileId,
         sheetType: exportedFile.sheetType,
@@ -454,7 +472,15 @@
       setStatusWithSpinner(
         `Importing data into ${importTasks.length} sheets...`,
       );
-      importAllData(importTasks);
+      await importAllData(importTasks);
+
+      // Checked before moveSheet() adds the master to importedFilesSuccess of
+      // its own accord, so this reflects the import result rather than that push.
+      if (isCombinedUpdate) {
+        masterIdsWritten = importedFilesSuccess.some(
+          (file) => file.sheetType === "IDS Master",
+        );
+      }
     } catch (error) {
       console.error("Error in export/import process:", error);
       document.getElementById("importButton").disabled = false;
@@ -462,6 +488,102 @@
         `Error during export/import process: ${error.message || error}`,
       );
     }
+  }
+
+  // The IDS Master is exported and imported alongside its subsheets so sheets it
+  // owns outright - "Presets Presets" and the like - come across too. Its IDS map
+  // still points at the old subsheets, so every subsheet being replaced in this
+  // run is repointed at the copy that was just created. Subsheets that are not
+  // being updated keep the ID they already have.
+  function remapMasterIdsToNewSheets(masterExportData) {
+    const remapped = { ...(masterExportData || {}) };
+    const oldIdsData = { ...(remapped.oldIdsData || {}) };
+
+    // Only sheets that made it through export are repointed. Anything still
+    // sitting in copiedTemplateFiles or a failed bucket never received the
+    // user's data, so the IDS Master keeps pointing at their old sheet.
+    expandMergedTemplateFiles(
+      (exportedFilesSuccess || []).concat(importedFilesSuccess || []),
+    ).forEach((file) => {
+      if (!file.fileId || file.sheetType === "IDS Master") {
+        return;
+      }
+      if (oldIdsData[file.sheetType] !== file.fileId) {
+        console.log(
+          `IDS Master: repointing ${file.sheetType} from ${
+            oldIdsData[file.sheetType] || "(unset)"
+          } to ${file.fileId}`,
+        );
+      }
+      oldIdsData[file.sheetType] = file.fileId;
+    });
+
+    remapped.oldIdsData = oldIdsData;
+    return remapped;
+  }
+
+  // Exports the IDS Master into exportedFilesSuccess so it is imported in the
+  // same batch as its subsheets. The data is stored as exported; the caller
+  // remaps its IDs once every subsheet export has landed. Returns that entry, or
+  // null when the export failed - which must not take the subsheet imports down
+  // with it.
+  async function stageMasterExport() {
+    // Resolved rather than read off the global, which carries whichever sheet
+    // was last version-checked and would pick the wrong converter here.
+    const compatibility = await runAppsScript(
+      "checkExportCompatibility",
+      oldSheetID,
+      "IDS Master",
+    );
+    if (!compatibility || !compatibility.success) {
+      console.error(
+        "IDS Master export compatibility check failed:",
+        compatibility && compatibility.message,
+      );
+      exportedFilesFailed.push({
+        sheetType: "IDS Master",
+        fileId: newSheetID,
+        oldSheetID: oldSheetID,
+        error:
+          (compatibility && compatibility.message) ||
+          "IDS Master is not compatible for export",
+      });
+      return null;
+    }
+    const masterExportVersion = compatibility.versionDifference;
+
+    const exportResult = await runAppsScript(
+      "exportData",
+      oldSheetID,
+      "IDS Master",
+      masterExportVersion,
+    );
+    if (!exportResult || !exportResult.success) {
+      console.error(
+        "IDS Master export failed:",
+        exportResult && exportResult.message,
+      );
+      exportedFilesFailed.push({
+        sheetType: "IDS Master",
+        fileId: newSheetID,
+        oldSheetID: oldSheetID,
+        error:
+          (exportResult && exportResult.message) || "IDS Master export failed",
+      });
+      return null;
+    }
+
+    const masterFile = {
+      sheetType: "IDS Master",
+      fileId: newSheetID,
+      oldSheetID: oldSheetID,
+      version: cachedMasterTemplateInfo ? cachedMasterTemplateInfo.version : "",
+      exportData: exportResult.data,
+      sheetVisibility: exportResult.sheetVisibility,
+    };
+    exportedFilesSuccess.push(masterFile);
+
+    return masterFile;
   }
 
   function onprepareImportDataFailure(error) {
@@ -1224,7 +1346,11 @@
         );
       }
 
-      const updateIdsMasterResult = await runAppsScript("updateIdsMaster", idMasterID, idDataEntries);
+      // A combined update already wrote these IDs during the IDS Master's own
+      // import, so all that is still needed from the server is the gid.
+      const updateIdsMasterResult = masterIdsWritten
+        ? await runAppsScript("getIdsMasterGid", idMasterID)
+        : await runAppsScript("updateIdsMaster", idMasterID, idDataEntries);
 
       if (!updateIdsMasterResult) {
         setStatusText(`Error updating IDS Master: No result returned`);
@@ -2729,6 +2855,7 @@
   function resetIDSMasterState() {
     // Reset any combined update state
     isCombinedUpdate = false;
+    masterIdsWritten = false;
 
     // Reset the Themes, Songs & Relics merge state
     mergeLegacyThemesSheets = false;
@@ -2758,6 +2885,7 @@
 
   function resetToCollectionState() {
     isCombinedUpdate = false;
+    masterIdsWritten = false;
     mergeLegacyThemesSheets = false;
     isUpdateSingleSheetFlow = false;
     isConvertToMasterFlow = false;
