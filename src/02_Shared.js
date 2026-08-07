@@ -1005,53 +1005,6 @@ const shared = {
     return { order: order, indices: indices };
   },
 
-  /**
-   * Decides which imported preset belongs in each of a sheet's preset columns.
-   * A column whose header is exactly one of the imported presets keeps it, so a
-   * user who really does have a "Farming" or "Tourney" preset lands in the
-   * matching column. Every other column - "Farming"/"Tourney"/"Preset N" left
-   * over from the template - is just a placeholder and gets the next imported
-   * preset that has nowhere else to go.
-   * @param {Array} slotHeaders - the preset column headers, in sheet order
-   * @param {Array} presetNames - the preset names being imported, already ordered
-   * @returns {Array} one entry per slot: { presetName, rename }. presetName is null when there is no preset left to place in that slot; rename is true when the header cell has to be rewritten.
-   */
-  mapPresetSlots: function (slotHeaders, presetNames) {
-    var headers = slotHeaders || [];
-    var names = presetNames || [];
-    var assignedSourceIndices = {};
-    var slots = headers.map(function () {
-      return null;
-    });
-
-    headers.forEach(function (header, slot) {
-      var headerName = String(header || "").trim();
-      var sourceIndex = names.findIndex(function (name, idx) {
-        return name === headerName && !assignedSourceIndices.hasOwnProperty(idx);
-      });
-      if (sourceIndex !== -1) {
-        slots[slot] = { presetName: names[sourceIndex], rename: false };
-        assignedSourceIndices[sourceIndex] = true;
-      }
-    });
-
-    var remainingNames = names.filter(function (_, idx) {
-      return !assignedSourceIndices.hasOwnProperty(idx);
-    });
-
-    var remainingCursor = 0;
-    for (var slot = 0; slot < slots.length; slot++) {
-      if (!slots[slot]) {
-        slots[slot] =
-          remainingCursor < remainingNames.length
-            ? { presetName: remainingNames[remainingCursor++], rename: true }
-            : { presetName: null, rename: false };
-      }
-    }
-
-    return slots;
-  },
-
   findSheetTemplateID: function (sheetID, sheetName, sheetType) {
     try {
       console.log(

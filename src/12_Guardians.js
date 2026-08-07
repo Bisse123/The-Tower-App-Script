@@ -230,41 +230,31 @@ const guardians = {
 
       var presetSlots = [];
       headerRow.forEach(function (header, index) {
-        if (index < firstPresetIndex) {
+        if (index < firstPresetIndex || !shared.isTemplatePresetName(header)) {
           return;
         }
-        var presetName = header && header.trim() !== "" ? header.trim() : null;
-        if (!presetName) {
-          return;
-        }
-        presetSlots.push({ header: presetName, colIndex: index });
+        presetSlots.push({ header: String(header).trim(), colIndex: index });
       });
 
-      shared
-        .mapPresetSlots(
-          presetSlots.map(function (slot) {
-            return slot.header;
-          }),
-          oldGuardians.presetNames,
-        )
-        .forEach(function (assignment, slot) {
-          if (!assignment.presetName) {
-            return;
-          }
-          var colIndex = presetSlots[slot].colIndex;
-          endCol = colIndex + 1;
-          presetColumnMapping.push({
-            presetName: assignment.presetName,
-            equippedColIndex: colIndex,
-            levelColIndex: endCol,
-          });
-          if (assignment.rename) {
-            batchUpdate.push({
-              range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
-              values: [[assignment.presetName]],
-            });
-          }
+      oldGuardians.presetNames.forEach(function (presetName, slot) {
+        var presetSlot = presetSlots[slot];
+        if (!presetName || !presetSlot) {
+          return;
+        }
+        var colIndex = presetSlot.colIndex;
+        endCol = colIndex + 1;
+        presetColumnMapping.push({
+          presetName: presetName,
+          equippedColIndex: colIndex,
+          levelColIndex: endCol,
         });
+        if (presetSlot.header !== presetName) {
+          batchUpdate.push({
+            range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
+            values: [[presetName]],
+          });
+        }
+      });
 
       var newGuardianData = masterSheetData
         .slice(1)
