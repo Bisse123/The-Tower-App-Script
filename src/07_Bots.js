@@ -662,7 +662,7 @@ const bots = {
         presetColumnMapping.push({
           presetName: presetName,
           levelColIndex: colIdx,
-          toggleColIndex: colIdx + 2,
+          toggleColIndex: colIdx + 1,
         });
       }
 

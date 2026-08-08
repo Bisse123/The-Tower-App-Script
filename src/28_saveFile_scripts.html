@@ -13,6 +13,7 @@
   const SF_PLAYER_WAVE_CAP = 4500;
   const SF_PLAYER_DISS_CAP = 5000;
   let saveFilePlayerWavesAtCap = true;
+  let saveFilePlayerWaveCapPrefPromise = null;
 
   let saveFileViewMode = "all";
   let sheetExportData = {};
@@ -145,8 +146,12 @@
 
   function parseSaveFileByteArray(byteArray, fileName) {
     setStatusWithSpinner("Parsing…");
-    return runAppsScript("parseSaveFileBytes", byteArray)
-      .then(function (result) {
+    return Promise.all([
+      runAppsScript("parseSaveFileBytes", byteArray),
+      ensureSaveFilePlayerWaveCapPreference(),
+    ])
+      .then(function (results) {
+        const result = results[0];
         parsedSaveData = (result && result.parsed) || {};
         lastSaveFileResult = result;
         setStatusText(`${fileName} parsed successfully`);
@@ -2865,6 +2870,19 @@
     );
   }
 
+  function ensureSaveFilePlayerWaveCapPreference() {
+    if (!saveFilePlayerWaveCapPrefPromise) {
+      saveFilePlayerWaveCapPrefPromise = runAppsScript(
+        "getSaveFilePlayerWaveCapPreference",
+      )
+        .then(function (atCap) {
+          saveFilePlayerWavesAtCap = !!atCap;
+        })
+        .catch(function () {});
+    }
+    return saveFilePlayerWaveCapPrefPromise;
+  }
+
   function setSaveFilePlayerWaveMode(atCap) {
     const input = document.querySelector(
       "#saveFileResults .sfPlayerWaveCheckbox",
@@ -2873,6 +2891,10 @@
     if (saveFilePlayerWavesAtCap === !!atCap) return;
     saveFilePlayerWavesAtCap = !!atCap;
     renderSaveFileResults(lastSaveFileResult);
+    runAppsScript(
+      "setSaveFilePlayerWaveCapPreference",
+      saveFilePlayerWavesAtCap,
+    ).catch(function () {});
   }
 
   function renderPlayerBody(rawData) {
