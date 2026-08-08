@@ -184,6 +184,23 @@ function parseSaveFileBytes(byteArray) {
   };
 }
 
+const SAVE_FILE_WAVE_CAP_PREF_KEY = "SAVE_FILE_PLAYER_WAVES_AT_CAP";
+
+function getSaveFilePlayerWaveCapPreference() {
+  const pref = PropertiesService.getUserProperties().getProperty(
+    SAVE_FILE_WAVE_CAP_PREF_KEY,
+  );
+  return pref === null ? true : pref === "true";
+}
+
+function setSaveFilePlayerWaveCapPreference(atCap) {
+  PropertiesService.getUserProperties().setProperty(
+    SAVE_FILE_WAVE_CAP_PREF_KEY,
+    String(!!atCap),
+  );
+  return true;
+}
+
 function blobToUint8Array_(blob) {
   const signedBytes = blob.getBytes();
   const out = new Uint8Array(signedBytes.length);
