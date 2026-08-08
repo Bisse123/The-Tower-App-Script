@@ -238,7 +238,7 @@ const modules = {
         };
       }
 
-      var presetNames = oldModulesPresets.presetNames;
+      var presetNames = oldModulesPresets.presetNames || [];
 
       var moduleContexts = {};
       targetModuleTypes.forEach(function (moduleType) {
@@ -252,7 +252,7 @@ const modules = {
       });
 
       var batchUpdate = [];
-      if (!presetNames || Object.keys(moduleContexts).length === 0) {
+      if (Object.keys(moduleContexts).length === 0) {
         return {
           success: false,
           message: `Could not find preset names or module rows for updating presets`,
