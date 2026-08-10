@@ -377,23 +377,23 @@ const ePaths = {
                 values: [[rowsCalculatedValue]],
               });
             }
-          } else if (cell === "Presets") {
-            if (oldData.hasOwnProperty("Presets")) {
-              var presetValues = oldData.Presets;
-              var presetCol = shared.columnToLetter(columnOffset + column + 5);
-              for (var nextRow = row; nextRow < eHPData.length; nextRow++) {
-                var presetName = eHPData[nextRow][column];
-                if (!presetName) break;
-                if (presetValues.hasOwnProperty(presetName)) {
-                  var presetValue = presetValues[presetName];
-                  var presetCellAddress = `${presetCol}${nextRow + 1}`;
-                  batchUpdate.push({
-                    range: `${sheetName}!${presetCellAddress}`,
-                    values: [[presetValue]],
-                  });
-                }
-              }
-            }
+          // } else if (cell === "Presets") {
+          //   if (oldData.hasOwnProperty("Presets")) {
+          //     var presetValues = oldData.Presets;
+          //     var presetCol = shared.columnToLetter(columnOffset + column + 5);
+          //     for (var nextRow = row; nextRow < eHPData.length; nextRow++) {
+          //       var presetName = eHPData[nextRow][column];
+          //       if (!presetName) break;
+          //       if (presetValues.hasOwnProperty(presetName)) {
+          //         var presetValue = presetValues[presetName];
+          //         var presetCellAddress = `${presetCol}${nextRow + 1}`;
+          //         batchUpdate.push({
+          //           range: `${sheetName}!${presetCellAddress}`,
+          //           values: [[presetValue]],
+          //         });
+          //       }
+          //     }
+          //   }
           }
         }
       }
@@ -566,23 +566,23 @@ const ePaths = {
                 values: [[rowsCalculatedValue]],
               });
             }
-          } else if (cell === "Presets") {
-            if (oldData.hasOwnProperty("Presets")) {
-              var presetValues = oldData.Presets;
-              var presetCol = shared.columnToLetter(columnOffset + column + 5);
-              for (var nextRow = row; nextRow < eDamageData.length; nextRow++) {
-                var presetName = eDamageData[nextRow][column];
-                if (!presetName) break;
-                if (presetValues.hasOwnProperty(presetName)) {
-                  var presetValue = presetValues[presetName];
-                  var presetCellAddress = `${presetCol}${nextRow + 1}`;
-                  batchUpdate.push({
-                    range: `${sheetName}!${presetCellAddress}`,
-                    values: [[presetValue]],
-                  });
-                }
-              }
-            }
+          // } else if (cell === "Presets") {
+          //   if (oldData.hasOwnProperty("Presets")) {
+          //     var presetValues = oldData.Presets;
+          //     var presetCol = shared.columnToLetter(columnOffset + column + 5);
+          //     for (var nextRow = row; nextRow < eDamageData.length; nextRow++) {
+          //       var presetName = eDamageData[nextRow][column];
+          //       if (!presetName) break;
+          //       if (presetValues.hasOwnProperty(presetName)) {
+          //         var presetValue = presetValues[presetName];
+          //         var presetCellAddress = `${presetCol}${nextRow + 1}`;
+          //         batchUpdate.push({
+          //           range: `${sheetName}!${presetCellAddress}`,
+          //           values: [[presetValue]],
+          //         });
+          //       }
+          //     }
+          //   }
           } else if (cell === "PS Beta Testing") {
             if (oldData.hasOwnProperty("PSBeta")) {
               var psBetaValue = oldData.PSBeta;
@@ -735,9 +735,18 @@ const ePaths = {
               }
             }
           } else if (cell === "User Inputs") {
+            var skipPresets = false;
             for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
               var guessName = eEconData[nextRow][column];
               if (!guessName) break;
+              if (String(guessName).toLowerCase().includes("presets")) {
+                skipPresets = true;
+              } else if (String(guessName).toLowerCase().includes === "inputs") {
+                skipPresets = false;
+              }
+              if (skipPresets) {
+                continue;
+              }
               if (guessName.startsWith("=")) {
                 var parts = guessName.split(",");
                 guessName = parts[parts.length - 2]
