@@ -310,32 +310,32 @@ const ePaths = {
                 });
               }
             }
-          } else if (cell === "Perks") {
-            var perksCol = shared.columnToLetter(columnOffset + column + 6);
-            if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-              var perksAreActive = oldData.Perks["Active"];
-              var perksCellAddress = `${perksCol}${row + 1}`;
-              batchUpdate.push({
-                range: `${sheetName}!${perksCellAddress}`,
-                values: [[perksAreActive]],
-              });
-            }
-            for (var nextRow = row + 2; nextRow < eHPData.length; nextRow++) {
-              var perkName = eHPData[nextRow][column];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-                var perkValue = oldData.Perks[perkName];
-                var perkCellAddress = `${perksCol}${nextRow + 1}`;
-                batchUpdate.push({
-                  range: `${sheetName}!${perkCellAddress}`,
-                  values: [[perkValue]],
-                });
-              }
-            }
+          // } else if (cell === "Perks") {
+          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
+          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
+          //     var perksAreActive = oldData.Perks["Active"];
+          //     var perksCellAddress = `${perksCol}${row + 1}`;
+          //     batchUpdate.push({
+          //       range: `${sheetName}!${perksCellAddress}`,
+          //       values: [[perksAreActive]],
+          //     });
+          //   }
+          //   for (var nextRow = row + 2; nextRow < eHPData.length; nextRow++) {
+          //     var perkName = eHPData[nextRow][column];
+          //     if (!perkName) break;
+          //     if (perkName.startsWith("=")) {
+          //       var parts = perkName.split("&");
+          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+          //     }
+          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
+          //       var perkValue = oldData.Perks[perkName];
+          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
+          //       batchUpdate.push({
+          //         range: `${sheetName}!${perkCellAddress}`,
+          //         values: [[perkValue]],
+          //       });
+          //     }
+          //   }
           } else if (cell === "User Specific Guesses") {
             for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
               var guessName = eHPData[nextRow][column];
@@ -485,36 +485,36 @@ const ePaths = {
                 });
               }
             }
-          } else if (cell === "Perks") {
-            var perksCol = shared.columnToLetter(columnOffset + column + 6);
-            if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-              var perksAreActive = oldData.Perks["Active"];
-              var perksCellAddress = `${perksCol}${row + 1}`;
-              batchUpdate.push({
-                range: `${sheetName}!${perksCellAddress}`,
-                values: [[perksAreActive]],
-              });
-            }
-            for (
-              var nextRow = row + 2;
-              nextRow < eDamageData.length;
-              nextRow++
-            ) {
-              var perkName = eDamageData[nextRow][column];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-                var perkValue = oldData.Perks[perkName];
-                var perkCellAddress = `${perksCol}${nextRow + 1}`;
-                batchUpdate.push({
-                  range: `${sheetName}!${perkCellAddress}`,
-                  values: [[perkValue]],
-                });
-              }
-            }
+          // } else if (cell === "Perks") {
+          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
+          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
+          //     var perksAreActive = oldData.Perks["Active"];
+          //     var perksCellAddress = `${perksCol}${row + 1}`;
+          //     batchUpdate.push({
+          //       range: `${sheetName}!${perksCellAddress}`,
+          //       values: [[perksAreActive]],
+          //     });
+          //   }
+          //   for (
+          //     var nextRow = row + 2;
+          //     nextRow < eDamageData.length;
+          //     nextRow++
+          //   ) {
+          //     var perkName = eDamageData[nextRow][column];
+          //     if (!perkName) break;
+          //     if (perkName.startsWith("=")) {
+          //       var parts = perkName.split("&");
+          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+          //     }
+          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
+          //       var perkValue = oldData.Perks[perkName];
+          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
+          //       batchUpdate.push({
+          //         range: `${sheetName}!${perkCellAddress}`,
+          //         values: [[perkValue]],
+          //       });
+          //     }
+          //   }
           } else if (cell === "User Specific Guesses") {
             for (
               var nextRow = row + 1;
@@ -708,33 +708,34 @@ const ePaths = {
           //     }
           //   }
           // } else
-          if (cell === "Perks") {
-            var perksCol = shared.columnToLetter(columnOffset + column + 6);
-            if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-              var perksAreActive = oldData.Perks["Active"];
-              var perksCellAddress = `${perksCol}${row + 1}`;
-              batchUpdate.push({
-                range: `${sheetName}!${perksCellAddress}`,
-                values: [[perksAreActive]],
-              });
-            }
-            for (var nextRow = row + 2; nextRow < eEconData.length; nextRow++) {
-              var perkName = eEconData[nextRow][column];
-              if (!perkName) break;
-              if (perkName.startsWith("=")) {
-                var parts = perkName.split("&");
-                perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-              }
-              if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-                var perkValue = oldData.Perks[perkName];
-                var perkCellAddress = `${perksCol}${nextRow + 1}`;
-                batchUpdate.push({
-                  range: `${sheetName}!${perkCellAddress}`,
-                  values: [[perkValue]],
-                });
-              }
-            }
-          } else if (cell === "User Inputs") {
+          // if (cell === "Perks") {
+          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
+          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
+          //     var perksAreActive = oldData.Perks["Active"];
+          //     var perksCellAddress = `${perksCol}${row + 1}`;
+          //     batchUpdate.push({
+          //       range: `${sheetName}!${perksCellAddress}`,
+          //       values: [[perksAreActive]],
+          //     });
+          //   }
+          //   for (var nextRow = row + 2; nextRow < eEconData.length; nextRow++) {
+          //     var perkName = eEconData[nextRow][column];
+          //     if (!perkName) break;
+          //     if (perkName.startsWith("=")) {
+          //       var parts = perkName.split("&");
+          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
+          //     }
+          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
+          //       var perkValue = oldData.Perks[perkName];
+          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
+          //       batchUpdate.push({
+          //         range: `${sheetName}!${perkCellAddress}`,
+          //         values: [[perkValue]],
+          //       });
+          //     }
+          //   }
+          // } else 
+          if (cell === "User Inputs") {
             var skipPresets = false;
             for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
               var guessName = eEconData[nextRow][column];
