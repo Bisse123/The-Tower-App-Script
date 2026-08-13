@@ -288,7 +288,7 @@ const workshop = {
         });
       }
 
-      if (upgradeCol > 0 && workshopLevels.length > 0) {
+      if (upgradeCol > 0 && workshopLevels.length > 0 && oldWorkshopLevels.presetNames.some((presetName) => presetName)) {
         var upgradeHeaders = [];
         oldWorkshopLevels.presetNames.forEach(function (presetName) {
           upgradeHeaders.push(presetName, "");
@@ -309,7 +309,7 @@ const workshop = {
         });
       }
 
-      if (enhancementCol > 0 && workshopPlusLevels.length > 0) {
+      if (enhancementCol > 0 && workshopPlusLevels.length > 0 && oldWorkshopPlusLevels.presetNames.some((presetName) => presetName)) {
         var plusHeaders = [];
         oldWorkshopPlusLevels.presetNames.forEach(function (presetName) {
           plusHeaders.push(presetName);
@@ -1172,7 +1172,6 @@ const workshop = {
       "Enemy Attack Level Skip",
       "Enemy Health Level Skip",
     ];
-
     const attackEnhancementIndices = [
       "Damage +",
       "Rend Armor Mult +",
@@ -1197,7 +1196,6 @@ const workshop = {
       "Recovery Package +",
       "Enemy Level Skips +",
     ];
-
     const attackUpgradeUnlockedIndices = [
       "Range",
       "Multishot Chance",
@@ -1230,7 +1228,7 @@ const workshop = {
       data.presetNames || [],
       shared.templatePresetNames,
     );
-    const presetNames = presetOrder.order;
+    var presetNames = presetOrder.order;
     const presetIndices = presetOrder.indices;
 
     const attackUpgradeData = data.upgradeAttackLevels || [];
@@ -1274,6 +1272,7 @@ const workshop = {
       utilityPresetUpgradeUnlocked.some((unlocked) => unlocked);
     
     if (!hasPresets) {
+      presetNames = presetNames.fill(null);
       attackPresetUpgradeData = attackUpgradeData;
       defensePresetUpgradeData = defenseUpgradeData;
       utilityPresetUpgradeData = utilityUpgradeData;
@@ -1321,8 +1320,7 @@ const workshop = {
       })
     }
 
-    presetNames.forEach((presetName, slot) => {
-      const presetIndex = presetIndices[slot];
+    presetIndices.forEach((presetIndex) => {
       const attackUpgradeIndex = presetIndex * attackUpgradeMax;
       const defenseUpgradeIndex = presetIndex * defenseUpgradeMax;
       const utilityUpgradeIndex = presetIndex * utilityUpgradeMax;
