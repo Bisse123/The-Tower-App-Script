@@ -106,10 +106,12 @@ const workshop = {
       ) {
         var oldWorkshopLevels = data.oldWorkshopLevels;
         var oldWorkshopPlusLevels = data.oldWorkshopPlusLevels;
+        var hasPresets = data.hasOwnProperty("hasPresets") ? data.hasPresets : true;
         var workshopResult = this.updateWorkshopLevels(
           "Master Sheet",
           oldWorkshopLevels,
           oldWorkshopPlusLevels,
+          hasPresets,
           masterSheetData,
         );
         if (!workshopResult || !workshopResult.success) {
@@ -184,6 +186,7 @@ const workshop = {
     sheetName,
     oldWorkshopLevels,
     oldWorkshopPlusLevels,
+    hasPresets,
     masterSheetData,
   ) {
     try {
@@ -288,46 +291,50 @@ const workshop = {
         });
       }
 
-      if (upgradeCol > 0 && workshopLevels.length > 0 && oldWorkshopLevels.presetNames.some((presetName) => presetName)) {
+      if (upgradeCol > 0 && workshopLevels.length > 0) {
         var upgradeHeaders = [];
         oldWorkshopLevels.presetNames.forEach(function (presetName) {
           upgradeHeaders.push(presetName, "");
         });
         var levelsStartCol = shared.columnToLetter(workshopLevelsStartCol);
         var levelsEndCol = shared.columnToLetter(workshopLevelsEndCol);
-        var levelsHeaderRange = `${sheetName}!${levelsStartCol}1:${levelsEndCol}1`;
         var levelsRange = `${sheetName}!${levelsStartCol}${startRow}:${levelsEndCol}${
           workshopLevels.length + startRow - 1
         }`;
         batchUpdate.push({
-          range: levelsHeaderRange,
-          values: [upgradeHeaders],
-        });
-        batchUpdate.push({
           range: levelsRange,
           values: workshopLevels,
         });
+        if (hasPresets) {
+          var levelsHeaderRange = `${sheetName}!${levelsStartCol}1:${levelsEndCol}1`;
+          batchUpdate.push({
+            range: levelsHeaderRange,
+            values: [upgradeHeaders],
+          });
+        }
       }
 
-      if (enhancementCol > 0 && workshopPlusLevels.length > 0 && oldWorkshopPlusLevels.presetNames.some((presetName) => presetName)) {
+      if (enhancementCol > 0 && workshopPlusLevels.length > 0) {
         var plusHeaders = [];
         oldWorkshopPlusLevels.presetNames.forEach(function (presetName) {
           plusHeaders.push(presetName);
         });
         var plusStartCol = shared.columnToLetter(workshopPlusLevelsStartCol);
         var plusEndCol = shared.columnToLetter(workshopPlusLevelsEndCol);
-        var plusHeaderRange = `${sheetName}!${plusStartCol}1:${plusEndCol}1`;
         var plusRange = `${sheetName}!${plusStartCol}${startRow}:${plusEndCol}${
           workshopPlusLevels.length + startRow - 1
         }`;
         batchUpdate.push({
-          range: plusHeaderRange,
-          values: [plusHeaders],
-        });
-        batchUpdate.push({
           range: plusRange,
           values: workshopPlusLevels,
         });
+        if (hasPresets) {
+          var plusHeaderRange = `${sheetName}!${plusStartCol}1:${plusEndCol}1`;
+          batchUpdate.push({
+            range: plusHeaderRange,
+            values: [plusHeaders],
+          });
+        }
       }
 
       if (batchUpdate.length > 0) {
@@ -1118,111 +1125,129 @@ const workshop = {
   // #endregion
   // #region Parse Saved File
   parseWorkshopData: function (data) {
-    const attackUpgradeIndices = [
-      "Damage",
-      "Attack Speed",
-      "Critical Chance",
-      "Critical Factor",
-      "Range",
-      "Damage / Meter",
-      "Multishot Chance",
-      "Multishot Targets",
-      "Rapid Fire Chance",
-      "Rapid Fire Duration",
-      "Bounce Shot Chance",
-      "Bounce Shot Targets",
-      "Bounce Shot Range",
-      "Super Critical Chance",
-      "Super Critical Mult",
-      "Rend Armor Chance",
-      "Rend Armor Mult",
-    ];
-    const defenseUpgradeIndices = [
-      "Health",
-      "Health Regen",
-      "Defense %",
-      "Defense Absolute",
-      "Thorn Damage",
-      "Lifesteal",
-      "Knockback Chance",
-      "Knockback Force",
-      "Orb Speed",
-      "Orbs",
-      "Shockwave Size",
-      "Shockwave Frequency",
-      "Land Mine Chance",
-      "Land Mine Damage",
-      "Land Mine Radius",
-      "Death Defy",
-      "Wall Health",
-      "Wall Rebuild",
-    ];
-    const utilityUpgradeIndices = [
-      "Cash Bonus",
-      "Cash / Wave",
-      "Coin / Kill Bonus",
-      "Coin / Wave",
-      "Free Attack Upgrade",
-      "Free Defense Upgrade",
-      "Free Utility Upgrade",
-      "Interest / Wave",
-      "Recovery Amount",
-      "Max Amount",
-      "Package Chance",
-      "Enemy Attack Level Skip",
-      "Enemy Health Level Skip",
-    ];
-    const attackEnhancementIndices = [
-      "Damage +",
-      "Rend Armor Mult +",
-      "Critical Factor +",
-      "Damage / Meter +",
-      "Super Crit Multi +",
-      "Attack Speed +",
-    ];
-    const defenseEnhancementIndices = [
-      "Health +",
-      "Health Regen +",
-      "Defense Absolute +",
-      "Land Mine Damage +",
-      "Wall Health +",
-      "Orb Size +",
-    ];
-    const utilityEnhancementIndices = [
-      "Cash Bonus +",
-      "Coin Bonus +",
-      "Cells / Kill Bonus +",
-      "Free Upgrades +",
-      "Recovery Package +",
-      "Enemy Level Skips +",
-    ];
-    const attackUpgradeUnlockedIndices = [
-      "Range",
-      "Multishot Chance",
-      "Rapid Fire Chance",
-      "Bounce Shot Chance",
-      "Super Critical Chance",
-      "Rend Armor Chance",
-    ];
-    const defenseUpgradeUnlockedIndices = [
-      "Defense %",
-      "Thorn Damage",
-      "Lifesteal",
-      "Knockback Chance",
-      "Orb Speed",
-      "Shockwave Size",
-      "Land Mine Chance",
-      "Death Defy",
-      "Wall Health",
-    ];
-    const utilityUpgradeUnlockedIndices = [
-      "Cash Bonus",
-      "Coin / Kill Bonus",
-      "Free Attack Upgrade",
-      "Interest / Wave",
-      "Recovery Amount",
-      "Enemy Attack Level Skip",
-    ];
+    const attackUpgradeNamesByIndex = {
+      0: "Damage",
+      1: "Attack Speed",
+      2: "Critical Chance",
+      3: "Critical Factor",
+      4: "Range",
+      5: "Damage / Meter",
+      6: "Multishot Chance",
+      7: "Multishot Targets",
+      8: "Rapid Fire Chance",
+      9: "Rapid Fire Duration",
+      10: "Bounce Shot Chance",
+      11: "Bounce Shot Targets",
+      12: "Bounce Shot Range",
+      13: "Super Critical Chance",
+      14: "Super Critical Mult",
+      15: "Rend Armor Chance",
+      16: "Rend Armor Mult",
+    };
+    const defenseUpgradeNamesByIndex = {
+      0: "Health",
+      1: "Health Regen",
+      2: "Defense %",
+      3: "Defense Absolute",
+      4: "Thorn Damage",
+      5: "Lifesteal",
+      6: "Knockback Chance",
+      7: "Knockback Force",
+      8: "Orb Speed",
+      9: "Orbs",
+      10: "Shockwave Size",
+      11: "Shockwave Frequency",
+      12: "Land Mine Chance",
+      13: "Land Mine Damage",
+      14: "Land Mine Radius",
+      15: "Death Defy",
+      16: "Wall Health",
+      17: "Wall Rebuild",
+    };
+    const utilityUpgradeNamesByIndex = {
+      0: "Cash Bonus",
+      1: "Cash / Wave",
+      2: "Coin / Kill Bonus",
+      3: "Coin / Wave",
+      4: "Free Attack Upgrade",
+      5: "Free Defense Upgrade",
+      6: "Free Utility Upgrade",
+      7: "Interest / Wave",
+      8: "Recovery Amount",
+      9: "Max Amount",
+      10: "Package Chance",
+      11: "Enemy Attack Level Skip",
+      12: "Enemy Health Level Skip",
+    };
+    const attackEnhancementNamesByIndex = {
+      0: "Damage +",
+      1: "Rend Armor Mult +",
+      2: "Critical Factor +",
+      3: "Damage / Meter +",
+      4: "Super Crit Multi +",
+      5: "Attack Speed +",
+    };
+    const defenseEnhancementNamesByIndex = {
+      0: "Health +",
+      1: "Health Regen +",
+      2: "Defense Absolute +",
+      3: "Land Mine Damage +",
+      4: "Wall Health +",
+      5: "Orb Size +",
+    };
+    const utilityEnhancementNamesByIndex = {
+      0: "Cash Bonus +",
+      1: "Coin Bonus +",
+      2: "Cells / Kill Bonus +",
+      3: "Free Upgrades +",
+      4: "Recovery Package +",
+      5: "Enemy Level Skips +",
+    };
+    const attackUpgradeUnlockedNamesByIndex = {
+      0: "Range",
+      1: "Multishot Chance",
+      2: "Rapid Fire Chance",
+      3: "Bounce Shot Chance",
+      4: "Super Critical Chance",
+      5: "Rend Armor Chance",
+    };
+    const defenseUpgradeUnlockedNamesByIndex = {
+      0: "Defense %",
+      1: "Thorn Damage",
+      2: "Lifesteal",
+      3: "Knockback Chance",
+      4: "Orb Speed",
+      5: "Shockwave Size",
+      6: "Land Mine Chance",
+      7: "Death Defy",
+      8: "Wall Health",
+    };
+    const utilityUpgradeUnlockedNamesByIndex = {
+      0: "Cash Bonus",
+      1: "Coin / Kill Bonus",
+      2: "Free Attack Upgrade",
+      3: "Interest / Wave",
+      4: "Recovery Amount",
+      5: "Enemy Attack Level Skip",
+    };
+
+    function namesByIndexToArray(namesByIndex) {
+      var array = [];
+      Object.keys(namesByIndex).forEach(function (index) {
+        array[Number(index)] = namesByIndex[index];
+      });
+      return array;
+    }
+
+    const attackUpgradeIndices = namesByIndexToArray(attackUpgradeNamesByIndex);
+    const defenseUpgradeIndices = namesByIndexToArray(defenseUpgradeNamesByIndex);
+    const utilityUpgradeIndices = namesByIndexToArray(utilityUpgradeNamesByIndex);
+    const attackEnhancementIndices = namesByIndexToArray(attackEnhancementNamesByIndex);
+    const defenseEnhancementIndices = namesByIndexToArray(defenseEnhancementNamesByIndex);
+    const utilityEnhancementIndices = namesByIndexToArray(utilityEnhancementNamesByIndex);
+    const attackUpgradeUnlockedIndices = namesByIndexToArray(attackUpgradeUnlockedNamesByIndex);
+    const defenseUpgradeUnlockedIndices = namesByIndexToArray(defenseUpgradeUnlockedNamesByIndex);
+    const utilityUpgradeUnlockedIndices = namesByIndexToArray(utilityUpgradeUnlockedNamesByIndex);
 
     const presetOrder = shared.resolvePresetOrder(
       data.presetNames || [],
@@ -1272,7 +1297,6 @@ const workshop = {
       utilityPresetUpgradeUnlocked.some((unlocked) => unlocked);
     
     if (!hasPresets) {
-      presetNames = presetNames.fill(null);
       attackPresetUpgradeData = attackUpgradeData;
       defensePresetUpgradeData = defenseUpgradeData;
       utilityPresetUpgradeData = utilityUpgradeData;
@@ -1341,6 +1365,7 @@ const workshop = {
     return {
       oldWorkshopLevels: oldWorkshopLevels,
       oldWorkshopPlusLevels: oldWorkshopPlusLevels,
+      hasPresets: hasPresets,
       upgradeIndices: {
         Attack: attackUpgradeIndices,
         Defense: defenseUpgradeIndices,
