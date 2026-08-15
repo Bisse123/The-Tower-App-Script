@@ -890,270 +890,245 @@ const lab = {
   // #endregion
   // #region Parse Saved File
   parseLabData: function (data) {
-    const labNameIndices = [
-      "Damage",                                // 0
-      "Attack Speed",                          // 1
-      "Critical Factor",                       // 2
-      "Range",                                 // 3
-      "Damage / Meter",                        // 4
-      "Super Crit Chance",                     // 5
-      "Super Crit Multi",                      // 6
-      null,                                    // 7
-      null,                                    // 8
-      null,                                    // 9
-      "Health",                                // 10
-      "Health Regen",                          // 11
-      "Defense Absolute",                      // 12
-      "Defense %",                             // 13
-      "Orbs Speed",                            // 14
-      "Land Mine Damage",                      // 15
-      "Land Mine Decay",                       // 16
-      "Shockwave Size",                        // 17
-      "Orb Boss Hit",                          // 18
-      "Recovery Package Amount",               // 19
-      "Cash Bonus",                            // 20
-      "Cash / Wave",                           // 21
-      "Coins / Kill Bonus",                    // 22
-      "Coins / Wave",                          // 23
-      "Interest",                              // 24
-      "Max Interest",                          // 25
-      "Package After Boss",                    // 26
-      null,                                    // 27
-      null,                                    // 28
-      null,                                    // 29
-      "Game Speed",                            // 30
-      "Starting Cash",                         // 31
-      "Workshop Attack Discount",              // 32
-      "Workshop Defense Discount",             // 33
-      "Workshop Utility Discount",             // 34
-      "Labs Coin Discount",                    // 35
-      "Labs Speed",                            // 36
-      "Buy Multiplier",                        // 37
-      "More Round Stats",                      // 38
-      "Target Priority",                       // 39
-      "Card Presets",                          // 40
-      "Workshop Respec",                       // 41
-      null,                                    // 42
-      null,                                    // 43
-      null,                                    // 44
-      null,                                    // 45
-      null,                                    // 46
-      null,                                    // 47
-      null,                                    // 48
-      null,                                    // 49
-      "Missile Despawn Time",                  // 50
-      "Missiles Explosion",                    // 51
-      "Missile Radius",                        // 52
-      "Chrono Field Duration",                 // 53
-      "Chrono Field Damage Reduction",         // 54
-      "Chrono Field Reduction %",              // 55
-      "Swamp Radius",                          // 56
-      "Swamp Stun",                            // 57
-      "Swamp Stun Chance",                     // 58
-      "Swamp Stun Time",                       // 59
-      "Golden Tower Bonus",                    // 60
-      "Golden Tower Duration",                 // 61
-      "Chain Lightning Shock",                 // 62
-      "Shock Chance",                          // 63
-      "Shock Multiplier",                      // 64
-      "Death Wave Health",                     // 65
-      "Death Wave Coin Bonus",                 // 66
-      "Inner Mine Blast Radius",               // 67
-      "Inner Mine Rotation Speed",             // 68
-      "Chrono Field Range",                    // 69
-      "Second Wind Blast",                     // 70
-      "Double Death Ray",                      // 71
-      "Extra Orb Adjuster",                    // 72
-      "Extra Extra Orbs",                      // 73
-      "Energy Shield Extra Hit",               // 74
-      "Super Tower Bonus",                     // 75
-      null,                                    // 76
-      null,                                    // 77
-      null,                                    // 78
-      null,                                    // 79
-      "Unlock Perks",                          // 80
-      "Waves Required",                        // 81
-      "Auto Pick Perks",                       // 82
-      "Standard Perks Bonus",                  // 83
-      "Perk Option Quantity",                  // 84
-      "First Perk Choice",                     // 85
-      "First Trade-off Choice",                // 86
-      "Ban Perks",                             // 87
-      "Improve Trade-off Perks",               // 88
-      null,                                    // 89
-      "Missile Amplifier",                     // 90
-      "Missile Barrage",                       // 91
-      "Missile Barrage Quantity",              // 92
-      "Inner Mine Stun",                       // 93
-      "Black Hole Damage",                     // 94
-      "Extra Black Hole",                      // 95
-      "Black Hole Coin Bonus",                 // 96
-      "Spotlight Coin Bonus",                  // 97
-      "Spotlight Missiles",                    // 98
-      "Black Hole ignore Protector",           // 99
-      "Recovery Package Max",                  // 100
-      "Recovery Package Chance",               // 101
-      "Flame Bot - Cooldown",                  // 102
-      "Thunder Bot - Cooldown",                // 103
-      "Gold Bot - Cooldown",                   // 104
-      "Amp Bot - Cooldown",                    // 105
-      "Flame Bot - Burn Stack",                // 106
-      "Thunder Bot - Linger Time",             // 107
-      "Gold Bot - Duration",                   // 108
-      "Amp Bot - Duration",                    // 109
-      "Common Enemy Health",                   // 110
-      "Common Enemy Attack",                   // 111
-      "Fast Enemy Health",                     // 112
-      "Fast Enemy Attack",                     // 113
-      "Fast Enemy Speed",                      // 114
-      "Tank Enemy Health",                     // 115
-      "Tank Enemy Attack",                     // 116
-      "Ranged Enemy Health",                   // 117
-      "Ranged Enemy Attack",                   // 118
-      "Boss Health",                           // 119
-      "Boss Attack",                           // 120
-      "Protector Health",                      // 121
-      "Protector Radius",                      // 122
-      "Protector Damage Reduction",            // 123
-      "Enemy Attack Level Skip",               // 124
-      "Enemy Health Level Skip",               // 125
-      "Wall Health",                           // 126
-      "Wall Rebuild",                          // 127
-      "Wall Regen",                            // 128
-      "Wall Thorns",                           // 129
-      "Wall Invincibility",                    // 130
-      "Max Rend Armor Multiplier",             // 131
-      "Light Speed Shots",                     // 132
-      "Black Hole Disable Ranged Enemies",     // 133
-      "Common Drop Chance",                    // 134
-      null,                                    // 135
-      null,                                    // 136
-      null,                                    // 137
-      null,                                    // 138
-      "Reroll Shards",                         // 139
-      "Daily Mission Shards",                  // 140
-      "Module Shards Cost",                    // 141
-      "Module Coin Cost",                      // 142
-      "Rare Drop Chance",                      // 143
-      "Wall Fortification",                    // 144
-      "Recharge Second Wind",                  // 145
-      "Recharge Demon Mode",                   // 146
-      "Recharge Missile Barrage",              // 147
-      "Reroll Daily Mission",                  // 148
-      "Recharge Nuke",                         // 149
-      "Workshop Enhancements",                 // 150
-      "Unmerge Module",                        // 151
-      "Shatter Shards",                        // 152
-      "Auto Pick Ranking",                     // 153
-      "Enhancement Attack - Coin Discount",    // 154
-      "Enhancement Defense - Coin Discount",   // 155
-      "Swamp Rend",                            // 156
-      "Swamp Rend - Additional Enemies",       // 157
-      "Chain Thunder",                         // 158
-      "Lightning Amplifier - Scatter",         // 159
-      "Damage Mastery",                        // 160
-      "Attack Speed Mastery",                  // 161
-      "Health Mastery",                        // 162
-      "Health Regen Mastery",                  // 163
-      "Range Mastery",                         // 164
-      "Cash Mastery",                          // 165
-      "Coins Mastery",                         // 166
-      "Slow Aura Mastery",                     // 167
-      "Critical Chance Mastery",               // 168
-      "Enemy Balance Mastery",                 // 169
-      "Extra Defense Mastery",                 // 170
-      "Fortress Mastery",                      // 171
-      "Free Upgrades Mastery",                 // 172
-      "Extra Orb Mastery",                     // 173
-      "Plasma Cannon Mastery",                 // 174
-      "Critical Coin Mastery",                 // 175
-      "Wave Skip Mastery",                     // 176
-      "Intro Sprint Mastery",                  // 177
-      "Land Mine Stun Mastery",                // 178
-      "Recovery Package Chance Mastery",       // 179
-      "Death Ray Mastery",                     // 180
-      "Energy Net Mastery",                    // 181
-      "Super Tower Mastery",                   // 182
-      "Second Wind Mastery",                   // 183
-      "Demon Mode Mastery",                    // 184
-      "Energy Shield Mastery",                 // 185
-      "Wave Accelerator Mastery",              // 186
-      "Berserker Mastery",                     // 187
-      "Ultimate Crit Mastery",                 // 188
-      "Nuke Mastery",                          // 189
-      "Death Wave Cells Bonus",                // 190
-      "Death Wave Damage Amplifier",           // 191
-      "Death Wave Armor Stripping",            // 192
-      "Garlic Thorns",                         // 193
-      "Cannon Effect Bans",                    // 194
-      "Armor Effect Bans",                     // 195
-      "Generator Effect Bans",                 // 196
-      "Core Effect Bans",                      // 197
-      "Inner Land Mine - Chrono Jump",         // 198
-      "Battle Condition Reduction",            // 199
-      "Area of Effect Mastery",                // 200
-      "Knockback Resistance",                  // 201
-      "Thorns Resistance",                     // 202
-      "Orb Resistance",                        // 203
-      "Plasma Cannon Resistance",              // 204
-      "Death Ray Resistance",                  // 205
-      "Ultimate Weapon Durations",             // 206
-      "Death Defy Down",                       // 207
-      "Energy Shields Down",                   // 208
-      "Enemy Level Skip Reduction",            // 209
-      "Fast's Ultimate",                       // 210
-      "Ranged Ultimate",                       // 211
-      "Boss's Ultimate",                       // 212
-      "Basic's Ultimate",                      // 213
-      "Tank's Ultimate",                       // 214
-      "Protector's Ultimate",                  // 215
-      "Armored Enemies",                       // 216
-      "Enemy Speed",                           // 217
-      "More Enemies",                          // 218
-      "Enemy Attack Speed",                    // 219
-      "Ray Enemy Attack",                      // 220
-      "Ray Enemy Health",                      // 221
-      "Vampire Enemy Attack",                  // 222
-      "Vampire Enemy Health",                  // 223
-      "Scatter Enemy Attack",                  // 224
-      "Scatter Enemy Health",                  // 225
-      "Ranged Enemy Range",                    // 226
-      "Enhancement Utility - Coin Discount",   // 227
-      "Bot Bot - Cooldown",                    // 228
-      "Bot Bot - Duration",                    // 229
-      "Assist Module Substats - Cannon",       // 230
-      "Assist Module Substats - Armor",        // 231
-      "Assist Module Substats - Generator",    // 232
-      "Assist Module Substats - Core",         // 233
-      "Assist Module Bonus - Cannon",          // 234
-      "Assist Module Bonus - Armor",           // 235
-      "Assist Module Bonus - Generator",       // 236
-      "Assist Module Bonus - Core",            // 237
-      "Dissonant Echo - Utility",              // 238
-      "Dissonant Echo - Attack",               // 239
-      "Dissonant Echo - Defense",              // 240
-      "Dissonant Echo - Ultimate Weapons",     // 241
-      "Overcharge Enemy Health",               // 242
-      "Overcharge Enemy Damage",               // 243
-      "Commander Enemy Health",                // 244
-      "Saboteur Enemy Health",                 // 245
-      null,                                    // 246
-      null,                                    // 247
-      null,                                    // 248
-      null,                                    // 249
-    ];
+    const labNamesByIndex = {
+      0: "Damage",
+      1: "Attack Speed",
+      2: "Critical Factor",
+      3: "Range",
+      4: "Damage / Meter",
+      5: "Super Crit Chance",
+      6: "Super Crit Multi",
+      10: "Health",
+      11: "Health Regen",
+      12: "Defense Absolute",
+      13: "Defense %",
+      14: "Orbs Speed",
+      15: "Land Mine Damage",
+      16: "Land Mine Decay",
+      17: "Shockwave Size",
+      18: "Orb Boss Hit",
+      19: "Recovery Package Amount",
+      20: "Cash Bonus",
+      21: "Cash / Wave",
+      22: "Coins / Kill Bonus",
+      23: "Coins / Wave",
+      24: "Interest",
+      25: "Max Interest",
+      26: "Package After Boss",
+      30: "Game Speed",
+      31: "Starting Cash",
+      32: "Workshop Attack Discount",
+      33: "Workshop Defense Discount",
+      34: "Workshop Utility Discount",
+      35: "Labs Coin Discount",
+      36: "Labs Speed",
+      37: "Buy Multiplier",
+      38: "More Round Stats",
+      39: "Target Priority",
+      40: "Card Presets",
+      41: "Workshop Respec",
+      50: "Missile Despawn Time",
+      51: "Missiles Explosion",
+      52: "Missile Radius",
+      53: "Chrono Field Duration",
+      54: "Chrono Field Damage Reduction",
+      55: "Chrono Field Reduction %",
+      56: "Swamp Radius",
+      57: "Swamp Stun",
+      58: "Swamp Stun Chance",
+      59: "Swamp Stun Time",
+      60: "Golden Tower Bonus",
+      61: "Golden Tower Duration",
+      62: "Chain Lightning Shock",
+      63: "Shock Chance",
+      64: "Shock Multiplier",
+      65: "Death Wave Health",
+      66: "Death Wave Coin Bonus",
+      67: "Inner Mine Blast Radius",
+      68: "Inner Mine Rotation Speed",
+      69: "Chrono Field Range",
+      70: "Second Wind Blast",
+      71: "Double Death Ray",
+      72: "Extra Orb Adjuster",
+      73: "Extra Extra Orbs",
+      74: "Energy Shield Extra Hit",
+      75: "Super Tower Bonus",
+      80: "Unlock Perks",
+      81: "Waves Required",
+      82: "Auto Pick Perks",
+      83: "Standard Perks Bonus",
+      84: "Perk Option Quantity",
+      85: "First Perk Choice",
+      86: "First Trade-off Choice",
+      87: "Ban Perks",
+      88: "Improve Trade-off Perks",
+      90: "Missile Amplifier",
+      91: "Missile Barrage",
+      92: "Missile Barrage Quantity",
+      93: "Inner Mine Stun",
+      94: "Black Hole Damage",
+      95: "Extra Black Hole",
+      96: "Black Hole Coin Bonus",
+      97: "Spotlight Coin Bonus",
+      98: "Spotlight Missiles",
+      99: "Black Hole ignore Protector",
+      100: "Recovery Package Max",
+      101: "Recovery Package Chance",
+      102: "Flame Bot - Cooldown",
+      103: "Thunder Bot - Cooldown",
+      104: "Gold Bot - Cooldown",
+      105: "Amp Bot - Cooldown",
+      106: "Flame Bot - Burn Stack",
+      107: "Thunder Bot - Linger Time",
+      108: "Gold Bot - Duration",
+      109: "Amp Bot - Duration",
+      110: "Common Enemy Health",
+      111: "Common Enemy Attack",
+      112: "Fast Enemy Health",
+      113: "Fast Enemy Attack",
+      114: "Fast Enemy Speed",
+      115: "Tank Enemy Health",
+      116: "Tank Enemy Attack",
+      117: "Ranged Enemy Health",
+      118: "Ranged Enemy Attack",
+      119: "Boss Health",
+      120: "Boss Attack",
+      121: "Protector Health",
+      122: "Protector Radius",
+      123: "Protector Damage Reduction",
+      124: "Enemy Attack Level Skip",
+      125: "Enemy Health Level Skip",
+      126: "Wall Health",
+      127: "Wall Rebuild",
+      128: "Wall Regen",
+      129: "Wall Thorns",
+      130: "Wall Invincibility",
+      131: "Max Rend Armor Multiplier",
+      132: "Light Speed Shots",
+      133: "Black Hole Disable Ranged Enemies",
+      134: "Common Drop Chance",
+      139: "Reroll Shards",
+      140: "Daily Mission Shards",
+      141: "Module Shards Cost",
+      142: "Module Coin Cost",
+      143: "Rare Drop Chance",
+      144: "Wall Fortification",
+      145: "Recharge Second Wind",
+      146: "Recharge Demon Mode",
+      147: "Recharge Missile Barrage",
+      148: "Reroll Daily Mission",
+      149: "Recharge Nuke",
+      150: "Workshop Enhancements",
+      151: "Unmerge Module",
+      152: "Shatter Shards",
+      153: "Auto Pick Ranking",
+      154: "Enhancement Attack - Coin Discount",
+      155: "Enhancement Defense - Coin Discount",
+      156: "Swamp Rend",
+      157: "Swamp Rend - Additional Enemies",
+      158: "Chain Thunder",
+      159: "Lightning Amplifier - Scatter",
+      160: "Damage Mastery",
+      161: "Attack Speed Mastery",
+      162: "Health Mastery",
+      163: "Health Regen Mastery",
+      164: "Range Mastery",
+      165: "Cash Mastery",
+      166: "Coins Mastery",
+      167: "Slow Aura Mastery",
+      168: "Critical Chance Mastery",
+      169: "Enemy Balance Mastery",
+      170: "Extra Defense Mastery",
+      171: "Fortress Mastery",
+      172: "Free Upgrades Mastery",
+      173: "Extra Orb Mastery",
+      174: "Plasma Cannon Mastery",
+      175: "Critical Coin Mastery",
+      176: "Wave Skip Mastery",
+      177: "Intro Sprint Mastery",
+      178: "Land Mine Stun Mastery",
+      179: "Recovery Package Chance Mastery",
+      180: "Death Ray Mastery",
+      181: "Energy Net Mastery",
+      182: "Super Tower Mastery",
+      183: "Second Wind Mastery",
+      184: "Demon Mode Mastery",
+      185: "Energy Shield Mastery",
+      186: "Wave Accelerator Mastery",
+      187: "Berserker Mastery",
+      188: "Ultimate Crit Mastery",
+      189: "Nuke Mastery",
+      190: "Death Wave Cells Bonus",
+      191: "Death Wave Damage Amplifier",
+      192: "Death Wave Armor Stripping",
+      193: "Garlic Thorns",
+      194: "Cannon Effect Bans",
+      195: "Armor Effect Bans",
+      196: "Generator Effect Bans",
+      197: "Core Effect Bans",
+      198: "Inner Land Mine - Chrono Jump",
+      199: "Battle Condition Reduction",
+      200: "Area of Effect Mastery",
+      201: "Knockback Resistance",
+      202: "Thorns Resistance",
+      203: "Orb Resistance",
+      204: "Plasma Cannon Resistance",
+      205: "Death Ray Resistance",
+      206: "Ultimate Weapon Durations",
+      207: "Death Defy Down",
+      208: "Energy Shields Down",
+      209: "Enemy Level Skip Reduction",
+      210: "Fast's Ultimate",
+      211: "Ranged Ultimate",
+      212: "Boss's Ultimate",
+      213: "Basic's Ultimate",
+      214: "Tank's Ultimate",
+      215: "Protector's Ultimate",
+      216: "Armored Enemies",
+      217: "Enemy Speed",
+      218: "More Enemies",
+      219: "Enemy Attack Speed",
+      220: "Ray Enemy Attack",
+      221: "Ray Enemy Health",
+      222: "Vampire Enemy Attack",
+      223: "Vampire Enemy Health",
+      224: "Scatter Enemy Attack",
+      225: "Scatter Enemy Health",
+      226: "Ranged Enemy Range",
+      227: "Enhancement Utility - Coin Discount",
+      228: "Bot Bot - Cooldown",
+      229: "Bot Bot - Duration",
+      230: "Assist Module Substats - Cannon",
+      231: "Assist Module Substats - Armor",
+      232: "Assist Module Substats - Generator",
+      233: "Assist Module Substats - Core",
+      234: "Assist Module Bonus - Cannon",
+      235: "Assist Module Bonus - Armor",
+      236: "Assist Module Bonus - Generator",
+      237: "Assist Module Bonus - Core",
+      238: "Dissonant Echo - Utility",
+      239: "Dissonant Echo - Attack",
+      240: "Dissonant Echo - Defense",
+      241: "Dissonant Echo - Ultimate Weapons",
+      242: "Overcharge Enemy Health",
+      243: "Overcharge Enemy Damage",
+      244: "Commander Enemy Health",
+      245: "Saboteur Enemy Health",
+    };
 
     const labLevels = data.researchLevel || [];
     var oldLabLevels = {};
-    labNameIndices.forEach(function (labName, index) {
-      if (labName) {
-        oldLabLevels[labName] = [labLevels[index] || 0, null];
-      }
+    var labOrder = [];
+    Object.keys(labNamesByIndex).forEach(function (indexStr) {
+      const index = Number(indexStr);
+      const labName = labNamesByIndex[index];
+      oldLabLevels[labName] = [labLevels[index] || 0, null];
+      labOrder[index] = labName;
     });
-    
+
     return {
       oldLabLevels: oldLabLevels,
-      labNameIndices: labNameIndices,
+      labOrder: labOrder,
     };
   },
 

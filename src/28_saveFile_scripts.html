@@ -738,7 +738,7 @@
   function renderLaboratoryDiff(parsed, sheet) {
     const p = parsed.oldLabLevels || {};
     const s = sheet.oldLabLevels || {};
-    const order = parsed.labNameIndices || Object.keys(p);
+    const order = parsed.labOrder || Object.keys(p);
     let rows = "";
     order.forEach(function (name) {
       if (!name || !p.hasOwnProperty(name)) return;
@@ -2375,7 +2375,7 @@
 
   function renderLaboratoryBody(data) {
     const labs = data.oldLabLevels || {};
-    const labOrder = data.labNameIndices || [];
+    const labOrder = data.labOrder || [];
     let html = '<div class="sfLabGrid">';
 
     labOrder.forEach(function (name) {

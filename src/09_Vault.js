@@ -592,105 +592,114 @@ const vault = {
   // #endregion
   // #region Parse Saved File
   parseVaultData: function (data) {
-    const harmonyIndices = [
-      "Discount Enhancements 1",          // 0
-      "Additional Card Slot 1",           // 1
-      "Discount Rerolls 1",               // 2
-      "Demon Mode Automation",            // 3
-      "Free Mission Reroll",              // 4
-      "Discount Enhancements 2",          // 5
-      "Smart Demon Mode Automation",      // 6
-      "Nuke Automation",                  // 7
-      "Discount Rerolls 2",               // 8
-      "Workshop Respec Discount 1",       // 9
-      "Smart Nuke Automation",            // 10
-      "Discount Enhancements 3",          // 11
-      "Workshop Respec Discount 2",       // 12
-      "Additional Card Slot 2",           // 13
-      "Discount Rerolls 3",               // 14
-      "Workshop Respec Discount 3",       // 15
-      "Ad gems Stack x2",                 // 16
-      "Discount Enhancements 4",          // 17
-      "+5 Workshop Presets",              // 18
-      "Ad gems Stack x3",                 // 19
-      "Discount Rerolls 4",               // 20
-      "Additional Card Slot 3",           // 21
-      "Ad gems Stack x5",                 // 22
-      "Discount Enhancements 5",          // 23
-      "Missile Barrage Automation",       // 24
-      "Additional Card Slot 4",           // 25
-      "Discount Rerolls 5",               // 26
-      "Smart Missile Barrage Automation", // 27
-      "Discount Enhancements 6",          // 28
-      "Auto Shatter Rare Modules",        // 29
-      "Daily Mission - Set Shard Type",   // 30
-      "Additional Card Slot 5",           // 31
-      "Discount Rerolls 6",               // 32
-      "Auto Restart Run",                 // 33
-      "Auto Charge Berzerker",            // 34
-      "Discount Enhancements 7",          // 35
-      "Damage Cap Slider",                // 36
-      "Discount Rerolls 7",               // 37
-      "Bot Respec Discount 1",            // 38
-      "Workshop Orb Adjuster",            // 39
-      "Discount Enhancements 8",          // 40
-      "Bot Respec Discount 2",            // 41
-      "Additional Card Slot 6",           // 42
-      "Discount Rerolls 8",               // 43
-      "Bot Respec Discount 3",            // 44
-      "Bot Cooldown Sliders",             // 45
-      "Discount Enhancements 9",          // 46
-      "3 bot Presets",                    // 47
-    ];
+    const harmonyNamesByIndex = {
+      0: "Discount Enhancements 1",
+      1: "Additional Card Slot 1",
+      2: "Discount Rerolls 1",
+      3: "Demon Mode Automation",
+      4: "Free Mission Reroll",
+      5: "Discount Enhancements 2",
+      6: "Smart Demon Mode Automation",
+      7: "Nuke Automation",
+      8: "Discount Rerolls 2",
+      9: "Workshop Respec Discount 1",
+      10: "Smart Nuke Automation",
+      11: "Discount Enhancements 3",
+      12: "Workshop Respec Discount 2",
+      13: "Additional Card Slot 2",
+      14: "Discount Rerolls 3",
+      15: "Workshop Respec Discount 3",
+      16: "Ad gems Stack x2",
+      17: "Discount Enhancements 4",
+      18: "+5 Workshop Presets",
+      19: "Ad gems Stack x3",
+      20: "Discount Rerolls 4",
+      21: "Additional Card Slot 3",
+      22: "Ad gems Stack x5",
+      23: "Discount Enhancements 5",
+      24: "Missile Barrage Automation",
+      25: "Additional Card Slot 4",
+      26: "Discount Rerolls 5",
+      27: "Smart Missile Barrage Automation",
+      28: "Discount Enhancements 6",
+      29: "Auto Shatter Rare Modules",
+      30: "Daily Mission - Set Shard Type",
+      31: "Additional Card Slot 5",
+      32: "Discount Rerolls 6",
+      33: "Auto Restart Run",
+      34: "Auto Charge Berzerker",
+      35: "Discount Enhancements 7",
+      36: "Damage Cap Slider",
+      37: "Discount Rerolls 7",
+      38: "Bot Respec Discount 1",
+      39: "Workshop Orb Adjuster",
+      40: "Discount Enhancements 8",
+      41: "Bot Respec Discount 2",
+      42: "Additional Card Slot 6",
+      43: "Discount Rerolls 8",
+      44: "Bot Respec Discount 3",
+      45: "Bot Cooldown Sliders",
+      46: "Discount Enhancements 9",
+      47: "3 bot Presets",
+    };
 
-    const powerIndices = [
-      "Ultimate Weapon Damage 1", // 0
-      "Bot Range 1",              // 1
-      "Defense Absolute 1",       // 2
-      "Damage / Meter 1",         // 3
-      "Cash 1",                   // 4
-      "Health Regen 1",           // 5
-      "Critical Chance 1",        // 6
-      "Coins / Kill 1",           // 7
-      "Health 1",                 // 8
-      "Damage 1",                 // 9
-      "Enemy Attack Skip 1",      // 10
-      "Defense % 1",              // 11
-      "Super Crit Chance 1",      // 12
-      "Enemy Health Skip 1",      // 13
-      "Ultimate Weapon Damage 2", // 14
-      "Bot Range 2",              // 15
-      "Thorn Damage 1",           // 16
-      "Rend Armor Mult 1",        // 17
-      "Recovery Amount 1",        // 18
-      "Knockback Force 1",        // 19
-      "Critical Factor 1",        // 20
-      "Free Attack Upgrade 1",    // 21
-      "Orb Speed 1",              // 22
-      "Attack Speed 1",           // 23
-      "Free Defense Upgrade 1",   // 24
-      "Wall Rebuild 1",           // 25
-      "Super Crit Mult 1",        // 26
-      "Free Utility Upgrade 1",   // 27
-      "Tier x2 Unlock",           // 28
-      "Ultimate Weapon Damage 3", // 29
-      "Bot Range 3",              // 30
-      "Tier x3 Unlock",           // 31
-      "Knockback Chance 1",       // 32
-      "Rend Armor Chance 1",      // 33
-      "Max Recovery 1",           // 34
-      "Shockwave Frequency 1",    // 35
-      "Rapid Fire Chance 1",      // 36
-      "Interest / Wave 1",        // 37
-      "Death Defy 1",             // 38
-      "Multishot Chance 1",       // 39
-      "Cash / Wave 1",            // 40
-      "Orbs 1",                   // 41
-      "Bounce Shot Chance 1",     // 42
-      "Coins / Wave 1",           // 43
-      "Ultimate Weapon Damage 4", // 44
-      "Bot Range 4",              // 45
-    ];
+    const powerNamesByIndex = {
+      0: "Ultimate Weapon Damage 1",
+      1: "Bot Range 1",
+      2: "Defense Absolute 1",
+      3: "Damage / Meter 1",
+      4: "Cash 1",
+      5: "Health Regen 1",
+      6: "Critical Chance 1",
+      7: "Coins / Kill 1",
+      8: "Health 1",
+      9: "Damage 1",
+      10: "Enemy Attack Skip 1",
+      11: "Defense % 1",
+      12: "Super Crit Chance 1",
+      13: "Enemy Health Skip 1",
+      14: "Ultimate Weapon Damage 2",
+      15: "Bot Range 2",
+      16: "Thorn Damage 1",
+      17: "Rend Armor Mult 1",
+      18: "Recovery Amount 1",
+      19: "Knockback Force 1",
+      20: "Critical Factor 1",
+      21: "Free Attack Upgrade 1",
+      22: "Orb Speed 1",
+      23: "Attack Speed 1",
+      24: "Free Defense Upgrade 1",
+      25: "Wall Rebuild 1",
+      26: "Super Crit Mult 1",
+      27: "Free Utility Upgrade 1",
+      28: "Tier x2 Unlock",
+      29: "Ultimate Weapon Damage 3",
+      30: "Bot Range 3",
+      31: "Tier x3 Unlock",
+      32: "Knockback Chance 1",
+      33: "Rend Armor Chance 1",
+      34: "Max Recovery 1",
+      35: "Shockwave Frequency 1",
+      36: "Rapid Fire Chance 1",
+      37: "Interest / Wave 1",
+      38: "Death Defy 1",
+      39: "Multishot Chance 1",
+      40: "Cash / Wave 1",
+      41: "Orbs 1",
+      42: "Bounce Shot Chance 1",
+      43: "Coins / Wave 1",
+      44: "Ultimate Weapon Damage 4",
+      45: "Bot Range 4",
+    };
+
+    var harmonyIndices = [];
+    Object.keys(harmonyNamesByIndex).forEach(function (index) {
+      harmonyIndices[Number(index)] = harmonyNamesByIndex[index];
+    });
+    var powerIndices = [];
+    Object.keys(powerNamesByIndex).forEach(function (index) {
+      powerIndices[Number(index)] = powerNamesByIndex[index];
+    });
 
     const harmonyData = data.harmonyNodesUnlocked || [];
     const powerData = data.powerNodesUnlocked || [];

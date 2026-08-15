@@ -939,6 +939,9 @@ const guardians = {
 
     Object.keys(targetGuardians).forEach(function (guardianName, i) {
       const { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
+      if (upgrades.every(attr => attr === null)) {
+        return;
+      }
       var chipLevels = {};
       upgrades.forEach(function (attr, j) {
         if (attr === null) return;

@@ -1449,7 +1449,7 @@ const modules = {
         "Ancestral",
       ];
 
-      // [label, n]  —  rarityStart = 6 - n, effectIDs assigned sequentially
+      // [label, n] - rarityStart = 6 - n, effectIDs assigned sequentially
       const substatClusters = [
         // Cannon (C=1-17)
         ["Attack Speed", 6],
@@ -1537,15 +1537,15 @@ const modules = {
       var id = 1;
       for (var c = 0; c < substatClusters.length; c++) {
         var cluster = substatClusters[c];
-        1;
-        var n = cluster[1];
-        if (effectID < id + n) {
+        var numRarities = cluster[1];
+        if (effectID < id + numRarities) {
+          var label = cluster[0];
           return {
-            label: cluster[0],
-            rarity: effectRarities[6 - n + (effectID - id)],
+            label: label,
+            rarity: effectRarities[6 - numRarities + (effectID - id)],
           };
         }
-        id += n;
+        id += numRarities;
       }
       return null;
     }
