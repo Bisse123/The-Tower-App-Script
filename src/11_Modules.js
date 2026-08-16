@@ -280,7 +280,7 @@ const modules = {
           }
           var rowIdx = context.rowIdx;
           var currentName = String(context.row[presetCol] || "").trim();
-          if (currentName !== String(presetName).trim()) {
+          if (currentName !== String(presetName).trim() && moduleType === "cannon") {
             var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
             var presetNameValues = [[presetName]];
             batchUpdate.push({
