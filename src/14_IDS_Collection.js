@@ -443,10 +443,12 @@
             workshopData.hasOwnProperty("oldWorkshopPlusLevels") &&
             workshopMasterSheetData
           ) {
+            var hasPresets = workshopData.hasOwnProperty("hasPresets") ? workshopData.hasPresets : true;
             workshopResult = workshop.updateWorkshopLevels(
               sheetRequiredRanges.formulas["Workshop_MS"].sheetName,
               workshopData.oldWorkshopLevels,
               workshopData.oldWorkshopPlusLevels,
+              hasPresets,
               workshopMasterSheetData,
             );
             if (workshopResult && workshopResult.success) {
