@@ -68,7 +68,7 @@ function doGet(e) {
     return saveFileTemplate
       .evaluate()
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
-      .setTitle("Load Data From Save File");
+      .setTitle("Import Data From Game (playerinfo.dat)");
   }
 
   var openGetStarted =
