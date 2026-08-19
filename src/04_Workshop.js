@@ -78,25 +78,6 @@ const workshop = {
       var desiredRatiosData = batchValueResults[0].values;
       var idsData = batchValueResults[1].values;
 
-      // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(
-        newSheetID,
-        "IDS",
-        "IDS Master's",
-        idsData,
-      );
-      if (
-        !newSheetInfo ||
-        !newSheetInfo.importStatus ||
-        !newSheetInfo.importStatus.range
-      ) {
-        console.log(`Could not find import status range in IDS sheet`);
-        return {
-          success: false,
-          message: "Could not find import status range in IDS sheet",
-        };
-      }
-
       var batchUpdate = [];
 
       // Only update workshop levels if key exists
@@ -138,14 +119,6 @@ const workshop = {
           return ratioResult;
         }
         batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
-      }
-
-      // Add import status update to batch if there were data updates
-      if (batchUpdate.length > 0) {
-        batchUpdate.push({
-          range: newSheetInfo.importStatus.range,
-          values: [["✅"]],
-        });
       }
 
       // Always add ID updates

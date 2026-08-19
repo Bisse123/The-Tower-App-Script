@@ -2306,22 +2306,6 @@
             "inline-block";
           document.getElementById("convertToMasterButton").disabled = false;
         }
-        // Deprecated
-        // } else {
-        //   setStatusWithSpinner(`Checking import status and compatibility.`);
-        //   importButton.innerText = `Import ${sheetType} data`;
-        //   importButton.style.display = "inline-block";
-        //   importButton.disabled = true;
-        //   updateButton.style.display = "inline-block";
-        //   updateButton.disabled = true;
-        //   updateButton.innerText = `Move ${sheetType}`;
-        //   copyButton.style.display = "none";
-        //   copyUpdateButton.style.display = "none";
-        //   updateSingleSheetButton.style.display = "none";
-        //   google.script.run
-        //     .withSuccessHandler(onImportStatusAndCompatibilitySuccess)
-        //     .withFailureHandler(onImportStatusAndCompatibilityFailure)
-        //     .checkImportStatusAndCompatibility(newSheetID, oldSheetID, sheetType);
       }
     } else {
       let summaryParts = [];
@@ -2349,48 +2333,6 @@
     }
 
     fileAccessSection.style.display = "block";
-  }
-
-  //Deprecated
-  function onImportStatusAndCompatibilitySuccess(result) {
-    console.log("Import status and compatibility result:", result);
-    if (result.success) {
-      document.getElementById("importButton").disabled = false;
-      setStatusText(`${result.message}`);
-      if (result.versionDifference) {
-        versionDifference = result.versionDifference;
-      }
-      if (result.imported) {
-        document.getElementById("moveSheetButton").disabled = false;
-        document.getElementById("selectedFileSummary").innerHTML =
-          `<strong>⚠️ Make sure your data is imported correctly before ${
-            sheetType === "IDS Collection"
-              ? "moving your IDS Collection"
-              : sheetType === "Effective Paths"
-                ? "moving your Effective Paths"
-                : sheetType === "IDS Master"
-                  ? "moving your IDS Master"
-                  : "updating your IDS Master"
-          }! ⚠️</strong><br>`;
-        showAccessibleFilesSummary();
-      }
-    } else {
-      document.getElementById("importButton").disabled = true;
-      document.getElementById("moveSheetButton").disabled = true;
-      setStatusText(
-        `Import status and compatibility failed: ${result.message}`,
-      );
-    }
-  }
-
-  // Deprecated
-  function onImportStatusAndCompatibilityFailure(error) {
-    document.getElementById("importButton").disabled = true;
-    document.getElementById("moveSheetButton").disabled = true;
-    console.error("Import status and compatibility error:", error);
-    setStatusText(
-      `Import status and compatibility check failed: ${error.message || error}`,
-    );
   }
 
   // Check version compatibility function - can be used by multiple functions

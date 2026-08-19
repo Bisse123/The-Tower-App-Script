@@ -111,24 +111,6 @@ const guardians = {
         });
       });
 
-      var newSheetInfo = shared.findSheetTypeID(
-        newSheetID,
-        "IDS",
-        "IDS Master's",
-        idsData
-      );
-      if (
-        !newSheetInfo ||
-        !newSheetInfo.importStatus ||
-        !newSheetInfo.importStatus.range
-      ) {
-        console.log(`Could not find import status range in IDS sheet`);
-        return {
-          success: false,
-          message: "Could not find import status range in IDS sheet",
-        };
-      }
-
       var batchUpdate = [];
 
       if (data.hasOwnProperty("oldGuardians")) {
@@ -144,13 +126,6 @@ const guardians = {
           return guardiansResult;
         }
         batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
-      }
-
-      if (batchUpdate.length > 0) {
-        batchUpdate.push({
-          range: newSheetInfo.importStatus.range,
-          values: [["✅"]],
-        });
       }
 
       shared.addIDUpdatesToBatch(

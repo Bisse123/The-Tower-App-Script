@@ -63,25 +63,6 @@ const relics = {
       var newRelicsData = newRelicsBatchResult[0].values;
       var idsData = newRelicsBatchResult[1].values;
 
-      // Get import status range from IDS data
-      var newSheetInfo = shared.findSheetTypeID(
-        newSheetID,
-        "IDS",
-        "IDS Master's",
-        idsData,
-      );
-      if (
-        !newSheetInfo ||
-        !newSheetInfo.importStatus ||
-        !newSheetInfo.importStatus.range
-      ) {
-        console.log(`Could not find import status range in IDS sheet`);
-        return {
-          success: false,
-          message: "Could not find import status range in IDS sheet",
-        };
-      }
-
       var batchUpdate = [];
 
       // Only update relics if key exists
@@ -97,14 +78,6 @@ const relics = {
           return relicsResult;
         }
         batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
-      }
-
-      // Add import status update to batch if there were data updates
-      if (batchUpdate.length > 0) {
-        batchUpdate.push({
-          range: newSheetInfo.importStatus.range,
-          values: [["✅"]],
-        });
       }
 
       // Always add ID updates

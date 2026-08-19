@@ -1075,30 +1075,6 @@
         );
       }
 
-      if (failedUpdates.length === 0) {
-        var newSheetInfo = shared.findSheetTypeID(
-          newSheetID,
-          "Home Page",
-          "Load your file here",
-          homePageData,
-        );
-        if (
-          !newSheetInfo ||
-          !newSheetInfo.importStatus ||
-          !newSheetInfo.importStatus.range
-        ) {
-          console.log(`Could not find import status range in IDS sheet`);
-          return {
-            success: false,
-            message: "Could not find import status range in IDS sheet",
-          };
-        }
-        // Add import status update to batch
-        batchUpdate.push({
-          range: newSheetInfo.importStatus.range,
-          values: [["✅"]],
-        });
-      }
       // Apply all batch updates at once if we have any
       if (batchUpdate.length > 0) {
         var finalUpdateResult = SheetsAPI.batchUpdateValues(
