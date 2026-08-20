@@ -188,29 +188,17 @@ const cards = {
         };
       }
 
-      var newCardsLevels = [];
-      for (var i = 1; i < masterSheetData.length; i++) {
-        var row = masterSheetData[i];
-        if (row.length > newCardNameCol + 2) {
-          newCardsLevels.push([
-            row[newCardNameCol] || "",
-            row[newCardNameCol + 1] || "",
-            row[newCardNameCol + 2] || "",
-          ]);
-        }
-      }
-
       var newCards = [];
-      newCardsLevels.forEach(function (row) {
-        var newCardName = row[0];
+      for (var i = 1; i < masterSheetData.length; i++) {
+        var newCardName = masterSheetData[i][newCardNameCol] || "";
         if (newCardName === "Card Slot (Gems)") {
-          newCards.push([oldCardSlots, ""]);
+          newCards.push([oldCardSlots, null]);
         } else if (oldCardsLevel.hasOwnProperty(newCardName)) {
           newCards.push(oldCardsLevel[newCardName]);
         } else {
           newCards.push([null, null]);
         }
-      });
+      }
 
       var batchUpdate = [];
       if (newCards.length > 0) {
