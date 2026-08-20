@@ -995,6 +995,16 @@ const themesAndRelics = {
       294: "T: XXII Vortex",
       295: "T: XXIII Stellar",
       296: "T: XXIV Cosmic",
+      // 297: "Missing 297",
+      // 298: "Missing 298",
+      // 299: "Missing 299",
+      // 300: "Missing 300",
+      // 301: "Missing 301",
+      // 302: "Missing 302",
+      303: "Ancient Art",
+      304: "Ancient Knowledge",
+      305: "Ancient Writing",
+      306: "Grand Pyramid",
     };
 
     const towerSkinsData = data.towerSkins || [];
@@ -1063,6 +1073,7 @@ const themesAndRelics = {
       }
       var relicName = relics[index];
       if (!relicName) {
+        console.log(`Warning: No relic name found for index ${index}`);
         return;
       }
       oldRelics.push(relicName);
