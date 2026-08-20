@@ -68,7 +68,7 @@ function doGet(e) {
     return saveFileTemplate
       .evaluate()
       .addMetaTag("viewport", "width=device-width, initial-scale=1")
-      .setTitle("Import Data From Game (playerinfo.dat)");
+      .setTitle("Import Data From Game");
   }
 
   var openGetStarted =
@@ -154,7 +154,7 @@ function createMenu() {
         ui.createMenu("Import Data")
             .addItem("Get Started", "showGetStartedDialog")
             .addItem("Update Sheet", "showUpdateDialog")
-            .addItem("Load Data From Save File", "openSaveFileDialog")
+            .addItem("Import Data From Game (playerInfo.dat)", "openSaveFileDialog")
             .addToUi();
     } catch (error) {}
 }
