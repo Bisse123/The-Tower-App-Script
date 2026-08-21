@@ -70,12 +70,15 @@ const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
   assistModuleSlots: "assistModuleSlots",
+  // moduleLevels: "slotLevels",
+  // modulePresets: "modulePresets",
 }
 
 const guardianHeaders = {
   guardianChipSlot: "guardianChipSlot",
   guardianChipUnlocked: "guardianChipUnlocked",
   guardianChipLevel: "guardianChipLevel",
+  // guardianPresets: "guardianPresets",
 }
 
 const PlayerStuffHeaders = {
@@ -113,6 +116,12 @@ function parseSaveFileBytes(byteArray) {
   // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
   // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
   const data = parseNRBF(bytes);
+
+  // Object.keys(data).forEach((key) => {
+  //   if (key.toLowerCase().includes("slot")) {
+  //     console.log(`Key: ${key}, Value: ${JSON.stringify(data[key], bigIntJsonReplacer_)}`);
+  //   }
+  // });
 
   function extratctDataByHeaders(headers) {
     var values = {};
@@ -163,7 +172,6 @@ function parseSaveFileBytes(byteArray) {
   // Extract Player & Stuff data
   var playerStuffValues = extratctDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
-
 
   const parsed = {
     "Laboratory": laboratoryData,

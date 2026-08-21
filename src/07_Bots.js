@@ -1,6 +1,6 @@
 const bots = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: bots.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const bots = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const bots = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: bots.importData");
-      var newSpreadsheet = spreadsheets("Bots newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "IDS"];
@@ -419,19 +410,9 @@ const bots = {
 
   // #endregion
   // #region Convert Versions
-  version3_2: function () {
+  version3_2: function (oldSheetID) {
     try {
       console.log("Called: bots.version3_2");
-      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var botsLevelsRange = "EXPORT!C4:N";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -461,19 +442,9 @@ const bots = {
     }
   },
 
-  version3_0: function () {
+  version3_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version3_0");
-      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var botsLevelsRange = "EXPORT!C4:L";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -503,19 +474,9 @@ const bots = {
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version2_0");
-      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var botsLevelsRange = "EXPORT!C5:G";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -545,19 +506,9 @@ const bots = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version1_0");
-      var oldSpreadsheet = spreadsheets("Bots oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var botsLevelsRange = "EXPORT!C5:G";
       var botBatchResult = SheetsAPI.batchGetValues(oldSheetID, [

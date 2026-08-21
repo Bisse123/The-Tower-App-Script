@@ -1,6 +1,6 @@
 const guardians = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: guardians.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -11,7 +11,7 @@ const guardians = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -32,18 +32,9 @@ const guardians = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: guardians.importData");
-      var newSpreadsheet = spreadsheets("Guardians newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       var requiredRanges = ["Master Sheet", "IDS"];
       var dvtIndex = requiredRanges.length;
@@ -392,19 +383,9 @@ const guardians = {
 
   // #endregion
   // #region Convert Versions
-  version3_1: function () {
+  version3_1: function (oldSheetID) {
     try {
       console.log("Called: guardians.version3_1");
-      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var guardianLevelsRange = "EXPORT!B4:O";
       var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -434,19 +415,9 @@ const guardians = {
     }
   },
 
-  version2_2: function () {
+  version2_2: function (oldSheetID) {
     try {
       console.log("Called: guardians.version2_2");
-      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var guardianLevelsRange = "EXPORT!B5:F";
       var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -476,19 +447,9 @@ const guardians = {
     }
   },
 
-  version2_1: function () {
+  version2_1: function (oldSheetID) {
     try {
       console.log("Called: guardians.version2_1");
-      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var guardianLevelsRange = "EXPORT!B5:F";
       var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -518,19 +479,9 @@ const guardians = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: guardians.version1_0");
-      var oldSpreadsheet = spreadsheets("Guardians oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
 
       var guardianLevelsRange = "EXPORT!B5:F";
       var guardianBatchResult = SheetsAPI.batchGetValues(oldSheetID, [

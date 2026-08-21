@@ -1,6 +1,6 @@
 const workshop = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: workshop.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const workshop = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const workshop = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: workshop.importData");
-      var newSpreadsheet = spreadsheets("Workshop newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
 
       var requiredFormulaRanges = ["Master Sheet"];
       var batchFormulaResults = SheetsAPI.batchGetFormulas(
@@ -430,19 +421,9 @@ const workshop = {
 
   // #endregion
   // #region Convert Versions
-  version2_2_8: function () {
+  version2_2_8: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_2_8");
-      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old workshop spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet™ not found in old workshop spreadsheet™",
-        };
-      }
 
       var workshopLevelsRange = "EXPORT!B2:M";
       var workshopPlusLevelsRange = "EXPORT!P2:V";
@@ -514,19 +495,9 @@ const workshop = {
     }
   },
 
-  version2_1: function () {
+  version2_1: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_1");
-      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old workshop spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet™ not found in old workshop spreadsheet™",
-        };
-      }
 
       var workshopLevelsRange = "EXPORT!B2:M";
       var workshopPlusLevelsRange = "EXPORT!P2:V";
@@ -613,19 +584,9 @@ const workshop = {
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_0");
-      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old workshop spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet™ not found in old workshop spreadsheet™",
-        };
-      }
 
       var workshopLevelsRange = "EXPORT!B2:M";
       var workshopPlusLevelsRange = "EXPORT!P2:V";
@@ -681,19 +642,9 @@ const workshop = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: workshop.version1_0");
-      var oldSpreadsheet = spreadsheets("Workshop oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old workshop spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet™ not found in old workshop spreadsheet™",
-        };
-      }
 
       var workshopLevelsRange = "EXPORT!B3:F";
       var workshopPlusLevelsRange = "EXPORT!H3:K";

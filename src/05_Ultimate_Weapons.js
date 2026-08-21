@@ -1,6 +1,6 @@
 const ultimate = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: ultimate.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const ultimate = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const ultimate = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: ultimate.importData");
-      var newSpreadsheet = spreadsheets("Ultimate Weapon newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
 
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS"];
@@ -593,21 +584,9 @@ const ultimate = {
 
   // #endregion
   // #region Convert Versions
-  version3_1_1: function () {
+  version3_1_1: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version3_1_1");
-      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(
-          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
-        );
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old ultimate weapons spreadsheet",
-        };
-      }
 
       var ultimateLevelsRange = "EXPORT!C5:H";
       var ultimateBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -674,21 +653,9 @@ const ultimate = {
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version2_0");
-      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(
-          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
-        );
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old ultimate weapons spreadsheet",
-        };
-      }
 
       var ultimateLevelsRange = "EXPORT!C5:G";
       var ultimateBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -755,21 +722,9 @@ const ultimate = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version1_0");
-      var oldSpreadsheet = spreadsheets("Ultimate Weapon oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(
-          `EXPORT sheet not found in old ultimate weapons spreadsheet`,
-        );
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old ultimate weapons spreadsheet",
-        };
-      }
 
       var ultimateLevelsRange = "EXPORT!C5:G";
       var ultimateBatchResult = SheetsAPI.batchGetValues(oldSheetID, [

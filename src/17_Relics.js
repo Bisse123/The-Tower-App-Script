@@ -1,6 +1,6 @@
 const relics = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: relics.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const relics = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const relics = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: relics.importData");
-      var newSpreadsheet = spreadsheets("Relics newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       var requiredRanges = ["Relics", "IDS"];
       var newRelicsBatchResult = SheetsAPI.batchGetValues(
@@ -197,20 +188,11 @@ const relics = {
 
   // #endregion
   // #region Convert Versions
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: relics.version1_0");
-      var oldSpreadsheet = spreadsheets("Relics oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Check if Relics sheet exists in old spreadsheet
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "Relics")) {
-        console.log("Relics sheet not found in old relic spreadsheet");
-        return {
-          success: false,
-          message: `Relics sheet not found in old relic spreadsheet™`,
-        };
-      }
 
       var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         "Relics",

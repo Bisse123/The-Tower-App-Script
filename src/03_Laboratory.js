@@ -1,6 +1,6 @@
 const lab = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: lab.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const lab = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,11 +34,10 @@ const lab = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: lab.importData");
-      var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
+      var newSpreadsheet = spreadsheets("Laboratory newSpreadsheet", newSheetID);
       if (!newSpreadsheet) {
         console.log(`New spreadsheet not found`);
         return {
@@ -503,18 +502,10 @@ const lab = {
 
   // #endregion
   // #region Convert Versions
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: lab.version1_0");
-      var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old lab spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet™ not found in old lab spreadsheet™",
-        };
-      }
+      var oldSpreadsheet = spreadsheets("Laboratory oldSpreadsheet", oldSheetID);
 
       var labLevelsRange = "EXPORT!B5:E";
       var rangesToFetch = [labLevelsRange];

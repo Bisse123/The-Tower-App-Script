@@ -1,6 +1,6 @@
 const master = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: master.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const master = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const master = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: master.importData");
-      var newSpreadsheet = spreadsheets("IDS Master newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
 
       var batchUpdate = [];
       var failedUpdates = [];
@@ -240,7 +231,7 @@ const master = {
             values: [[presetName]],
           });
           
-          var presetData = oldPresetsValues.data[presetName];
+          var oldPresetData = oldPresetsValues.data[presetName];
           for (
             var nextRow = row + 1;
             nextRow < newPresetsData.length;
@@ -257,22 +248,24 @@ const master = {
             var colIndex = isSlider ? col + 2 : col + 1;
             var levelValue = newPresetsData[nextRow][colIndex];
             if (!key && !levelValue) {
+              finalRow = nextRow;
               break;
             }
-            if (!presetData.hasOwnProperty(key)) {
+            if (!oldPresetData.hasOwnProperty(key)) {
               continue;
             }
-            var newLevelValue = presetData[key];
-            if (newLevelValue !== levelValue) {
+            var oldLevelValue = oldPresetData[key];
+            if (oldLevelValue !== levelValue) {
               batchUpdate.push({
                 range: `Presets Presets!${shared.columnToLetter(
                   colIndex + 1,
                 )}${nextRow + 1}`,
-                values: [[newLevelValue]],
+                values: [[oldLevelValue]],
               });
             }
           }
         }
+        row = finalRow;
       }
 
       return {
@@ -291,18 +284,9 @@ const master = {
 
   // #endregion
   // #region Convert Versions
-  version4_0: function () {
+  version4_0: function (oldSheetID) {
     try {
       console.log("Called: master.version4_0");
-      var oldSpreadsheet = spreadsheets("IDS Master oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Get IDS sheet data
       var requiredRanges = ["IDS", "Presets Presets"];
@@ -340,18 +324,9 @@ const master = {
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: master.version2_0");
-      var oldSpreadsheet = spreadsheets("IDS Master oldSpreadsheet");
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Get IDS sheet data
       var idsResult = SheetsAPI.batchGetValues(oldSheetID, ["IDS"]);

@@ -1,6 +1,6 @@
 ﻿const collection = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: collection.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: collection.importData");
-      var newSpreadsheet = spreadsheets("IDS Collection newSpreadsheet");
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
 
       // Define DVT named ranges for each Ultimate Weapon, Bot, Module, and Guardian
       var dvtNamedRangesUW = {
@@ -1122,11 +1113,9 @@
 
   // #endregion
   // #region Convert Versions
-  version4_0: function () {
+  version4_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version4_0");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -1536,11 +1525,9 @@
     }
   },
 
-  version3_2: function () {
+  version3_2: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_2");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -1950,11 +1937,9 @@
     }
   },
 
-  version3_0_4: function () {
+  version3_0_4: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_0_4");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -2352,11 +2337,9 @@
     }
   },
 
-  version3_0: function () {
+  version3_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_0");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -2754,11 +2737,9 @@
     }
   },
 
-  version2_1_4_3: function () {
+  version2_1_4_3: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_4_3");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -3156,11 +3137,9 @@
     }
   },
 
-  version2_1_3_1: function () {
+  version2_1_3_1: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_3_1");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -3558,11 +3537,9 @@
     }
   },
 
-  version2_1_1_8: function () {
+  version2_1_1_8: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_1_8");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -3963,11 +3940,9 @@
     }
   },
 
-  version2_1_1_6: function () {
+  version2_1_1_6: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_1_6");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -4368,11 +4343,9 @@
     }
   },
 
-  version2_1: function () {
+  version2_1: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -4773,11 +4746,9 @@
     }
   },
 
-  version2_0_4: function () {
+  version2_0_4: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_0_4");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -5180,11 +5151,9 @@
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_0");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -5584,11 +5553,9 @@
     }
   },
 
-  version1_4_1_7: function () {
+  version1_4_1_7: function (oldSheetID) {
     try {
       console.log("Called: collection.version1_4_1_7");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
@@ -5974,11 +5941,9 @@
     }
   },
 
-  version1_3_5: function () {
+  version1_3_5: function (oldSheetID) {
     try {
       console.log("Called: collection.version1_3_5");
-      var oldSpreadsheet = spreadsheets("IDS Collection oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       // Define all the ranges for different sheet types in the IDS Collection
       // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
