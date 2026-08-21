@@ -1,6 +1,6 @@
 const themes = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: themes.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const themes = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const themes = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: themes.importData");
-      var newSpreadsheet = spreadsheets("Themes & Songs newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
 
       // Batch get required data for update function only
       var requiredRanges = ["Themes & Songs", "IDS"];
@@ -217,11 +208,9 @@ const themes = {
 
   // #endregion
   // #region Convert Versions
-  version2_1_6: function () {
+  version2_1_6: function (oldSheetID) {
     try {
       console.log("Called: themes.version2_1_6");
-      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var themesValuesRange = "Themes & Songs";
       var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
@@ -248,11 +237,9 @@ const themes = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: themes.version1_0");
-      var oldSpreadsheet = spreadsheets("Themes & Songs oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var themesValuesRange = "Themes & Songs";
       var themesOldBatchResult = SheetsAPI.batchGetValues(oldSheetID, [

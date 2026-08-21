@@ -1,6 +1,6 @@
 const vault = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: vault.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const vault = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const vault = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: vault.importData");
-      var newSpreadsheet = spreadsheets("Vault newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       var requiredRanges = ["Harmony", "Power", "IDS"];
       var newVaultBatchResult = SheetsAPI.batchGetValues(
@@ -258,11 +249,9 @@ const vault = {
 
   // #endregion
   // #region Convert Versions
-  version3_1: function () {
+  version3_1: function (oldSheetID) {
     try {
       console.log("Called: vault.version3_1");
-      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var oldVaultBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         "Harmony",
@@ -314,11 +303,9 @@ const vault = {
     }
   },
 
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: vault.version1_0");
-      var oldSpreadsheet = spreadsheets("Vault oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var oldVaultBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         "Harmony",

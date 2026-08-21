@@ -1,6 +1,6 @@
 const modules = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: modules.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const modules = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -33,18 +33,9 @@ const modules = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: modules.importData");
-      var newSpreadsheet = spreadsheets("Modules newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       // Batch get required data for update function only
       var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
@@ -660,11 +651,9 @@ const modules = {
 
   // #endregion
   // #region Convert Versions
-  version5_2_1: function () {
+  version5_2_1: function (oldSheetID) {
     try {
       console.log("Called: modules.version5_2_1");
-      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var ranges = ["Inventory", "Presets", "Tracker"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
@@ -727,11 +716,9 @@ const modules = {
     }
   },
 
-  version5_0: function () {
+  version5_0: function (oldSheetID) {
     try {
       console.log("Called: modules.version5_0");
-      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
@@ -794,11 +781,9 @@ const modules = {
     }
   },
 
-  version4_7: function () {
+  version4_7: function (oldSheetID) {
     try {
       console.log("Called: modules.version4_7");
-      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var ranges = ["Modules Inventory", "Modules Presets", "Modules Tracker"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
@@ -861,11 +846,9 @@ const modules = {
     }
   },
 
-  version4_0: function () {
+  version4_0: function (oldSheetID) {
     try {
       console.log("Called: modules.version4_0");
-      var oldSpreadsheet = spreadsheets("Modules oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var ranges = ["Modules Inventory", "Modules Presets"];
       var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);

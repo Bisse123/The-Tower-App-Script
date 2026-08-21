@@ -19,29 +19,27 @@ const sheetVars = (sheetType) => {
   return sheetTypeFunctions[sheetType];
 };
 
-const spreadsheets = (() => {
-  return function (spreadsheetTypeName, sheetID) {
-    if (!spreadsheetTypeName) {
-      console.log(`No spreadsheet type name provided.`);
-      return null;
+const spreadsheets = (spreadsheetTypeName, sheetID) => {
+  if (!spreadsheetTypeName) {
+    console.log(`No spreadsheet type name provided.`);
+    return null;
+  }
+
+  const result = CacheManager.getSpreadsheet(spreadsheetTypeName, sheetID);
+
+  if (!result) {
+    if (!sheetID) {
+      console.log(
+        `Spreadsheet not found in cache and no sheet ID provided for: ${spreadsheetTypeName}`
+      );
+    } else {
+      console.log(`Spreadsheet not found with ID: ${sheetID}`);
     }
+    return null;
+  }
 
-    const result = CacheManager.getSpreadsheet(spreadsheetTypeName, sheetID);
-
-    if (!result) {
-      if (!sheetID) {
-        console.log(
-          `Spreadsheet not found in cache and no sheet ID provided for: ${spreadsheetTypeName}`
-        );
-      } else {
-        console.log(`Spreadsheet not found with ID: ${sheetID}`);
-      }
-      return null;
-    }
-
-    return result;
-  };
-})();
+  return result;
+};
 
 const ADDON_CONSENT_READY_SIGNAL_KEY = "ADDON_CONSENT_READY_SIGNAL";
 
@@ -542,7 +540,7 @@ function exportData(oldSheetID, sheetType, versionDifference) {
       }
     }
 
-    var exportResult = sheetTypeFunction.exportData(versionDifference);
+    var exportResult = sheetTypeFunction.exportData(versionDifference, oldSheetID);
     if (!exportResult || !exportResult.success) {
       console.log(
         `Error exporting data for ${sheetType}: ${
@@ -649,7 +647,7 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
       data.idMasterID = idMasterID;
     }
 
-    var importResult = sheetTypeFunction.importData(data);
+    var importResult = sheetTypeFunction.importData(data, newSheetID);
     if (!importResult || !importResult.success) {
       console.log(
         `Error importing data for ${sheetType}: ${

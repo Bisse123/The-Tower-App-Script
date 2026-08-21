@@ -993,8 +993,7 @@
                 sheetType: template.sheetType,
               });
 
-              // Immediately add successful item to display
-              linksHtml += `<br>&nbsp;&nbsp;• ${template.sheetType} Sheet™`;
+              linksHtml += `<br>&nbsp;&nbsp;• <a href="${googleLink}/${result.fileId}/edit" target="_blank">${template.sheetType} Sheet™</a>`;
             } else {
               failedCount++;
               const errorMessage =

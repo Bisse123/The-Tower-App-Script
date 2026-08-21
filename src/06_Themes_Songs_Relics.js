@@ -1,12 +1,10 @@
 const themesAndRelics = {
   // #region Sheet References
   sheetType: "Themes, Songs & Relics",
-  oldSpreadsheetName: "Themes, Songs & Relics oldSpreadsheet",
-  newSpreadsheetName: "Themes, Songs & Relics newSpreadsheet",
 
   // #endregion
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: themesAndRelics.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -18,7 +16,7 @@ const themesAndRelics = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -41,20 +39,11 @@ const themesAndRelics = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: themesAndRelics.importData");
       const themesSheetName = "Themes & Songs";
       const relicsSheetName = "Relics";
-      var newSpreadsheet = spreadsheets(this.newSpreadsheetName);
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
-      var newSheetID = newSpreadsheet.spreadsheetId;
 
       // Batch get required data for update function only
       var requiredRanges = [themesSheetName, relicsSheetName, "IDS"];
@@ -323,18 +312,9 @@ const themesAndRelics = {
 
   // #endregion
   // #region Convert Version
-  version4_0: function () {
+  version4_0: function (oldSheetID) {
     try {
       console.log("Called: themesAndRelics.version4_0");
-      var oldSpreadsheet = spreadsheets(this.oldSpreadsheetName);
-      if (!oldSpreadsheet) {
-        console.log(`Old spreadsheet not found`);
-        return {
-          success: false,
-          message: "Old spreadsheet not found",
-        };
-      }
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var requiredRanges = ["Themes & Songs", "Relics"];
       var batchResults = SheetsAPI.batchGetValues(oldSheetID, requiredRanges);

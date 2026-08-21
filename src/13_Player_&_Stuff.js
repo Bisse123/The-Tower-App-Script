@@ -1,6 +1,6 @@
 const playerStuff = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: playerStuff.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const playerStuff = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const playerStuff = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: playerStuff.importData");
-      var newSpreadsheet = spreadsheets("Player & Stuff newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet not found",
-        };
-      }
 
       // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "Perk Preset", "IDS"];
@@ -480,19 +471,10 @@ const playerStuff = {
 
   // #endregion
   // #region Convert Versions
-  version4_2: function () {
+  version4_2: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version4_2");
-      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
       var tierRange = "EXPORT!B3:H";
       var statsRange = "EXPORT!J3:K";
       var ranges = [tierRange, statsRange, "Perk Preset"];
@@ -538,19 +520,10 @@ const playerStuff = {
     }
   },
 
-  version4_0: function () {
+  version4_0: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version4_0");
-      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
       var tierRange = "EXPORT!B3:H";
       var statsRange = "EXPORT!J3:K";
       var ranges = [tierRange, statsRange];
@@ -588,19 +561,10 @@ const playerStuff = {
     }
   },
 
-  version3_2: function () {
+  version3_2: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version3_2");
-      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
       var tierRange = "EXPORT!B3:D";
       var statsRange = "EXPORT!F3:G";
       var ranges = [tierRange, statsRange];
@@ -638,19 +602,10 @@ const playerStuff = {
     }
   },
 
-  version2_0: function () {
+  version2_0: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version2_0");
-      var oldSpreadsheet = spreadsheets("Player & Stuff oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
-      if (!SheetsAPI.getSheetByName(oldSpreadsheet, "EXPORT")) {
-        console.log(`EXPORT sheet not found in old spreadsheet`);
-        return {
-          success: false,
-          message: "EXPORT sheet not found in old spreadsheet",
-        };
-      }
       var tierRange = "EXPORT!B16:D";
       var statsRange = "EXPORT!B2:C12";
       var ranges = [tierRange, statsRange];

@@ -1,6 +1,6 @@
 const cards = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: cards.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -12,7 +12,7 @@ const cards = {
         };
       }
 
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -34,18 +34,9 @@ const cards = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: cards.importData");
-      var newSpreadsheet = spreadsheets("Cards newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (!newSpreadsheet) {
-        console.log(`New spreadsheet not found`);
-        return {
-          success: false,
-          message: "New spreadsheet™ not found",
-        };
-      }
 
       var requiredRanges = [
         "Master Sheet",
@@ -491,11 +482,9 @@ const cards = {
 
   // #endregion
   // #region Convert Versions
-  version1_0: function () {
+  version1_0: function (oldSheetID) {
     try {
       console.log("Called: cards.version1_0");
-      var oldSpreadsheet = spreadsheets("Cards oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
 
       var oldRanges = [
         "Card Preset",

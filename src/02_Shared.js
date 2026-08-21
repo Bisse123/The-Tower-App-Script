@@ -16,50 +16,108 @@ const CacheManager = {
   CHUNK_SIZE: 90000,
 
   /**
-   * Split a large string into chunks for storage
    * @private
    */
-  _chunkString: function (str, chunkSize = this.CHUNK_SIZE) {
-    const chunks = [];
-    for (let i = 0; i < str.length; i += chunkSize) {
-      chunks.push(str.substring(i, i + chunkSize));
+  _byteLength: function (str) {
+    let bytes = 0;
+
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+
+      if (code < 0x80) {
+        bytes += 1;
+      } else if (code < 0x800) {
+        bytes += 2;
+      } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < str.length) {
+        // Surrogate pair - four bytes across the two code units, counted once
+        bytes += 4;
+        i++;
+      } else {
+        bytes += 3;
+      }
     }
+
+    return bytes;
+  },
+
+  /**
+   * Split a string into chunks that each fit the byte budget, never cutting a
+   * surrogate pair in half
+   * @private
+   */
+  _chunkString: function (str, maxBytes = this.CHUNK_SIZE) {
+    const chunks = [];
+    let start = 0;
+    let bytes = 0;
+    let i = 0;
+
+    while (i < str.length) {
+      const code = str.charCodeAt(i);
+      let charBytes = 3;
+      let step = 1;
+
+      if (code < 0x80) {
+        charBytes = 1;
+      } else if (code < 0x800) {
+        charBytes = 2;
+      } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < str.length) {
+        charBytes = 4;
+        step = 2;
+      }
+
+      if (bytes + charBytes > maxBytes && i > start) {
+        chunks.push(str.substring(start, i));
+        start = i;
+        bytes = 0;
+      }
+
+      bytes += charBytes;
+      i += step;
+    }
+
+    chunks.push(str.substring(start));
+
     return chunks;
   },
 
   /**
-   * Prepare cache data with automatic chunking for large values
-   * Splits values > CHUNK_SIZE into multiple keys with metadata
+   * How many chunks the value currently stored under a key is split into, or 0
+   * when it is not stored chunked
    * @private
    */
-  _prepareCacheData: function (cacheData) {
-    const result = {};
-
-    for (const key in cacheData) {
-      const value = cacheData[key];
-
-      if (value.length > this.CHUNK_SIZE) {
-        const chunks = this._chunkString(value, this.CHUNK_SIZE);
-
-        for (let i = 0; i < chunks.length; i++) {
-          result[`${key}__chunk_${i}`] = chunks[i];
-        }
-
-        result[`${key}__chunks`] = chunks.length.toString();
-        console.log(
-          `Chunked ${key} into ${chunks.length} parts (${value.length} bytes total)`,
-        );
-      } else {
-        result[key] = value;
-      }
+  _chunkCount: function (key) {
+    const chunksCountStr = this.userCache.get(`${key}__chunks`);
+    if (!chunksCountStr) {
+      return 0;
     }
 
-    return result;
+    const chunkCount = parseInt(chunksCountStr, 10);
+    return isNaN(chunkCount) || chunkCount < 0 ? 0 : chunkCount;
+  },
+
+  /**
+   * Every key a stored value occupies - the value itself plus its chunks and
+   * their marker - so an entry can be invalidated whichever way it was stored
+   * @private
+   */
+  _entryKeys: function (key) {
+    const keys = [key];
+    const chunkCount = this._chunkCount(key);
+
+    for (let i = 0; i < chunkCount; i++) {
+      keys.push(`${key}__chunk_${i}`);
+    }
+    if (chunkCount > 0) {
+      keys.push(`${key}__chunks`);
+    }
+
+    return keys;
   },
 
   /**
    * Retrieve a value, automatically combining chunks if needed
-   * Returns null if cache is unavailable
+   * Returns null if the cache is unavailable, or if any chunk of a chunked
+   * value has been evicted - a partial value reads as corrupt, not as a miss
    * @private
    */
   _retrieveValue: function (key) {
@@ -68,43 +126,90 @@ const CacheManager = {
       return null;
     }
 
-    const chunksCountStr = this.userCache.get(`${key}__chunks`);
+    const chunkCount = this._chunkCount(key);
 
-    if (chunksCountStr) {
-      const chunkCount = parseInt(chunksCountStr);
-      let combinedValue = "";
-
-      for (let i = 0; i < chunkCount; i++) {
-        const chunkKey = `${key}__chunk_${i}`;
-        const chunk = this.userCache.get(chunkKey);
-        if (chunk) {
-          combinedValue += chunk;
-        }
-      }
-
-      return combinedValue;
-    } else {
+    if (chunkCount === 0) {
       return this.userCache.get(key);
     }
+
+    let combinedValue = "";
+
+    for (let i = 0; i < chunkCount; i++) {
+      const chunk = this.userCache.get(`${key}__chunk_${i}`);
+
+      if (chunk === null || chunk === undefined) {
+        console.log(
+          `Chunk ${i + 1} of ${chunkCount} missing for ${key} - treating as a cache miss`,
+        );
+        return null;
+      }
+
+      combinedValue += chunk;
+    }
+
+    return combinedValue;
   },
 
   /**
-   * Store a single value, automatically chunking if needed
-   * Silently fails if cache is unavailable
    * @private
    */
   _putValue: function (key, value) {
+    this._putAllValues({ [key]: value });
+  },
+
+  /**
+   * @private
+   */
+  _putAllValues: function (cacheData) {
     if (!this.userCache) {
-      console.log(`Cache unavailable - cannot store: ${key}`);
+      console.log(
+        `Cache unavailable - cannot store: ${Object.keys(cacheData).join(", ")}`,
+      );
       return;
     }
 
-    if (value.length > this.CHUNK_SIZE) {
-      const cacheData = this._prepareCacheData({ [key]: value });
-      this.userCache.putAll(cacheData);
-    } else {
-      this.userCache.put(key, value);
+    const toStore = {};
+    const staleKeys = [];
+
+    for (const key in cacheData) {
+      const value = cacheData[key];
+      const previousChunkCount = this._chunkCount(key);
+      const byteLength = this._byteLength(value);
+
+      if (byteLength > this.CHUNK_SIZE) {
+        const chunks = this._chunkString(value);
+
+        for (let i = 0; i < chunks.length; i++) {
+          toStore[`${key}__chunk_${i}`] = chunks[i];
+        }
+        toStore[`${key}__chunks`] = chunks.length.toString();
+
+        // The unchunked copy, plus any chunk a shorter new value leaves behind
+        staleKeys.push(key);
+        for (let i = chunks.length; i < previousChunkCount; i++) {
+          staleKeys.push(`${key}__chunk_${i}`);
+        }
+
+        console.log(
+          `Chunked ${key} into ${chunks.length} parts (${byteLength} bytes total)`,
+        );
+      } else {
+        toStore[key] = value;
+
+        if (previousChunkCount > 0) {
+          staleKeys.push(`${key}__chunks`);
+          for (let i = 0; i < previousChunkCount; i++) {
+            staleKeys.push(`${key}__chunk_${i}`);
+          }
+        }
+      }
     }
+
+    if (staleKeys.length > 0) {
+      this.userCache.removeAll(staleKeys);
+    }
+    const cacheTimeMinutes = 1;
+    this.userCache.putAll(toStore, cacheTimeMinutes * 60);
   },
 
   /**
@@ -210,8 +315,7 @@ const CacheManager = {
           cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
           result[uncachedIndices[i]] = fetchedData[i];
         }
-        const chunkedCacheData = this._prepareCacheData(cacheData);
-        this.userCache.putAll(chunkedCacheData);
+        this._putAllValues(cacheData);
       }
     }
 
@@ -260,8 +364,7 @@ const CacheManager = {
           cacheData[cacheKey] = JSON.stringify(fetchedData[i]);
           result[uncachedIndices[i]] = fetchedData[i];
         }
-        const chunkedCacheData = this._prepareCacheData(cacheData);
-        this.userCache.putAll(chunkedCacheData);
+        this._putAllValues(cacheData);
       }
     }
 
@@ -279,7 +382,10 @@ const CacheManager = {
     }
 
     try {
-      const cached = this.userCache.get(spreadsheetTypeName);
+      // Read through _retrieveValue, not the raw key: a chunked entry has
+      // nothing stored under the plain key, and reading it directly would make
+      // this look like there was nothing to invalidate.
+      const cached = this._retrieveValue(spreadsheetTypeName);
       if (!cached) {
         console.log(
           `No cache entry found for ${spreadsheetTypeName} to invalidate`,
@@ -291,36 +397,15 @@ const CacheManager = {
       const sheetID = cachedData.sheetID;
       const metadata = cachedData.metadata;
 
-      const keysToRemove = [spreadsheetTypeName];
+      let keysToRemove = this._entryKeys(spreadsheetTypeName);
 
       if (metadata && metadata.sheets) {
         for (let i = 0; i < metadata.sheets.length; i++) {
           const sheetName = metadata.sheets[i].properties.title;
-          const valueKey = `${sheetID}|${sheetName}|VALUE`;
-          const formulaKey = `${sheetID}|${sheetName}|FORMULA`;
 
-          keysToRemove.push(valueKey);
-          keysToRemove.push(formulaKey);
-
-          const chunksCountValue = this.userCache.get(`${valueKey}__chunks`);
-          if (chunksCountValue) {
-            const chunkCount = parseInt(chunksCountValue);
-            for (let j = 0; j < chunkCount; j++) {
-              keysToRemove.push(`${valueKey}__chunk_${j}`);
-            }
-            keysToRemove.push(`${valueKey}__chunks`);
-          }
-
-          const chunksCountFormula = this.userCache.get(
-            `${formulaKey}__chunks`,
-          );
-          if (chunksCountFormula) {
-            const chunkCount = parseInt(chunksCountFormula);
-            for (let j = 0; j < chunkCount; j++) {
-              keysToRemove.push(`${formulaKey}__chunk_${j}`);
-            }
-            keysToRemove.push(`${formulaKey}__chunks`);
-          }
+          keysToRemove = keysToRemove
+            .concat(this._entryKeys(`${sheetID}|${sheetName}|VALUE`))
+            .concat(this._entryKeys(`${sheetID}|${sheetName}|FORMULA`));
         }
       }
 
@@ -387,16 +472,9 @@ const CacheManager = {
       return;
     }
 
-    const cacheKey = `File|${fileID}`;
-    const keysToRemove = [cacheKey];
+    const keysToRemove = this._entryKeys(`File|${fileID}`);
 
-    const chunksCountStr = this.userCache.get(`${cacheKey}__chunks`);
-    if (chunksCountStr) {
-      const chunkCount = parseInt(chunksCountStr);
-      for (let i = 0; i < chunkCount; i++) {
-        keysToRemove.push(`${cacheKey}__chunk_${i}`);
-      }
-      keysToRemove.push(`${cacheKey}__chunks`);
+    if (keysToRemove.length > 1) {
       console.log(
         `Removing ${keysToRemove.length} cache keys for file: ${fileID}`,
       );

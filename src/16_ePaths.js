@@ -1,6 +1,6 @@
 const ePaths = {
   // #region Export Functions
-  exportData: function (versionDifference) {
+  exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: ePaths.exportData");
       var getVersionFunction = this.convertVersionFunctions[versionDifference];
@@ -11,7 +11,7 @@ const ePaths = {
           message: `Unsupported version: ${versionDifference}`,
         };
       }
-      var oldDataResult = getVersionFunction();
+      var oldDataResult = getVersionFunction(oldSheetID);
       if (!oldDataResult || !oldDataResult.success) {
         console.log(`${oldDataResult.message}`);
         return oldDataResult;
@@ -32,23 +32,9 @@ const ePaths = {
 
   // #endregion
   // #region Import Functions
-  importData: function (data) {
+  importData: function (data, newSheetID) {
     try {
       console.log("Called: ePaths.importData");
-
-      var newSpreadsheet = spreadsheets("Effective Paths newSpreadsheet");
-      var newSheetID = newSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(newSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(newSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(newSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "New spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AY50";
       var eDamageRange = "eDamage!AI1:AY100";
@@ -712,10 +698,11 @@ const ePaths = {
             var skipPresets = false;
             for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
               var guessName = eEconData[nextRow][column];
+              console.log(`Processing guessName: ${guessName}`);
               if (!guessName) break;
               if (String(guessName).toLowerCase().includes("presets")) {
                 skipPresets = true;
-              } else if (String(guessName).toLowerCase().includes === "inputs") {
+              } else if (String(guessName).toLowerCase().includes("inputs")) {
                 skipPresets = false;
               }
               if (skipPresets) {
@@ -815,22 +802,9 @@ const ePaths = {
 
   // #endregion
   // #region Convert Versions
-  version5_09_00_00: function () {
+  version5_09_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_09_00_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AY50";
       var eDamageRange = "eDamage!AI1:AY100";
@@ -902,22 +876,9 @@ const ePaths = {
     }
   },
 
-  version5_08_04_00: function () {
+  version5_08_04_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_08_04_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -989,22 +950,9 @@ const ePaths = {
     }
   },
 
-  version5_08_00_00: function () {
+  version5_08_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_08_00_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -1074,22 +1022,9 @@ const ePaths = {
     }
   },
 
-  version5_06_02_00: function () {
+  version5_06_02_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_06_02_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -1155,22 +1090,9 @@ const ePaths = {
     }
   },
 
-  version5_05_01_00: function () {
+  version5_05_01_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_05_01_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -1240,22 +1162,9 @@ const ePaths = {
     }
   },
 
-  version5_05_00_00: function () {
+  version5_05_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_05_00_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -1325,22 +1234,9 @@ const ePaths = {
     }
   },
 
-  version5_03_00_00: function () {
+  version5_03_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_03_00_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AJ1:AX50";
       var eDamageRange = "eDamage!AI1:AX100";
@@ -1410,22 +1306,9 @@ const ePaths = {
     }
   },
 
-  version5_00_01_04: function () {
+  version5_00_01_04: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_00_01_04");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AC1:AQ35";
       var eDamageRange = "eDamage!AI1:AX90";
@@ -1495,22 +1378,9 @@ const ePaths = {
     }
   },
 
-  version4_11_03_21: function () {
+  version4_11_03_21: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version4_11_03_21");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AC1:AQ35";
       var eDamageRange = "eDamage!AI1:AX75";
@@ -1580,22 +1450,9 @@ const ePaths = {
     }
   },
 
-  version4_11_02_00: function () {
+  version4_11_02_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version4_11_02_00");
-      var oldSpreadsheet = spreadsheets("Effective Paths oldSpreadsheet");
-      var oldSheetID = oldSpreadsheet.spreadsheetId;
-      if (
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eHP") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eDamage") ||
-        !SheetsAPI.getSheetByName(oldSpreadsheet, "eEcon")
-      ) {
-        return {
-          success: false,
-          message:
-            "Old spreadsheet™ missing required sheets™ (eHP, eDamage, eEcon).",
-        };
-      }
 
       var eHPRange = "eHP!AC1:AQ35";
       var eDamageRange = "eDamage!AI1:AX75";
