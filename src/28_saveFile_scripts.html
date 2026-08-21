@@ -2390,82 +2390,97 @@
   }
 
   function renderWorkshopBody(data) {
-    const upgrades = renderWorkshopGroup(
-      "Upgrades",
-      data.oldWorkshopLevels,
-      false,
-      data.upgradeIndices,
-    );
-    const enhancements = renderWorkshopGroup(
-      "Enhancements",
-      data.oldWorkshopPlusLevels,
-      true,
-      data.enhancementIndices,
-    );
+    const upgrades = data.oldWorkshopLevels || null;
+    const enhancements = data.oldWorkshopPlusLevels || null;
     if (!upgrades && !enhancements) return "";
-    return (
-      '<div class="sfWorkshopGroups">' +
-      (upgrades
-        ? '<div class="sfWorkshopGroupCol">' + upgrades + "</div>"
-        : "") +
-      (enhancements
-        ? '<div class="sfWorkshopGroupCol">' + enhancements + "</div>"
-        : "") +
-      "</div>"
-    );
+
+    // Both groups are indexed by the same preset slots, so they share one list
+    // rather than each walking its own - otherwise a group with fewer presets
+    // would shift its contents out of step with the other.
+    const upgradeNames = (upgrades && upgrades.presetNames) || [];
+    const enhancementNames = (enhancements && enhancements.presetNames) || [];
+    const presetNames =
+      upgradeNames.length >= enhancementNames.length
+        ? upgradeNames
+        : enhancementNames;
+    if (!presetNames.length) return "";
+
+    let html = "";
+    presetNames.forEach(function (presetName, presetIndex) {
+      const groups =
+        renderWorkshopPresetGroup(
+          "Upgrades",
+          upgrades,
+          false,
+          data.upgradeIndices,
+          presetIndex,
+        ) +
+        renderWorkshopPresetGroup(
+          "Enhancements",
+          enhancements,
+          true,
+          data.enhancementIndices,
+          presetIndex,
+        );
+
+      // A preset whose levels are all zero is still a slot the player owns and
+      // still imports as one, so it is only dropped when it holds no rows at all.
+      if (!groups) return;
+
+      html +=
+        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        '</div><div class="sfPresetBox">' +
+        groups +
+        "</div></div>";
+    });
+
+    return html;
   }
 
-  function renderWorkshopGroup(groupLabel, group, isEnhancement, tracks) {
-    if (!group) return "";
-    const presetNames = group.presetNames || [];
+  function renderWorkshopPresetGroup(
+    groupLabel,
+    group,
+    isEnhancement,
+    tracks,
+    presetIndex,
+  ) {
+    if (!group || !tracks) return "";
     const entries = group.data || {};
     const trackLabels = ["Attack", "Defense", "Utility"];
-    let body = "";
+    let columnsHtml = "";
+    let hasRows = false;
 
-    presetNames.forEach(function (presetName, presetIndex) {
-      let presetHasLevel = false;
-      let columnsHtml = '<div class="sfWorkshopColumns">';
-
-      trackLabels.forEach(function (track) {
-        let rows = "";
-        (tracks[track] || []).forEach(function (name) {
-          if (!entries.hasOwnProperty(name)) return;
-          const levels = isEnhancement
-            ? entries[name]
-            : entries[name].levels || [];
-          const lvl = levels[presetIndex];
-          if (
-            lvl !== null &&
-            lvl !== undefined &&
-            lvl !== 0 &&
-            lvl !== "0" &&
-            lvl !== "00"
-          ) {
-            presetHasLevel = true;
-          }
-          rows += sfLevelRow(lvl, escSaveFileHtml(name));
-        });
-        columnsHtml +=
-          '<div class="sfWorkshopColumn">' +
-          '<div class="sfWorkshopColHeader">' +
-          escSaveFileHtml(track) +
-          "</div>" +
-          rows +
-          "</div>";
+    trackLabels.forEach(function (track) {
+      let rows = "";
+      (tracks[track] || []).forEach(function (name) {
+        if (!entries.hasOwnProperty(name)) return;
+        const levels = isEnhancement
+          ? entries[name]
+          : entries[name].levels || [];
+        const lvl = levels[isEnhancement ? presetIndex : presetIndex * 2];
+        rows += sfLevelRow(lvl, escSaveFileHtml(name));
+        hasRows = true;
       });
-
-      columnsHtml += "</div>";
-
-      if (!presetHasLevel) return;
-      body +=
-        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
-        escSaveFileHtml(presetName) +
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(track) +
         "</div>" +
-        columnsHtml +
+        rows +
         "</div>";
     });
 
-    return body ? sfSubLabel(groupLabel) + body : "";
+    if (!hasRows) return "";
+    return (
+      '<div class="sfPresetGroup">' +
+      '<div class="sfPresetGroupHeader">' +
+      escSaveFileHtml(groupLabel) +
+      "</div>" +
+      '<div class="sfPresetTracks">' +
+      columnsHtml +
+      "</div></div>"
+    );
   }
 
   function renderUltimateBody(data) {

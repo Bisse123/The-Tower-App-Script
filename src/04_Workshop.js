@@ -1207,10 +1207,6 @@ const workshop = {
     const defenseUpgradeUnlocked = data.upgradeDefenseUnlocked || [];
     const utilityUpgradeUnlocked = data.upgradeUtilityUnlocked || [];
 
-    const attackEnhancementUnlocked = data.enhancementAttackUnlocked || [];
-    const defenseEnhancementUnlocked = data.enhancementDefenseUnlocked || [];
-    const utilityEnhancementUnlocked = data.enhancementUtilityUnlocked || [];
-
     var attackPresetUpgradeUnlocked = data.presetUpgradeAttackUnlocked || [];
     var defensePresetUpgradeUnlocked = data.presetUpgradeDefenseUnlocked || [];
     var utilityPresetUpgradeUnlocked = data.presetUpgradeUtilityUnlocked || [];

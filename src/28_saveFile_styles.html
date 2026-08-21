@@ -783,17 +783,9 @@
     margin-bottom: 3px;
   }
 
-  .sfWorkshopGroups {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .sfWorkshopGroupCol {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .sfWorkshopColumns {
+  /* One box per preset, holding that preset's upgrades and enhancements side
+     by side so the two stay together however many rows each of them has. */
+  .sfPresetBox {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
@@ -802,6 +794,24 @@
     border: 1px solid #000000;
     border-radius: 4px;
     padding: 6px 8px;
+  }
+  .sfPresetGroup {
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+  .sfPresetGroupHeader {
+    font-weight: 600;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .sfPresetTracks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
   }
   .sfWorkshopColumn { min-width: 0; flex: 1 1 140px; }
   .sfWorkshopColHeader {
