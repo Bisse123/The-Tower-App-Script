@@ -57,7 +57,7 @@ const vault = {
       var masterSheetData = batchResults[1].values;
 
       var batchUpdate = [];
-
+      console.log("data", JSON.stringify(data, null, 2));
       if (data.hasOwnProperty("oldVault")) {
         var updateResult = this.updateVault(
           "Master Sheet",
@@ -68,6 +68,7 @@ const vault = {
           console.log(`Error updating vault: ${updateResult.message}`);
           return updateResult;
         }
+        batchUpdate = batchUpdate.concat(updateResult.batchUpdate || []);
       }
 
       // Always add ID updates
