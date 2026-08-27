@@ -52,9 +52,7 @@ const botHeaders = {
 }
 
 const vaultHeaders = {
-  harmonyNodesUnlocked: "harmonyNodesUnlocked",
-  powerNodesUnlocked: "powerNodesUnlocked",
-  powerNodesLevel: "powerNodesLevel",
+  vault: "vault",
 }
 
 const cardsHeaders = {
@@ -70,15 +68,16 @@ const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
   assistModuleSlots: "assistModuleSlots",
-  // moduleLevels: "slotLevels",
-  // modulePresets: "modulePresets",
+  moduleLevels: "slotLevels",
+  modulePresets: "modulePresets",
+  moduleDice: "moduleRerollCurrency",
 }
 
 const guardianHeaders = {
   guardianChipSlot: "guardianChipSlot",
   guardianChipUnlocked: "guardianChipUnlocked",
   guardianChipLevel: "guardianChipLevel",
-  // guardianPresets: "guardianPresets",
+  guardianPresets: "guardianPresets",
 }
 
 const PlayerStuffHeaders = {
@@ -103,6 +102,15 @@ const PlayerStuffHeaders = {
   battleHistory: "battleHistory",
 }
 
+const MasterHeaders = {
+  globalPresets: "globalPresets",
+  workshopPresetNames: "workshopPresetName",
+  cardPresetNames: "presetName",
+  botPresetNames: "botPresetName",
+  modulePresets: "modulePresets",
+  guardianPresets: "guardianPresets",
+}
+
 function parseSaveFileBytes(byteArray) {
   const uint8 = Uint8Array.from(byteArray);
   // Decompress the GZIP data
@@ -118,7 +126,7 @@ function parseSaveFileBytes(byteArray) {
   const data = parseNRBF(bytes);
 
   // Object.keys(data).forEach((key) => {
-  //   if (key.toLowerCase().includes("slot")) {
+  //   if (key.toLowerCase().includes("perk")) {
   //     console.log(`Key: ${key}, Value: ${JSON.stringify(data[key], bigIntJsonReplacer_)}`);
   //   }
   // });
@@ -173,6 +181,10 @@ function parseSaveFileBytes(byteArray) {
   var playerStuffValues = extratctDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
 
+  // Extract IDS Master data
+  var masterValues = extratctDataByHeaders(MasterHeaders);
+  var masterData = master.parseMasterData(masterValues);
+
   const parsed = {
     "Laboratory": laboratoryData,
     "Workshop": workshopData,
@@ -184,6 +196,7 @@ function parseSaveFileBytes(byteArray) {
     "Modules": moduleData,
     "Guardians": guardianData,
     "Player & Stuff": playerStuffdata,
+    "IDS Master": masterData,
   };
 
   return {

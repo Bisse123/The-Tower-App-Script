@@ -5,6 +5,7 @@
   let saveFileCollectionOutdated = null;
   let saveFileCollectionVersionChecked = false;
 
+  const SF_MASTER_TYPE = "IDS Master";
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
   let saveFileNotOwnedFiles = [];
@@ -18,6 +19,7 @@
   let saveFileViewMode = "all";
   let sheetExportData = {};
   let sheetExportFetched = false;
+  let sheetExportPromise = null;
   let lastSaveFileResult = null;
   let saveFileSelectedTypes = null;
   let saveFilePendingDriveFile = null;
@@ -150,11 +152,15 @@
       runAppsScript("parseSaveFileBytes", byteArray),
       ensureSaveFilePlayerWaveCapPreference(),
     ])
-      .then(function (results) {
+      .then(async function (results) {
         const result = results[0];
         parsedSaveData = (result && result.parsed) || {};
         lastSaveFileResult = result;
         setStatusText(`${fileName} parsed successfully`);
+        if (idMasterID && (await ensureSaveFileSheetData())) {
+          saveFileViewMode = "diff";
+          setStatusText(`${fileName} parsed successfully. Showing differences.`);
+        }
         setSaveFileBusy(false);
         renderSaveFileResults(result);
       })
@@ -354,13 +360,9 @@
 
   function resetSaveFileDiffState() {
     saveFileViewMode = "all";
-    sheetExportData = {};
-    sheetExportFetched = false;
     saveFileSelectedTypes = null;
   }
 
-  // Keeps expanded categories expanded when the results are re-rendered
-  // (view mode / wave cap toggles).
   function sfOpenCategoryTypes(container) {
     const open = new Set();
     if (!container) return open;
@@ -484,6 +486,25 @@
     return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
   }
 
+  function startSaveFileSheetPrefetch() {
+    if (!idMasterID || sheetExportFetched || sheetExportPromise) return;
+    if (saveFileCollectionOutdated) return;
+    sheetExportPromise = fetchSaveFileSheetData(true).catch(function () {
+      return false;
+    });
+  }
+
+  async function ensureSaveFileSheetData() {
+    if (sheetExportFetched) return true;
+    if (sheetExportPromise) {
+      setStatusWithSpinner("Reading your sheet data to compare…");
+      const ok = await sheetExportPromise;
+      if (ok) return true;
+      sheetExportPromise = null;
+    }
+    return fetchSaveFileSheetData();
+  }
+
   async function toggleSaveFileViewMode() {
     if (saveFileViewMode === "all") {
       if (!idMasterID) {
@@ -494,7 +515,7 @@
       }
       if (!sheetExportFetched) {
         setSaveFileBusy(true);
-        const ok = await fetchSaveFileSheetData();
+        const ok = await ensureSaveFileSheetData();
         setSaveFileBusy(false);
         if (!ok) return;
       }
@@ -507,10 +528,15 @@
     renderSaveFileResults(lastSaveFileResult);
   }
 
-  async function fetchSaveFileSheetData() {
+  async function fetchSaveFileSheetData(background) {
     if (!idMasterID) return false;
+    const report = function (message, spinner) {
+      if (background) return;
+      if (spinner) setStatusWithSpinner(message);
+      else setStatusText(message);
+    };
     try {
-      setStatusWithSpinner("Reading your sheet data to compare…");
+      report("Reading your sheet data to compare…", true);
       const result = {};
 
       if (saveFileSheetType === "IDS Collection") {
@@ -520,7 +546,7 @@
           "IDS Collection",
         );
         if (!compat || !compat.success || !compat.versionDifference) {
-          setStatusText(
+          report(
             "Could not compare with your IDS Collection: " +
               ((compat && compat.message) || "version check failed."),
           );
@@ -533,7 +559,7 @@
           compat.versionDifference,
         );
         if (!exp || !exp.success) {
-          setStatusText(
+          report(
             "Could not read your IDS Collection: " +
               ((exp && exp.message) || "export failed."),
           );
@@ -544,14 +570,64 @@
           result[type] = data[type];
         });
       } else {
+        // The master's own export carries both halves we need: its global
+        // presets, and the sub-sheet ids for every other category. Reading it
+        // first means the ids arrive as a by-product of a category export we
+        // had to make anyway, instead of a separate id lookup before it.
+        let masterIds = null;
+        try {
+          const masterCompat = await runAppsScript(
+            "checkExportCompatibility",
+            idMasterID,
+            SF_MASTER_TYPE,
+          );
+          if (
+            !masterCompat ||
+            !masterCompat.success ||
+            !masterCompat.versionDifference
+          ) {
+            result[SF_MASTER_TYPE] = {
+              __error:
+                (masterCompat && masterCompat.message) ||
+                "Version check failed.",
+            };
+          } else {
+            const masterExp = await runAppsScript(
+              "exportData",
+              idMasterID,
+              SF_MASTER_TYPE,
+              masterCompat.versionDifference,
+            );
+            if (!masterExp || !masterExp.success) {
+              result[SF_MASTER_TYPE] = {
+                __error:
+                  (masterExp && masterExp.message) || "Could not read sheet.",
+              };
+            } else {
+              result[SF_MASTER_TYPE] = masterExp.data || {};
+              masterIds = result[SF_MASTER_TYPE].oldIdsData || null;
+            }
+          }
+        } catch (err) {
+          result[SF_MASTER_TYPE] = { __error: err.message || String(err) };
+        }
+
+        // Only fall back to the separately resolved targets if that failed.
         const targets =
-          (saveFileImportTargets && saveFileImportTargets.targets) || {};
+          masterIds ||
+          (saveFileImportTargets && saveFileImportTargets.targets) ||
+          {};
         const order =
           lastSaveFileResult && lastSaveFileResult.order
             ? lastSaveFileResult.order
             : Object.keys(parsedSaveData || {});
-        const types = order.filter(function (type) {
+        const parsedTypes = order.filter(function (type) {
           return categoryHasData((parsedSaveData || {})[type]);
+        });
+        const types = (
+          parsedTypes.length ? parsedTypes : Object.keys(targets)
+        ).filter(function (type) {
+          return type !== SF_MASTER_TYPE;
         });
 
         await Promise.all(
@@ -596,11 +672,22 @@
         );
       }
 
+      const types = Object.keys(result);
+      if (
+        background &&
+        types.length > 0 &&
+        types.every(function (type) {
+          return result[type] && result[type].__error;
+        })
+      ) {
+        return false;
+      }
+
       sheetExportData = result;
       sheetExportFetched = true;
       return true;
     } catch (err) {
-      setStatusText("Error comparing with your sheet: " + (err.message || err));
+      report("Error comparing with your sheet: " + (err.message || err));
       return false;
     }
   }
@@ -688,6 +775,10 @@
     return '<div class="sfDiffGrid">' + rows + "</div>";
   }
 
+  function sfDiffGridStacked(rows) {
+    return '<div class="sfDiffGrid sfDiffStack">' + rows + "</div>";
+  }
+
   function sfDiffBlock(title, inner) {
     return (
       '<div class="sfBlock"><div class="sfBlockHeader">' +
@@ -730,6 +821,8 @@
         return renderGuardiansDiff(parsed, sheet);
       case "Player & Stuff":
         return renderPlayerDiff(parsed, sheet);
+      case "IDS Master":
+        return renderMasterDiff(parsed, sheet);
       default:
         return "";
     }
@@ -762,11 +855,12 @@
     let html = "";
 
     presetNames.forEach(function (presetName, presetIndex) {
-      let upRows = "";
-      let enRows = "";
+      const upTracks = {};
+      const enTracks = {};
       let presetHasValue = false;
 
       tracks.forEach(function (track) {
+        let rows = "";
         (upIdx[track] || []).forEach(function (name) {
           const pd = (pUp.data || {})[name];
           if (!pd) return;
@@ -780,10 +874,13 @@
             0,
           );
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
-          upRows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
         });
+        upTracks[track] = rows;
       });
+
       tracks.forEach(function (track) {
+        let rows = "";
         (enIdx[track] || []).forEach(function (name) {
           const parr = (pEn.data || {})[name];
           if (!parr) return;
@@ -792,17 +889,46 @@
           const sarr = (sEn.data || {})[name];
           const sv = sfSheetPresetVal(sarr, presetIndex, presetIndex, 0);
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
-          enRows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
         });
+        enTracks[track] = rows;
       });
 
       if (!presetHasValue) return;
-      let inner = "";
-      if (upRows) inner += sfDiffSub("Upgrades", sfDiffGrid(upRows));
-      if (enRows) inner += sfDiffSub("Enhancements", sfDiffGrid(enRows));
-      if (inner) html += sfDiffBlock(presetName, inner);
+
+      const groups =
+        sfDiffTrackGroup("Upgrades", upTracks, tracks) +
+        sfDiffTrackGroup("Enhancements", enTracks, tracks);
+      if (groups) {
+        html += sfDiffBlock(
+          presetName,
+          '<div class="sfPresetBox">' + groups + "</div>",
+        );
+      }
     });
     return html;
+  }
+
+  function sfDiffTrackGroup(groupLabel, rowsByTrack, tracks) {
+    let columns = "";
+    tracks.forEach(function (track) {
+      const rows = rowsByTrack[track];
+      if (!rows) return;
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(track) +
+        "</div>" +
+        sfDiffGridStacked(rows) +
+        "</div>";
+    });
+    if (!columns) return "";
+    return (
+      '<div class="sfPresetGroup"><div class="sfPresetGroupHeader">' +
+      escSaveFileHtml(groupLabel) +
+      '</div><div class="sfPresetTracks">' +
+      columns +
+      "</div></div>"
+    );
   }
 
   function sfSheetPresetVal(arr, idx, presetIndex, farmingIdx) {
@@ -847,9 +973,9 @@
         if (sfNormLevel(pv) === sfNormLevel(sv)) return;
         rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
       });
-      if (rows) html += sfDiffBlock(name, sfDiffGrid(rows));
+      if (rows) html += sfDiffBlock(name, sfDiffGridStacked(rows));
     });
-    return html;
+    return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
   }
 
   function renderThemesAndRelicsDiff(parsed, sheet) {
@@ -895,21 +1021,21 @@
     const presetNames = (parsed.oldBots && parsed.oldBots.presetNames) || [];
     const defs = parsed.targetBots || {};
     const order = parsed.botOrder || Object.keys(defs);
-    let html = "";
+    let columns = "";
 
-    order.forEach(function (botName) {
-      const pBot = pBots[botName];
-      if (!pBot) return;
-      const sBot = sBots[botName] || {};
-      const def = defs[botName];
-      if (!def) return;
+    presetNames.forEach(function (presetName, presetIndex) {
+      let colInner = "";
 
-      let botInner = "";
+      order.forEach(function (botName) {
+        const pBot = pBots[botName];
+        if (!pBot) return;
+        const sBot = sBots[botName] || {};
+        const def = defs[botName];
+        if (!def) return;
 
-      const attrs = (def.upgrades || []).filter(Boolean);
-      if (def.plusUpgrade) attrs.push(def.plusUpgrade);
+        const attrs = (def.upgrades || []).filter(Boolean);
+        if (def.plusUpgrade) attrs.push(def.plusUpgrade);
 
-      presetNames.forEach(function (presetName, presetIndex) {
         const pPreset = (pBot.presets || {})[presetName] || {};
         const sPreset = (sBot.presets || {})[presetName] || {};
         const pProps = pPreset.props || {};
@@ -918,6 +1044,7 @@
           presetIndex > 0
             ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
             : sProps;
+
         let rows = "";
         if (sfNormBool(pPreset.active) !== sfNormBool(sPreset.active)) {
           rows += sfDiffRow(
@@ -949,12 +1076,25 @@
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
         });
-        if (rows) botInner += sfDiffSub(presetName, sfDiffGrid(rows));
+
+        if (rows) colInner += sfModuleDiffEntry(botName, rows);
       });
 
-      if (botInner) html += sfDiffBlock(botName, botInner);
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
     });
-    return html;
+
+    return columns
+      ? '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+          columns +
+          "</div>"
+      : "";
   }
 
   function renderRelicsDiff(parsed, sheet) {
@@ -979,55 +1119,62 @@
     return '<div class="sfDiffChips">' + items + "</div>";
   }
 
-  function sfVaultOwned(v) {
-    return !(
-      v === null ||
-      v === undefined ||
-      v === "" ||
-      v === false ||
-      v === "false" ||
-      v === "FALSE"
-    );
-  }
-
   function renderVaultDiff(parsed, sheet) {
-    const pH = parsed.oldVaultHarmony || {};
-    const sH = sheet.oldVaultHarmony || {};
-    const pP = parsed.oldVaultPower || {};
-    const sP = sheet.oldVaultPower || {};
-    const harmonyOrder = parsed.harmonyIndices || [];
-    const powerOrder = parsed.powerIndices || [];
-    let html = "";
+    const pVault = parsed.oldVault || {};
+    const sVault = sheet.oldVault || {};
+    const pUnlocked = pVault.unlockedGroups || [];
+    const sUnlocked = sVault.unlockedGroups || [];
+    const pLevels = pVault.upgradesLevel || {};
+    const sLevels = sVault.upgradesLevel || {};
+    const groups = parsed.vaultIndices || [];
+    const alwaysUnlocked = parsed.alwaysUnlocked || [];
+    let columnsHtml = "";
 
-    let harmonyChips = "";
-    harmonyOrder.forEach(function (name) {
-      if (!name) return;
-      const inP = sfVaultOwned(pH[name]);
-      const inS = sfVaultOwned(sH[name]);
-      if (inP && !inS) harmonyChips += sfDiffAddItem(name);
-      else if (!inP && inS) harmonyChips += sfDiffRemItem(name);
-    });
-    if (harmonyChips)
-      html += sfDiffSub(
-        "Harmony",
-        '<div class="sfDiffChips">' + harmonyChips + "</div>",
-      );
+    groups.forEach(function (group) {
+      let sectionsHtml = "";
 
-    let powerRows = "";
-    powerOrder.forEach(function (name) {
-      if (!name) return;
-      const pv = pP[name];
-      const sv = sP[name];
-      if (name.indexOf("Unlock") !== -1) {
-        if (sfNormBool(pv) !== sfNormBool(sv)) {
-          powerRows += sfDiffRow(sfDisplayBool(sv), sfDisplayBool(pv), name);
+      (group.sections || []).forEach(function (section) {
+        const sectionName = section.section;
+        const inParsed = pUnlocked.indexOf(sectionName) !== -1;
+        const inSheet = sUnlocked.indexOf(sectionName) !== -1;
+
+        let rows = "";
+        if (inParsed !== inSheet && alwaysUnlocked.indexOf(sectionName) === -1) {
+          rows += sfDiffRow(
+            sfDisplayBool(inSheet),
+            sfDisplayBool(inParsed),
+            "Unlocked",
+          );
         }
-      } else if (sfNormGeneric(pv) !== sfNormGeneric(sv)) {
-        powerRows += sfDiffRow(sfDisplayValue(sv), sfDisplayValue(pv), name);
-      }
+
+        (section.upgrades || []).forEach(function (name) {
+          const pv = pLevels[name];
+          const sv = sLevels[name];
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+
+        if (!rows) return;
+        sectionsHtml +=
+          '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+          escSaveFileHtml(sectionName) +
+          "</div>" +
+          sfDiffGridStacked(rows) +
+          "</div>";
+      });
+
+      if (!sectionsHtml) return;
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(group.group) +
+        "</div>" +
+        sectionsHtml +
+        "</div>";
     });
-    if (powerRows) html += sfDiffSub("Power", sfDiffGrid(powerRows));
-    return html;
+
+    if (!columnsHtml) return "";
+    return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
   }
 
   function renderCardsDiff(parsed, sheet) {
@@ -1103,14 +1250,89 @@
   }
 
   function renderModulesDiff(parsed, sheet) {
-    const pInv = parsed.oldModulesInventory || {};
-    const sInv = sheet.oldModulesInventory || {};
+    const moduleCats = ["cannon", "armor", "generator", "core"];
     const pPre = parsed.oldModulesPresets || {};
     const sPre = sheet.oldModulesPresets || {};
-    const metaKeys = ["Highest Level", "Assist Level"];
-    const moduleCats = ["cannon", "armor", "generator", "core"];
+    const pPlanner = parsed.oldModulesPlanner || {};
+    const sPlanner = sheet.oldModulesPlanner || {};
+
+    const pDice = sfModulesDice(pPlanner, moduleCats);
+    const sDice = sfModulesDice(sPlanner, moduleCats);
+    const diceHtml =
+      sfNormLevel(pDice) === sfNormLevel(sDice)
+        ? ""
+        : sfDiffGrid(
+            sfDiffRow(sfDisplayLevel(sDice), sfDisplayLevel(pDice), "Dice"),
+          );
+
+    return (
+      diceHtml +
+      renderModulesPresetsDiff(pPre, sPre, moduleCats) +
+      renderModulesInventoryDiff(
+        parsed.oldModulesInventory || {},
+        sheet.oldModulesInventory || {},
+        pPre,
+        sPre,
+        moduleCats,
+        parsed.moduleOrder,
+      )
+    );
+  }
+
+  function renderModulesPresetsDiff(pPre, sPre, moduleCats) {
+    const pNames = pPre.presetNames || [];
+    const sNames = sPre.presetNames || [];
+    const slots = [
+      ["Main", "primary"],
+      ["Assist", "secondary"],
+    ];
     let columns = "";
 
+    pNames.forEach(function (presetName, presetIndex) {
+      const sName = sNames[presetIndex];
+      let colInner = "";
+
+      moduleCats.forEach(function (cat) {
+        const pSlot = (pPre[cat] || {})[presetName] || {};
+        const sSlot = (sName && (sPre[cat] || {})[sName]) || {};
+        let rows = "";
+        slots.forEach(function (slot) {
+          const pv = pSlot[slot[1]];
+          const sv = sSlot[slot[1]];
+          if (sfNormGeneric(pv) === sfNormGeneric(sv)) return;
+          rows += sfDiffRow(sfDisplayValue(sv), sfDisplayValue(pv), slot[0]);
+        });
+        if (rows) colInner += sfModuleDiffEntry(cat, rows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    return columns
+      ? sfSubLabel("Presets") +
+          '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns sfDiffStackName">' +
+          columns +
+          "</div>"
+      : "";
+  }
+
+  function renderModulesInventoryDiff(
+    pInv,
+    sInv,
+    pPre,
+    sPre,
+    moduleCats,
+    moduleOrder,
+  ) {
+    const metaKeys = ["Highest Level", "Assist Level"];
+    let columns = "";
     moduleCats.forEach(function (cat) {
       const pCat = pInv[cat] || {};
       const sCat = sInv[cat] || {};
@@ -1165,7 +1387,7 @@
           colInner += sfModuleDiffEntry("Assist Slot", assistRows);
       }
 
-      Object.keys(pCat).forEach(function (key) {
+      sfOrderedModuleKeys(pCat, moduleOrder, metaKeys).forEach(function (key) {
         if (metaKeys.indexOf(key) !== -1) return;
         const pMod = pCat[key];
         if (!pMod || typeof pMod !== "object") return;
@@ -1210,7 +1432,10 @@
     });
 
     return columns
-      ? '<div class="sfModuleColumns sfDiffModuleColumns">' + columns + "</div>"
+      ? sfSubLabel("Inventory") +
+          '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+          columns +
+          "</div>"
       : "";
   }
 
@@ -1238,45 +1463,78 @@
       (parsed.oldGuardians && parsed.oldGuardians.presetNames) || [];
     const defs = parsed.targetGuardians || {};
     const order = parsed.guardianOrder || Object.keys(defs);
-    let html = "";
+
+    let unlockRows = "";
     order.forEach(function (name) {
       const pg = p[name];
       if (!pg) return;
-      const sg = s[name] || {};
       const def = defs[name];
-      if (!def) return;
+      if (!def || def.alwaysUnlocked) return;
+      const sg = s[name] || {};
+      if (sfNormBool(pg.unlocked) === sfNormBool(sg.unlocked)) return;
+      unlockRows += sfDiffRow(
+        sfDisplayBool(sg.unlocked),
+        sfDisplayBool(pg.unlocked),
+        name,
+      );
+    });
+    let html = unlockRows ? sfDiffGrid(unlockRows) : "";
 
-      let guardianInner = "";
-      if (
-        !def.alwaysUnlocked &&
-        sfNormBool(pg.unlocked) !== sfNormBool(sg.unlocked)
-      ) {
-        guardianInner += sfDiffGrid(
-          sfDiffRow(
-            sfDisplayBool(sg.unlocked),
-            sfDisplayBool(pg.unlocked),
-            "Unlocked",
-          ),
-        );
-      }
+    let columns = "";
+    presetNames.forEach(function (presetName, presetIndex) {
+      let colInner = "";
 
-      presetNames.forEach(function (presetName) {
+      order.forEach(function (name) {
+        const pg = p[name];
+        if (!pg) return;
+        const sg = s[name] || {};
+        const def = defs[name];
+        if (!def) return;
+
         const pPreset = (pg.presets || {})[presetName] || {};
         const sPreset = (sg.presets || {})[presetName] || {};
+
+        let rows = "";
+        if (
+          pPreset.hasOwnProperty("equipped") &&
+          sPreset.hasOwnProperty("equipped") &&
+          sfNormBool(pPreset.equipped) !== sfNormBool(sPreset.equipped)
+        ) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.equipped),
+            sfDisplayBool(pPreset.equipped),
+            "Equipped",
+          );
+        }
+
         const pProps = pPreset.props || {};
         const sProps = sPreset.props || {};
-        let rows = "";
         (def.upgrades || []).filter(Boolean).forEach(function (attr) {
           const pv = pProps[attr];
           const sv = sProps[attr];
           if (sfNormLevel(pv) === sfNormLevel(sv)) return;
           rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
         });
-        if (rows) guardianInner += sfDiffSub(presetName, sfDiffGrid(rows));
+
+        if (rows) colInner += sfModuleDiffEntry(name, rows);
       });
 
-      if (guardianInner) html += sfDiffBlock(name, guardianInner);
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
     });
+
+    if (columns) {
+      html +=
+        '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+        columns +
+        "</div>";
+    }
     return html;
   }
 
@@ -1433,9 +1691,6 @@
     runSaveFileImport();
   }
 
-  // Folds the "Where do I find my save file?" guide that sits above the
-  // workflow. Collapsed on load; the section itself is revealed together with
-  // the save file section.
   function toggleSaveFileGuide() {
     const section = document.getElementById("saveGuideSection");
     const btn = document.getElementById("saveGuideToggle");
@@ -1444,8 +1699,6 @@
     btn.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
-  // Shared by the individual option cards inside the guide, including the
-  // nested "Show steps" fold (closest() picks the innermost card).
   function toggleSaveGuideCard(btn) {
     const card = btn.closest(".sgCard");
     if (!card) return;
@@ -1724,6 +1977,7 @@
     } else {
       setStatusText("Choose saved file...");
     }
+    startSaveFileSheetPrefetch();
   }
 
   function renderSaveFileWarning(files) {
@@ -2287,9 +2541,92 @@
         return renderGuardiansBody(data);
       case "Player & Stuff":
         return renderPlayerBody(data);
+      case "IDS Master":
+        return renderMasterBody(data);
       default:
         return renderGenericBody(data);
     }
+  }
+
+  // One column per global preset, in the order the parser resolved, with a row
+  // per preset type so the same type lines up across every column.
+  function renderMasterBody(data) {
+    const presetsData = data.oldPresetsData || {};
+    const presets = presetsData.data || {};
+    const presetNames = presetsData.presetNames || Object.keys(presets);
+    const typeOrder = data.presetTypesOrder || [];
+
+    let columns = "";
+    presetNames.forEach(function (name) {
+      const preset = presets[name];
+      if (!preset) return;
+      let rows = "";
+      typeOrder.forEach(function (type) {
+        const value = preset[type];
+        rows +=
+          '<div class="sfSubstatRow"><span>' +
+          escSaveFileHtml(type) +
+          '</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(
+            value === null || value === undefined || value === "" ? "-" : value,
+          ) +
+          "</span></div>";
+      });
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(name) +
+        "</div>" +
+        rows +
+        "</div>";
+    });
+
+    if (!columns) return "";
+    return (
+      sfSubLabel("Global Presets") +
+      '<div class="sfPresetTracks">' +
+      columns +
+      "</div>"
+    );
+  }
+
+  function renderMasterDiff(parsed, sheet) {
+    const pPresets = (parsed.oldPresetsData || {}).data || {};
+    const sPresets = (sheet.oldPresetsData || {}).data || {};
+    const presetNames =
+      (parsed.oldPresetsData || {}).presetNames || Object.keys(pPresets);
+    const typeOrder = parsed.presetTypesOrder || sheet.presetTypesOrder || [];
+
+    let columns = "";
+    presetNames.forEach(function (name) {
+      const pPreset = pPresets[name] || {};
+      const sPreset = sPresets[name] || {};
+      let rows = "";
+      typeOrder.forEach(function (type) {
+        if (sfNormGeneric(pPreset[type]) === sfNormGeneric(sPreset[type])) {
+          return;
+        }
+        rows += sfDiffRow(
+          sfDisplayValue(sPreset[type]),
+          sfDisplayValue(pPreset[type]),
+          type,
+        );
+      });
+      if (!rows) return;
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(name) +
+        "</div>" +
+        sfDiffGridStacked(rows) +
+        "</div>";
+    });
+
+    if (!columns) return "";
+    return (
+      sfSubLabel("Global Presets") +
+      '<div class="sfPresetTracks">' +
+      columns +
+      "</div>"
+    );
   }
 
   function renderGenericBody(data) {
@@ -2390,82 +2727,92 @@
   }
 
   function renderWorkshopBody(data) {
-    const upgrades = renderWorkshopGroup(
-      "Upgrades",
-      data.oldWorkshopLevels,
-      false,
-      data.upgradeIndices,
-    );
-    const enhancements = renderWorkshopGroup(
-      "Enhancements",
-      data.oldWorkshopPlusLevels,
-      true,
-      data.enhancementIndices,
-    );
+    const upgrades = data.oldWorkshopLevels || null;
+    const enhancements = data.oldWorkshopPlusLevels || null;
     if (!upgrades && !enhancements) return "";
-    return (
-      '<div class="sfWorkshopGroups">' +
-      (upgrades
-        ? '<div class="sfWorkshopGroupCol">' + upgrades + "</div>"
-        : "") +
-      (enhancements
-        ? '<div class="sfWorkshopGroupCol">' + enhancements + "</div>"
-        : "") +
-      "</div>"
-    );
+
+    const upgradeNames = (upgrades && upgrades.presetNames) || [];
+    const enhancementNames = (enhancements && enhancements.presetNames) || [];
+    const presetNames =
+      upgradeNames.length >= enhancementNames.length
+        ? upgradeNames
+        : enhancementNames;
+    if (!presetNames.length) return "";
+
+    let html = "";
+    presetNames.forEach(function (presetName, presetIndex) {
+      const groups =
+        renderWorkshopPresetGroup(
+          "Upgrades",
+          upgrades,
+          false,
+          data.upgradeIndices,
+          presetIndex,
+        ) +
+        renderWorkshopPresetGroup(
+          "Enhancements",
+          enhancements,
+          true,
+          data.enhancementIndices,
+          presetIndex,
+        );
+
+      if (!groups) return;
+
+      html +=
+        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        '</div><div class="sfPresetBox">' +
+        groups +
+        "</div></div>";
+    });
+
+    return html;
   }
 
-  function renderWorkshopGroup(groupLabel, group, isEnhancement, tracks) {
-    if (!group) return "";
-    const presetNames = group.presetNames || [];
+  function renderWorkshopPresetGroup(
+    groupLabel,
+    group,
+    isEnhancement,
+    tracks,
+    presetIndex,
+  ) {
+    if (!group || !tracks) return "";
     const entries = group.data || {};
     const trackLabels = ["Attack", "Defense", "Utility"];
-    let body = "";
+    let columnsHtml = "";
+    let hasRows = false;
 
-    presetNames.forEach(function (presetName, presetIndex) {
-      let presetHasLevel = false;
-      let columnsHtml = '<div class="sfWorkshopColumns">';
-
-      trackLabels.forEach(function (track) {
-        let rows = "";
-        (tracks[track] || []).forEach(function (name) {
-          if (!entries.hasOwnProperty(name)) return;
-          const levels = isEnhancement
-            ? entries[name]
-            : entries[name].levels || [];
-          const lvl = levels[presetIndex];
-          if (
-            lvl !== null &&
-            lvl !== undefined &&
-            lvl !== 0 &&
-            lvl !== "0" &&
-            lvl !== "00"
-          ) {
-            presetHasLevel = true;
-          }
-          rows += sfLevelRow(lvl, escSaveFileHtml(name));
-        });
-        columnsHtml +=
-          '<div class="sfWorkshopColumn">' +
-          '<div class="sfWorkshopColHeader">' +
-          escSaveFileHtml(track) +
-          "</div>" +
-          rows +
-          "</div>";
+    trackLabels.forEach(function (track) {
+      let rows = "";
+      (tracks[track] || []).forEach(function (name) {
+        if (!entries.hasOwnProperty(name)) return;
+        const levels = isEnhancement
+          ? entries[name]
+          : entries[name].levels || [];
+        const lvl = levels[isEnhancement ? presetIndex : presetIndex * 2];
+        rows += sfLevelRow(lvl, escSaveFileHtml(name));
+        hasRows = true;
       });
-
-      columnsHtml += "</div>";
-
-      if (!presetHasLevel) return;
-      body +=
-        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
-        escSaveFileHtml(presetName) +
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(track) +
         "</div>" +
-        columnsHtml +
+        rows +
         "</div>";
     });
 
-    return body ? sfSubLabel(groupLabel) + body : "";
+    if (!hasRows) return "";
+    return (
+      '<div class="sfPresetGroup">' +
+      '<div class="sfPresetGroupHeader">' +
+      escSaveFileHtml(groupLabel) +
+      "</div>" +
+      '<div class="sfPresetTracks">' +
+      columnsHtml +
+      "</div></div>"
+    );
   }
 
   function renderUltimateBody(data) {
@@ -2487,7 +2834,7 @@
         sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, levels) +
         "</div>";
     });
-    return html;
+    return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
   }
 
   function renderThemesAndRelicsBody(data) {
@@ -2526,40 +2873,40 @@
     const defs = data.targetBots || {};
     const order = data.botOrder || Object.keys(defs);
     const presetNames = bots.presetNames || [];
-    let html = "";
+    if (!presetNames.length) return "";
 
-    order.forEach(function (botName) {
-      const bot = botData[botName];
-      if (!bot) return;
-      const def = defs[botName];
-      if (!def) return;
-      const presets = bot.presets || {};
+    let html = '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      let entries = "";
 
-      html +=
-        '<div class="sfBlock"><div class="sfBlockHeader">' +
-        escSaveFileHtml(botName) +
-        "</div>";
-      html += '<div class="sfBotsColumns">';
-
-      presetNames.forEach(function (presetName) {
-        const preset = presets[presetName];
-        if (!preset) return;
-        const props = preset.props || {};
-        const activeTag = `<span class="sfTag"> active ${sfUnlockMark(preset.active)} </span>`;
-        const syncTag = `<span class="sfTag"> sync ${sfUnlockMark(preset.sync)} </span>`;
-        html +=
-          `<div class="sfBotColumn">
-          <div class="sfBotColHeader">
-          ${escSaveFileHtml(presetName)}
-          </div>
-          ${activeTag} ${syncTag}
-          ${sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, props)}
-          </div>`;
+      order.forEach(function (botName) {
+        const bot = botData[botName];
+        if (!bot) return;
+        const def = defs[botName];
+        if (!def) return;
+        const preset = (bot.presets || {})[presetName] || {};
+        entries +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(botName) +
+          "</div>" +
+          '<span class="sfTag"> active ' +
+          sfUnlockMark(preset.active) +
+          ' </span> <span class="sfTag"> sync ' +
+          sfUnlockMark(preset.sync) +
+          " </span>" +
+          sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, preset.props || {}) +
+          "</div>";
       });
 
-      html += "</div></div>";
+      if (!entries) return;
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>" +
+        entries +
+        "</div>";
     });
-    return html;
+    return html + "</div>";
   }
 
   function renderRelicsBody(data) {
@@ -2572,44 +2919,51 @@
   }
 
   function renderVaultBody(data) {
-    const harmony = data.oldVaultHarmony || {};
-    const power = data.oldVaultPower || {};
-    const harmonyOrder = data.harmonyIndices || [];
-    const powerOrder = data.powerIndices || [];
+    const oldVault = data.oldVault || {};
+    const unlockedGroups = oldVault.unlockedGroups || [];
+    const upgradesLevel = oldVault.upgradesLevel || {};
+    const groups = data.vaultIndices || [];
+    const alwaysUnlocked = data.alwaysUnlocked || [];
+    if (!groups.length) return "";
 
-    let html = "";
+    let columnsHtml = "";
 
-    const harmonyKeys = Object.keys(harmony);
-    if (harmonyKeys.length) {
-      html += sfSubLabel("Harmony") + '<div class="sfVaultGrid">';
-      harmonyOrder.forEach(function (name) {
-        if (!harmony.hasOwnProperty(name) || !harmony[name]) return;
-        html +=
-          '<span class="sfArrayItem">' + escSaveFileHtml(name) + "</span>";
-      });
-      html += "</div>";
-    }
+    groups.forEach(function (group) {
+      let sectionsHtml = "";
 
-    const powerKeys = Object.keys(power);
-    if (powerKeys.length) {
-      html += sfSubLabel("Power") + '<div class="sfVaultGrid">';
-      powerOrder.forEach(function (name) {
-        if (!power.hasOwnProperty(name) || !sfNormGeneric(power[name])) return;
-        const value = power[name];
-        const valueHtml =
-          value === true || value === "true"
-            ? sfUnlockMark(true)
-            : '<span class="sfMul">' + escSaveFileHtml(value) + "</span>";
-        html +=
-          '<span class="sfArrayItem">' +
-          escSaveFileHtml(name) +
+      (group.sections || []).forEach(function (section) {
+        const unlocked =
+          unlockedGroups.indexOf(section.section) !== -1 ||
+          alwaysUnlocked.indexOf(section.section) !== -1;
+        let rows = "";
+        (section.upgrades || []).forEach(function (name) {
+          rows += sfLevelRow(
+            upgradesLevel.hasOwnProperty(name) ? upgradesLevel[name] : 0,
+            escSaveFileHtml(name),
+          );
+        });
+        sectionsHtml +=
+          '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+          escSaveFileHtml(section.section) +
           " " +
-          valueHtml +
-          "</span>";
+          sfUnlockMark(unlocked) +
+          "</div>" +
+          rows +
+          "</div>";
       });
-      html += "</div>";
-    }
-    return html;
+
+      if (!sectionsHtml) return;
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(group.group) +
+        "</div>" +
+        sectionsHtml +
+        "</div>";
+    });
+
+    if (!columnsHtml) return "";
+    return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
   }
 
   function renderCardsBody(data) {
@@ -2666,49 +3020,121 @@
     return html;
   }
 
+  function sfModulesDice(planner, categories) {
+    for (let i = 0; i < categories.length; i++) {
+      const cat = planner[categories[i]];
+      if (cat && cat["Dice"] !== undefined) return cat["Dice"];
+    }
+    return undefined;
+  }
+
   function renderModulesBody(data) {
     const inv = data.oldModulesInventory || {};
     const presets = data.oldModulesPresets || {};
+    const planner = data.oldModulesPlanner || {};
     const categories = ["cannon", "armor", "generator", "core"];
+    const dice = sfModulesDice(planner, categories);
+    return (
+      (dice === undefined
+        ? ""
+        : '<div class="sfInlineKV">' +
+          sfInlinePair("Dice: ", dice) +
+          "</div>") +
+      renderModulesPresets(presets, categories) +
+      renderModulesInventory(inv, presets, categories, data.moduleOrder)
+    );
+  }
+
+  function renderModulesPresets(presets, categories) {
+    const presetNames = presets.presetNames || [];
+    if (!presetNames.length) return "";
+
     let html = '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>";
+
+      categories.forEach(function (cat) {
+        const preset = (presets[cat] || {})[presetName] || {};
+        html +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(cat) +
+          "</div>" +
+          sfModuleEquipRow("Main", preset.primary) +
+          sfModuleEquipRow("Assist", preset.secondary) +
+          "</div>";
+      });
+
+      html += "</div>";
+    });
+
+    return sfSubLabel("Presets") + html + "</div>";
+  }
+
+  function sfModuleEquipRow(label, moduleName) {
+    return (
+      '<div class="sfSubstatRow"><span class="sfSubstatRarity">' +
+        (moduleName
+          ? escSaveFileHtml(moduleName)
+          : '<span class="sfNull">-</span>') +
+      '</span><span>' +
+            escSaveFileHtml(label) +
+      "</span></div>"
+    );
+  }
+
+  function sfOrderedModuleKeys(invCat, moduleOrder, skipKeys) {
+    const ordered = [];
+    const placed = {};
+    (moduleOrder || []).forEach(function (name) {
+      [name, "Spare " + name].forEach(function (key) {
+        if (invCat.hasOwnProperty(key) && !placed[key]) {
+          ordered.push(key);
+          placed[key] = true;
+        }
+      });
+    });
+    Object.keys(invCat)
+      .sort(function (a, b) {
+        return a.localeCompare(b);
+      })
+      .forEach(function (key) {
+        if (placed[key]) return;
+        if (skipKeys && skipKeys.indexOf(key) !== -1) return;
+        ordered.push(key);
+      });
+    return ordered;
+  }
+
+  function renderModulesInventory(inv, presets, categories, moduleOrder) {
+    const metaKeys = ["Highest Level", "Assist Level"];
+    let html = '<div class="sfModuleColumns">';
+    let hasColumn = false;
 
     categories.forEach(function (cat) {
       const invCat = inv[cat] || {};
       const presetCat = presets[cat] || {};
-      if (
-        Object.keys(invCat).length === 0 &&
-        Object.keys(presetCat).length === 0
-      )
-        return;
+      const assistSlot = presetCat["Assist Slot"];
+      if (Object.keys(invCat).length === 0 && !assistSlot) return;
+      hasColumn = true;
 
       html +=
         '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
         escSaveFileHtml(cat) +
         "</div>";
 
-      const farming = presetCat["Farming"] || {};
-      if (invCat["Highest Level"] !== undefined)
+      metaKeys.forEach(function (key) {
+        if (invCat[key] === undefined) return;
         html +=
-          '<div class="sfModMeta">Main Lvl ' +
-          escSaveFileHtml(invCat["Highest Level"]) +
+          '<div class="sfModMeta">' +
+          escSaveFileHtml(key) +
+          " " +
+          escSaveFileHtml(invCat[key]) +
           "</div>";
-      if (invCat["Assist Level"] !== undefined)
-        html +=
-          '<div class="sfModMeta">Assist Lvl ' +
-          escSaveFileHtml(invCat["Assist Level"]) +
-          "</div>";
-      if (farming.primary)
-        html +=
-          '<div class="sfModMeta">Main: ' +
-          escSaveFileHtml(farming.primary) +
-          "</div>";
-      if (farming.secondary)
-        html +=
-          '<div class="sfModMeta">Assist: ' +
-          escSaveFileHtml(farming.secondary) +
-          "</div>";
+      });
 
-      const assistSlot = presetCat["Assist Slot"];
       if (assistSlot) {
         html +=
           '<div class="sfModuleEntry">' +
@@ -2727,12 +3153,8 @@
           "</div>";
       }
 
-      Object.keys(invCat)
-        .sort(function (a, b) {
-          return a.localeCompare(b);
-        })
-        .forEach(function (key) {
-          if (key === "Highest Level" || key === "Assist Level") return;
+      sfOrderedModuleKeys(invCat, moduleOrder, metaKeys).forEach(function (key) {
+          if (metaKeys.indexOf(key) !== -1) return;
           const m = invCat[key];
           if (!m || typeof m !== "object") return;
           html +=
@@ -2759,7 +3181,8 @@
 
       html += "</div>";
     });
-    return html + "</div>";
+
+    return hasColumn ? sfSubLabel("Inventory") + html + "</div>" : "";
   }
 
   function renderGuardiansBody(data) {
@@ -2768,42 +3191,56 @@
     const presetNames = guardians.presetNames || [];
     const defs = data.targetGuardians || {};
     const order = data.guardianOrder || Object.keys(defs);
-    let html = "";
+
+    let unlocks = "";
     order.forEach(function (name) {
       const g = gData[name];
       if (!g) return;
       const def = defs[name];
       if (!def) return;
-      const presets = g.presets || {};
-
-      html +=
-        '<div class="sfBlock"><div class="sfBlockHeader">' +
+      const unlocked = !!(g.unlocked || def.alwaysUnlocked);
+      unlocks +=
+        '<span class="sfArrayItem ' +
+        (unlocked ? "is-true" : "is-false") +
+        '">' +
         escSaveFileHtml(name) +
         " " +
-        sfUnlockMark(g.unlocked || def.alwaysUnlocked) +
-        "</div>";
-      html += '<div class="sfBotsColumns">';
+        sfUnlockMark(unlocked) +
+        "</span>";
+    });
+    let html = unlocks ? '<div class="sfUnlockRow">' + unlocks + "</div>" : "";
+    if (!presetNames.length) return html;
 
-      presetNames.forEach(function (presetName) {
-        const preset = presets[presetName];
-        if (!preset) return;
-        const equippedTag = preset.hasOwnProperty("equipped")
-          ? `<span class="sfTag"> equipped ${sfUnlockMark(preset.equipped)} </span>`
-          : "";
+    html += '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      let entries = "";
+      order.forEach(function (name) {
+        const g = gData[name];
+        if (!g) return;
+        const def = defs[name];
+        if (!def) return;
+        const preset = (g.presets || {})[presetName] || {};
         const rows = sfEntityUpgradeRows(def.upgrades, null, preset.props || {});
-        html +=
-          `<div class="sfBotColumn">
-          <div class="sfBotColHeader">
-          ${escSaveFileHtml(presetName)}
-          </div>
-          ${equippedTag}
-          ${rows || '<div class="sfModMeta">-</div>'}
-          </div>`;
+        entries +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(name) +
+          "</div>" +
+          '<span class="sfTag"> equipped ' +
+          sfUnlockMark(preset.equipped) +
+          " </span>" +
+          (rows || '<div class="sfModMeta">-</div>') +
+          "</div>";
       });
 
-      html += "</div></div>";
+      if (!entries) return;
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>" +
+        entries +
+        "</div>";
     });
-    return html;
+    return html + "</div>";
   }
 
   function sfTierNumber(key) {

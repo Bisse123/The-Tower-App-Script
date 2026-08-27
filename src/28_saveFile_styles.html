@@ -305,6 +305,13 @@
   .sfArrayItem.is-true  { background: #e6f4ea; color: #1e7e34; }
   .sfArrayItem.is-false { background: #f4f4f4; color: #999; }
 
+  .sfUnlockRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 2px 0 8px;
+  }
+
   .sfNestedList,
   .sfNestedObject {
     display: flex;
@@ -460,13 +467,18 @@
   }
 
   .sfSubLabel {
-    font-weight: 600;
-    font-size: 0.9em;
+    font-weight: 700;
+    font-size: 1em;
     width: 100%;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #888;
-    margin: 10px 0 4px;
+    letter-spacing: 0.06em;
+    color: #444;
+    border-bottom: 1px solid #d8dce3;
+    padding-bottom: 3px;
+    margin: 16px 0 8px;
+  }
+  .sfSubLabel:first-child {
+    margin-top: 0;
   }
 
   .sfInlineKV {
@@ -594,14 +606,14 @@
   .sfModuleColumn { min-width: 0; flex: 1 1 150px; }
   .sfModuleColHeader {
     font-weight: 600;
-    font-size: 1em;
+    font-size: 0.9em;
+    text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #666;
+    color: #777;
     border-bottom: 1px solid #eee;
     padding-bottom: 2px;
     margin-bottom: 3px;
-
   }
   .sfModMeta { font-size: 0.9em; color: #666; padding: 1px 0; }
   .sfModuleEntry {
@@ -621,6 +633,33 @@
     padding-left: 8px;
   }
   .sfSubstatRarity { color: #2752b0; flex-shrink: 0; }
+
+  .sfUltimateColumns {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .sfUltimateColumns .sfBlock {
+    margin: 0;
+    min-width: 0;
+    background: #f6f7f8;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    padding: 6px 8px;
+  }
+  .sfUltimateColumns .sfBlockHeader {
+    text-align: center;
+  }
+  @media (max-width: 1100px) {
+    .sfUltimateColumns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .sfUltimateColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 460px) {
+    .sfUltimateColumns { grid-template-columns: minmax(0, 1fr); }
+  }
 
   .sfCardColumns {
     display: flex;
@@ -783,17 +822,7 @@
     margin-bottom: 3px;
   }
 
-  .sfWorkshopGroups {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .sfWorkshopGroupCol {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .sfWorkshopColumns {
+  .sfPresetBox {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
@@ -802,6 +831,24 @@
     border: 1px solid #000000;
     border-radius: 4px;
     padding: 6px 8px;
+  }
+  .sfPresetGroup {
+    flex: 1 1 280px;
+    min-width: 0;
+  }
+  .sfPresetGroupHeader {
+    font-weight: 600;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .sfPresetTracks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
   }
   .sfWorkshopColumn { min-width: 0; flex: 1 1 140px; }
   .sfWorkshopColHeader {
@@ -845,6 +892,12 @@
     gap: 5px 8px;
     margin: 2px 0;
   }
+  .sfDiffGrid.sfDiffStack {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sfDiffStack .sfDiffRow { flex-wrap: wrap; }
+  .sfDiffStack .sfDiffName { min-width: 0; white-space: normal; }
   .sfDiffRow {
     display: flex;
     align-items: baseline;
@@ -871,6 +924,24 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+  }
+
+  .sfDiffFitColumns {
+    flex-wrap: nowrap;
+  }
+  .sfDiffFitColumns .sfModuleColumn {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: visible;
+  }
+  .sfDiffFitColumns .sfDiffRow {
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .sfDiffStackName .sfDiffName {
+    order: -1;
+    width: 100%;
   }
 
   .sfDiffChips {

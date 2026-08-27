@@ -842,57 +842,98 @@ const guardians = {
   // #endregion
   // #region Parse Saved File
   parseGuardiansData: function (data) {
+    // Keyed by the guardian's index in the save file's flat chip arrays. Slots
+    // the game ships but has never implemented simply have no entry here, so
+    // nothing downstream has to filter them back out.
     const targetGuardians = {
-      "Bounty":  { upgrades: ["Multiplier", "Cooldown", "Targets"] },
-      "Catch":   { upgrades: [null, null, null] },
-      "Attack":  { upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
-      "Scare":   { upgrades: [null, null, null] },
-      "Rush":    { upgrades: [null, null, null] },
-      "Ally":    { upgrades: ["Recovery Amount", "Max Recovery", "Cooldown"], alwaysUnlocked: true },
-      "Fetch":   { upgrades: ["Cooldown", "Find Chance", "Double Find Chance"] },
-      "Summon":  { upgrades: ["Cooldown", "Duration", "Cash Bonus"] },
-      "Scout":   { upgrades: ["Cooldown", "Range Bonus", "Duration"] },
+      0: { name: "Bounty", upgrades: ["Multiplier", "Cooldown", "Targets"] },
+      2: { name: "Attack", upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
+      5: { name: "Ally", upgrades: ["Recovery Amount", "Max Recovery", "Cooldown"], alwaysUnlocked: true },
+      6: { name: "Fetch", upgrades: ["Cooldown", "Find Chance", "Double Find Chance"] },
+      7: { name: "Summon", upgrades: ["Cooldown", "Duration", "Cash Bonus"] },
+      8: { name: "Scout", upgrades: ["Cooldown", "Range Bonus", "Duration"] },
     };
+    const guardianIndices = Object.keys(targetGuardians)
+      .map(Number)
+      .sort(function (a, b) {
+        return a - b;
+      });
 
-    const guardianSlotData = data.guardianChipSlot || [];
     const guardianUnlockedData = data.guardianChipUnlocked || [];
-    const guardianLevelData = data.guardianChipLevel || [];
+    const guardianPresetsData = data.guardianPresets || [];
 
+    const presets = guardianPresetsData.length
+      ? guardianPresetsData
+      : [
+          {
+            presetName: "Farming",
+            chipSlot: data.guardianChipSlot || [],
+            chipLevel: data.guardianChipLevel || [],
+          },
+        ];
+
+    var presetNames = [];
     var oldGuardians = {
-      presetNames: ["Farming"],
+      presetNames: presetNames,
       data: {},
     };
 
-    Object.keys(targetGuardians).forEach(function (guardianName, i) {
-      const { upgrades, alwaysUnlocked } = targetGuardians[guardianName];
-      if (upgrades.every(attr => attr === null)) {
+    presets.forEach(function (preset, index) {
+      const unlocked = preset.unlocked;
+      if (!unlocked && index) {
         return;
       }
-      var chipLevels = {};
-      upgrades.forEach(function (attr, j) {
-        if (attr === null) return;
-        const idx = i * upgrades.length + j;
-        const level = guardianLevelData[idx];
-        chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+      var presetName = unlocked ? preset.presetName : "Farming";
+
+      presetNames.push(presetName);
+
+      const chipLevel = preset.chipLevel || [];
+      // A slot list of one comes through as a bare value rather than an array.
+      const chipSlot =
+        preset.chipSlot == null ? [] : [].concat(preset.chipSlot);
+
+      guardianIndices.forEach(function (guardianIndex) {
+        const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
+
+        var chipLevels = {};
+        upgrades.forEach(function (attr, j) {
+          const level = chipLevel[guardianIndex * upgrades.length + j];
+          chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+        });
+
+        if (!oldGuardians.data[name]) {
+          oldGuardians.data[name] = {
+            unlocked: alwaysUnlocked
+              ? null
+              : guardianUnlockedData[guardianIndex] || false,
+            presets: {},
+          };
+        }
+        oldGuardians.data[name].presets[presetName] = {
+          props: chipLevels,
+          equipped: chipSlot.includes(guardianIndex),
+        };
       });
-      oldGuardians.data[guardianName] = {
-        unlocked: alwaysUnlocked ? null : (guardianUnlockedData[i] || false),
-        presets: {
-          Farming: {
-            props: chipLevels,
-            equipped: guardianSlotData.includes(i),
-          },
-        },
-      };
     });
-    
-    const guardianOrder = Object.keys(targetGuardians).filter(function (guardianName) {
-      return targetGuardians[guardianName].upgrades.some(function (attr) {return attr});
+
+    oldGuardians.presetNames = shared.resolvePresetOrder(
+      presetNames,
+      shared.templatePresetNames,
+    ).order;
+
+    var targetGuardiansByName = {};
+    var guardianOrder = [];
+    guardianIndices.forEach(function (guardianIndex) {
+      const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
+      targetGuardiansByName[name] = alwaysUnlocked
+        ? { upgrades: upgrades, alwaysUnlocked: alwaysUnlocked }
+        : { upgrades: upgrades };
+      guardianOrder.push(name);
     });
 
     return {
       oldGuardians: oldGuardians,
-      targetGuardians: targetGuardians,
+      targetGuardians: targetGuardiansByName,
       guardianOrder: guardianOrder,
     };
   },

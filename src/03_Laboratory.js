@@ -889,7 +889,7 @@ const lab = {
       37: "Buy Multiplier",
       38: "More Round Stats",
       39: "Target Priority",
-      40: "Card Presets",
+      40: "Presets",
       41: "Workshop Respec",
       50: "Missile Despawn Time",
       51: "Missiles Explosion",
@@ -1078,15 +1078,23 @@ const lab = {
       243: "Overcharge Enemy Damage",
       244: "Commander Enemy Health",
       245: "Saboteur Enemy Health",
+      252: "Global Presets",
     };
-
+    // Missing Cells Mastery lab
+    
     const labLevels = data.researchLevel || [];
     var oldLabLevels = {};
     var labOrder = [];
-    Object.keys(labNamesByIndex).forEach(function (indexStr) {
-      const index = Number(indexStr);
-      const labName = labNamesByIndex[index];
-      oldLabLevels[labName] = [labLevels[index] || 0, null];
+    labLevels.forEach(function (labLevel, index) {
+      var labName = labNamesByIndex[index];
+      if (!labName && !labLevel) {
+        return;
+      }
+      if (!labName) {
+        console.log(`No lab name found for index ${index}. lab level ${labLevel}`);
+        labName = `Unknown Lab ${index}`;
+      }
+      oldLabLevels[labName] = [labLevel, null];
       labOrder[index] = labName;
     });
 
