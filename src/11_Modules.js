@@ -1668,11 +1668,11 @@ const modules = {
         substats: moduleSubstats,
       };
 
-      if (!oldModulesPlanner.hasOwnProperty(instance.category)) {
-        oldModulesPlanner[instance.category] = {
-          "Dice": moduleDice,
-        };
-      }
+      // if (!oldModulesPlanner.hasOwnProperty(instance.category)) {
+      //   oldModulesPlanner[instance.category] = {
+      //     "Dice": moduleDice,
+      //   };
+      // }
     }
 
     function presetSlot(index, presetName) {
