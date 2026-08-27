@@ -1080,7 +1080,11 @@ const lab = {
       245: "Saboteur Enemy Health",
       252: "Global Presets",
     };
-    // Missing Cells Mastery lab
+    // Missing labs:
+    // Cells Mastery
+    // Overcharge Exponent Reducer
+    // Commander Radius
+    // Saboteur Attack Speed
     
     const labLevels = data.researchLevel || [];
     var oldLabLevels = {};

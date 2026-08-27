@@ -545,7 +545,8 @@ const master = {
     var oldPresetsData = {
       data: {},
     };
-    globalPresets.forEach((preset) => {
+    globalPresets.forEach((preset, index) => {
+      if (index == globalPresets.length - 1) return; // last index is a dummy entry, skip it
       const globalPresetName = preset.presetName;
       if (!globalPresetName) {
         return;
