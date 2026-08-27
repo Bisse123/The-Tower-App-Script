@@ -438,36 +438,41 @@ const modules = {
               }
             }
           }
-          var highestLevelCol = newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level");
-          var assistLevelCol = newModuleInventoryValues[rowIdx + 4].indexOf("Assist Level");
-          var dicecol = newModuleInventoryValues[rowIdx + 7].indexOf("Dice");
-          
-          if (highestLevelCol !== -1) {
-            var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
-            var highestLevelCell =
-              shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
-            batchUpdate.push({
-              range: `${sheetName}!${highestLevelCell}`,
-              values: [[maxLevel]],
-            });
+          if (oldModulesInventory[moduleType].hasOwnProperty("Highest Level")) {
+            var highestLevelCol = newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level");
+            if (highestLevelCol !== -1) {
+              var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
+              var highestLevelCell =
+                shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
+              batchUpdate.push({
+                range: `${sheetName}!${highestLevelCell}`,
+                values: [[maxLevel]],
+              });
+            }
           }
-          if (assistLevelCol !== -1) {
-            var assistLevel = oldModulesInventory[moduleType]["Assist Level"] || null;
-            var assistLevelCell =
-              shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
-            batchUpdate.push({
-              range: `${sheetName}!${assistLevelCell}`,
-              values: [[assistLevel]],
-            });
+          if (oldModulesInventory[moduleType].hasOwnProperty("Assist Level")) {
+            var assistLevelCol = newModuleInventoryValues[rowIdx + 4].indexOf("Assist Level");
+            if (assistLevelCol !== -1) {
+              var assistLevel = oldModulesInventory[moduleType]["Assist Level"] || null;
+              var assistLevelCell =
+                shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
+              batchUpdate.push({
+                range: `${sheetName}!${assistLevelCell}`,
+                values: [[assistLevel]],
+              });
+            }
           }
-          if (dicecol !== -1) {
-            var diceValue = oldModulesInventory[moduleType]["Dice"] || null;
-            var diceCell =
-              shared.columnToLetter(dicecol + 1) + (rowIdx + 9);
-            batchUpdate.push({
-              range: `${sheetName}!${diceCell}`,
-              values: [[diceValue]],
-            });
+          if (oldModulesInventory[moduleType].hasOwnProperty("Dice")) {
+            var dicecol = newModuleInventoryValues[rowIdx + 7].indexOf("Dice");
+            if (dicecol !== -1) {
+              var diceValue = oldModulesInventory[moduleType]["Dice"] || null;
+              var diceCell =
+                shared.columnToLetter(dicecol + 1) + (rowIdx + 9);
+              batchUpdate.push({
+                range: `${sheetName}!${diceCell}`,
+                values: [[diceValue]],
+              });
+            }
           }
         }
       });
