@@ -1602,10 +1602,10 @@ function compareSheetVersions(sheetID, sheetType) {
   }
   var homePageSheet = SheetsAPI.getSheetByName(spreadsheet, "Home Page");
   if (!homePageSheet) {
-    console.log(`Home Page sheet not found in ${sheeetType} spreadsheet`);
+    console.log(`Home Page sheet not found in ${sheetType} spreadsheet`);
     return {
       success: false,
-      message: `Home Page sheet™ not found in ${sheeetType} spreadsheet™`,
+      message: `Home Page sheet™ not found in ${sheetType} spreadsheet™`,
     };
   }
   
@@ -2314,6 +2314,7 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
             "Modules",
             "Guardians",
             "Player & Stuff",
+            "IDS Master",
           ];
 
     var idsMasterData = fetchIdsMasterData(resolvedIdMasterID);
@@ -2343,6 +2344,25 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
 
     for (var i = 0; i < requestedTypes.length; i++) {
       var sheetType = requestedTypes[i];
+
+      // The IDS Master is not one of its own linked subsheets - it is the sheet
+      // we were handed - so there is no IDS row to look it up in. Its version
+      // comes from its own Home Page instead.
+      if (sheetType === "IDS Master") {
+        targets[sheetType] = resolvedIdMasterID;
+        var masterVersion = compareSheetVersions(resolvedIdMasterID, sheetType);
+        versions[sheetType] = {
+          currentVersion: (masterVersion && masterVersion.currentVersion) || "",
+          latestVersion: (masterVersion && masterVersion.latestVersion) || "",
+          upToDate: !!(
+            masterVersion &&
+            masterVersion.success &&
+            masterVersion.comparisonResult !== "older"
+          ),
+        };
+        continue;
+      }
+
       var sheetTypeInfo = shared.findSheetTypeURL(
         resolvedIdMasterID,
         "IDS",

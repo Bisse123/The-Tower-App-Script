@@ -970,20 +970,27 @@ const themesAndRelics = {
       289: "Hunter's Realm",
       290: "Spiral Nautilus",
       291: "Tyrant's Skull",
-      294: "Ancient Writing",
       292: "Ancient Art",
       293: "Ancient Knowledge",
+      294: "Ancient Writing",
       295: "Grand Pyramid",
-      // No idea where these 3 belong
-      296: "T: XXII Vortex",
-      297: "T: XXIII Stellar",
-      298: "T: XXIV Cosmic",
+      // 296-299 Probably an event
+      // 296: "Missing 296",
+      // 297: "Missing 297",
+      // 298: "Missing 298",
       // 299: "Missing 299",
+      // 300-302 Probably tier relics
       // 300: "Missing 300",
       // 301: "Missing 301",
       // 302: "Missing 302",
       303: "Manta Ray",
       304: "Pearl Shell",
+      // No idea where these belong
+      // XXX: "T: XXII Vortex",
+      // XXX: "T: XXIII Stellar",
+      // XXX: "T: XXIV Cosmic",
+      // XXX: "Mythic Badge",
+      // XXX: "Mythic Tower",
     };
 
     const towerSkinsData = data.towerSkins || [];
@@ -1007,53 +1014,77 @@ const themesAndRelics = {
     var oldRelics = [];
 
     towerSkinsData.forEach(function (isUnlocked, index) {
-      if (!isUnlocked) return;
-      if (towerSkins[index]) {
-        oldThemesNames["Tower Skin"].push(towerSkins[index]);
+      if (!isUnlocked || !index) return;
+      var towerName = towerSkins[index];
+      var milestoneName = milestoneSkins[index];
+      if (!towerName && !milestoneName) {
+        console.log(`Warning: No tower or milestone skin name found for index ${index}`);
+        towerName = `Unknown Tower/Milestone Skin ${index}`;
       }
-      if (milestoneSkins[index]) {
-        oldThemesNames["Milestone Skin"].push(milestoneSkins[index]);
+      if (towerName) {
+        oldThemesNames["Tower Skin"].push(towerName);
+      }
+      if (milestoneName) {
+        oldThemesNames["Milestone Skin"].push(milestoneName);
       }
     });
 
     backgroundSkinsData.forEach(function (isUnlocked, index) {
-      if (isUnlocked && backgroundSkins[index]) {
-        oldThemesNames["Background Skin"].push(backgroundSkins[index]);
+      if (!isUnlocked || !index) return;
+      var backgroundName = backgroundSkins[index];
+      if (!backgroundName) {
+        console.log(`Warning: No background skin name found for index ${index}`);
+        backgroundName = `Unknown Background Skin ${index}`;
       }
+      oldThemesNames["Background Skin"].push(backgroundName);
     });
 
     menuSkinsData.forEach(function (isUnlocked, index) {
-      if (isUnlocked && menuThemes[index]) {
-        oldThemesNames["Menu"].push(menuThemes[index]);
+      if (!isUnlocked || !index) return;
+      var menuName = menuThemes[index];
+      if (!menuName) {
+        console.log(`Warning: No menu theme name found for index ${index}`);
+        menuName = `Unknown Menu Theme ${index}`;
       }
+      oldThemesNames["Menu"].push(menuName);
     });
 
     guardianSkinsData.forEach(function (isUnlocked, index) {
-      if (isUnlocked && guardianSkins[index]) {
-        oldThemesNames["Guardians"].push(guardianSkins[index]);
+      if (!isUnlocked || !index) return;
+      var guardianName = guardianSkins[index];
+      if (!guardianName) {
+        console.log(`Warning: No guardian skin name found for index ${index}`);
+        guardianName = `Unknown Guardian Skin ${index}`;
       }
+      oldThemesNames["Guardians"].push(guardianName);
     });
 
     profileBannersData.forEach(function (isUnlocked, index) {
-      if (isUnlocked && profileBanners[index]) {
-        oldThemesNames["Profile Banner"].push(profileBanners[index]);
+      if (!isUnlocked || !index) return;
+      var bannerName = profileBanners[index];
+      if (!bannerName) {
+        console.log(`Warning: No profile banner name found for index ${index}`);
+        bannerName = `Unknown Profile Banner ${index}`;
       }
+      oldThemesNames["Profile Banner"].push(bannerName);
     });
 
     songsData.forEach(function (isUnlocked, index) {
-      if (isUnlocked && songs[index]) {
-        oldThemesNames["Songs"].push(songs[index]);
+      if (!isUnlocked || index < 6) return;
+      var songName = songs[index];
+      if (!songName) {
+        console.log(`Warning: No song name found for index ${index}`);
+        songName = `Unknown Song ${index}`;
       }
+      oldThemesNames["Songs"].push(songName);
     });
 
-    relicsData.forEach(function (relicStatus, index) {
-      if (relicStatus < 1) {
-        return;
-      }
+    relicsData.forEach(function (isUnlocked, index) {
+      if (!isUnlocked) return;
       var relicName = relics[index];
       if (!relicName) {
         console.log(`Warning: No relic name found for index ${index}`);
-        return;
+        relicName = `Unknown Relic ${index}`;
       }
       oldRelics.push(relicName);
     });

@@ -483,20 +483,20 @@ const master = {
             if (!nextRowData || nextRowData.length <= col) {
               continue;
             }
-            var key = nextRowData[col];
+            var presetType = nextRowData[col];
 
-            const isSlider = sliders.includes(key);
+            const isSlider = sliders.includes(presetType);
             nextRow = isSlider ? nextRow : nextRow + 1;
             var colIndex = isSlider ? col + 2 : col + 1;
             var levelValue = presetsValues[nextRow][colIndex];
-            if (!key && !levelValue) {
+            if (!presetType && !levelValue) {
               finalRow = nextRow;
               break;
             }
             if (!presetsData.data[presetName]) {
               presetsData.data[presetName] = {};
             }
-            presetsData.data[presetName][key] = levelValue;
+            presetsData.data[presetName][presetType] = levelValue;
           }
         }
         row = finalRow;
@@ -519,6 +519,64 @@ const master = {
         message: "Error in getVersion4_0PresetsData: " + error.message,
       };
     }
+  },
+
+  // #endregion
+  // #region Parse Saved File
+  parseMasterData: function (data) {
+    const globalPresets = data.globalPresets || [];
+    const workshopPresetNames = data.workshopPresetNames || [];
+    const cardPresetNames = data.cardPresetNames || [];
+    const botPresetNames = data.botPresetNames || [];
+    const modulePresets = data.modulePresets || [];
+    const guardianPresets = data.guardianPresets || [];
+    const modulePresetNames = modulePresets.map((preset) => preset.presetName);
+    const guardianPresetNames = guardianPresets.map((preset) => preset.presetName);
+
+    const presetInfo = [
+      {"type": "Workshop", "indexName": "workshopIndex", "data": workshopPresetNames},
+      {"type": "Cards", "indexName": "cardsIndex", "data": cardPresetNames},
+      {"type": "Bots", "indexName": "botsIndex", "data": botPresetNames},
+      {"type": "Modules", "indexName": "modulesIndex", "data": modulePresetNames},
+      {"type": "Guardians", "indexName": "guardiansIndex", "data": guardianPresetNames},
+  ]
+
+    var oldPresetNames = [];
+    var oldPresetsData = {
+      data: {},
+    };
+    globalPresets.forEach((preset) => {
+      const globalPresetName = preset.presetName;
+      if (!globalPresetName) {
+        return;
+      }
+      oldPresetNames.push(globalPresetName);
+      if (!oldPresetsData.data.hasOwnProperty(globalPresetName)) {
+        oldPresetsData.data[globalPresetName] = {};
+      }
+      presetInfo.forEach((info) => {
+        const presetType = info.type;
+        const indexName = info.indexName;
+        const index = preset[indexName];
+        const data = info.data;
+        const presetName = data[index];
+        if (presetName) {
+          oldPresetsData.data[globalPresetName][presetType] = presetName;
+        }
+      });
+    });
+
+    oldPresetsData.presetNames = shared.resolvePresetOrder(
+        oldPresetNames,
+        shared.templatePresetNames,
+      ).order;
+
+    const presetTypesOrder = presetInfo.map((info) => info.type);
+    return {
+      success: true,
+      oldPresetsData: oldPresetsData,
+      presetTypesOrder: presetTypesOrder,
+    };
   },
 
   // #endregion

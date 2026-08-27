@@ -38,7 +38,7 @@ const modules = {
       console.log("Called: modules.importData");
 
       // Batch get required data for update function only
-      var requiredRanges = ["Inventory", "Presets", "Tracker", "IDS"];
+      var requiredRanges = ["Inventory", "Presets", "Planner v2", "Tracker", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
         "Main Efficiency": "DVT_Mod_Assist_Bonus_Level",
@@ -61,8 +61,9 @@ const modules = {
 
       var newModuleInventoryValues = batchResults[0].values;
       var newModulePresetsValues = batchResults[1].values;
-      var newModulesTrackerValues = batchResults[2].values;
-      var idsData = batchResults[3].values;
+      var newModulesPlannerValues = batchResults[2].values;
+      var newModulesTrackerValues = batchResults[3].values;
+      var idsData = batchResults[4].values;
 
       var dvtNamedRangesData = {};
       Object.keys(dvtNamedRanges).forEach(function (item) {
@@ -106,6 +107,23 @@ const modules = {
           };
         }
         batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
+      }
+
+      // Only update modules planner if key exists
+      if (data.hasOwnProperty("oldModulesPlanner")) {
+        var oldModulesPlanner = data.oldModulesPlanner;
+        var PlannerResult = this.updateModulesInventory(
+          "Planner v2",
+          oldModulesPlanner,
+          newModulesPlannerValues,
+        );
+        if (!PlannerResult || !PlannerResult.success) {
+          return {
+            success: false,
+            message: PlannerResult.message,
+          };
+        }
+        batchUpdate = batchUpdate.concat(PlannerResult.batchUpdate || []);
       }
 
       // Only update modules tracker if key exists
@@ -244,7 +262,10 @@ const modules = {
           }
           var rowIdx = context.rowIdx;
           var currentName = String(context.row[presetCol] || "").trim();
-          if (currentName !== String(presetName).trim() && moduleType === "cannon") {
+          if (
+            currentName !== String(presetName).trim() &&
+            moduleType === "cannon"
+          ) {
             var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
             var presetNameValues = [[presetName]];
             batchUpdate.push({
@@ -417,15 +438,12 @@ const modules = {
               }
             }
           }
-          var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
-          var assistLevel =
-            oldModulesInventory[moduleType]["Assist Level"] || null;
-          var highestLevelCol =
-            newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level");
-          var assistLevelCol =
-            newModuleInventoryValues[rowIdx + 4].indexOf("Assist Level");
-          // Update highest level
+          var highestLevelCol = newModuleInventoryValues[rowIdx + 1].indexOf("Highest Level");
+          var assistLevelCol = newModuleInventoryValues[rowIdx + 4].indexOf("Assist Level");
+          var dicecol = newModuleInventoryValues[rowIdx + 7].indexOf("Dice");
+          
           if (highestLevelCol !== -1) {
+            var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
             var highestLevelCell =
               shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
             batchUpdate.push({
@@ -434,11 +452,21 @@ const modules = {
             });
           }
           if (assistLevelCol !== -1) {
+            var assistLevel = oldModulesInventory[moduleType]["Assist Level"] || null;
             var assistLevelCell =
               shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
             batchUpdate.push({
               range: `${sheetName}!${assistLevelCell}`,
               values: [[assistLevel]],
+            });
+          }
+          if (dicecol !== -1) {
+            var diceValue = oldModulesInventory[moduleType]["Dice"] || null;
+            var diceCell =
+              shared.columnToLetter(dicecol + 1) + (rowIdx + 9);
+            batchUpdate.push({
+              range: `${sheetName}!${diceCell}`,
+              values: [[diceValue]],
             });
           }
         }
@@ -651,6 +679,76 @@ const modules = {
 
   // #endregion
   // #region Convert Versions
+  version6_4_2: function (oldSheetID) {
+    try {
+      console.log("Called: modules.version6_4_2");
+
+      var ranges = ["Inventory", "Presets", "Planner v2", "Tracker"];
+      var batchResult = SheetsAPI.batchGetValues(oldSheetID, ranges);
+
+      if (!batchResult || batchResult.length === 0) {
+        console.log("Could not read module data from old spreadsheet");
+        return {
+          success: false,
+          message: "Could not read module data from old spreadsheet",
+        };
+      }
+
+      var oldModulesInventoryValues = batchResult[0].values;
+      var oldModulesPresetsValues = batchResult[1].values;
+      var oldModulesPlannerValues = batchResult[2].values;
+      var oldModulesTrackerValues = batchResult[3].values;
+
+      var formulaRanges = ["Tracker"];
+      var formulaBatchResult = SheetsAPI.batchGetFormulas(
+        oldSheetID,
+        formulaRanges,
+      );
+      if (!formulaBatchResult || formulaBatchResult.length === 0) {
+        console.log("Could not read module formulas from old spreadsheet");
+        return {
+          success: false,
+          message: "Could not read module formulas from old spreadsheet",
+        };
+      }
+      var oldModulesTrackerFormulas = formulaBatchResult[0].values;
+
+      var inventoryData = this.getVersion5_0ModulesInventory(
+        oldModulesInventoryValues,
+      );
+      var presetsData = this.getVersion5_0ModulesPresets(
+        oldModulesPresetsValues,
+      );
+      var plannerData = this.getVersion5_0ModulesInventory(
+        oldModulesPlannerValues,
+      );
+      var trackerData = this.getVersion4_7ModulesTracker(
+        oldModulesTrackerValues,
+        oldModulesTrackerFormulas,
+      );
+
+      var success =
+        inventoryData.success && presetsData.success && plannerData.success && trackerData.success;
+
+      return {
+        success: success,
+        message: success
+          ? "Modules data retrieved successfully"
+          : "Error retrieving Modules data",
+        oldModulesInventory: inventoryData.oldModulesInventory || {},
+        oldModulesPresets: presetsData.oldModulesPresets || {},
+        oldModulesPlanner: plannerData.oldModulesInventory || {},
+        oldModulesTracker: trackerData.oldModulesTracker || {},
+      };
+    } catch (error) {
+      console.log("Error in version6_4_2: " + error.toString());
+      return {
+        success: false,
+        message: "Error in version6_4_2: " + error.message,
+      };
+    }
+  },
+
   version5_2_1: function (oldSheetID) {
     try {
       console.log("Called: modules.version5_2_1");
@@ -907,17 +1005,20 @@ const modules = {
         if (typeof rowIdx === "undefined") return;
         oldModulesInventory[moduleType] = {};
         var row = oldModulesInventoryValues[rowIdx];
-        var highestLevelCol =
-          oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
+        var highestLevelCol = oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
         if (highestLevelCol !== -1) {
           oldModulesInventory[moduleType]["Highest Level"] =
             oldModulesInventoryValues[rowIdx + 2][highestLevelCol];
         }
-        var assistLevelCol =
-          oldModulesInventoryValues[rowIdx + 4].indexOf("Assist Level");
+        var assistLevelCol = oldModulesInventoryValues[rowIdx + 4].indexOf("Assist Level");
         if (assistLevelCol !== -1) {
           oldModulesInventory[moduleType]["Assist Level"] =
             oldModulesInventoryValues[rowIdx + 5][assistLevelCol];
+        }
+        var diceCol = oldModulesInventoryValues[rowIdx + 7].indexOf("Dice");
+        if (diceCol !== -1) {
+          oldModulesInventory[moduleType]["Dice"] =
+            oldModulesInventoryValues[rowIdx + 8][diceCol];
         }
         for (var col = 1; col < row.length; col++) {
           var cellValue = row[col] != null ? String(row[col]) : "";
@@ -1362,6 +1463,10 @@ const modules = {
       46: { name: "Orbital Augment", category: "Armor" },
       47: { name: "Restorative Bonus", category: "Generator" },
       48: { name: "Primordial Collapse", category: "Core" },
+      49: { name: "Gilded Sniper", category: "Cannon" },
+      50: { name: "Sentry Protocol", category: "Armor" },
+      51: { name: "New Generator", category: "Generator" },
+      52: { name: "Tactical Barrage", category: "Core" },
     };
 
     const moduleRarities = {
@@ -1381,10 +1486,6 @@ const modules = {
       14: "Ancestral 4*",
       15: "Ancestral 5*",
     };
-
-    const rarityIndex = Object.fromEntries(
-      Object.entries(moduleRarities).map(([k, v]) => [v, +k]),
-    );
 
     const moduleCategories = {
       0: "Cannon",
@@ -1506,12 +1607,120 @@ const modules = {
       return null;
     }
 
-    const equippedModulesData = data.moduleEquipped || {};
-    const assistSlotData = data.assistModuleSlots || {};
-    const inventoryData = data.inventory || {};
+    const equippedModulesData = data.moduleEquipped || [];
+    const assistSlotData = data.assistModuleSlots || [];
+    const inventoryData = data.inventory || [];
+    const modulePresetsData = data.modulePresets || [];
+    const moduleLevelsData = data.moduleLevels || [];
+    const moduleDice = data.moduleDice || null;
 
     var oldModuleInventory = {};
     var oldModulesPresets = {};
+    var oldModulesPlanner = {};
+    var moduleInstances = {};
+
+    function collectModuleInstance(module, fallbackCategory) {
+      if (!module || !module.guid) {
+        return null;
+      }
+      if (!moduleInstances.hasOwnProperty(module.guid)) {
+        const moduleInfo = moduleNames[module.infoIndex];
+        const category = (moduleInfo && moduleInfo.category) || fallbackCategory;
+        if (!category) {
+          return null;
+        }
+        const name = (moduleInfo && moduleInfo.name) || "Any Other";
+        moduleInstances[module.guid] = {
+          guid: module.guid,
+          name: name,
+          category: category.toLowerCase(),
+          rarityLevel: module.currentRarity,
+          rarity: moduleRarities.hasOwnProperty(module.currentRarity)
+            ? moduleRarities[module.currentRarity]
+            : "Epic",
+          effects: module.effects || [],
+        };
+      }
+      return moduleInstances[module.guid];
+    }
+
+    function writeModuleEntry(instance, moduleName) {
+      instance.displayName = moduleName;
+      var moduleSubstats = [];
+      instance.effects.forEach(function (effectID) {
+        var substatInfo = lookupEffectID(effectID);
+        if (substatInfo) {
+          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
+        } else {
+          moduleSubstats.push([null, null]);
+        }
+      });
+      if (!oldModuleInventory.hasOwnProperty(instance.category)) {
+        oldModuleInventory[instance.category] = {};
+      }
+      oldModuleInventory[instance.category][moduleName] = {
+        rarity: instance.rarity,
+        substats: moduleSubstats,
+      };
+
+      if (!oldModulesPlanner.hasOwnProperty(instance.category)) {
+        oldModulesPlanner[instance.category] = {
+          "Dice": moduleDice,
+        };
+      }
+    }
+
+    function presetSlot(index, presetName) {
+      const moduleCategory = (moduleCategories[index] || "").toLowerCase();
+      if (!moduleCategory) {
+        return null;
+      }
+      if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
+        oldModulesPresets[moduleCategory] = {};
+      }
+      if (!oldModulesPresets[moduleCategory].hasOwnProperty(presetName)) {
+        oldModulesPresets[moduleCategory][presetName] = {
+          primary: "Any Other",
+          secondary: "",
+        };
+      }
+      return oldModulesPresets[moduleCategory][presetName];
+    }
+    
+    function placeModuleInstance(guid) {
+      const instance = guid ? moduleInstances[guid] : null;
+      if (!instance) {
+        return null;
+      }
+      if (instance.displayName) {
+        return instance.displayName;
+      }
+      const placed = oldModuleInventory[instance.category] || {};
+      if (!placed.hasOwnProperty(instance.name)) {
+        writeModuleEntry(instance, instance.name);
+        return instance.displayName;
+      }
+      // "Spare" is the marker updateModulesInventory looks for when filling the
+      // sheet's spare columns, and there is room for only one of them.
+      const spareName = `Spare ${instance.name}`;
+      if (!placed.hasOwnProperty(spareName)) {
+        writeModuleEntry(instance, spareName);
+      } else {
+        instance.displayName = spareName;
+      }
+      return instance.displayName;
+    }
+
+    moduleLevelsData.forEach(function (moduleLevel, index) {
+      const moduleCategory = moduleCategories[index].toLowerCase();
+      if (!moduleCategory) {
+        return;
+      }
+      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
+        oldModuleInventory[moduleCategory] = {};
+      }
+      oldModuleInventory[moduleCategory]["Highest Level"] = moduleLevel || null;
+    });
 
     equippedModulesData.forEach(function (module, index) {
       if (!module) {
@@ -1521,42 +1730,13 @@ const modules = {
       if (!moduleCategory) {
         return;
       }
-      const moduleName = moduleNames.hasOwnProperty(module.infoIndex)
-      ? moduleNames[module.infoIndex].name
-      : "Any Other";
-      const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
-        ? moduleRarities[module.currentRarity]
-        : "Epic";
-      const moduleLevel = module.level > 0 ? module.level : null;
-      const substatData = module.effects || [];
-      var moduleSubstats = [];
-      substatData.forEach(function (effectID, substatIndex) {
-        var substatInfo = lookupEffectID(effectID);
-        if (substatInfo) {
-          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
-        } else {
-          moduleSubstats.push([null, null]);
-        }
-      });
+      collectModuleInstance(module, moduleCategory);
       if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
         oldModuleInventory[moduleCategory] = {};
       }
-      oldModuleInventory[moduleCategory]["Highest Level"] = moduleLevel;
-      oldModuleInventory[moduleCategory][moduleName] = {
-        rarity: moduleRarity,
-        substats: moduleSubstats,
-      };
       if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
         oldModulesPresets[moduleCategory] = {};
       }
-      // oldModulesPresets[moduleCategory]["Farming"] = {
-      //   primary: moduleName,
-      //   secondary: "",
-      // };
-      // oldModulesPresets[moduleCategory]["Tourney"] = {
-      //   primary: moduleName,
-      //   secondary: "",
-      // };
     });
 
     assistSlotData.forEach(function (assistSlot, index) {
@@ -1590,104 +1770,105 @@ const modules = {
       if (!equippedAssistModule) {
         return;
       }
-      const assistModuleName = moduleNames.hasOwnProperty(
-        equippedAssistModule.infoIndex,
-      )
-        ? moduleNames[equippedAssistModule.infoIndex].name
-        : "Any Other";
-      const assistModuleRarity = moduleRarities.hasOwnProperty(
-        equippedAssistModule.currentRarity,
-      )
-        ? moduleRarities[equippedAssistModule.currentRarity]
-        : "Epic";
-      const assistModuleLevel = equippedAssistModule.level || 1;
-      const assistSubstatData = equippedAssistModule.effects || [];
-      var assistModuleSubstats = [];
-      assistSubstatData.forEach(function (effectID, substatIndex) {
-        var substatInfo = lookupEffectID(effectID);
-        if (substatInfo) {
-          assistModuleSubstats.push([substatInfo.label, substatInfo.rarity]);
-        } else {
-          assistModuleSubstats.push([null, null]);
-        }
-      });
+      collectModuleInstance(equippedAssistModule, assistCategory);
       if (!oldModuleInventory.hasOwnProperty(assistCategory)) {
         oldModuleInventory[assistCategory] = {};
       }
-      oldModuleInventory[assistCategory]["Assist Level"] = assistModuleLevel;
-      oldModuleInventory[assistCategory][assistModuleName] = {
-        rarity: assistModuleRarity,
-        substats: assistModuleSubstats,
-      };
+      oldModuleInventory[assistCategory]["Assist Level"] =
+        assistSlot.level || null;
       if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
         oldModulesPresets[assistCategory] = {};
       }
-      // if (!oldModulesPresets[assistCategory].hasOwnProperty("Farming")) {
-      //   oldModulesPresets[assistCategory]["Farming"] = {
-      //     primary: "",
-      //     secondary: "assistModuleName",
-      //   };
-      // } else {
-      //   oldModulesPresets[assistCategory]["Farming"].secondary =
-      //     assistModuleName;
-      // }
-      // if (!oldModulesPresets[assistCategory].hasOwnProperty("Tourney")) {
-      //   oldModulesPresets[assistCategory]["Tourney"] = {
-      //     primary: "",
-      //     secondary: "assistModuleName",
-      //   };
-      // } else {
-      //   oldModulesPresets[assistCategory]["Tourney"].secondary =
-      //     assistModuleName;
-      // }
     });
 
-    inventoryData.forEach(function (module, index) {
-      const moduleName = moduleNames.hasOwnProperty(module.infoIndex)
-        ? moduleNames[module.infoIndex].name
-        : null;
-      if (!moduleName) {
+    inventoryData.forEach(function (module) {
+      collectModuleInstance(module);
+    });
+
+    var presetNames = [];
+    modulePresetsData.forEach(function (preset) {
+      var presetName = preset.presetName || null;
+      if (!presetName) {
         return;
       }
-      const moduleCategory = (moduleNames.hasOwnProperty(module.infoIndex)
-        ? moduleNames[module.infoIndex].category
-        : moduleCategories[module.category]).toLowerCase();
-      const moduleRarity = moduleRarities.hasOwnProperty(module.currentRarity)
-        ? moduleRarities[module.currentRarity]
-        : "Epic";
-      const substatData = module.effects || [];
-      var moduleSubstats = [];
+      if (presetName === "Preset 1") {
+        presetName = "Farming";
+      }
+      presetNames.push(presetName);
+
+      (preset.primaryModuleGuids || []).forEach(function (moduleGuid, index) {
+        const slot = presetSlot(index, presetName);
+        if (!slot) {
+          return;
+        }
+        slot.primary = placeModuleInstance(moduleGuid) || "Any Other";
+      });
+      (preset.assistModuleGuids || []).forEach(function (moduleGuid, index) {
+        const moduleName = placeModuleInstance(moduleGuid);
+        if (!moduleName) {
+          return;
+        }
+        const slot = presetSlot(index, presetName);
+        if (slot) {
+          slot.secondary = moduleName;
+        }
+      });
+    });
+
+    // Every other module the player owns is represented by its best copy. The
+    // rest are "fodder" - duplicates kept only to raise another copy's rarity,
+    // an Ancestral module being fed an Epic+ copy of itself to reach
+    // Ancestral 1* - and are dropped, along with anything already placed above.
+    Object.keys(moduleNames).forEach(function (infoIndex) {
+      const moduleInfo = moduleNames[infoIndex];
+      const moduleCategory = moduleInfo.category.toLowerCase();
       if (
         oldModuleInventory.hasOwnProperty(moduleCategory) &&
-        oldModuleInventory[moduleCategory].hasOwnProperty(moduleName) &&
-        module.currentRarity <= rarityIndex[oldModuleInventory[moduleCategory][moduleName].rarity]
+        oldModuleInventory[moduleCategory].hasOwnProperty(moduleInfo.name)
       ) {
         return;
       }
-
-      substatData.forEach(function (effectID, substatIndex) {
-        var substatInfo = lookupEffectID(effectID);
-        if (substatInfo) {
-          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
-        } else {
-          moduleSubstats.push([null, null]);
+      var bestCopy = null;
+      Object.keys(moduleInstances).forEach(function (guid) {
+        const instance = moduleInstances[guid];
+        if (instance.name !== moduleInfo.name || instance.displayName) {
+          return;
+        }
+        if (
+          !bestCopy ||
+          (instance.rarityLevel || 0) > (bestCopy.rarityLevel || 0)
+        ) {
+          bestCopy = instance;
         }
       });
-      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
-        oldModuleInventory[moduleCategory] = {};
+      if (bestCopy) {
+        writeModuleEntry(bestCopy, moduleInfo.name);
       }
-      oldModuleInventory[moduleCategory][moduleName] = {
-        rarity: moduleRarity,
-        substats: moduleSubstats,
-      };
     });
+    oldModulesPresets.presetNames = shared.resolvePresetOrder(
+      presetNames,
+      shared.templatePresetNames,
+    ).order;
+
+    // The order the game lists modules in, for anything that has to display
+    // them - the inventory is keyed by name, which says nothing about order.
+    const moduleOrder = Object.keys(moduleNames)
+      .map(Number)
+      .sort(function (a, b) {
+        return a - b;
+      })
+      .map(function (infoIndex) {
+        return moduleNames[infoIndex].name;
+      });
 
     return {
       oldModulesInventory: oldModuleInventory,
       oldModulesPresets: oldModulesPresets,
+      oldModulesPlanner: oldModulesPlanner,
+      moduleOrder: moduleOrder,
     };
   },
-  
+
   // #endregion
   // #region Convert Version Functions Getter
   get convertVersionFunctions() {
@@ -1696,6 +1877,7 @@ const modules = {
       "v4.7": this.version4_7.bind(this),
       "v5.0": this.version5_0.bind(this),
       "v5.2.1": this.version5_2_1.bind(this),
+      "v6.4.2": this.version6_4_2.bind(this),
     };
   },
 
