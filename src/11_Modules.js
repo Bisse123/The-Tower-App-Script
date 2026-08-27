@@ -1010,17 +1010,21 @@ const modules = {
         if (typeof rowIdx === "undefined") return;
         oldModulesInventory[moduleType] = {};
         var row = oldModulesInventoryValues[rowIdx];
-        var highestLevelCol = oldModulesInventoryValues[rowIdx + 1].indexOf("Highest Level");
+
+        const highestLevelRow = oldModulesInventoryValues[rowIdx + 1];
+        var highestLevelCol = highestLevelRow ? highestLevelRow.indexOf("Highest Level") : -1;
         if (highestLevelCol !== -1) {
           oldModulesInventory[moduleType]["Highest Level"] =
             oldModulesInventoryValues[rowIdx + 2][highestLevelCol];
         }
-        var assistLevelCol = oldModulesInventoryValues[rowIdx + 4].indexOf("Assist Level");
+        const assistLevelRow = oldModulesInventoryValues[rowIdx + 4];
+        var assistLevelCol = assistLevelRow ? assistLevelRow.indexOf("Assist Level") : -1;
         if (assistLevelCol !== -1) {
           oldModulesInventory[moduleType]["Assist Level"] =
             oldModulesInventoryValues[rowIdx + 5][assistLevelCol];
         }
-        var diceCol = oldModulesInventoryValues[rowIdx + 7].indexOf("Dice");
+        const diceRow = oldModulesInventoryValues[rowIdx + 7];
+        var diceCol = diceRow ? diceRow.indexOf("Dice") : -1;
         if (diceCol !== -1) {
           oldModulesInventory[moduleType]["Dice"] =
             oldModulesInventoryValues[rowIdx + 8][diceCol];
