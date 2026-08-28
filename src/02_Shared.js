@@ -835,9 +835,14 @@ const shared = {
     }
 
     var regex = new RegExp(sheetType, "i");
+    var idRegex = /\bID\b/i;
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
-        if (regex.test(values[i][j]) && values[i][j].indexOf("script") === -1) {
+        if (
+          regex.test(values[i][j]) &&
+          idRegex.test(values[i][j]) &&
+          values[i][j].indexOf("script") === -1
+        ) {
           var cellA1 = shared.columnToLetter(j + 2) + (i + 1);
           var accessA1 = shared.columnToLetter(j + 4) + (i + 1);
           var importedA1 = shared.columnToLetter(j + 4) + (i + 2);
