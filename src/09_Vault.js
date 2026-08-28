@@ -422,7 +422,7 @@ const vault = {
         }
 
         if (name.toLowerCase().endsWith("section")) {
-          if (value === true || value === "TRUE" || value === "true") {
+          if ((value === true || value === "TRUE" || value === "true") && !(name.toLowerCase().includes("gameplay") || name.toLowerCase().includes("simple"))) {
             oldVault.unlockedGroups.push(name);
           }
           continue;
@@ -433,7 +433,6 @@ const vault = {
         }
         oldVault.upgradesLevel[name] = value;
       }
-
       return {
         success: true,
         message: "Vault processed successfully",
