@@ -1674,7 +1674,7 @@
     }
     if (!idMasterID) {
       setStatusText(
-        `Could not determine your ${saveFileSheetType} automatically.`,
+        `Could not determine your ${saveFileSheetType || "sheet"} automatically.`,
       );
       return;
     }
@@ -2250,7 +2250,7 @@
     }
 
     if (skipped && skipped.length) {
-      html += `<div class="sfImportGroup"><strong>⚠️️ Not found in this ${saveFileSheetType}:</strong><br>`;
+      html += `<div class="sfImportGroup"><strong>⚠️️ Not found in ${saveFileSheetType || "this sheet"}:</strong><br>`;
       skipped.forEach(function (type) {
         html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
       });
@@ -2265,7 +2265,7 @@
     if (!el) return;
 
     let html = `<div class="sfImportGroup"><strong>⛔ Import blocked - update your sheets first.</strong>
-        <br>All selected subsheets must be linked in your ${saveFileSheetType} and on the 
+        <br>All selected subsheets must be linked in your ${saveFileSheetType || "sheet"} and on the 
         latest version before importing a save file.</div>`;
 
     if (outdated && outdated.length) {
