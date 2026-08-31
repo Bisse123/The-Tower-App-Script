@@ -27,6 +27,7 @@
   let cachedSheetIds = null; // Cached sheet IDs to minimize server calls
   let cachedMasterTemplateInfo = null; // Cached master template info for combined updates to minimize server calls
   let cachedTemplatesWithSameVersion = null; // Cached templates with matching versions in combined updates
+  let cachedSkippedTemplates = null; // Templates the server held back, with the reason for each
   let versionDifference = null; // Version difference from compatibility check for import operations
   let masterVersionDifference = null; // Version difference for master sheet in combined updates
   let isUpdateSingleSheetFlow = false; // Flag to track if we're in updateSingleSheet flow
@@ -677,6 +678,59 @@
     }
   }
 
+  function formatSheetTypeList(names) {
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  }
+
+  function describeBlockedTemplates(blocked) {
+    const byLabel = new Map();
+    blocked.forEach((skipped) => {
+      const label = skipped.label || "unavailable";
+      if (!byLabel.has(label)) byLabel.set(label, []);
+      byLabel.get(label).push(skipped.sheetType);
+    });
+    return Array.from(byLabel, ([label, names]) => {
+      const verb = names.length === 1 ? "is" : "are";
+      return `${formatSheetTypeList(names)} ${verb} ${label}`;
+    });
+  }
+
+  function blockedTemplatesNoticeHtml(blocked) {
+    if (!blocked || blocked.length === 0) return "";
+    const items = blocked
+      .map(
+        (skipped) =>
+          `<li><strong>${skipped.sheetType}</strong> — ${
+            skipped.label || "unavailable"
+          }</li>`,
+      )
+      .join("");
+    return `
+      <div class="notOwnedWarning">
+        <div class="notOwnedWarningTitle">🚧 Held back for now</div>
+        <ul class="notOwnedWarningList">${items}</ul>
+        <small>These templates are not ready to be handed out yet. Run this again once they have been released.</small>
+      </div>`;
+  }
+
+  function describeNothingToCopy(copyMode, blocked) {
+    const parts = describeBlockedTemplates(blocked);
+    const subject = blocked.length === 1 ? "it" : "they";
+    if (copyMode === "update") {
+      if (parts.length === 0) {
+        return "Every sheet is already on the latest version, so there is nothing to update.";
+      }
+      return `${parts.join(", and ")}, so ${subject} cannot be updated yet. Every other sheet is already on the latest version.`;
+    }
+    if (parts.length === 0) {
+      return "No templates were found to copy.";
+    }
+    return `${parts.join(", and ")}, so ${subject} cannot be copied yet.`;
+  }
+
   async function copyTemplates(copyMode) {
     copyMode = copyMode || "all";
     currentCopyMode = copyMode;
@@ -692,6 +746,7 @@
         console.log("Using cached template info and sheet IDs for copy check");
         templateInfo = cachedTemplateInfo;
         sheetIds = cachedSheetIds;
+        cachedSkippedTemplates = cachedSkippedTemplates || [];
       } else {
         console.log("No cached IDs found, fetching from server");
         const idsResult = await new Promise((resolve, reject) => {
@@ -710,6 +765,7 @@
 
         cachedTemplateInfo = templateInfo;
         cachedSheetIds = sheetIds;
+        cachedSkippedTemplates = idsResult.skippedTemplates || [];
       }
 
       if (isCombinedUpdate) {
@@ -752,7 +808,11 @@
 
       var templateResults = {};
       var oldSheetResults = {};
-      var message = "No templates found to copy.";
+      const blockedTemplates = (cachedSkippedTemplates || []).filter(
+        (skipped) => skipped.blocked,
+      );
+      var nothingToCopy = false;
+      var message = describeNothingToCopy(copyMode, blockedTemplates);
       if (templateInfo.length !== 0 && sheetIds.length !== 0) {
         [templateResults, oldSheetResults] = await Promise.all([
           checkMultipleTemplateAccess(templateInfo),
@@ -765,9 +825,13 @@
         } else {
           message = `Access check completed for ${templateInfo.length} templates and ${sheetIds.length} sheets.`;
         }
+      } else {
+        nothingToCopy = true;
       }
       const result = {
         success: templateResults.success && oldSheetResults.success,
+        nothingToCopy: nothingToCopy,
+        blockedTemplates: blockedTemplates,
         message: message,
         templateResults: templateResults,
         oldSheetResults: oldSheetResults,
@@ -782,6 +846,7 @@
 
       cachedTemplateInfo = null;
       cachedSheetIds = null;
+      cachedSkippedTemplates = null;
 
       onTemplateAndOldSheetAccessCheckFailure(error);
     }
@@ -791,6 +856,26 @@
     console.log("Template and sheet access check result:", result);
 
     try {
+      if (result.nothingToCopy) {
+        const blocked = result.blockedTemplates || [];
+        console.log("Nothing to copy:", result.message);
+        setStatusText(result.message);
+        document.getElementById("fileAccessTitle").innerHTML =
+          blocked.length > 0
+            ? `🚧 Update Unavailable`
+            : `✅ Everything Is Up To Date`;
+        document.getElementById("selectedFileSummary").innerHTML =
+          `<p>${result.message}</p>` + blockedTemplatesNoticeHtml(blocked);
+        accessibleFilesCache = [];
+        inaccessibleFilesCache = [];
+        notOwnedFilesCache = [];
+        warningFilesCache = [];
+        templateAccessibleFilesCache = [];
+        templateInaccessibleFilesCache = [];
+        resetIDSMasterState();
+        return;
+      }
+
       if (result.success) {
         // Update all file caches with results
         accessibleFilesCache = result.oldSheetResults.accessibleFiles || [];
@@ -951,8 +1036,10 @@
     const modeDescription =
       copyMode === "update" ? "sheets with updates" : "sheets";
 
-    // Initialize the summary with header
-    let linksHtml = "<strong>📂 Created sheets for update:</strong>";
+    let linksHtml =
+      blockedTemplatesNoticeHtml(
+        (cachedSkippedTemplates || []).filter((skipped) => skipped.blocked),
+      ) + "<strong>📂 Created sheets for update:</strong>";
     selectedFileSummary.innerHTML = linksHtml;
 
     setStatusWithSpinner(`Copying ${totalTemplates} ${modeDescription}...`);
@@ -1103,8 +1190,10 @@
       let failedCount = 0;
       let completedCount = 0;
 
-      // Initialize the summary with header
-      let linksHtml = "<strong>📂 Created sheets for update:</strong>";
+      let linksHtml =
+        blockedTemplatesNoticeHtml(
+          (cachedSkippedTemplates || []).filter((skipped) => skipped.blocked),
+        ) + "<strong>📂 Created sheets for update:</strong>";
       document.getElementById("selectedFileSummary").innerHTML = linksHtml;
 
       setStatusWithSpinner(`Creating ${totalTemplates} sheets for update...`);
