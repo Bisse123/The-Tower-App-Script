@@ -2100,6 +2100,7 @@
     }));
     cachedSheetIds = [oldSheetID];
     cachedTemplatesWithSameVersion = [];
+    cachedSkippedTemplates = [];
     hasSubsheetsToUpdate = cachedTemplateInfo.length > 0;
 
     copyTemplates(currentCopyMode);
@@ -2147,6 +2148,7 @@
         oldSheetID: oldSheetID,
       },
     ];
+    cachedSkippedTemplates = [];
 
     const templateInfoForAccess = [
       {
@@ -2440,6 +2442,7 @@
             oldSheetID: oldSheetID, // Cache the oldSheetID for validation
           },
         ];
+        cachedSkippedTemplates = [];
 
         templateInfo = cachedTemplateInfo;
       }
@@ -2645,6 +2648,7 @@
     currentCopyMode = "update";
     cachedTemplateInfo = null;
     cachedSheetIds = null;
+    cachedSkippedTemplates = null;
 
     document.getElementById("selectedFileSummary").innerHTML =
       "<strong>📋 Updating subsheets with new versions.</strong><br>";
@@ -2729,6 +2733,7 @@
 
       cachedTemplateInfo = templatesWithUpdates;
       cachedTemplatesWithSameVersion = templatesWithSameVersion;
+      cachedSkippedTemplates = subsheetsResult.skippedTemplates || [];
       cachedSheetIds = [oldSheetID];
       templatesWithUpdates.forEach((template) => {
         // The merged sheet is exported from more than one old sheet, so all of

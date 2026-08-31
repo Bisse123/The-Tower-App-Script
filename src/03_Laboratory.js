@@ -1078,6 +1078,7 @@ const lab = {
       243: "Overcharge Enemy Damage",
       244: "Commander Enemy Health",
       245: "Saboteur Enemy Health",
+      251: "Cells Mastery",
       252: "Global Presets",
     };
     // Missing labs:

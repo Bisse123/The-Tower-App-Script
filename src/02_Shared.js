@@ -786,6 +786,35 @@ const shared = {
     }
   },
 
+  getVersionStatus: function (version) {
+    var text = String(version == null ? "" : version).trim();
+    if (!text) {
+      return {
+        status: "missing",
+        label: "missing a version number",
+        blocked: false,
+        version: "",
+      };
+    }
+    if (/maintenance/i.test(text)) {
+      return {
+        status: "maintenance",
+        label: "under maintenance",
+        blocked: true,
+        version: text,
+      };
+    }
+    if (/\bWIP\b|work[\s-]*in[\s-]*progress/i.test(text)) {
+      return {
+        status: "wip",
+        label: "still in development (WIP)",
+        blocked: true,
+        version: text,
+      };
+    }
+    return { status: "ok", label: "", blocked: false, version: text };
+  },
+
   compareVersions: function (oldVersion, newVersion) {
     // Dev only
     // if (newVersion.includes("WIP")) {
@@ -1801,6 +1830,7 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
     }
 
     var templateInfo = [];
+    var skippedTemplates = [];
     var sheetIds = [idMasterID];
 
     for (var i = 0; i < sheetTypes.length; i++) {
@@ -1820,7 +1850,16 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
             foundMergedThemes = true;
           }
           if (templateResult.versionFiltered) {
-            console.log(`Skipping ${sheetType} - version filtering applied`);
+            console.log(`Skipping ${sheetType} - ${templateResult.message}`);
+            skippedTemplates.push({
+              sheetType: sheetType,
+              reason: templateResult.skipReason || "filtered",
+              label: templateResult.skipLabel || "",
+              blocked: templateResult.blocked === true,
+              templateVersion: templateResult.templateVersion || "",
+              oldVersion: templateResult.oldVersion || "",
+              message: templateResult.message,
+            });
             continue;
           }
 
@@ -1853,6 +1892,7 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       success: true,
       sheetIds: sheetIds,
       templateInfo: templateInfo,
+      skippedTemplates: skippedTemplates,
       message: `Found ${templateInfo.length} templates and ${sheetIds.length} old sheets to check`,
     };
   } catch (error) {
@@ -1910,6 +1950,23 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
 
+    var templateStatus = shared.getVersionStatus(templateVersion);
+    if (templateStatus.blocked) {
+      console.log(
+        `${sheetType} template is ${templateStatus.label} (version cell: "${templateVersion}"), skipping`,
+      );
+      return {
+        success: true,
+        versionFiltered: true,
+        skipReason: templateStatus.status,
+        skipLabel: templateStatus.label,
+        blocked: true,
+        templateVersion: templateVersion,
+        oldVersion: oldVersion,
+        message: `${sheetType} is ${templateStatus.label}`,
+      };
+    }
+
     if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
         console.log(
@@ -1918,6 +1975,10 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
         return {
           success: true,
           versionFiltered: true,
+          skipReason: "missingVersion",
+          blocked: false,
+          templateVersion: templateVersion,
+          oldVersion: oldVersion,
           message: `Version information missing for ${sheetType}`,
         };
       }
@@ -1933,6 +1994,10 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
         return {
           success: true,
           versionFiltered: true,
+          skipReason: "upToDate",
+          blocked: false,
+          templateVersion: templateVersion,
+          oldVersion: oldVersion,
           message: `${sheetType} template version ${templateVersion} is not newer than old version ${oldVersion}`,
         };
       }
@@ -2174,6 +2239,22 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
 
     var templateVersion = spreadsheetInfo.version.value;
     var oldVersion = spreadsheetInfo.oldVersion.value;
+
+    var templateStatus = shared.getVersionStatus(templateVersion);
+    if (templateStatus.blocked) {
+      console.log(
+        `${sheetType} template is ${templateStatus.label} (version cell: "${templateVersion}"), blocking copy`,
+      );
+      return {
+        success: false,
+        blocked: true,
+        skipReason: templateStatus.status,
+        skipLabel: templateStatus.label,
+        sheetType: sheetType,
+        templateVersion: templateVersion,
+        message: `${sheetType} is ${templateStatus.label}, so it cannot be copied right now. Please try again once the template has been released.`,
+      };
+    }
 
     if (copyMode === "update") {
       if (!templateVersion || !oldVersion) {
