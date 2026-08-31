@@ -255,7 +255,7 @@ const master = {
               continue;
             }
             var oldLevelValue = oldPresetData[key];
-            if (oldLevelValue !== levelValue) {
+            if (oldLevelValue !== levelValue && oldLevelValue !== presetName) {
               batchUpdate.push({
                 range: `Presets Presets!${shared.columnToLetter(
                   colIndex + 1,
