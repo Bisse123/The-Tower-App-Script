@@ -203,6 +203,10 @@
             sheetName: "Modules Presets",
             range: "Modules Presets",
           },
+          "Modules Planner": {
+            sheetName: "Modules Planner",
+            range: "Modules Planner",
+          },
           "Modules Tracker": {
             sheetName: "Modules Tracker",
             range: "Modules Tracker",
@@ -822,6 +826,7 @@
             "values",
           );
           var modulesPresetsData = getRangeData("Modules Presets", "values");
+          var modulesPlannerData = getRangeData("Modules Planner", "values");
           var modulesTrackerData = getRangeData("Modules Tracker", "values");
           var modulesDVTData = buildDVTNamedRangesData(dvtNamedRangesModules);
           var modulesSuccess = true;
@@ -865,6 +870,25 @@
               modulesMessages.push(
                 "Presets: " +
                   (presetsResult ? presetsResult.message : "Unknown error"),
+              );
+            }
+          }
+          if (
+            modulesData.hasOwnProperty("oldModulesPlanner") &&
+            modulesPlannerData
+          ) {
+            var plannerResult = modules.updateModulesInventory(
+              sheetRequiredRanges.values["Modules Planner"].sheetName,
+              modulesData.oldModulesPlanner,
+              modulesPlannerData,
+            );
+            if (plannerResult && plannerResult.success) {
+              batchUpdate = batchUpdate.concat(plannerResult.batchUpdate || []);
+            } else {
+              modulesSuccess = false;
+              modulesMessages.push(
+                "Planner: " +
+                  (plannerResult ? plannerResult.message : "Unknown error"),
               );
             }
           }
@@ -1120,6 +1144,7 @@
           "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
           "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
           "Modules Presets": "Modules Presets", // Modules presets (full sheet)
+          "Modules Planner": "Modules Planner", // Modules planner (full sheet)
           "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
           Guardians: "EXPORT_Guardians!B4:O", // Guardians data
           "Player Tier": "EXPORT_Player!B3:H", // Player tier data
@@ -1386,6 +1411,7 @@
         "values",
       );
       var modulesPresetsResult = getBatchResult("Modules Presets", "values");
+      var modulesPlannerResult = getBatchResult("Modules Planner", "values");
       var modulesTrackerResult = getBatchResult("Modules Tracker", "values");
       var modulesTrackerFormulasResult = getBatchResult(
         "Modules Tracker",
@@ -1396,6 +1422,8 @@
         modulesInventoryResult.values &&
         modulesPresetsResult &&
         modulesPresetsResult.values &&
+        modulesPlannerResult &&
+        modulesPlannerResult.values &&
         modulesTrackerResult &&
         modulesTrackerResult.values &&
         modulesTrackerFormulasResult &&
@@ -1403,20 +1431,27 @@
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
+        var modulesPlannerValues = modulesPlannerResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
         var modulesInventoryData = modules.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
-        var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+        var modulesPresetsData = modules.getVersion5_0ModulesPresets(
+          modulesPresetsValues,
+        );
+        var modulesPlannerData = modules.getVersion6_4_3ModulesPlanner(
+          modulesPlannerValues,
+          modulesInventoryData.oldModulesInventory,
+        );
+        var modulesTrackerData = modules.getVersion6_4_3ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
         var modulesSuccess =
           modulesInventoryData.success &&
           modulesPresetsData.success &&
+          modulesPlannerData.success &&
           modulesTrackerData.success;
         collectedData.Modules = {
           success: modulesSuccess,
@@ -1425,6 +1460,7 @@
             : "Error retrieving Modules data",
           oldModulesInventory: modulesInventoryData.oldModulesInventory,
           oldModulesPresets: modulesPresetsData.oldModulesPresets,
+          oldModulesPlanner: modulesPlannerData.oldModulesPlanner,
           oldModulesTracker: modulesTrackerData.oldModulesTracker,
         };
       }
