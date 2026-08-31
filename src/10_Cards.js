@@ -784,7 +784,7 @@ const cards = {
       33: "Ultimate Crit",
       34: "Nuke",
       35: "Area of Effect",
-      36: "Cells",
+      37: "Cells",
     };
     var cardNameIndices = [];
     Object.keys(cardNamesByIndex).forEach(function (index) {
