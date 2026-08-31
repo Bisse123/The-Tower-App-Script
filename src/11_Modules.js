@@ -462,18 +462,6 @@ const modules = {
               });
             }
           }
-          if (oldModulesInventory[moduleType].hasOwnProperty("Dice")) {
-            var dicecol = newModuleInventoryValues[rowIdx + 7].indexOf("Dice");
-            if (dicecol !== -1) {
-              var diceValue = oldModulesInventory[moduleType]["Dice"] || null;
-              var diceCell =
-                shared.columnToLetter(dicecol + 1) + (rowIdx + 9);
-              batchUpdate.push({
-                range: `${sheetName}!${diceCell}`,
-                values: [[diceValue]],
-              });
-            }
-          }
         }
       });
       return {
@@ -512,7 +500,7 @@ const modules = {
         if (inputColIdx !== -1) {
           var inputValues = [];
           for (
-            var inputRow = row + 1;
+            var inputRow = row + 2;
             inputRow < newModulesTrackerValues.length;
             inputRow++
           ) {
@@ -529,7 +517,7 @@ const modules = {
           }
           if (inputValues.length > 0) {
             var inputColLetter = shared.columnToLetter(inputColIdx + 5);
-            var inputRowStart = row + 2;
+            var inputRowStart = row + 3;
             var inputRowEnd = inputRowStart + inputValues.length - 1;
             var inputRange = `${sheetName}!${inputColLetter}${inputRowStart}:${inputColLetter}${inputRowEnd}`;
             batchUpdate.push({
@@ -552,12 +540,15 @@ const modules = {
               ) {
                 var summaryData = oldModulesTracker["summary"][type];
                 for (
-                  var rowIdx = row + 2;
+                  var rowIdx = row + 3;
                   rowIdx < newModulesTrackerValues.length;
                   rowIdx++
                 ) {
                   var summaryRowData = newModulesTrackerValues[rowIdx];
                   var summaryModuleName = summaryRowData[idx] || null;
+                  if (!summaryModuleName) {
+                    continue;
+                  }
                   if (summaryModuleName.toLowerCase().includes("total")) {
                     break;
                   }
@@ -580,7 +571,8 @@ const modules = {
               String(cell).toLowerCase().includes(type),
             ) &&
             !String(cell).toLowerCase().includes("summary") &&
-            !String(cell).toLowerCase().includes("quantity"),
+            !String(cell).toLowerCase().includes("quantity") &&
+            !String(cell).toLowerCase().includes("score"),
         );
         if (colIdx === -1) {
           continue;
@@ -594,7 +586,7 @@ const modules = {
             oldModulesTracker[targetModule] &&
             oldModulesTracker[targetModule].hasOwnProperty(moduleName)
           ) {
-            var startRow = row + 4;
+            var startRow = row + 5;
             var rangeCol = col + 2;
             if (moduleName === "Fodders") {
               startRow -= 1;
@@ -619,7 +611,7 @@ const modules = {
                 moduleName + " Shattered",
               )
             ) {
-              var shatteredRow = row + 9;
+              var shatteredRow = startRow + 5;
               var shatteredCol = col + 3;
               var shatteredRange = `${sheetName}!${shared.columnToLetter(shatteredCol)}${shatteredRow}`;
               var shatteredValue = [
@@ -724,16 +716,20 @@ const modules = {
       var presetsData = this.getVersion5_0ModulesPresets(
         oldModulesPresetsValues,
       );
-      var plannerData = this.getVersion5_0ModulesInventory(
+      var plannerData = this.getVersion6_4_3ModulesPlanner(
         oldModulesPlannerValues,
+        inventoryData.oldModulesInventory,
       );
-      var trackerData = this.getVersion4_7ModulesTracker(
+      var trackerData = this.getVersion6_4_3ModulesTracker(
         oldModulesTrackerValues,
         oldModulesTrackerFormulas,
       );
 
       var success =
-        inventoryData.success && presetsData.success && plannerData.success && trackerData.success;
+        inventoryData.success &&
+        presetsData.success &&
+        plannerData.success &&
+        trackerData.success;
 
       return {
         success: success,
@@ -742,7 +738,7 @@ const modules = {
           : "Error retrieving Modules data",
         oldModulesInventory: inventoryData.oldModulesInventory || {},
         oldModulesPresets: presetsData.oldModulesPresets || {},
-        oldModulesPlanner: plannerData.oldModulesInventory || {},
+        oldModulesPlanner: plannerData.oldModulesPlanner || {},
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
@@ -1023,12 +1019,6 @@ const modules = {
           oldModulesInventory[moduleType]["Assist Level"] =
             oldModulesInventoryValues[rowIdx + 5][assistLevelCol];
         }
-        const diceRow = oldModulesInventoryValues[rowIdx + 7];
-        var diceCol = diceRow ? diceRow.indexOf("Dice") : -1;
-        if (diceCol !== -1) {
-          oldModulesInventory[moduleType]["Dice"] =
-            oldModulesInventoryValues[rowIdx + 8][diceCol];
-        }
         for (var col = 1; col < row.length; col++) {
           var cellValue = row[col] != null ? String(row[col]) : "";
           if (cellValue.trim() !== "") {
@@ -1147,6 +1137,123 @@ const modules = {
       return {
         success: false,
         message: "Error in getVersion4_0ModulesInventory: " + error.message,
+      };
+    }
+  },
+
+  // #endregion
+  // #region Get Modules Planner
+  getVersion6_4_3ModulesPlanner: function (
+    oldModulesPlannerValues,
+    oldModulesInventory,
+  ) {
+    try {
+      console.log("Called: modules.getVersion6_4_3ModulesPlanner");
+      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+      var oldModuleTypeIndex = this.findModuleTypesRowIndex(
+        targetModuleTypes,
+        oldModulesPlannerValues,
+      );
+
+      // These cells hold dropdown text, so an empty cell and a missing cell are
+      // the same thing when deciding whether the planner changed anything.
+      function matchesInventory(plannerValue, inventoryValue) {
+        var planner = plannerValue == null ? "" : String(plannerValue).trim();
+        var inventory =
+          inventoryValue == null ? "" : String(inventoryValue).trim();
+        return planner === inventory;
+      }
+
+      var inventory = oldModulesInventory || {};
+      var oldModulesPlanner = {};
+      targetModuleTypes.forEach(function (moduleType) {
+        var rowIdx = oldModuleTypeIndex[moduleType];
+        if (typeof rowIdx === "undefined") return;
+        oldModulesPlanner[moduleType] = {};
+        var inventoryModules = inventory[moduleType] || {};
+        var row = oldModulesPlannerValues[rowIdx];
+
+        const highestLevelRow = oldModulesPlannerValues[rowIdx + 1];
+        var highestLevelCol = highestLevelRow ? highestLevelRow.indexOf("Highest Level") : -1;
+        if (highestLevelCol !== -1) {
+          var plannerHighestLevel = oldModulesPlannerValues[rowIdx + 2][highestLevelCol];
+          var inventoryHighestLevel = inventory[moduleType] ? inventory[moduleType]["Highest Level"] : null;
+          if (!matchesInventory(plannerHighestLevel, inventoryHighestLevel)) {
+            oldModulesPlanner[moduleType]["Highest Level"] = plannerHighestLevel;
+          }
+        }
+        const assistLevelRow = oldModulesPlannerValues[rowIdx + 4];
+        var assistLevelCol = assistLevelRow ? assistLevelRow.indexOf("Assist Level") : -1;
+        if (assistLevelCol !== -1) {
+          var plannerAssistLevel = oldModulesPlannerValues[rowIdx + 5][assistLevelCol];
+          var inventoryAssistLevel = inventory[moduleType] ? inventory[moduleType]["Assist Level"] : null;
+          if (!matchesInventory(plannerAssistLevel, inventoryAssistLevel)) {
+            oldModulesPlanner[moduleType]["Assist Level"] = plannerAssistLevel;
+          }
+        }
+        for (var col = 1; col < row.length; col++) {
+          var cellValue = row[col] != null ? String(row[col]) : "";
+          if (cellValue.trim() !== "") {
+            var moduleName = cellValue;
+            if (moduleName) {
+              var inventoryModule = inventoryModules[moduleName] || null;
+              var inventorySubstats =
+                inventoryModule && inventoryModule.substats
+                  ? inventoryModule.substats
+                  : [];
+
+              var moduleRarity =
+                oldModulesPlannerValues[rowIdx + 2][col] != null
+                  ? String(oldModulesPlannerValues[rowIdx + 2][col]).trim()
+                  : "";
+              oldModulesPlanner[moduleType][moduleName] = {
+                rarity:
+                  inventoryModule &&
+                  matchesInventory(moduleRarity, inventoryModule.rarity)
+                    ? null
+                    : moduleRarity,
+                substats: [],
+              };
+              for (
+                var substat = rowIdx + 4;
+                substat < rowIdx + 4 + 8;
+                substat++
+              ) {
+                var substatRow = oldModulesPlannerValues[substat];
+                var substatName = substatRow ? substatRow[col] : "";
+                var substatRarity = substatRow ? substatRow[col + 1] : "";
+                var inventorySubstat =
+                  inventorySubstats[substat - (rowIdx + 4)] || [];
+                var substatData = [
+                  inventoryModule &&
+                  matchesInventory(substatName, inventorySubstat[0])
+                    ? null
+                    : substatName,
+                  inventoryModule &&
+                  matchesInventory(substatRarity, inventorySubstat[1])
+                    ? null
+                    : substatRarity,
+                ];
+                oldModulesPlanner[moduleType][moduleName]["substats"].push(
+                  substatData,
+                );
+              }
+            }
+          }
+        }
+      });
+
+      return {
+        success: true,
+        oldModulesPlanner: oldModulesPlanner,
+      };
+    } catch (error) {
+      console.log(
+        "Error in getVersion6_4_3ModulesPlanner: " + error.toString(),
+      );
+      return {
+        success: false,
+        message: "Error in getVersion6_4_3ModulesPlanner: " + error.message,
       };
     }
   },
@@ -1309,6 +1416,141 @@ const modules = {
 
   // #endregion
   // #region Get Modules Tracker
+  getVersion6_4_3ModulesTracker: function (
+    oldModulesTrackerValues,
+    oldModulesTrackerFormulas,
+  ) {
+    try {
+      console.log("Called: modules.getVersion6_4_3ModulesTracker");
+      var targetModuleTypes = ["cannon", "armor", "generator", "core"];
+      var oldModulesTracker = {};
+
+      for (var row = 0; row < oldModulesTrackerValues.length; row++) {
+        var rowData = oldModulesTrackerValues[row];
+        var inputColIdx = rowData.indexOf("Input values");
+        if (inputColIdx !== -1) {
+          oldModulesTracker["Input values"] = {};
+          for (
+            var inputRow = row + 2;
+            inputRow < oldModulesTrackerValues.length;
+            inputRow++
+          ) {
+            var inputRowData = oldModulesTrackerValues[inputRow];
+            var inputKey = inputRowData[inputColIdx] || null;
+            var inputValue = inputRowData[inputColIdx + 4] || null;
+            if (inputKey) {
+              oldModulesTracker["Input values"][inputKey] = inputValue;
+            } else {
+              break;
+            }
+          }
+        }
+
+        if (
+          rowData.some((cell) => String(cell).toLowerCase().includes("summary"))
+        ) {
+          rowData.forEach(function (cell, idx) {
+            targetModuleTypes.forEach(function (type) {
+              if (
+                String(cell).toLowerCase().includes(type) &&
+                String(cell).toLowerCase().includes("summary")
+              ) {
+                for (
+                  var rowIdx = row + 3;
+                  rowIdx < oldModulesTrackerFormulas.length;
+                  rowIdx++
+                ) {
+                  var summaryRowData = oldModulesTrackerFormulas[rowIdx];
+                  var summaryModuleName = summaryRowData[idx] || null;
+                  var summaryModuleCount = summaryRowData[idx + 1] || null;
+                  if (!summaryModuleName) {
+                    continue;
+                  }
+                  if (summaryModuleName.toLowerCase().includes("total")) {
+                    break;
+                  }
+                  if (!String(summaryModuleCount).trim().startsWith("=")) {
+                    if (!oldModulesTracker["summary"]) {
+                      oldModulesTracker["summary"] = {};
+                    }
+                    if (!oldModulesTracker["summary"][type]) {
+                      oldModulesTracker["summary"][type] = {};
+                    }
+                    oldModulesTracker["summary"][type][summaryModuleName] =
+                      summaryModuleCount;
+                  }
+                }
+              }
+            });
+          });
+        }
+
+        var colIdx = rowData.findIndex(
+          (cell) =>
+            targetModuleTypes.some((type) =>
+              String(cell).toLowerCase().includes(type),
+            ) &&
+            !String(cell).toLowerCase().includes("summary") &&
+            !String(cell).toLowerCase().includes("quantity") &&
+            !String(cell).toLowerCase().includes("score"),
+        );
+        if (colIdx === -1) {
+          continue;
+        }
+        var targetModule = targetModuleTypes.find(function (type) {
+          return String(rowData[colIdx]).toLowerCase().includes(type);
+        });
+        const subRowStart = row + 4;
+        for (var col = colIdx; col < rowData.length; col++) {
+          var moduleName = String(rowData[col]).trim();
+          if (
+            moduleName &&
+            oldModulesTrackerValues[subRowStart][col] === "Copies"
+          ) {
+            if (!oldModulesTracker[targetModule]) {
+              oldModulesTracker[targetModule] = {};
+            }
+            oldModulesTracker[targetModule][moduleName] = [];
+            for (var subRow = subRowStart; subRow < subRowStart + 4; subRow++) {
+              var subRowData = oldModulesTrackerValues[subRow];
+
+              var copy = subRowData[col + 1] || null;
+              oldModulesTracker[targetModule][moduleName].push(copy);
+            }
+
+            if (oldModulesTrackerValues[subRowStart + 5][col] === "Shattered epic") {
+              oldModulesTracker[targetModule][moduleName + " Shattered"] =
+                oldModulesTrackerValues[subRowStart + 5][col + 2] || null;
+            }
+          } else if (moduleName === "Fodders") {
+            if (!oldModulesTracker[targetModule]) {
+              oldModulesTracker[targetModule] = {};
+            }
+            const fodderRowStart = row + 3;
+            oldModulesTracker[targetModule][moduleName] = [];
+            for (var subRow = fodderRowStart; subRow < fodderRowStart + 6; subRow++) {
+              var subRowData = oldModulesTrackerValues[subRow];
+
+              var fodder = subRowData[col + 2] || null;
+              oldModulesTracker[targetModule][moduleName].push(fodder);
+            }
+            break;
+          }
+        }
+      }
+      return {
+        success: true,
+        oldModulesTracker: oldModulesTracker,
+      };
+    } catch (error) {
+      console.log("Error in getVersion6_4_3ModulesTracker: " + error.toString());
+      return {
+        success: false,
+        message: "Error in getVersion6_4_3ModulesTracker: " + error.message,
+      };
+    }
+  },
+
   getVersion4_7ModulesTracker: function (
     oldModulesTrackerValues,
     oldModulesTrackerFormulas,
@@ -1621,11 +1863,9 @@ const modules = {
     const inventoryData = data.inventory || [];
     const modulePresetsData = data.modulePresets || [];
     const moduleLevelsData = data.moduleLevels || [];
-    const moduleDice = data.moduleDice || null;
 
     var oldModuleInventory = {};
     var oldModulesPresets = {};
-    var oldModulesPlanner = {};
     var moduleInstances = {};
 
     function collectModuleInstance(module, fallbackCategory) {
@@ -1671,12 +1911,6 @@ const modules = {
         rarity: instance.rarity,
         substats: moduleSubstats,
       };
-
-      // if (!oldModulesPlanner.hasOwnProperty(instance.category)) {
-      //   oldModulesPlanner[instance.category] = {
-      //     "Dice": moduleDice,
-      //   };
-      // }
     }
 
     function presetSlot(index, presetName) {
@@ -1873,7 +2107,6 @@ const modules = {
     return {
       oldModulesInventory: oldModuleInventory,
       oldModulesPresets: oldModulesPresets,
-      oldModulesPlanner: oldModulesPlanner,
       moduleOrder: moduleOrder,
     };
   },
@@ -1886,7 +2119,7 @@ const modules = {
       "v4.7": this.version4_7.bind(this),
       "v5.0": this.version5_0.bind(this),
       "v5.2.1": this.version5_2_1.bind(this),
-      // "v6.4.3": this.version6_4_3.bind(this),
+      "v6.4.3": this.version6_4_3.bind(this),
     };
   },
 

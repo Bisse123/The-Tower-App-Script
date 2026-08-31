@@ -1253,20 +1253,8 @@
     const moduleCats = ["cannon", "armor", "generator", "core"];
     const pPre = parsed.oldModulesPresets || {};
     const sPre = sheet.oldModulesPresets || {};
-    const pPlanner = parsed.oldModulesPlanner || {};
-    const sPlanner = sheet.oldModulesPlanner || {};
-
-    const pDice = sfModulesDice(pPlanner, moduleCats);
-    const sDice = sfModulesDice(sPlanner, moduleCats);
-    const diceHtml =
-      sfNormLevel(pDice) === sfNormLevel(sDice)
-        ? ""
-        : sfDiffGrid(
-            sfDiffRow(sfDisplayLevel(sDice), sfDisplayLevel(pDice), "Dice"),
-          );
 
     return (
-      diceHtml +
       renderModulesPresetsDiff(pPre, sPre, moduleCats) +
       renderModulesInventoryDiff(
         parsed.oldModulesInventory || {},
@@ -3020,26 +3008,11 @@
     return html;
   }
 
-  function sfModulesDice(planner, categories) {
-    for (let i = 0; i < categories.length; i++) {
-      const cat = planner[categories[i]];
-      if (cat && cat["Dice"] !== undefined) return cat["Dice"];
-    }
-    return undefined;
-  }
-
   function renderModulesBody(data) {
     const inv = data.oldModulesInventory || {};
     const presets = data.oldModulesPresets || {};
-    const planner = data.oldModulesPlanner || {};
     const categories = ["cannon", "armor", "generator", "core"];
-    const dice = sfModulesDice(planner, categories);
     return (
-      (dice === undefined
-        ? ""
-        : '<div class="sfInlineKV">' +
-          sfInlinePair("Dice: ", dice) +
-          "</div>") +
       renderModulesPresets(presets, categories) +
       renderModulesInventory(inv, presets, categories, data.moduleOrder)
     );

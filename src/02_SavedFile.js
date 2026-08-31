@@ -70,7 +70,6 @@ const moduleHeaders = {
   assistModuleSlots: "assistModuleSlots",
   moduleLevels: "slotLevels",
   modulePresets: "modulePresets",
-  moduleDice: "moduleRerollCurrency",
 }
 
 const guardianHeaders = {
