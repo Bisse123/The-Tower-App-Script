@@ -250,12 +250,7 @@ function findIdMasterIdInIdsTab(idsSheet) {
 
   for (var row = 0; row < values.length; row++) {
     for (var col = 0; col < values[row].length; col++) {
-      var cell = values[row][col];
-      if (
-        typeof cell === "string" &&
-        cell.indexOf("IDS Master") !== -1 &&
-        cell.indexOf("script") === -1
-      ) {
+      if (shared.isSheetTypeCell(values[row][col], "IDS Master")) {
         var idMasterURL = values[row][col + 2];
         return idMasterURL ? shared.extractSheetId(idMasterURL) || "" : "";
       }

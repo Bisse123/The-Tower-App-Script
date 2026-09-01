@@ -841,6 +841,18 @@ const shared = {
     return "same";
   },
 
+  isSheetTypeCell: function (cell, sheetType) {
+    if (typeof cell !== "string" || !sheetType) {
+      return false;
+    }
+    return (
+      new RegExp(sheetType, "i").test(cell) &&
+      /\bID\b/i.test(cell) &&
+      cell.indexOf("script") === -1 &&
+      cell.indexOf("More IDs are available") === -1
+    );
+  },
+
   findSheetTypeID: function (
     spreadsheetId,
     sheetName,
@@ -863,15 +875,9 @@ const shared = {
       values = batchResult[0].values;
     }
 
-    var regex = new RegExp(sheetType, "i");
-    var idRegex = /\bID\b/i;
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
-        if (
-          regex.test(values[i][j]) &&
-          idRegex.test(values[i][j]) &&
-          values[i][j].indexOf("script") === -1
-        ) {
+        if (shared.isSheetTypeCell(values[i][j], sheetType)) {
           var cellA1 = shared.columnToLetter(j + 2) + (i + 1);
           var accessA1 = shared.columnToLetter(j + 4) + (i + 1);
           var importedA1 = shared.columnToLetter(j + 4) + (i + 2);
@@ -928,14 +934,9 @@ const shared = {
       values = batchResult[0].values;
     }
 
-    var regex = new RegExp(sheetType, "i");
     for (var i = 0; i < values.length; i++) {
       for (var j = 0; j < values[i].length; j++) {
-        if (
-          regex.test(values[i][j]) &&
-          values[i][j].indexOf("script") === -1 &&
-          values[i][j].indexOf("More IDs are available") === -1
-        ) {
+        if (shared.isSheetTypeCell(values[i][j], sheetType)) {
           var versionA1 = shared.columnToLetter(j + 6) + (i + 1);
           var templateA1 = shared.columnToLetter(j + 1) + (i + 2);
           var oldVersionA1 = shared.columnToLetter(j + 7) + (i + 1);
