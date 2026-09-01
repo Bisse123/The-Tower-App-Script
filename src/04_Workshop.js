@@ -725,9 +725,6 @@ const workshop = {
       var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
         return presetColumns[sourceIndex];
       });
-      var defaultColIndex = orderedColumns.length
-        ? orderedColumns[0].colIndex
-        : -1;
 
       var oldWorkshopLevels = {
         presetNames: presetOrder.order,
@@ -746,15 +743,7 @@ const workshop = {
           var levels = [];
           orderedColumns.forEach(function (column) {
             var index = column.colIndex;
-            if (
-              index !== defaultColIndex &&
-              row[index] === row[defaultColIndex] &&
-              (!row[index + 1] || row[index + 1] === row[defaultColIndex + 1])
-            ) {
-              levels.push(null, null);
-            } else {
-              levels.push(row[index] || null, row[index + 1] || null);
-            }
+            levels.push(row[index] || null, row[index + 1] || null);
           });
           oldWorkshopLevels.data[row[1]] = {
             unlocked: row[0] || null,
@@ -836,10 +825,7 @@ const workshop = {
       var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
         return presetColumns[sourceIndex];
       });
-      var defaultColIndex = orderedColumns.length
-        ? orderedColumns[0].colIndex
-        : -1;
-
+      
       var oldWorkshopPlusLevels = {
         presetNames: presetOrder.order,
         data: {},
@@ -857,11 +843,7 @@ const workshop = {
           var levels = [];
           orderedColumns.forEach(function (column) {
             var index = column.colIndex;
-            if (index !== defaultColIndex && row[index] === row[defaultColIndex]) {
-              levels.push(null);
-            } else {
-              levels.push(row[index] || null);
-            }
+            levels.push(row[index] || null);
           });
           oldWorkshopPlusLevels.data[row[0]] = levels;
         }
