@@ -3325,13 +3325,34 @@ function getSaveFileSheetType(sheetID) {
         ? batchResult[0].values
         : null;
 
+    if (!homePageValues) {
+      return {
+        success: false,
+        sheetType: "",
+        idMasterID: resolvedID,
+        message:
+          "Could not read the Home Page tab of that file. The script may not have access to it yet.",
+      };
+    }
+
     var sheetType =
-      homePageValues && homePageValues[1] && homePageValues[1][1] != null
+      homePageValues[1] && homePageValues[1][1] != null
         ? String(homePageValues[1][1]).trim()
         : "";
 
     if (sheetType.indexOf("IDS Collection") !== -1) {
       sheetType = "IDS Collection";
+    }
+
+    if (sheetType !== "IDS Master" && sheetType !== "IDS Collection") {
+      return {
+        success: false,
+        sheetType: sheetType,
+        idMasterID: resolvedID,
+        message: sheetType
+          ? `That file is not an IDS Master or an IDS Collection (its Home Page says ${sheetType}).`
+          : "Could not tell whether that file is an IDS Master or an IDS Collection.",
+      };
     }
 
     var result = {
@@ -3340,7 +3361,7 @@ function getSaveFileSheetType(sheetID) {
       idMasterID: resolvedID,
     };
 
-    if (sheetType === "IDS Collection" && homePageValues) {
+    if (sheetType === "IDS Collection") {
       var versionInfo = shared.findSheetVersion(
         resolvedID,
         "Home Page",

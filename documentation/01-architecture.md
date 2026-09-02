@@ -359,7 +359,7 @@ Every function below is callable from the client via `google.script.run`.
 | --- | --- |
 | `getUpdateDialogParameters()` | `{ oldSheetID, idMasterID, sheetType, accessRequired }` for the active spreadsheet. Detects `Effective Paths` by the presence of `eHP`/`eDamage`/`eEcon`; otherwise reads `Home Page!B2`. |
 | `getGetStartedParameters()` | `{ sheetId }` when the active sheet is an Effective Paths sheet. |
-| `getSaveFileParameters()` | `{ idMasterID, sheetType }` — resolves the IDS Master from the active sheet's `IDS` tab. |
+| `getSaveFileParameters()` | `{ idMasterID, sheetType }` — resolves the import target from the active sheet's `IDS` tab. `sheetType` is only ever `"IDS Master"`, `"IDS Collection"` or `""`, and is filled in only when the active file *is* the target. A linked target's type cannot be read here (no access to it yet under `drive.file`), so the client resolves it with `getSaveFileSheetType` after the access check. |
 
 ### Authorization
 

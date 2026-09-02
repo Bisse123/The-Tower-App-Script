@@ -495,6 +495,14 @@
     return true;
   }
 
+  function reportSaveFileSetupError(message) {
+    if (typeof setSaveFileSetupError === "function") {
+      setSaveFileSetupError(message);
+    } else {
+      console.error(message);
+    }
+  }
+
   async function authorizeSaveFile(forceTokenRefresh = false) {
     setStatusWithSpinner("Checking scope access permissions...");
 
@@ -518,9 +526,17 @@
         if (saveFileParams && saveFileParams.idMasterID) {
           idMasterID = saveFileParams.idMasterID;
           sheetType = saveFileParams.sheetType || "";
+        } else {
+          reportSaveFileSetupError(
+            (saveFileParams && saveFileParams.message) ||
+              "Could not find your IDS Master or IDS Collection from this sheet.",
+          );
         }
       } catch (error) {
         console.error("Error loading save file parameters:", error);
+        reportSaveFileSetupError(
+          `Could not read this sheet's IDS tab: ${error.message || error}`,
+        );
       }
     }
 

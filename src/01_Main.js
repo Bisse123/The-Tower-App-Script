@@ -245,19 +245,19 @@ function openSaveFileDialog() {
 function findIdMasterIdInIdsTab(idsSheet) {
   var values = idsSheet.getDataRange().getValues();
   if (!values || values.length === 0) {
-    return "";
+    return null;
   }
 
   for (var row = 0; row < values.length; row++) {
     for (var col = 0; col < values[row].length; col++) {
       if (shared.isSheetTypeCell(values[row][col], "IDS Master")) {
         var idMasterURL = values[row][col + 2];
-        return idMasterURL ? shared.extractSheetId(idMasterURL) || "" : "";
+        return idMasterURL ? shared.extractSheetId(idMasterURL) || null : null;
       }
     }
   }
 
-  return "";
+  return null;
 }
 
 function showAddonConsentDialog(authorizationUrl) {
@@ -421,29 +421,31 @@ function getSaveFileParameters() {
       };
     }
 
-    var sheetType = "";
+    var activeSheetType = "";
     if (
       activeSpreadsheet.getSheetByName("eHP") ||
       activeSpreadsheet.getSheetByName("eDamage") ||
       activeSpreadsheet.getSheetByName("eEcon")
     ) {
-      sheetType = "Effective Paths";
+      activeSheetType = "Effective Paths";
     } else {
       var homePageSheet = activeSpreadsheet.getSheetByName("Home Page");
       if (homePageSheet) {
-        sheetType = homePageSheet.getRange("B2").getValue();
+        activeSheetType = String(
+          homePageSheet.getRange("B2").getValue() || ""
+        ).trim();
       }
     }
 
-    if (sheetType === "IDS Master") {
+    if (activeSheetType === "IDS Master") {
       return {
         success: true,
         idMasterID: activeSpreadsheet.getId(),
-        sheetType: sheetType,
+        sheetType: "IDS Master",
       };
     }
 
-    if (typeof sheetType === "string" && sheetType.indexOf("IDS Collection") !== -1) {
+    if (activeSheetType.indexOf("IDS Collection") !== -1) {
       return {
         success: true,
         idMasterID: activeSpreadsheet.getId(),
@@ -456,7 +458,7 @@ function getSaveFileParameters() {
       return {
         success: false,
         idMasterID: "",
-        sheetType: sheetType,
+        sheetType: "",
         message: "IDS tab not found in the active spreadsheet.",
       };
     }
@@ -466,7 +468,7 @@ function getSaveFileParameters() {
       return {
         success: false,
         idMasterID: "",
-        sheetType: sheetType,
+        sheetType: "",
         message: "Could not find the IDS Master's ID in the IDS tab.",
       };
     }
@@ -474,7 +476,7 @@ function getSaveFileParameters() {
     return {
       success: true,
       idMasterID: idMasterID,
-      sheetType: sheetType,
+      sheetType: "",
     };
   } catch (error) {
     console.log(`Error in getSaveFileParameters: ${error.message || error}`);

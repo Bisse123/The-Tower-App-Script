@@ -6,6 +6,8 @@
   let saveFileCollectionVersionChecked = false;
 
   const SF_MASTER_TYPE = "IDS Master";
+  const SF_COLLECTION_TYPE = "IDS Collection";
+  let saveFileSetupError = "";
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
   let saveFileNotOwnedFiles = [];
@@ -413,11 +415,25 @@
       });
   }
 
+  function setSaveFileSetupError(message) {
+    saveFileSetupError = message || "";
+    if (saveFileSetupError) console.error(saveFileSetupError);
+  }
+
+  function saveFileTargetLabel() {
+    return saveFileSheetType || "IDS Master or IDS Collection";
+  }
+
   function refreshSaveFileImportSummary() {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
     if (!idMasterID) {
-      el.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
+      el.innerHTML =
+        `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileTargetLabel()} automatically, so importing is unavailable.</strong>` +
+        (saveFileSetupError
+          ? `<br>${escSaveFileHtml(saveFileSetupError)}`
+          : "") +
+        `</div>`;
       return;
     }
     if (saveFileCollectionOutdated) {
@@ -509,7 +525,7 @@
     if (saveFileViewMode === "all") {
       if (!idMasterID) {
         setStatusText(
-          `Cannot compare: your ${saveFileSheetType || "sheet"} could not be determined.`,
+          `Cannot compare: your ${saveFileTargetLabel()} could not be determined.`,
         );
         return;
       }
@@ -1662,7 +1678,8 @@
     }
     if (!idMasterID) {
       setStatusText(
-        `Could not determine your ${saveFileSheetType || "sheet"} automatically.`,
+        `Could not determine your ${saveFileTargetLabel()} automatically.` +
+          (saveFileSetupError ? ` ${saveFileSetupError}` : ""),
       );
       return;
     }
@@ -1734,20 +1751,34 @@
 
   async function resolveSaveFileSubsheetAccess() {
     saveFileNotOwnedFiles = [];
-    if (!saveFileSheetType && typeof sheetType === "string") {
+    if (
+      !saveFileSheetType &&
+      (sheetType === SF_MASTER_TYPE || sheetType === SF_COLLECTION_TYPE)
+    ) {
       saveFileSheetType = sheetType;
     }
     if (
-      saveFileSheetType !== "IDS Master" &&
-      saveFileSheetType !== "IDS Collection"
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
     ) {
       await resolveSaveFileSheetType();
     }
 
-    if (saveFileSheetType === "IDS Collection") {
+    if (
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
+    ) {
+      idMasterID = "";
+      saveFileSheetType = "";
+      saveFilePendingAccessIds = [];
+      saveFileWarningFiles = [];
+      return true;
+    }
+
+    if (saveFileSheetType === SF_COLLECTION_TYPE) {
       await ensureSaveFileCollectionVersion();
     }
-    if (saveFileSheetType !== "IDS Master") {
+    if (saveFileSheetType !== SF_MASTER_TYPE) {
       saveFilePendingAccessIds = [];
       return true;
     }
@@ -1802,7 +1833,8 @@
       const result = await runAppsScript("getSaveFileSheetType", idMasterID);
       if (result && result.success && result.sheetType) {
         saveFileSheetType = result.sheetType;
-        if (saveFileSheetType === "IDS Collection") {
+        setSaveFileSetupError("");
+        if (saveFileSheetType === SF_COLLECTION_TYPE) {
           saveFileCollectionVersionChecked = true;
           if (result.outdated) {
             saveFileCollectionOutdated = {
@@ -1811,9 +1843,17 @@
             };
           }
         }
+      } else {
+        setSaveFileSetupError(
+          (result && result.message) ||
+            "Could not tell whether the linked file is an IDS Master or an IDS Collection.",
+        );
       }
     } catch (err) {
       console.error("Could not determine sheet type:", err);
+      setSaveFileSetupError(
+        `Could not read the linked file: ${err.message || err}`,
+      );
     }
   }
 
@@ -1826,7 +1866,7 @@
       if (
         result &&
         result.success &&
-        result.sheetType === "IDS Collection" &&
+        result.sheetType === SF_COLLECTION_TYPE &&
         result.outdated
       ) {
         saveFileCollectionOutdated = {
