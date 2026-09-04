@@ -53,6 +53,7 @@ Picker will not initialise:
 | --- | --- |
 | `API_KEY` | Picker developer key |
 | `APP_ID` | Picker app (GCP project number) |
+| `APP_VERSION` | Release label attached to every error report (`serviceContext.version`). Optional — falls back to `unversioned` — but without it a regression cannot be attributed to a release. Bump it when you cut one. See [08](08-error-handling.md). |
 
 Set them under *Project Settings ▸ Script Properties* in the Apps Script editor.
 
@@ -258,3 +259,5 @@ made to this file.
 | `npm run *` fails on macOS/Linux | Scripts invoke `powershell` | Install `pwsh`, or run the clasp commands by hand |
 | Deployed but users see the old version | A new deployment was created instead of redeploying `DEPLOYMENT_ID` | Redeploy the existing ID; the public link is bound to it |
 | Add-on shows old behaviour after a deploy | The Marketplace config points at a pinned version | `npm run draft`, then repoint the SDK config |
+| A user reports a failure but you cannot find it | They did not quote the reference from the error panel | Ask for it, then query `jsonPayload.reference="…"` — see [08](08-error-handling.md) |
+| Error Reporting is empty although users hit errors | The Error Reporting API is not enabled on the GCP project | Enable it; the payloads are already in the right shape |

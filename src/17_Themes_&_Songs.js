@@ -24,11 +24,11 @@ const themes = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting themes data: " + error.message,
-      };
+      var errorReport = errors.report("themes.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -93,11 +93,11 @@ const themes = {
         message: `Themes & Songs import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing themes data: ${error.message}`,
-      };
+      var errorReport = errors.report("themes.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -198,11 +198,12 @@ const themes = {
       }
       return { success: true, message: "No updates needed for Themes & Songs" };
     } catch (error) {
-      console.log("Error in updateThemes: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updateThemes: " + error.message,
-      };
+      var errorReport = errors.report("themes.updateThemes", error, {
+        sheetName: sheetName,
+        oldThemesNames: oldThemesNames,
+        newThemesData: newThemesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -229,11 +230,10 @@ const themes = {
       var themesData = this.getVersion2_1_6Themes(oldThemesData);
       return themesData;
     } catch (error) {
-      console.log("Error in version2_1_6: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_1_6: " + error.message,
-      };
+      var errorReport = errors.report("themes.version2_1_6", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -258,11 +258,10 @@ const themes = {
       var themesData = this.getVersion1_0Themes(oldThemesData);
       return themesData;
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("themes.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -320,11 +319,10 @@ const themes = {
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in getVersion2_1_6Themes: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_1_6Themes: " + error.message,
-      };
+      var errorReport = errors.report("themes.getVersion2_1_6Themes", error, {
+        oldThemesData: oldThemesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -379,11 +377,10 @@ const themes = {
         oldThemesNames: oldThemesNames,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0Themes: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0Themes: " + error.message,
-      };
+      var errorReport = errors.report("themes.getVersion1_0Themes", error, {
+        oldThemesData: oldThemesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 

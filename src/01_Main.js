@@ -154,7 +154,9 @@ function createMenu() {
             .addItem("Update Sheet", "showUpdateDialog")
             .addItem("Import Data From Game (playerInfo.dat)", "openSaveFileDialog")
             .addToUi();
-    } catch (error) {}
+    } catch (error) {
+        console.log(`createMenu skipped: ${errors.text(error)}`);
+    }
 }
 
 function showGetStartedDialog() {
@@ -173,7 +175,7 @@ function showGetStartedDialog() {
       .addMetaTag("viewport", "width=device-width, initial-scale=1");
     SpreadsheetApp.getUi().showModalDialog(html, "Get Started");
   } catch (error) {
-    console.log(`Error in showGetStartedDialog: ${error.message}`);
+    errors.reportFinal("showGetStartedDialog", error);
     SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
@@ -200,7 +202,7 @@ function showUpdateDialog() {
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
-    console.log(`Error in showUpdateDialog: ${error.message}`);
+    errors.reportFinal("showUpdateDialog", error);
     var template = HtmlService.createTemplateFromFile("20_WebApp");
     template.newSheetID = "";
     template.oldSheetID = "";
@@ -310,11 +312,14 @@ function getGetStartedParameters() {
     );
 
     if (!hasEffectivePathsSheet) {
-      return {
-        success: false,
-        sheetId: "",
-        message: "Effective Paths sheets not found in active spreadsheet.",
-      };
+      return errors.reject(
+        "getGetStartedParameters",
+        errors.CODES.SHEET_STRUCTURE,
+        "Effective Paths sheets not found in active spreadsheet.",
+        {
+          sheetId: "",
+        },
+      );
     }
 
     return {
@@ -322,12 +327,10 @@ function getGetStartedParameters() {
       sheetId: activeSpreadsheet.getId(),
     };
   } catch (error) {
-    console.log(`Error in getGetStartedParameters: ${error.message || error}`);
-    return {
-      success: false,
+    var errorReport = errors.report("getGetStartedParameters", error);
+    return errors.fail(errorReport, null, {
       sheetId: "",
-      message: error.message || error.toString(),
-    };
+    });
   }
 }
 
@@ -396,16 +399,14 @@ function getUpdateDialogParameters() {
       accessRequired: true,
     };
   } catch (error) {
-    console.log(`Error in getUpdateDialogParameters: ${error.message}`);
-    return {
-      success: false,
+    var errorReport = errors.report("getUpdateDialogParameters", error);
+    return errors.fail(errorReport, null, {
       newSheetID: "",
       oldSheetID: "",
       idMasterID: "",
       sheetType: "",
       accessRequired: true,
-      message: error.message || error.toString(),
-    };
+    });
   }
 }
 
@@ -413,12 +414,15 @@ function getSaveFileParameters() {
   try {
     var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     if (!activeSpreadsheet) {
-      return {
-        success: false,
-        idMasterID: "",
-        sheetType: "",
-        message: "Active spreadsheet not found.",
-      };
+      return errors.reject(
+        "getSaveFileParameters",
+        errors.CODES.INTERNAL,
+        "Active spreadsheet not found.",
+        {
+          idMasterID: "",
+          sheetType: "",
+        },
+      );
     }
 
     var activeSheetType = "";
@@ -455,22 +459,28 @@ function getSaveFileParameters() {
 
     var idsSheet = activeSpreadsheet.getSheetByName("IDS");
     if (!idsSheet) {
-      return {
-        success: false,
-        idMasterID: "",
-        sheetType: "",
-        message: "IDS tab not found in the active spreadsheet.",
-      };
+      return errors.reject(
+        "getSaveFileParameters",
+        errors.CODES.SHEET_STRUCTURE,
+        "IDS tab not found in the active spreadsheet.",
+        {
+          idMasterID: "",
+          sheetType: "",
+        },
+      );
     }
 
     var idMasterID = findIdMasterIdInIdsTab(idsSheet);
     if (!idMasterID) {
-      return {
-        success: false,
-        idMasterID: "",
-        sheetType: "",
-        message: "Could not find the IDS Master's ID in the IDS tab.",
-      };
+      return errors.reject(
+        "getSaveFileParameters",
+        errors.CODES.SHEET_STRUCTURE,
+        "Could not find the IDS Master's ID in the IDS tab.",
+        {
+          idMasterID: "",
+          sheetType: "",
+        },
+      );
     }
 
     return {
@@ -479,32 +489,32 @@ function getSaveFileParameters() {
       sheetType: "",
     };
   } catch (error) {
-    console.log(`Error in getSaveFileParameters: ${error.message || error}`);
-    return {
-      success: false,
+    var errorReport = errors.report("getSaveFileParameters", error);
+    return errors.fail(errorReport, null, {
       idMasterID: "",
       sheetType: "",
-      message: error.message || error.toString(),
-    };
+    });
   }
 }
 
 function exportData(oldSheetID, sheetType, versionDifference) {
   try {
     if (!sheetType) {
-      console.log(`Sheet type is not defined.`);
-      return {
-        success: false,
-        message: "Sheet type is not defined.",
-      };
+      return errors.reject(
+        "exportData",
+        errors.CODES.INVALID_INPUT,
+        "Something was missing from that request. Please reload the page and try again.",
+        null,
+        { note: "Sheet type is not defined." },
+      );
     }
 
     if (!oldSheetID) {
-      console.log(`Old sheet ID is missing.`);
-      return {
-        success: false,
-        message: "Old sheet ID is missing.",
-      };
+      return errors.reject(
+        "exportData",
+        errors.CODES.INVALID_INPUT,
+        "Old sheet ID is missing.",
+      );
     }
 
     var oldSpreadsheet = spreadsheets(
@@ -512,20 +522,22 @@ function exportData(oldSheetID, sheetType, versionDifference) {
       oldSheetID
     );
     if (!oldSpreadsheet) {
-      console.log(`Old spreadsheet not found with ID: ${oldSheetID}`);
-      return {
-        success: false,
-        message: `Old spreadsheet™ not found with ID: ${oldSheetID}`,
-      };
+      return errors.reject(
+        "exportData",
+        errors.CODES.NOT_FOUND,
+        "The script could not open that sheet. It may have been deleted, or access to it was never granted.",
+        null,
+        { note: `Old spreadsheet™ not found with ID: ${oldSheetID}` },
+      );
     }
 
     var sheetTypeFunction = sheetVars(sheetType);
     if (!sheetTypeFunction) {
-      console.log(`Sheet type function not found for: ${sheetType}`);
-      return {
-        success: false,
-        message: `Sheet™ type function not found for: ${sheetType}`,
-      };
+      return errors.reject(
+        "exportData",
+        errors.CODES.SHEET_STRUCTURE,
+        `Sheet™ type function not found for: ${sheetType}`,
+      );
     }
 
     var sheetVisibility = {};
@@ -539,19 +551,15 @@ function exportData(oldSheetID, sheetType, versionDifference) {
 
     var exportResult = sheetTypeFunction.exportData(versionDifference, oldSheetID);
     if (!exportResult || !exportResult.success) {
-      console.log(
+      return errors.propagate(
+        "exportData",
+        exportResult,
         `Error exporting data for ${sheetType}: ${
-          exportResult ? exportResult.message : "Unknown error"
-        }`
-      );
-      return {
-        success: false,
-        message: `Error exporting data for ${sheetType}: ${
           exportResult && exportResult.message
             ? exportResult.message
             : "Unknown error"
         }`,
-      };
+      );
     }
 
     return {
@@ -561,38 +569,42 @@ function exportData(oldSheetID, sheetType, versionDifference) {
       sheetVisibility: sheetVisibility,
     };
   } catch (error) {
-    console.log(`Error during export: ${error.message}`);
-    return {
-      success: false,
-      message: `Error during export: ${error.message}`,
-    };
+    var errorReport = errors.report("exportData", error, {
+      note: `Error during export`,
+      oldSheetID: oldSheetID,
+      sheetType: sheetType,
+      versionDifference: versionDifference,
+    });
+    return errors.fail(errorReport);
   }
 }
 
 function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
   try {
     if (!sheetType) {
-      console.log(`Sheet type is not defined.`);
-      return {
-        success: false,
-        message: "Sheet type is not defined.",
-      };
+      return errors.reject(
+        "importData",
+        errors.CODES.INVALID_INPUT,
+        "Something was missing from that request. Please reload the page and try again.",
+        null,
+        { note: "Sheet type is not defined." },
+      );
     }
 
     if (!newSheetID) {
-      console.log(`New sheet ID is missing.`);
-      return {
-        success: false,
-        message: "New sheet ID is missing.",
-      };
+      return errors.reject(
+        "importData",
+        errors.CODES.INVALID_INPUT,
+        "New sheet ID is missing.",
+      );
     }
 
     if (!data) {
-      console.log(`Data to import is missing.`);
-      return {
-        success: false,
-        message: "Data to import is missing.",
-      };
+      return errors.reject(
+        "importData",
+        errors.CODES.INVALID_INPUT,
+        "Data to import is missing.",
+      );
     }
 
     var newSpreadsheet = spreadsheets(
@@ -600,20 +612,22 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
       newSheetID
     );
     if (!newSpreadsheet) {
-      console.log(`New spreadsheet not found with ID: ${newSheetID}`);
-      return {
-        success: false,
-        message: `New spreadsheet™ not found with ID: ${newSheetID}`,
-      };
+      return errors.reject(
+        "importData",
+        errors.CODES.NOT_FOUND,
+        "The script could not open that sheet. It may have been deleted, or access to it was never granted.",
+        null,
+        { note: `New spreadsheet™ not found with ID: ${newSheetID}` },
+      );
     }
 
     var sheetTypeFunction = sheetVars(sheetType);
     if (!sheetTypeFunction) {
-      console.log(`Sheet type function not found for: ${sheetType}`);
-      return {
-        success: false,
-        message: `Sheet™ type function not found for: ${sheetType}`,
-      };
+      return errors.reject(
+        "importData",
+        errors.CODES.SHEET_STRUCTURE,
+        `Sheet™ type function not found for: ${sheetType}`,
+      );
     }
 
     if (sheetVisibility && Object.keys(sheetVisibility).length > 0) {
@@ -622,21 +636,11 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
         sheetVisibility
       );
       if (!hideShowSheetsResult || !hideShowSheetsResult.success) {
-        console.log(
-          `Error updating sheet visibility: ${
-            hideShowSheetsResult
-              ? hideShowSheetsResult.message
-              : "Unknown error"
-          }`
+        return errors.propagate(
+          "importData",
+          hideShowSheetsResult,
+          "The script could not set which tabs are visible in the new sheet.",
         );
-        return {
-          success: false,
-          message: `Error updating sheet visibility: ${
-            hideShowSheetsResult && hideShowSheetsResult.message
-              ? hideShowSheetsResult.message
-              : "Unknown error"
-          }`,
-        };
       }
     }
 
@@ -646,20 +650,20 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
 
     var importResult = sheetTypeFunction.importData(data, newSheetID);
     if (!importResult || !importResult.success) {
-      console.log(
-        `Error importing data for ${sheetType}: ${
-          importResult ? importResult.message : "Unknown error"
-        }`
-      );
-      return {
-        success: false,
-        message: `${sheetType}: ${
+      // The module already recorded whatever went wrong; re-reporting it here
+      // would give Error Reporting a second group for one incident.
+      return errors.propagate(
+        "importData",
+        importResult,
+        `${sheetType}: ${
           importResult && importResult.message
             ? importResult.message
             : "Unknown error"
         }`,
-        failedUpdates: importResult.failedUpdates || [],
-      };
+        {
+          failedUpdates: (importResult && importResult.failedUpdates) || [],
+        },
+      );
     }
 
     return {
@@ -668,10 +672,14 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
       updated: true,
     };
   } catch (error) {
-    console.log(`Error during import: ${error.message}`);
-    return {
-      success: false,
-      message: `Error during import: ${error.message}`,
-    };
+    var errorReport = errors.report("importData", error, {
+      note: `Error during import`,
+      newSheetID: newSheetID,
+      sheetType: sheetType,
+      data: data,
+      sheetVisibility: sheetVisibility,
+      idMasterID: idMasterID,
+    });
+    return errors.fail(errorReport);
   }
 }

@@ -24,11 +24,15 @@ const lab = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting lab data: " + error.message,
-      };
+      // oldDataResult is undefined if the failure happened before the
+      // version-specific export function returned - that alone says how far
+      // this got.
+      var errorReport = errors.report("lab.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+        oldDataResult: oldDataResult,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -129,11 +133,13 @@ const lab = {
         message: `Laboratory import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error importing lab data: " + error.message,
-      };
+      var errorReport = errors.report("lab.importData", error, {
+        newSheetID: newSheetID,
+        data: data,
+        requiredRanges: requiredRanges,
+        batchUpdate: batchUpdate,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -216,11 +222,13 @@ const lab = {
         message: "No updates needed for lab levels",
       };
     } catch (error) {
-      console.log(`Error in updateLabLevels: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating lab levels: ${error.message}`,
-      };
+      var errorReport = errors.report("lab.updateLabLevels", error, {
+        sheetName: sheetName,
+        oldLabLevels: oldLabLevels,
+        masterSheetData: masterSheetData,
+        batchUpdate: batchUpdate,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -492,11 +500,16 @@ const lab = {
         message: "No lab planner formulas found to update",
       };
     } catch (error) {
-      console.log(`Error in updateLabPlanner: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating lab planner: ${error.message}`,
-      };
+      // rowIndex is which row of labPlannerData was being processed when it
+      // broke - the exact point of failure in a 800-line scan.
+      var errorReport = errors.report("lab.updateLabPlanner", error, {
+        sheetName: sheetName,
+        oldLabPlanner: oldLabPlanner,
+        labPlannerData: labPlannerData,
+        rowIndex: rowIndex,
+        batchUpdate: batchUpdate,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -589,11 +602,13 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("lab.version1_0", error, {
+        oldSheetID: oldSheetID,
+        oldLabLevelsValues: oldLabLevelsValues,
+        oldLabPlannerValues: oldLabPlannerValues,
+        oldLabPlannerFormulas: oldLabPlannerFormulas,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -626,11 +641,12 @@ const lab = {
         oldLabMax: oldLabMax,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0LabLevels: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0LabLevels: " + error.message,
-      };
+      var errorReport = errors.report("lab.getVersion1_0LabLevels", error, {
+        oldLabLevelsValues: oldLabLevelsValues,
+        oldLabLevels: oldLabLevels,
+        oldLabMax: oldLabMax,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -843,270 +859,283 @@ const lab = {
         oldLabPlanner: oldLabPlanner,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0LabPlanner: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0LabPlanner: " + error.message,
-      };
+      var errorReport = errors.report("lab.getVersion1_0LabPlanner", error, {
+        oldLabPlannerFormulas: oldLabPlannerFormulas,
+        oldLabPlannerValues: oldLabPlannerValues,
+        rowIndex: rowIndex,
+        oldLabPlanner: oldLabPlanner,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseLabData: function (data) {
-    const labNamesByIndex = {
-      0: "Damage",
-      1: "Attack Speed",
-      2: "Critical Factor",
-      3: "Range",
-      4: "Damage / Meter",
-      5: "Super Crit Chance",
-      6: "Super Crit Multi",
-      10: "Health",
-      11: "Health Regen",
-      12: "Defense Absolute",
-      13: "Defense %",
-      14: "Orbs Speed",
-      15: "Land Mine Damage",
-      16: "Land Mine Decay",
-      17: "Shockwave Size",
-      18: "Orb Boss Hit",
-      19: "Recovery Package Amount",
-      20: "Cash Bonus",
-      21: "Cash / Wave",
-      22: "Coins / Kill Bonus",
-      23: "Coins / Wave",
-      24: "Interest",
-      25: "Max Interest",
-      26: "Package After Boss",
-      30: "Game Speed",
-      31: "Starting Cash",
-      32: "Workshop Attack Discount",
-      33: "Workshop Defense Discount",
-      34: "Workshop Utility Discount",
-      35: "Labs Coin Discount",
-      36: "Labs Speed",
-      37: "Buy Multiplier",
-      38: "More Round Stats",
-      39: "Target Priority",
-      40: "Presets",
-      41: "Workshop Respec",
-      50: "Missile Despawn Time",
-      51: "Missiles Explosion",
-      52: "Missile Radius",
-      53: "Chrono Field Duration",
-      54: "Chrono Field Damage Reduction",
-      55: "Chrono Field Reduction %",
-      56: "Swamp Radius",
-      57: "Swamp Stun",
-      58: "Swamp Stun Chance",
-      59: "Swamp Stun Time",
-      60: "Golden Tower Bonus",
-      61: "Golden Tower Duration",
-      62: "Chain Lightning Shock",
-      63: "Shock Chance",
-      64: "Shock Multiplier",
-      65: "Death Wave Health",
-      66: "Death Wave Coin Bonus",
-      67: "Inner Mine Blast Radius",
-      68: "Inner Mine Rotation Speed",
-      69: "Chrono Field Range",
-      70: "Second Wind Blast",
-      71: "Double Death Ray",
-      72: "Extra Orb Adjuster",
-      73: "Extra Extra Orbs",
-      74: "Energy Shield Extra Hit",
-      75: "Super Tower Bonus",
-      80: "Unlock Perks",
-      81: "Waves Required",
-      82: "Auto Pick Perks",
-      83: "Standard Perks Bonus",
-      84: "Perk Option Quantity",
-      85: "First Perk Choice",
-      86: "First Trade-off Choice",
-      87: "Ban Perks",
-      88: "Improve Trade-off Perks",
-      90: "Missile Amplifier",
-      91: "Missile Barrage",
-      92: "Missile Barrage Quantity",
-      93: "Inner Mine Stun",
-      94: "Black Hole Damage",
-      95: "Extra Black Hole",
-      96: "Black Hole Coin Bonus",
-      97: "Spotlight Coin Bonus",
-      98: "Spotlight Missiles",
-      99: "Black Hole ignore Protector",
-      100: "Recovery Package Max",
-      101: "Recovery Package Chance",
-      102: "Flame Bot - Cooldown",
-      103: "Thunder Bot - Cooldown",
-      104: "Gold Bot - Cooldown",
-      105: "Amp Bot - Cooldown",
-      106: "Flame Bot - Burn Stack",
-      107: "Thunder Bot - Linger Time",
-      108: "Gold Bot - Duration",
-      109: "Amp Bot - Duration",
-      110: "Common Enemy Health",
-      111: "Common Enemy Attack",
-      112: "Fast Enemy Health",
-      113: "Fast Enemy Attack",
-      114: "Fast Enemy Speed",
-      115: "Tank Enemy Health",
-      116: "Tank Enemy Attack",
-      117: "Ranged Enemy Health",
-      118: "Ranged Enemy Attack",
-      119: "Boss Health",
-      120: "Boss Attack",
-      121: "Protector Health",
-      122: "Protector Radius",
-      123: "Protector Damage Reduction",
-      124: "Enemy Attack Level Skip",
-      125: "Enemy Health Level Skip",
-      126: "Wall Health",
-      127: "Wall Rebuild",
-      128: "Wall Regen",
-      129: "Wall Thorns",
-      130: "Wall Invincibility",
-      131: "Max Rend Armor Multiplier",
-      132: "Light Speed Shots",
-      133: "Black Hole Disable Ranged Enemies",
-      134: "Common Drop Chance",
-      139: "Reroll Shards",
-      140: "Daily Mission Shards",
-      141: "Module Shards Cost",
-      142: "Module Coin Cost",
-      143: "Rare Drop Chance",
-      144: "Wall Fortification",
-      145: "Recharge Second Wind",
-      146: "Recharge Demon Mode",
-      147: "Recharge Missile Barrage",
-      148: "Reroll Daily Mission",
-      149: "Recharge Nuke",
-      150: "Workshop Enhancements",
-      151: "Unmerge Module",
-      152: "Shatter Shards",
-      153: "Auto Pick Ranking",
-      154: "Enhancement Attack - Coin Discount",
-      155: "Enhancement Defense - Coin Discount",
-      156: "Swamp Rend",
-      157: "Swamp Rend - Additional Enemies",
-      158: "Chain Thunder",
-      159: "Lightning Amplifier - Scatter",
-      160: "Damage Mastery",
-      161: "Attack Speed Mastery",
-      162: "Health Mastery",
-      163: "Health Regen Mastery",
-      164: "Range Mastery",
-      165: "Cash Mastery",
-      166: "Coins Mastery",
-      167: "Slow Aura Mastery",
-      168: "Critical Chance Mastery",
-      169: "Enemy Balance Mastery",
-      170: "Extra Defense Mastery",
-      171: "Fortress Mastery",
-      172: "Free Upgrades Mastery",
-      173: "Extra Orb Mastery",
-      174: "Plasma Cannon Mastery",
-      175: "Critical Coin Mastery",
-      176: "Wave Skip Mastery",
-      177: "Intro Sprint Mastery",
-      178: "Land Mine Stun Mastery",
-      179: "Recovery Package Chance Mastery",
-      180: "Death Ray Mastery",
-      181: "Energy Net Mastery",
-      182: "Super Tower Mastery",
-      183: "Second Wind Mastery",
-      184: "Demon Mode Mastery",
-      185: "Energy Shield Mastery",
-      186: "Wave Accelerator Mastery",
-      187: "Berserker Mastery",
-      188: "Ultimate Crit Mastery",
-      189: "Nuke Mastery",
-      190: "Death Wave Cells Bonus",
-      191: "Death Wave Damage Amplifier",
-      192: "Death Wave Armor Stripping",
-      193: "Garlic Thorns",
-      194: "Cannon Effect Bans",
-      195: "Armor Effect Bans",
-      196: "Generator Effect Bans",
-      197: "Core Effect Bans",
-      198: "Inner Land Mine - Chrono Jump",
-      199: "Battle Condition Reduction",
-      200: "Area of Effect Mastery",
-      201: "Knockback Resistance",
-      202: "Thorns Resistance",
-      203: "Orb Resistance",
-      204: "Plasma Cannon Resistance",
-      205: "Death Ray Resistance",
-      206: "Ultimate Weapon Durations",
-      207: "Death Defy Down",
-      208: "Energy Shields Down",
-      209: "Enemy Level Skip Reduction",
-      210: "Fast's Ultimate",
-      211: "Ranged Ultimate",
-      212: "Boss's Ultimate",
-      213: "Basic's Ultimate",
-      214: "Tank's Ultimate",
-      215: "Protector's Ultimate",
-      216: "Armored Enemies",
-      217: "Enemy Speed",
-      218: "More Enemies",
-      219: "Enemy Attack Speed",
-      220: "Ray Enemy Attack",
-      221: "Ray Enemy Health",
-      222: "Vampire Enemy Attack",
-      223: "Vampire Enemy Health",
-      224: "Scatter Enemy Attack",
-      225: "Scatter Enemy Health",
-      226: "Ranged Enemy Range",
-      227: "Enhancement Utility - Coin Discount",
-      228: "Bot Bot - Cooldown",
-      229: "Bot Bot - Duration",
-      230: "Assist Module Substats - Cannon",
-      231: "Assist Module Substats - Armor",
-      232: "Assist Module Substats - Generator",
-      233: "Assist Module Substats - Core",
-      234: "Assist Module Bonus - Cannon",
-      235: "Assist Module Bonus - Armor",
-      236: "Assist Module Bonus - Generator",
-      237: "Assist Module Bonus - Core",
-      238: "Dissonant Echo - Utility",
-      239: "Dissonant Echo - Attack",
-      240: "Dissonant Echo - Defense",
-      241: "Dissonant Echo - Ultimate Weapons",
-      242: "Overcharge Enemy Health",
-      243: "Overcharge Enemy Damage",
-      244: "Commander Enemy Health",
-      245: "Saboteur Enemy Health",
-      251: "Cells Mastery",
-      252: "Global Presets",
-    };
-    // Missing labs:
-    // Cells Mastery
-    // Overcharge Exponent Reducer
-    // Commander Radius
-    // Saboteur Attack Speed
+    try {
+      const labNamesByIndex = {
+        0: "Damage",
+        1: "Attack Speed",
+        2: "Critical Factor",
+        3: "Range",
+        4: "Damage / Meter",
+        5: "Super Crit Chance",
+        6: "Super Crit Multi",
+        10: "Health",
+        11: "Health Regen",
+        12: "Defense Absolute",
+        13: "Defense %",
+        14: "Orbs Speed",
+        15: "Land Mine Damage",
+        16: "Land Mine Decay",
+        17: "Shockwave Size",
+        18: "Orb Boss Hit",
+        19: "Recovery Package Amount",
+        20: "Cash Bonus",
+        21: "Cash / Wave",
+        22: "Coins / Kill Bonus",
+        23: "Coins / Wave",
+        24: "Interest",
+        25: "Max Interest",
+        26: "Package After Boss",
+        30: "Game Speed",
+        31: "Starting Cash",
+        32: "Workshop Attack Discount",
+        33: "Workshop Defense Discount",
+        34: "Workshop Utility Discount",
+        35: "Labs Coin Discount",
+        36: "Labs Speed",
+        37: "Buy Multiplier",
+        38: "More Round Stats",
+        39: "Target Priority",
+        40: "Presets",
+        41: "Workshop Respec",
+        50: "Missile Despawn Time",
+        51: "Missiles Explosion",
+        52: "Missile Radius",
+        53: "Chrono Field Duration",
+        54: "Chrono Field Damage Reduction",
+        55: "Chrono Field Reduction %",
+        56: "Swamp Radius",
+        57: "Swamp Stun",
+        58: "Swamp Stun Chance",
+        59: "Swamp Stun Time",
+        60: "Golden Tower Bonus",
+        61: "Golden Tower Duration",
+        62: "Chain Lightning Shock",
+        63: "Shock Chance",
+        64: "Shock Multiplier",
+        65: "Death Wave Health",
+        66: "Death Wave Coin Bonus",
+        67: "Inner Mine Blast Radius",
+        68: "Inner Mine Rotation Speed",
+        69: "Chrono Field Range",
+        70: "Second Wind Blast",
+        71: "Double Death Ray",
+        72: "Extra Orb Adjuster",
+        73: "Extra Extra Orbs",
+        74: "Energy Shield Extra Hit",
+        75: "Super Tower Bonus",
+        80: "Unlock Perks",
+        81: "Waves Required",
+        82: "Auto Pick Perks",
+        83: "Standard Perks Bonus",
+        84: "Perk Option Quantity",
+        85: "First Perk Choice",
+        86: "First Trade-off Choice",
+        87: "Ban Perks",
+        88: "Improve Trade-off Perks",
+        90: "Missile Amplifier",
+        91: "Missile Barrage",
+        92: "Missile Barrage Quantity",
+        93: "Inner Mine Stun",
+        94: "Black Hole Damage",
+        95: "Extra Black Hole",
+        96: "Black Hole Coin Bonus",
+        97: "Spotlight Coin Bonus",
+        98: "Spotlight Missiles",
+        99: "Black Hole ignore Protector",
+        100: "Recovery Package Max",
+        101: "Recovery Package Chance",
+        102: "Flame Bot - Cooldown",
+        103: "Thunder Bot - Cooldown",
+        104: "Gold Bot - Cooldown",
+        105: "Amp Bot - Cooldown",
+        106: "Flame Bot - Burn Stack",
+        107: "Thunder Bot - Linger Time",
+        108: "Gold Bot - Duration",
+        109: "Amp Bot - Duration",
+        110: "Common Enemy Health",
+        111: "Common Enemy Attack",
+        112: "Fast Enemy Health",
+        113: "Fast Enemy Attack",
+        114: "Fast Enemy Speed",
+        115: "Tank Enemy Health",
+        116: "Tank Enemy Attack",
+        117: "Ranged Enemy Health",
+        118: "Ranged Enemy Attack",
+        119: "Boss Health",
+        120: "Boss Attack",
+        121: "Protector Health",
+        122: "Protector Radius",
+        123: "Protector Damage Reduction",
+        124: "Enemy Attack Level Skip",
+        125: "Enemy Health Level Skip",
+        126: "Wall Health",
+        127: "Wall Rebuild",
+        128: "Wall Regen",
+        129: "Wall Thorns",
+        130: "Wall Invincibility",
+        131: "Max Rend Armor Multiplier",
+        132: "Light Speed Shots",
+        133: "Black Hole Disable Ranged Enemies",
+        134: "Common Drop Chance",
+        139: "Reroll Shards",
+        140: "Daily Mission Shards",
+        141: "Module Shards Cost",
+        142: "Module Coin Cost",
+        143: "Rare Drop Chance",
+        144: "Wall Fortification",
+        145: "Recharge Second Wind",
+        146: "Recharge Demon Mode",
+        147: "Recharge Missile Barrage",
+        148: "Reroll Daily Mission",
+        149: "Recharge Nuke",
+        150: "Workshop Enhancements",
+        151: "Unmerge Module",
+        152: "Shatter Shards",
+        153: "Auto Pick Ranking",
+        154: "Enhancement Attack - Coin Discount",
+        155: "Enhancement Defense - Coin Discount",
+        156: "Swamp Rend",
+        157: "Swamp Rend - Additional Enemies",
+        158: "Chain Thunder",
+        159: "Lightning Amplifier - Scatter",
+        160: "Damage Mastery",
+        161: "Attack Speed Mastery",
+        162: "Health Mastery",
+        163: "Health Regen Mastery",
+        164: "Range Mastery",
+        165: "Cash Mastery",
+        166: "Coins Mastery",
+        167: "Slow Aura Mastery",
+        168: "Critical Chance Mastery",
+        169: "Enemy Balance Mastery",
+        170: "Extra Defense Mastery",
+        171: "Fortress Mastery",
+        172: "Free Upgrades Mastery",
+        173: "Extra Orb Mastery",
+        174: "Plasma Cannon Mastery",
+        175: "Critical Coin Mastery",
+        176: "Wave Skip Mastery",
+        177: "Intro Sprint Mastery",
+        178: "Land Mine Stun Mastery",
+        179: "Recovery Package Chance Mastery",
+        180: "Death Ray Mastery",
+        181: "Energy Net Mastery",
+        182: "Super Tower Mastery",
+        183: "Second Wind Mastery",
+        184: "Demon Mode Mastery",
+        185: "Energy Shield Mastery",
+        186: "Wave Accelerator Mastery",
+        187: "Berserker Mastery",
+        188: "Ultimate Crit Mastery",
+        189: "Nuke Mastery",
+        190: "Death Wave Cells Bonus",
+        191: "Death Wave Damage Amplifier",
+        192: "Death Wave Armor Stripping",
+        193: "Garlic Thorns",
+        194: "Cannon Effect Bans",
+        195: "Armor Effect Bans",
+        196: "Generator Effect Bans",
+        197: "Core Effect Bans",
+        198: "Inner Land Mine - Chrono Jump",
+        199: "Battle Condition Reduction",
+        200: "Area of Effect Mastery",
+        201: "Knockback Resistance",
+        202: "Thorns Resistance",
+        203: "Orb Resistance",
+        204: "Plasma Cannon Resistance",
+        205: "Death Ray Resistance",
+        206: "Ultimate Weapon Durations",
+        207: "Death Defy Down",
+        208: "Energy Shields Down",
+        209: "Enemy Level Skip Reduction",
+        210: "Fast's Ultimate",
+        211: "Ranged Ultimate",
+        212: "Boss's Ultimate",
+        213: "Basic's Ultimate",
+        214: "Tank's Ultimate",
+        215: "Protector's Ultimate",
+        216: "Armored Enemies",
+        217: "Enemy Speed",
+        218: "More Enemies",
+        219: "Enemy Attack Speed",
+        220: "Ray Enemy Attack",
+        221: "Ray Enemy Health",
+        222: "Vampire Enemy Attack",
+        223: "Vampire Enemy Health",
+        224: "Scatter Enemy Attack",
+        225: "Scatter Enemy Health",
+        226: "Ranged Enemy Range",
+        227: "Enhancement Utility - Coin Discount",
+        228: "Bot Bot - Cooldown",
+        229: "Bot Bot - Duration",
+        230: "Assist Module Substats - Cannon",
+        231: "Assist Module Substats - Armor",
+        232: "Assist Module Substats - Generator",
+        233: "Assist Module Substats - Core",
+        234: "Assist Module Bonus - Cannon",
+        235: "Assist Module Bonus - Armor",
+        236: "Assist Module Bonus - Generator",
+        237: "Assist Module Bonus - Core",
+        238: "Dissonant Echo - Utility",
+        239: "Dissonant Echo - Attack",
+        240: "Dissonant Echo - Defense",
+        241: "Dissonant Echo - Ultimate Weapons",
+        242: "Overcharge Enemy Health",
+        243: "Overcharge Enemy Damage",
+        244: "Commander Enemy Health",
+        245: "Saboteur Enemy Health",
+        251: "Cells Mastery",
+        252: "Global Presets",
+        // Not confirmed
+        253: "Overcharge Exponent Reducer",
+        // Not confirmed
+        254: "Commander Radius",
+        // Not confirmed
+        255: "Saboteur Attack Speed",
+      };
     
-    const labLevels = data.researchLevel || [];
-    var oldLabLevels = {};
-    var labOrder = [];
-    labLevels.forEach(function (labLevel, index) {
-      var labName = labNamesByIndex[index];
-      if (!labName && !labLevel) {
-        return;
-      }
-      if (!labName) {
-        console.log(`No lab name found for index ${index}. lab level ${labLevel}`);
-        labName = `Unknown Lab ${index}`;
-      }
-      oldLabLevels[labName] = [labLevel, null];
-      labOrder[index] = labName;
-    });
+      const labLevels = data.researchLevel || [];
+      var oldLabLevels = {};
+      var labOrder = [];
+      labLevels.forEach(function (labLevel, index) {
+        var labName = labNamesByIndex[index];
+        if (!labName && !labLevel) {
+          return;
+        }
+        if (!labName) {
+          console.log(`No lab name found for index ${index}. lab level ${labLevel}`);
+          labName = `Unknown Lab ${index}`;
+        }
+        oldLabLevels[labName] = [labLevel, null];
+        labOrder[index] = labName;
+      });
 
-    return {
-      oldLabLevels: oldLabLevels,
-      labOrder: labOrder,
-    };
+      return {
+        success: true,
+        oldLabLevels: oldLabLevels,
+        labOrder: labOrder,
+      };
+    } catch (error) {
+      var errorReport = errors.report("lab.parseLabData", error, {
+        data: data,
+        oldLabLevels: oldLabLevels,
+        labOrder: labOrder,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

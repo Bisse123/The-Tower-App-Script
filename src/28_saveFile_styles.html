@@ -214,8 +214,10 @@
     cursor: not-allowed;
   }
 
-  .saveFileResults {
+  #saveFileResults {
     margin-top: 18px;
+  }
+  #saveFileResults:empty {
     display: none;
   }
 
@@ -367,7 +369,6 @@
   }
 
   .sfMissingSection {
-    margin-top: 12px;
     padding: 8px 12px;
     background: #fff8f0;
     border: 1px solid #f5c885;
@@ -377,6 +378,19 @@
     color: #7a4a00;
   }
   .sfMissingSection strong { display: block; margin-bottom: 4px; }
+
+  .sfParseFailedSection {
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: #fdecea;
+    border: 1px solid #f3a9a2;
+    border-left: 5px solid #a50e0e;
+    border-radius: 6px;
+    font-size: 0.95em;
+    color: #5c1a15;
+  }
+  .sfParseFailedSection strong { display: block; margin-bottom: 4px; }
+  .sfParseFailedSection em { opacity: 0.8; }
 
   .sfCategoryHeaderMain {
     display: flex;
@@ -432,6 +446,7 @@
 
   .saveFileImportSummary {
     margin-top: 16px;
+    margin-bottom: 16px;
     padding: 12px 14px;
     font-size: 1em;
     color: #2a3550;

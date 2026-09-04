@@ -24,11 +24,11 @@ const cards = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting cards data: " + error.message,
-      };
+      var errorReport = errors.report("cards.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -136,11 +136,12 @@ const cards = {
         message: `Cards import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error importing cards data: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing cards data: ${error.message}`,
-      };
+      var errorReport = errors.report("cards.importData", error, {
+        note: `Error importing cards data`,
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -214,11 +215,13 @@ const cards = {
         message: `No updates needed for cards levels`,
       };
     } catch (error) {
-      console.log("Error in updateCardsLevels: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updateCardsLevels: " + error.message,
-      };
+      var errorReport = errors.report("cards.updateCardsLevels", error, {
+        sheetName: sheetName,
+        oldCardsLevel: oldCardsLevel,
+        oldCardSlots: oldCardSlots,
+        masterSheetData: masterSheetData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -389,11 +392,13 @@ const cards = {
         message: `No updates needed for cards preset`,
       };
     } catch (error) {
-      console.log("Error in updateCardsPreset: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updateCardsPreset: " + error.message,
-      };
+      var errorReport = errors.report("cards.updateCardsPreset", error, {
+        sheetName: sheetName,
+        oldCardsPreset: oldCardsPreset,
+        shouldRemoveUsedCards: shouldRemoveUsedCards,
+        cardPresetsData: cardPresetsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -472,11 +477,12 @@ const cards = {
         message: `No updates needed for cards tracker`,
       };
     } catch (error) {
-      console.log("Error in updateCardsTracker: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updateCardsTracker: " + error.message,
-      };
+      var errorReport = errors.report("cards.updateCardsTracker", error, {
+        sheetName: sheetName,
+        oldCardsTracker: oldCardsTracker,
+        cardTrackerData: cardTrackerData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -528,11 +534,10 @@ const cards = {
         shouldRemoveUsedCards: cardsPresetData.shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("cards.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -595,11 +600,10 @@ const cards = {
         oldCardsTracker: oldCardsTracker,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0CardsTracker: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0CardsTracker: " + error.message,
-      };
+      var errorReport = errors.report("cards.getVersion1_0CardsTracker", error, {
+        oldCardsTrackerData: oldCardsTrackerData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -700,11 +704,10 @@ const cards = {
         shouldRemoveUsedCards: shouldRemoveUsedCards,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0CardsPreset: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0CardsPreset: " + error.message,
-      };
+      var errorReport = errors.report("cards.getVersion1_0CardsPreset", error, {
+        oldCardsPresetData: oldCardsPresetData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -741,108 +744,118 @@ const cards = {
         oldCardSlots: oldCardSlots,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0CardsLevel: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0CardsLevel: " + error.message,
-      };
+      var errorReport = errors.report("cards.getVersion1_0CardsLevel", error, {
+        oldCardsLevelData: oldCardsLevelData,
+        oldCardSlotsData: oldCardSlotsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseCardsData: function (data) {
-    const cardNamesByIndex = {
-      0: "Damage",
-      1: "Attack Speed",
-      2: "Health",
-      3: "Health Regen",
-      4: "Range",
-      5: "Cash",
-      6: "Coins",
-      7: "Slow Aura",
-      10: "Critical Chance",
-      11: "Enemy Balance",
-      12: "Extra Defense",
-      13: "Fortress",
-      15: "Free Upgrades",
-      16: "Extra Orb",
-      18: "Plasma Cannon",
-      19: "Critical Coin",
-      20: "Wave Skip",
-      21: "Intro Sprint",
-      22: "Land Mine Stun",
-      23: "Recovery Package Chance",
-      25: "Death Ray",
-      26: "Energy Net",
-      27: "Super Tower",
-      28: "Second Wind",
-      29: "Demon Mode",
-      30: "Energy Shield",
-      31: "Wave Accelerator",
-      32: "Berserker",
-      33: "Ultimate Crit",
-      34: "Nuke",
-      35: "Area of Effect",
-      37: "Cells",
-    };
-    var cardNameIndices = [];
-    Object.keys(cardNamesByIndex).forEach(function (index) {
-      cardNameIndices[Number(index)] = cardNamesByIndex[index];
-    });
-    const cardLevel = data.cardLevel || [];
-    const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
-
-    const presetOrder = shared.resolvePresetOrder(
-      data.presetNames || [],
-      shared.templatePresetNames,
-    );
-    const presetNames = presetOrder.order;
-    const presetIndices = presetOrder.indices;
-
-    const presetSlots = data.presetSlots || [];
-    const presetCards = data.presetCards || [];
-    const slotsUnlocked = data.slotsUnlocked || 0;
-
-    var oldCardsLevel = {};
-    cardNameIndices.forEach(function (cardName, i) {
-      if (!cardName) return;
-      oldCardsLevel[cardName] = [cardLevel[i], cardMasteryUnlocked[i]];
-    });
-
-    const numPresets = presetNames.length;
-    const slotsPerPreset =
-      numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
-    var oldCardsPreset = {};
-    presetNames.forEach(function (name, slot) {
-      if (!name) return;
-      var sourceIndex = presetIndices[slot];
-      var slotStart = sourceIndex * slotsPerPreset;
-      var cards = [];
-      presetSlots
-        .slice(slotStart, slotStart + slotsPerPreset)
-        .forEach(function (assigned, s) {
-          if (assigned) {
-            var resolvedName =
-              cardNameIndices[presetCards[slotStart + s]] || null;
-            if (resolvedName) {
-              cards.push(resolvedName);
-            }
-          }
-        });
-      oldCardsPreset[name] = {
-        cards: cards,
-        remove: [],
-        order: slot + 1,
+    try {
+      const cardNamesByIndex = {
+        0: "Damage",
+        1: "Attack Speed",
+        2: "Health",
+        3: "Health Regen",
+        4: "Range",
+        5: "Cash",
+        6: "Coins",
+        7: "Slow Aura",
+        10: "Critical Chance",
+        11: "Enemy Balance",
+        12: "Extra Defense",
+        13: "Fortress",
+        15: "Free Upgrades",
+        16: "Extra Orb",
+        18: "Plasma Cannon",
+        19: "Critical Coin",
+        20: "Wave Skip",
+        21: "Intro Sprint",
+        22: "Land Mine Stun",
+        23: "Recovery Package Chance",
+        25: "Death Ray",
+        26: "Energy Net",
+        27: "Super Tower",
+        28: "Second Wind",
+        29: "Demon Mode",
+        30: "Energy Shield",
+        31: "Wave Accelerator",
+        32: "Berserker",
+        33: "Ultimate Crit",
+        34: "Nuke",
+        35: "Area of Effect",
+        37: "Cells",
       };
-    });
+      var cardNameIndices = [];
+      Object.keys(cardNamesByIndex).forEach(function (index) {
+        cardNameIndices[Number(index)] = cardNamesByIndex[index];
+      });
+      const cardLevel = data.cardLevel || [];
+      const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
 
-    return {
-      oldCardsLevel: oldCardsLevel,
-      oldCardsPreset: oldCardsPreset,
-      oldCardSlots: slotsUnlocked,
-      cardNameIndices: cardNameIndices,
-    };
+      const presetOrder = shared.resolvePresetOrder(
+        data.presetNames || [],
+        shared.templatePresetNames,
+      );
+      const presetNames = presetOrder.order;
+      const presetIndices = presetOrder.indices;
+
+      const presetSlots = data.presetSlots || [];
+      const presetCards = data.presetCards || [];
+      const slotsUnlocked = data.slotsUnlocked || 0;
+
+      var oldCardsLevel = {};
+      cardNameIndices.forEach(function (cardName, i) {
+        if (!cardName) return;
+        oldCardsLevel[cardName] = [cardLevel[i], cardMasteryUnlocked[i]];
+      });
+
+      const numPresets = presetNames.length;
+      const slotsPerPreset =
+        numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
+      var oldCardsPreset = {};
+      presetNames.forEach(function (name, slot) {
+        if (!name) return;
+        var sourceIndex = presetIndices[slot];
+        var slotStart = sourceIndex * slotsPerPreset;
+        var cards = [];
+        presetSlots
+          .slice(slotStart, slotStart + slotsPerPreset)
+          .forEach(function (assigned, s) {
+            if (assigned) {
+              var resolvedName =
+                cardNameIndices[presetCards[slotStart + s]] || null;
+              if (resolvedName) {
+                cards.push(resolvedName);
+              }
+            }
+          });
+        oldCardsPreset[name] = {
+          cards: cards,
+          remove: [],
+          order: slot + 1,
+        };
+      });
+
+      return {
+        success: true,
+        oldCardsLevel: oldCardsLevel,
+        oldCardsPreset: oldCardsPreset,
+        oldCardSlots: slotsUnlocked,
+        cardNameIndices: cardNameIndices,
+      };
+    } catch (error) {
+      var errorReport = errors.report("cards.parseCardsData", error, {
+        data: data,
+        oldCardsLevel: oldCardsLevel,
+        oldCardsPreset: oldCardsPreset,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

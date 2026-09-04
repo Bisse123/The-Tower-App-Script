@@ -22,11 +22,11 @@ const ePaths = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -178,11 +178,12 @@ const ePaths = {
         message: `Effective Paths import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error importing ePaths data: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing Effective Paths data: ${error.message}`,
-      };
+      var errorReport = errors.report("ePaths.importData", error, {
+        note: `Error importing ePaths data`,
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -362,11 +363,18 @@ const ePaths = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log(`Error in ePaths.updateEHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in ePaths.updateEHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.updateEHP`,
+        sheetName: sheetName,
+        oldData: oldData,
+        eHPData: eHPData,
+        columnOffset: columnOffset,
+        eHPLabData: eHPLabData,
+        eRegenLabData: eRegenLabData,
+        eHPLabColumn: eHPLabColumn,
+        eRegenLabColumn: eRegenLabColumn,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -561,11 +569,16 @@ const ePaths = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log(`Error in ePaths.updateEDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in ePaths.updateEDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.updateEDamage`,
+        sheetName: sheetName,
+        oldData: oldData,
+        eDamageData: eDamageData,
+        columnOffset: columnOffset,
+        eDamageLabData: eDamageLabData,
+        eDamageLabColumn: eDamageLabColumn,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -792,11 +805,20 @@ const ePaths = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log(`Error in ePaths.updateEEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in ePaths.updateEEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.updateEEcon`,
+        sheetName: sheetName,
+        oldData: oldData,
+        eEconData: eEconData,
+        columnOffset: columnOffset,
+        eEconLabData: eEconLabData,
+        eEconStoneMultData: eEconStoneMultData,
+        eDiscountLabData: eDiscountLabData,
+        eEconLabColumn: eEconLabColumn,
+        eEconStoneMultColumn: eEconStoneMultColumn,
+        eDiscountLabColumn: eDiscountLabColumn,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -868,11 +890,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_09_00_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_09_00_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -942,11 +964,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_08_04_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_08_04_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1014,11 +1036,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_08_00_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_08_00_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1082,11 +1104,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_06_02_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_06_02_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1154,11 +1176,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_05_01_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_05_01_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1226,11 +1248,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_05_00_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_05_00_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1298,11 +1320,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_03_00_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_03_00_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1370,11 +1392,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version5_00_01_04: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version5_00_01_04`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1442,11 +1464,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version4_11_03_21: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version4_11_03_21`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1510,11 +1532,11 @@ const ePaths = {
         eEcon: eEconData,
       };
     } catch (error) {
-      console.log(`Error in ePaths.version4_11_02_00: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting Effective Paths data: " + error.message,
-      };
+      var errorReport = errors.report("ePaths", error, {
+        note: `Error in ePaths.version4_11_02_00`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1681,11 +1703,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_09_00_00eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_09_00_00eHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_09_00_00eHP", error, {
+        oldValues: oldValues,
+        oldeHPLabValues: oldeHPLabValues,
+        oldeRegenLabValues: oldeRegenLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1842,11 +1865,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_05_01_00eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_05_01_00eHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_05_01_00eHP", error, {
+        oldValues: oldValues,
+        oldeHPLabValues: oldeHPLabValues,
+        oldeRegenLabValues: oldeRegenLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2001,11 +2025,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_03_00_00eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_03_00_00eHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_03_00_00eHP", error, {
+        oldValues: oldValues,
+        oldeHPLabValues: oldeHPLabValues,
+        oldeRegenLabValues: oldeRegenLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2153,11 +2178,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_03_21eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_03_21eHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_03_21eHP", error, {
+        oldValues: oldValues,
+        oldeHPLabValues: oldeHPLabValues,
+        oldeRegenLabValues: oldeRegenLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2297,11 +2323,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_02_00eHP: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_02_00eHP: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_02_00eHP", error, {
+        oldValues: oldValues,
+        oldeHPLabValues: oldeHPLabValues,
+        oldeRegenLabValues: oldeRegenLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2450,11 +2477,11 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_09_00_00eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_09_00_00eDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_09_00_00eDamage", error, {
+        oldValues: oldValues,
+        oldeDamageLabValues: oldeDamageLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2593,11 +2620,11 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_06_02_00eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_06_02_00eDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_06_02_00eDamage", error, {
+        oldValues: oldValues,
+        oldeDamageLabValues: oldeDamageLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2743,11 +2770,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_05_00_00eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_05_00_00eDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_05_00_00eDamage", error, {
+        oldValues: oldValues,
+        oldeDamageLabValues: oldeDamageLabValues,
+        cLDmgValues: cLDmgValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2887,11 +2915,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_03_21eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_03_21eDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_03_21eDamage", error, {
+        oldValues: oldValues,
+        oldeDamageLabValues: oldeDamageLabValues,
+        cLDmgValues: cLDmgValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3020,11 +3049,11 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_02_00eDamage: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_02_00eDamage: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_02_00eDamage", error, {
+        oldValues: oldValues,
+        oldeDamageLabValues: oldeDamageLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3194,11 +3223,13 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_09_00_00eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_09_00_00eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_09_00_00eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeEconStoneMultValues: oldeEconStoneMultValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3366,11 +3397,13 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_08_00_00eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_08_00_00eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_08_00_00eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeEconStoneMultValues: oldeEconStoneMultValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3534,11 +3567,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_06_02_00eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_06_02_00eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_06_02_00eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3702,11 +3736,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion5_00_01_04eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion5_00_01_04eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion5_00_01_04eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3854,11 +3889,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_03_21eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_03_21eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_03_21eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3998,11 +4034,12 @@ const ePaths = {
         oldData: oldData,
       };
     } catch (error) {
-      console.log(`Error in getVersion4_11_02_00eEcon: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error in getVersion4_11_02_00eEcon: " + error.message,
-      };
+      var errorReport = errors.report("ePaths.getVersion4_11_02_00eEcon", error, {
+        oldValues: oldValues,
+        oldeEconLabValues: oldeEconLabValues,
+        oldeDiscountLabValues: oldeDiscountLabValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 

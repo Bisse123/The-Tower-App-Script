@@ -24,11 +24,11 @@ const master = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting IDS Master data: " + error.message,
-      };
+      var errorReport = errors.report("master.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -71,10 +71,15 @@ const master = {
             });
           }
         } catch (error) {
-          console.log(`Error updating IDS data: ${error.toString()}`);
+          var errorReport = errors.report("master.importData", error, {
+            note: `Error updating IDS data`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           failedUpdates.push({
             sheetType: "IDS",
-            message: "Error updating IDS data: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -97,10 +102,15 @@ const master = {
             });
           }
         } catch (error) {
-          console.log(`Error updating Presets data: ${error.toString()}`);
+          var errorReport = errors.report("master.importData", error, {
+            note: `Error updating Presets data`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           failedUpdates.push({
             sheetType: "Presets Presets",
-            message: "Error updating Presets data: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -143,11 +153,11 @@ const master = {
         failedUpdates: failedUpdates,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error importing IDS Master data: " + error.message,
-      };
+      var errorReport = errors.report("master.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -187,11 +197,11 @@ const master = {
         message: `Updated ${batchUpdate.length} IDS references`,
       };
     } catch (error) {
-      console.log("Error in updateIDSData: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updateIDSData: " + error.message,
-      };
+      var errorReport = errors.report("master.updateIDSData", error, {
+        oldIDSValues: oldIDSValues,
+        newIDSData: newIDSData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -274,11 +284,11 @@ const master = {
         message: `Updated ${batchUpdate.length} Presets entries`,
       };
     } catch (error) {
-      console.log("Error in updatePresetsData: " + error.toString());
-      return {
-        success: false,
-        message: "Error in updatePresetsData: " + error.message,
-      };
+      var errorReport = errors.report("master.updatePresetsData", error, {
+        oldPresetsValues: oldPresetsValues,
+        newPresetsData: newPresetsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -316,11 +326,10 @@ const master = {
         oldPresetsData: presetsData.oldPresetsData || {},
       };
     } catch (error) {
-      console.log("Error in version4_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version4_0: " + error.message,
-      };
+      var errorReport = errors.report("master.version4_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -342,11 +351,10 @@ const master = {
       var oldIdsData = this.getVersion2_0IDSData(idsValues);
       return oldIdsData;
     } catch (error) {
-      console.log("Error in version2_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_0: " + error.message,
-      };
+      var errorReport = errors.report("master.version2_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -391,11 +399,10 @@ const master = {
         message: "IDS Master data extracted successfully",
       };
     } catch (error) {
-      console.log("Error in getVersion4_0IDSData: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion4_0IDSData: " + error.message,
-      };
+      var errorReport = errors.report("master.getVersion4_0IDSData", error, {
+        idsValues: idsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -439,11 +446,10 @@ const master = {
         message: "IDS Master data extracted successfully",
       };
     } catch (error) {
-      console.log("Error in getVersion2_0IDSData: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_0IDSData: " + error.message,
-      };
+      var errorReport = errors.report("master.getVersion2_0IDSData", error, {
+        idsValues: idsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -513,71 +519,79 @@ const master = {
         message: "Presets data extracted successfully",
       };
     } catch (error) {
-      console.log("Error in getVersion4_0PresetsData: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion4_0PresetsData: " + error.message,
-      };
+      var errorReport = errors.report("master.getVersion4_0PresetsData", error, {
+        presetsValues: presetsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseMasterData: function (data) {
-    const globalPresets = data.globalPresets || [];
-    const workshopPresetNames = data.workshopPresetNames || [];
-    const cardPresetNames = data.cardPresetNames || [];
-    const botPresetNames = data.botPresetNames || [];
-    const modulePresets = data.modulePresets || [];
-    const guardianPresets = data.guardianPresets || [];
-    const modulePresetNames = modulePresets.map((preset) => preset.presetName);
-    const guardianPresetNames = guardianPresets.map((preset) => preset.presetName);
+    try {
+      const globalPresets = data.globalPresets || [];
+      const workshopPresetNames = data.workshopPresetNames || [];
+      const cardPresetNames = data.cardPresetNames || [];
+      const botPresetNames = data.botPresetNames || [];
+      const modulePresets = data.modulePresets || [];
+      const guardianPresets = data.guardianPresets || [];
+      const modulePresetNames = modulePresets.map((preset) => preset.presetName);
+      const guardianPresetNames = guardianPresets.map((preset) => preset.presetName);
 
-    const presetInfo = [
-      {"type": "Workshop", "indexName": "workshopIndex", "data": workshopPresetNames},
-      {"type": "Cards", "indexName": "cardsIndex", "data": cardPresetNames},
-      {"type": "Bots", "indexName": "botsIndex", "data": botPresetNames},
-      {"type": "Modules", "indexName": "modulesIndex", "data": modulePresetNames},
-      {"type": "Guardians", "indexName": "guardiansIndex", "data": guardianPresetNames},
-  ]
+      const presetInfo = [
+        {"type": "Workshop", "indexName": "workshopIndex", "data": workshopPresetNames},
+        {"type": "Cards", "indexName": "cardsIndex", "data": cardPresetNames},
+        {"type": "Bots", "indexName": "botsIndex", "data": botPresetNames},
+        {"type": "Modules", "indexName": "modulesIndex", "data": modulePresetNames},
+        {"type": "Guardians", "indexName": "guardiansIndex", "data": guardianPresetNames},
+    ]
 
-    var oldPresetNames = [];
-    var oldPresetsData = {
-      data: {},
-    };
-    globalPresets.forEach((preset, index) => {
-      if (index == globalPresets.length - 1) return; // last index is a dummy entry, skip it
-      const globalPresetName = preset.presetName;
-      if (!globalPresetName) {
-        return;
-      }
-      oldPresetNames.push(globalPresetName);
-      if (!oldPresetsData.data.hasOwnProperty(globalPresetName)) {
-        oldPresetsData.data[globalPresetName] = {};
-      }
-      presetInfo.forEach((info) => {
-        const presetType = info.type;
-        const indexName = info.indexName;
-        const index = preset[indexName];
-        const data = info.data;
-        const presetName = data[index];
-        if (presetName) {
-          oldPresetsData.data[globalPresetName][presetType] = presetName;
+      var oldPresetNames = [];
+      var oldPresetsData = {
+        data: {},
+      };
+      globalPresets.forEach((preset, index) => {
+        if (index == globalPresets.length - 1) return; // last index is a dummy entry, skip it
+        const globalPresetName = preset.presetName;
+        if (!globalPresetName) {
+          return;
         }
+        oldPresetNames.push(globalPresetName);
+        if (!oldPresetsData.data.hasOwnProperty(globalPresetName)) {
+          oldPresetsData.data[globalPresetName] = {};
+        }
+        presetInfo.forEach((info) => {
+          const presetType = info.type;
+          const indexName = info.indexName;
+          const index = preset[indexName];
+          const data = info.data;
+          const presetName = data[index];
+          if (presetName) {
+            oldPresetsData.data[globalPresetName][presetType] = presetName;
+          }
+        });
       });
-    });
 
-    oldPresetsData.presetNames = shared.resolvePresetOrder(
-        oldPresetNames,
-        shared.templatePresetNames,
-      ).order;
+      oldPresetsData.presetNames = shared.resolvePresetOrder(
+          oldPresetNames,
+          shared.templatePresetNames,
+        ).order;
 
-    const presetTypesOrder = presetInfo.map((info) => info.type);
-    return {
-      success: true,
-      oldPresetsData: oldPresetsData,
-      presetTypesOrder: presetTypesOrder,
-    };
+      const presetTypesOrder = presetInfo.map((info) => info.type);
+      return {
+        success: true,
+        success: true,
+        oldPresetsData: oldPresetsData,
+        presetTypesOrder: presetTypesOrder,
+      };
+    } catch (error) {
+      var errorReport = errors.report("master.parseMasterData", error, {
+        data: data,
+        oldPresetsData: oldPresetsData,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

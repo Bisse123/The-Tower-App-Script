@@ -24,11 +24,11 @@ const playerStuff = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting player & stuff data: " + error.message,
-      };
+      var errorReport = errors.report("playerStuff.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -121,11 +121,11 @@ const playerStuff = {
         message: `Player & Stuff import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing player & stuff data: ${error.message}`,
-      };
+      var errorReport = errors.report("playerStuff.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -318,11 +318,13 @@ const playerStuff = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log(`Error in updatePlayerStuffData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating player & stuff data: ${error.message}`,
-      };
+      var errorReport = errors.report("playerStuff.updatePlayerStuffData", error, {
+        sheetName: sheetName,
+        oldPlayerTierData: oldPlayerTierData,
+        oldPlayerStatsData: oldPlayerStatsData,
+        masterSheetData: masterSheetData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -461,11 +463,13 @@ const playerStuff = {
         message: "No updates needed for player perks data",
       };
     } catch (error) {
-      console.log(`Error in updatePlayerPerksPreset: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating player perks data: ${error.message}`,
-      };
+      var errorReport = errors.report("ranges.updatePlayerPerksPreset", error, {
+        sheetName: sheetName,
+        oldPlayerPerksData: oldPlayerPerksData,
+        shouldRemoveUsedPerks: shouldRemoveUsedPerks,
+        perksSheetData: perksSheetData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -512,11 +516,10 @@ const playerStuff = {
         shouldRemoveUsedPerks: perksPresetResult.shouldRemoveUsedPerks,
       };
     } catch (error) {
-      console.log("Error in version4_2: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version4_2: " + error.message,
-      };
+      var errorReport = errors.report("ranges.version4_2", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -553,11 +556,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version4_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version4_0: " + error.message,
-      };
+      var errorReport = errors.report("ranges.version4_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -594,11 +596,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version3_2: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version3_2: " + error.message,
-      };
+      var errorReport = errors.report("ranges.version3_2", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -635,11 +636,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: statsDataResult.oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log("Error in version2_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_0: " + error.message,
-      };
+      var errorReport = errors.report("ranges.version2_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -693,13 +693,10 @@ const playerStuff = {
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion4_0PlayerStuffTiers: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion4_0PlayerStuffTiers: " + error.message,
-      };
+      var errorReport = errors.report("ranges.getVersion4_0PlayerStuffTiers", error, {
+        oldPlayerStuffTierValues: oldPlayerStuffTierValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -740,13 +737,10 @@ const playerStuff = {
         oldPlayerStuffTierData: oldPlayerStuffTierData,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion2_0PlayerStuffTiers: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion2_0PlayerStuffTiers: " + error.message,
-      };
+      var errorReport = errors.report("ranges.getVersion2_0PlayerStuffTiers", error, {
+        oldPlayerStuffTierValues: oldPlayerStuffTierValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -791,13 +785,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion3_2PlayerStuffStats: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion3_2PlayerStuffStats: " + error.message,
-      };
+      var errorReport = errors.report("ranges.getVersion3_2PlayerStuffStats", error, {
+        oldPlayerStuffStatsValues: oldPlayerStuffStatsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -840,13 +831,10 @@ const playerStuff = {
         oldPlayerStuffStatsData: oldPlayerStuffStatsData,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion2_0PlayerStuffStats: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion2_0PlayerStuffStats: " + error.message,
-      };
+      var errorReport = errors.report("ranges.getVersion2_0PlayerStuffStats", error, {
+        oldPlayerStuffStatsValues: oldPlayerStuffStatsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -960,170 +948,177 @@ const playerStuff = {
         shouldRemoveUsedPerks: shouldRemoveUsedPerks,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion4_2PlayerStuffPerks: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion4_2PlayerStuffPerks: " + error.message,
-      };
+      var errorReport = errors.report("ranges.getVersion4_2PlayerStuffPerks", error, {
+        oldPlayerStuffPerksValues: oldPlayerStuffPerksValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parsePlayerStuffData: function (data) {
-    const tourneyNames = {
-      0: "Copper",
-      1: "Silver",
-      2: "Gold",
-      3: "Platinum",
-      4: "Champions",
-      5: "Legends",
-    };
-
-    const tourneyName = data.tourneyID ? tourneyNames[data.tourneyID] : null;
-    const highestWavePerTier = data.highestWavePerTier || [];
-    const premiumPass = data.premiumPass || [];
-    const atkDissonance = data.atkDissonance || [];
-    const hpDissonance = data.hpDissonance || [];
-    const coinDissonance = data.coinDissonance || [];
-    const uwDissonance = data.uwDissonance || [];
-
-    const lifetimeCoins = data.totalCoinsEarned || 0;
-    const lifetimeStones = data.totalStonesEarned + data.totalStonesBought || 0;
-    const lifetimeGems = data.totalGemsEarned + data.totalGemsBought || 0;
-    const lifetimeKeys = data.totalKeysEarned || 0;
-
-    const battleHistory = data.battleHistory || [];
-
-    function formatLifeTime(value) {
-      if (value === null || value === undefined || value === "") {
-        return null;
-      }
-      if (typeof value !== "number" || !isFinite(value)) {
-        return value;
-      }
-
-      // Suffix for a given power-of-1000 group.
-      // 0 -> "", 1 -> K, 2 -> M, ... 11 -> D, then aa, ab, ac, ...
-      function getSuffix(group) {
-        var named = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "D"];
-        if (group < named.length) {
-          return named[group];
-        }
-        var n = group - named.length; // 0-based index into aa, ab, ac, ...
-        var first = Math.floor(n / 26);
-        var second = n % 26;
-        return (
-          String.fromCharCode(97 + first) + String.fromCharCode(97 + second)
-        );
-      }
-
-      var negative = value < 0;
-      var num = Math.abs(value);
-
-      // Below 1000 there is no suffix.
-      if (num < 1000) {
-        return (negative ? "-" : "") + String(Math.round(num * 100) / 100);
-      }
-
-      var group = Math.floor(Math.log10(num) / 3);
-      var mantissa = num / Math.pow(1000, group);
-
-      // Guard against floating point / rounding pushing the mantissa to 1000+.
-      if (mantissa >= 1000) {
-        mantissa /= 1000;
-        group += 1;
-      }
-      var rounded = Math.round(mantissa * 100) / 100;
-      if (rounded >= 1000) {
-        rounded /= 1000;
-        group += 1;
-      }
-
-      return (negative ? "-" : "") + rounded.toFixed(2) + getSuffix(group);
-    }
-
-    var allBattlesCoinPerHour = battleHistory
-      .map(function (battle) {
-        if (battle && battle.coinsEarned && battle.realTime) {
-          var hours = battle.realTime / 3600;
-          if (hours > 0) {
-            return battle.coinsEarned / hours;
-          }
-        }
-        return null;
-      })
-      .filter(function (cph) {
-        return cph !== null;
-      })
-      .sort(function (a, b) {
-        return b - a;
-      });
-
-    var numBattles = 3;
-    const coinPerHour =
-      allBattlesCoinPerHour.length > 0
-        ? allBattlesCoinPerHour.slice(0, numBattles).reduce(function (
-            sum,
-            cph,
-          ) {
-            return sum + cph;
-          }, 0) / Math.min(numBattles, allBattlesCoinPerHour.length)
-        : null;
-
-    var oldPlayerStuffTierData = {};
-    var oldPlayerStuffStatsData = {
-      Stat: {
-        "Player ID": data.playerID,
-        "Farming Tier": "Tier " + data.currentTier,
-        "Tourney League": tourneyName,
-        "Lifetime Coins": formatLifeTime(lifetimeCoins),
-        Stones: formatLifeTime(lifetimeStones),
-        Gems: formatLifeTime(lifetimeGems),
-        Keys: formatLifeTime(lifetimeKeys),
-        "Coin / Hour": formatLifeTime(coinPerHour),
-      },
-      "Premium Packs": {
-        "Disable Ads": data.addPack,
-        "Starter Pack": data.starterPack,
-        "Epic Pack": data.epicPack,
-      },
-    };
-
-    var nextPremium = 0;
-    for (var tier = 0; tier < highestWavePerTier.length; tier++) {
-      // Waves are kept uncapped here; the save file UI decides whether to show
-      // and import them at the cap or as the highest wave actually reached.
-      var wave = highestWavePerTier[tier];
-      if (wave <= 0) {
-        continue;
-      }
-      var premium = null;
-      if (tier % 3 === 1) {
-        premium = premiumPass[nextPremium] || null;
-        nextPremium++;
-      }
-
-      oldPlayerStuffTierData["Tier " + tier] = {
-        wave: wave,
-        diss: {
-          attack: atkDissonance[tier] || 0,
-          defense: hpDissonance[tier] || 0,
-          utility: coinDissonance[tier] || 0,
-          ultimate: uwDissonance[tier] || 0,
-        },
-        premium: premium,
+    try {
+      const tourneyNames = {
+        0: "Copper",
+        1: "Silver",
+        2: "Gold",
+        3: "Platinum",
+        4: "Champions",
+        5: "Legends",
       };
-    }
 
-    return {
-      oldPlayerStuffTierData: oldPlayerStuffTierData,
-      oldPlayerStuffStatsData: oldPlayerStuffStatsData,
-      statOrder: Object.keys(oldPlayerStuffStatsData.Stat),
-      premiumOrder: Object.keys(oldPlayerStuffStatsData["Premium Packs"]),
-    };
+      const tourneyName = data.tourneyID ? tourneyNames[data.tourneyID] : null;
+      const highestWavePerTier = data.highestWavePerTier || [];
+      const premiumPass = data.premiumPass || [];
+      const atkDissonance = data.atkDissonance || [];
+      const hpDissonance = data.hpDissonance || [];
+      const coinDissonance = data.coinDissonance || [];
+      const uwDissonance = data.uwDissonance || [];
+
+      const lifetimeCoins = data.totalCoinsEarned || 0;
+      const lifetimeStones = data.totalStonesEarned + data.totalStonesBought || 0;
+      const lifetimeGems = data.totalGemsEarned + data.totalGemsBought || 0;
+      const lifetimeKeys = data.totalKeysEarned || 0;
+
+      const battleHistory = data.battleHistory || [];
+
+      function formatLifeTime(value) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+        if (typeof value !== "number" || !isFinite(value)) {
+          return value;
+        }
+
+        // Suffix for a given power-of-1000 group.
+        // 0 -> "", 1 -> K, 2 -> M, ... 11 -> D, then aa, ab, ac, ...
+        function getSuffix(group) {
+          var named = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "D"];
+          if (group < named.length) {
+            return named[group];
+          }
+          var n = group - named.length; // 0-based index into aa, ab, ac, ...
+          var first = Math.floor(n / 26);
+          var second = n % 26;
+          return (
+            String.fromCharCode(97 + first) + String.fromCharCode(97 + second)
+          );
+        }
+
+        var negative = value < 0;
+        var num = Math.abs(value);
+
+        // Below 1000 there is no suffix.
+        if (num < 1000) {
+          return (negative ? "-" : "") + String(Math.round(num * 100) / 100);
+        }
+
+        var group = Math.floor(Math.log10(num) / 3);
+        var mantissa = num / Math.pow(1000, group);
+
+        // Guard against floating point / rounding pushing the mantissa to 1000+.
+        if (mantissa >= 1000) {
+          mantissa /= 1000;
+          group += 1;
+        }
+        var rounded = Math.round(mantissa * 100) / 100;
+        if (rounded >= 1000) {
+          rounded /= 1000;
+          group += 1;
+        }
+
+        return (negative ? "-" : "") + rounded.toFixed(2) + getSuffix(group);
+      }
+
+      var allBattlesCoinPerHour = battleHistory
+        .map(function (battle) {
+          if (battle && battle.coinsEarned && battle.realTime) {
+            var hours = battle.realTime / 3600;
+            if (hours > 0) {
+              return battle.coinsEarned / hours;
+            }
+          }
+          return null;
+        })
+        .filter(function (cph) {
+          return cph !== null;
+        })
+        .sort(function (a, b) {
+          return b - a;
+        });
+
+      var numBattles = 3;
+      const coinPerHour =
+        allBattlesCoinPerHour.length > 0
+          ? allBattlesCoinPerHour.slice(0, numBattles).reduce(function (
+              sum,
+              cph,
+            ) {
+              return sum + cph;
+            }, 0) / Math.min(numBattles, allBattlesCoinPerHour.length)
+          : null;
+
+      var oldPlayerStuffTierData = {};
+      var oldPlayerStuffStatsData = {
+        Stat: {
+          "Player ID": data.playerID,
+          "Farming Tier": "Tier " + data.currentTier,
+          "Tourney League": tourneyName,
+          "Lifetime Coins": formatLifeTime(lifetimeCoins),
+          Stones: formatLifeTime(lifetimeStones),
+          Gems: formatLifeTime(lifetimeGems),
+          Keys: formatLifeTime(lifetimeKeys),
+          "Coin / Hour": formatLifeTime(coinPerHour),
+        },
+        "Premium Packs": {
+          "Disable Ads": data.addPack,
+          "Starter Pack": data.starterPack,
+          "Epic Pack": data.epicPack,
+        },
+      };
+
+      var nextPremium = 0;
+      for (var tier = 0; tier < highestWavePerTier.length; tier++) {
+        // Waves are kept uncapped here; the save file UI decides whether to show
+        // and import them at the cap or as the highest wave actually reached.
+        var wave = highestWavePerTier[tier];
+        if (wave <= 0) {
+          continue;
+        }
+        var premium = null;
+        if (tier % 3 === 1) {
+          premium = premiumPass[nextPremium] || null;
+          nextPremium++;
+        }
+
+        oldPlayerStuffTierData["Tier " + tier] = {
+          wave: wave,
+          diss: {
+            attack: atkDissonance[tier] || 0,
+            defense: hpDissonance[tier] || 0,
+            utility: coinDissonance[tier] || 0,
+            ultimate: uwDissonance[tier] || 0,
+          },
+          premium: premium,
+        };
+      }
+
+      return {
+        success: true,
+        oldPlayerStuffTierData: oldPlayerStuffTierData,
+        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+        statOrder: Object.keys(oldPlayerStuffStatsData.Stat),
+        premiumOrder: Object.keys(oldPlayerStuffStatsData["Premium Packs"]),
+      };
+    } catch (error) {
+      var errorReport = errors.report("playerStuff.parsePlayerStuffData", error, {
+        data: data,
+        oldPlayerStuffTierData: oldPlayerStuffTierData,
+        oldPlayerStuffStatsData: oldPlayerStuffStatsData,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

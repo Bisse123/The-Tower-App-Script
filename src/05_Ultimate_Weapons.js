@@ -24,11 +24,11 @@ const ultimate = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting ultimate weapons data: " + error.message,
-      };
+      var errorReport = errors.report("ultimate.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -195,11 +195,11 @@ const ultimate = {
         message: `Ultimate Weapons import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error importing ultimate weapons data: " + error.message,
-      };
+      var errorReport = errors.report("ultimate.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -369,11 +369,13 @@ const ultimate = {
         message: `No updates needed for ultimate weapons levels`,
       };
     } catch (error) {
-      console.log(`Error in updateUltimateLevels: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating ultimate weapons levels: ${error.message}`,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateUltimateLevels", error, {
+        sheetName: sheetName,
+        oldUltimate: oldUltimate,
+        masterSheetData: masterSheetData,
+        dvtNamedRangesData: dvtNamedRangesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -574,11 +576,12 @@ const ultimate = {
         };
       }
     } catch (error) {
-      console.log(`Error in updateUltimateCostCalculator: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating ultimate cost calculator: ${error.message}`,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateUltimateCostCalculator", error, {
+        sheetName: sheetName,
+        oldUltimateCostCalculator: oldUltimateCostCalculator,
+        ultimateCostCalculatorData: ultimateCostCalculatorData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -645,11 +648,10 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version3_1_1: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version3_1_1: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version3_1_1", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -714,11 +716,10 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version2_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version2_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -783,11 +784,10 @@ const ultimate = {
         oldUltimateCostCalculator: costCalculatorData["UW Cost Calculator"],
       };
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -861,13 +861,10 @@ const ultimate = {
         oldUltimate: oldUltimate,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion3_1_1UltimateWeapons: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion3_1_1UltimateWeapons: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion3_1_1UltimateWeapons", error, {
+        oldUltimateDataValues: oldUltimateDataValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -929,11 +926,10 @@ const ultimate = {
         oldUltimate: oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion2_0UltimateWeapons: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_0UltimateWeapons: " + error.message,
-      };
+      var errorReport = errors.report("weapon.getVersion2_0UltimateWeapons", error, {
+        oldUltimateDataValues: oldUltimateDataValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1007,11 +1003,10 @@ const ultimate = {
         oldUltimate: oldUltimate,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0UltimateWeapons: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0UltimateWeapons: " + error.message,
-      };
+      var errorReport = errors.report("weapon.getVersion1_0UltimateWeapons", error, {
+        oldUltimateDataValues: oldUltimateDataValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1170,60 +1165,68 @@ const ultimate = {
         "UW Cost Calculator": oldUltimateCostCalculator,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0CostCalculator: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0CostCalculator: " + error.message,
-      };
+      var errorReport = errors.report("weapon.getVersion1_0CostCalculator", error, {
+        oldUltimateCostCalculatorValues: oldUltimateCostCalculatorValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseUltimateWeaponData: function (data) {
-    const targetWeapons = {
-      "Chain Lightning": { upgrades: ["Damage", "Quantity", "Chance"], plusUpgrade: "Smite" },
-      "Smart Missiles": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Cover Fire" },
-      "Death Wave": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Kill Wall" },
-      "Chrono Field": { upgrades: ["Duration", "Speed Reduction", "Cooldown"], plusUpgrade: "Chrono Loop" },
-      "Inner Land Mines": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Charged Mines" },
-      "Golden Tower": { upgrades: ["Multiplier", "Duration", "Cooldown"], plusUpgrade: "Golden Combo" },
-      "Poison Swamp": { upgrades: ["Damage", "Duration", "Cooldown"], plusUpgrade: "Death Creep" },
-      "Black Hole": { upgrades: ["Size", "Duration", "Cooldown"], plusUpgrade: "Consume" },
-      "Spotlight": { upgrades: ["Multiplier", "Angle", "Quantity"], plusUpgrade: "Light Range" },
-    };
-    const ultimateWeaponUnlocked = data.ultimateWeaponUnlocked || [];
-    const ultimateWeaponLevel = data.ultimateWeaponLevel || [];
-    const ultimateWeaponPlusUnlocked = data.ultimateWeaponPlusUnlocked || [];
-    const ultimateWeaponPlusLevel = data.ultimateWeaponPlusLevel || [];
-
-    var oldUltimate = {};
-
-    Object.keys(targetWeapons).forEach(function (weaponName, i) {
-      var { upgrades, plusUpgrade } = targetWeapons[weaponName];
-      var weaponLevels = {};
-      upgrades.forEach(function (attr, j) {
-        var idx = i * upgrades.length + j;
-        var level = ultimateWeaponLevel[idx];
-        weaponLevels[attr] = level ? String(level).padStart(2, "0") : "00";
-      });
-      if (!ultimateWeaponPlusUnlocked[i]) {
-        weaponLevels[plusUpgrade] = "Lo";
-      } else {
-        var level = ultimateWeaponPlusLevel[i];
-        weaponLevels[plusUpgrade] = level ? String(level).padStart(2, "0") : "00";
-      }
-      oldUltimate[weaponName] = {
-        unlocked: ultimateWeaponUnlocked[i] || null,
-        levels: weaponLevels,
+    try {
+      const targetWeapons = {
+        "Chain Lightning": { upgrades: ["Damage", "Quantity", "Chance"], plusUpgrade: "Smite" },
+        "Smart Missiles": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Cover Fire" },
+        "Death Wave": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Kill Wall" },
+        "Chrono Field": { upgrades: ["Duration", "Speed Reduction", "Cooldown"], plusUpgrade: "Chrono Loop" },
+        "Inner Land Mines": { upgrades: ["Damage", "Quantity", "Cooldown"], plusUpgrade: "Charged Mines" },
+        "Golden Tower": { upgrades: ["Multiplier", "Duration", "Cooldown"], plusUpgrade: "Golden Combo" },
+        "Poison Swamp": { upgrades: ["Damage", "Duration", "Cooldown"], plusUpgrade: "Death Creep" },
+        "Black Hole": { upgrades: ["Size", "Duration", "Cooldown"], plusUpgrade: "Consume" },
+        "Spotlight": { upgrades: ["Multiplier", "Angle", "Quantity"], plusUpgrade: "Light Range" },
       };
-    });
+      const ultimateWeaponUnlocked = data.ultimateWeaponUnlocked || [];
+      const ultimateWeaponLevel = data.ultimateWeaponLevel || [];
+      const ultimateWeaponPlusUnlocked = data.ultimateWeaponPlusUnlocked || [];
+      const ultimateWeaponPlusLevel = data.ultimateWeaponPlusLevel || [];
+
+      var oldUltimate = {};
+
+      Object.keys(targetWeapons).forEach(function (weaponName, i) {
+        var { upgrades, plusUpgrade } = targetWeapons[weaponName];
+        var weaponLevels = {};
+        upgrades.forEach(function (attr, j) {
+          var idx = i * upgrades.length + j;
+          var level = ultimateWeaponLevel[idx];
+          weaponLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+        });
+        if (!ultimateWeaponPlusUnlocked[i]) {
+          weaponLevels[plusUpgrade] = "Lo";
+        } else {
+          var level = ultimateWeaponPlusLevel[i];
+          weaponLevels[plusUpgrade] = level ? String(level).padStart(2, "0") : "00";
+        }
+        oldUltimate[weaponName] = {
+          unlocked: ultimateWeaponUnlocked[i] || null,
+          levels: weaponLevels,
+        };
+      });
     
-    return {
-      oldUltimate: oldUltimate,
-      targetWeapons: targetWeapons,
-      weaponOrder: Object.keys(targetWeapons),
-    };
+      return {
+        success: true,
+        oldUltimate: oldUltimate,
+        targetWeapons: targetWeapons,
+        weaponOrder: Object.keys(targetWeapons),
+      };
+    } catch (error) {
+      var errorReport = errors.report("ultimate.parseUltimateWeaponData", error, {
+        data: data,
+        oldUltimate: oldUltimate,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion
