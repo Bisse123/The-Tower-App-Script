@@ -51,6 +51,36 @@ const ERROR_REPORT_TYPE =
 
 const CLIENT_ERROR_THROTTLE_SECONDS = 300;
 
+/**
+ * How deep `errors.snapshot` will follow a value, and how many containers it
+ * will emit in total while doing so.
+ *
+ * Depth alone is a bad cap. It was 3, which sounds generous until you count
+ * what actually uses it: the value under a context key is level 0, so
+ * `{ tracker: { cannon: { "Death Penalty": { copies: … } } } }` loses the
+ * innermost object — and it loses it whole, as a single "[Object]", taking
+ * every leaf under it. Ordinary nested state hits that constantly.
+ *
+ * But raising the depth on its own reintroduces exactly what the cap exists
+ * to prevent. Breadth is 25 keys per level, so the worst case multiplies by
+ * 25 for every level added: measured at ~290 KB for depth 3, 7 MB for 4,
+ * 177 MB for 5. Real data never looks like that (a 2000-row sheet range
+ * snapshots to under a kilobyte at any depth, because the breadth caps do the
+ * work) — but "real data never looks like that" is not something a log path
+ * gets to assume about the one entry that finally explains a bug.
+ *
+ * So: go deep, and bound the total instead. One `record()` gets a budget for
+ * all of its context values put together — NODES values emitted and CHARS
+ * characters of content. Both are needed: counting containers alone misses a
+ * wide object of scalars (25 leaves for one node, which measured 653 KB), and
+ * counting values alone misses 2500 of the 300-character strings the string
+ * cap still allows. Together they pin the entry near 100 KB whatever shape
+ * the value is. Whichever limit bites first leaves a marker saying so.
+ */
+const SNAPSHOT_MAX_DEPTH = 6;
+const SNAPSHOT_MAX_NODES = 5000;
+const SNAPSHOT_MAX_CHARS = 100000;
+
 const errors = {
   /**
    * Error codes. The client switches on these instead of matching message
@@ -146,30 +176,63 @@ const errors = {
    * throw - a value that resists serialising becomes "[unserializable]"
    * rather than losing the whole log entry over it.
    */
-  snapshot: function (value, depth, seen) {
+  /**
+   * A fresh allowance for one log entry's worth of snapshotting. Share it
+   * across every value going into the same entry.
+   */
+  budget: function () {
+    return { nodes: SNAPSHOT_MAX_NODES, chars: SNAPSHOT_MAX_CHARS };
+  },
+
+  snapshot: function (value, depth, seen, budget) {
     depth = depth || 0;
     seen = seen || [];
+    // One budget for the whole snapshot. `record` passes a single one across
+    // all of a context's values, so the bound is on the log entry rather than
+    // on any one key of it.
+    budget = budget || errors.budget();
     try {
+      // Every value that reaches the entry is charged for, leaves included -
+      // 25 scalars under one key cost 25, not 1. But only *containers* are
+      // ever refused: a spent budget stops the walk going wider or deeper,
+      // while the scalar in front of us still gets written down. It costs
+      // almost nothing and it is usually the part worth having - a sheet ID
+      // should not come back as "[truncated]" because some sprawling value
+      // earlier in the same context used the allowance up.
+      budget.nodes--;
+
       if (value === undefined) return "[undefined]";
       if (value === null) return null;
       if (typeof value === "function") return "[Function]";
       if (typeof value === "string") {
-        return value.length > 300
-          ? value.slice(0, 300) + `… (${value.length} chars)`
-          : value;
+        var text =
+          value.length > 300
+            ? value.slice(0, 300) + `… (${value.length} chars)`
+            : value;
+        budget.chars -= text.length + 2;
+        return text;
       }
       if (typeof value === "number" || typeof value === "boolean") {
+        budget.chars -= 8;
         return value;
       }
-      if (typeof value !== "object") return String(value);
+      if (typeof value !== "object") {
+        var other = String(value);
+        budget.chars -= other.length + 2;
+        return other;
+      }
       if (seen.indexOf(value) !== -1) return "[Circular]";
+      if (budget.nodes <= 0 || budget.chars <= 0) {
+        return "[truncated: entry size]";
+      }
       var nextSeen = seen.concat([value]);
+      budget.chars -= 2;
 
       if (Array.isArray(value)) {
-        if (depth >= 3) return `[Array(${value.length})]`;
+        if (depth >= SNAPSHOT_MAX_DEPTH) return `[Array(${value.length})]`;
         var limit = 10;
         var items = value.slice(0, limit).map(function (item) {
-          return errors.snapshot(item, depth + 1, nextSeen);
+          return errors.snapshot(item, depth + 1, nextSeen, budget);
         });
         if (value.length > limit) {
           items.push(`… (${value.length - limit} more of ${value.length})`);
@@ -177,11 +240,12 @@ const errors = {
         return items;
       }
 
-      if (depth >= 3) return "[Object]";
+      if (depth >= SNAPSHOT_MAX_DEPTH) return "[Object]";
       var keys = Object.keys(value);
       var out = {};
       keys.slice(0, 25).forEach(function (key) {
-        out[key] = errors.snapshot(value[key], depth + 1, nextSeen);
+        budget.chars -= String(key).length + 4;
+        out[key] = errors.snapshot(value[key], depth + 1, nextSeen, budget);
       });
       if (keys.length > 25) {
         out.__more__ = `${keys.length - 25} more key(s)`;
@@ -404,13 +468,16 @@ const errors = {
         reportLocation: { functionName: fields.source },
         user: errors.userKey(),
       },
-      reference: fields.reference,
       source: fields.source,
       code: fields.code,
       expected: false,
+      kind: fields.kind,
       detail: detail,
       trace: fields.trace,
     };
+    // Only when there is one. An `internal` entry has none by design, and a
+    // field sitting there empty invites someone to search for "" and wonder.
+    if (fields.reference) entry.reference = fields.reference;
     if (fields.note) entry.note = fields.note;
     if (fields.data) entry.data = fields.data;
     return entry;
@@ -443,7 +510,10 @@ const errors = {
           service: "the-tower-app-script",
           source: report.source,
           code: report.code,
-          reference: report.reference,
+          // Deliberately none. Nothing is going to put this in front of
+          // anybody, so an id nobody can quote only looks quotable.
+          reference: "",
+          kind: "internal",
           detail: report.detail,
           trace: report.trace,
           stack: report.stack,
@@ -472,6 +542,10 @@ const errors = {
    */
   reportFinal: function (source, error, context, code) {
     var report = errors.report(source, error, context, code);
+    // `record` mints a reference for any bug, on the assumption it is going
+    // somewhere a user can read it. This one is not, so drop it before the
+    // write - see `flush`.
+    report.reference = "";
     errors.flush(report);
     errors._forget();
     return report;
@@ -533,13 +607,16 @@ const errors = {
     var note = "";
     var data = null;
     if (context) {
+      // Shared, so the cap is on the entry as a whole rather than per key -
+      // five roomy values are five times the budget otherwise.
+      var budget = errors.budget();
       Object.keys(context).forEach(function (key) {
         if (key === "note") {
           if (context.note) note = context.note;
           return;
         }
         data = data || {};
-        data[key] = errors.snapshot(context[key]);
+        data[key] = errors.snapshot(context[key], 0, [], budget);
       });
     }
 
@@ -561,7 +638,12 @@ const errors = {
     if (expected) {
       // Deliberately not a ReportedErrorEvent: Error Reporting is for
       // defects, and this is the app behaving correctly.
-      var fields = { source: source, code: code, expected: expected };
+      var fields = {
+        source: source,
+        code: code,
+        expected: expected,
+        kind: "expected",
+      };
       if (detail) fields.detail = detail;
       if (note) fields.note = note;
       if (data) fields.data = data;
@@ -822,6 +904,25 @@ const errors = {
  * @returns {string} The reference of the entry that was already written, or
  *                   "" when nothing was — meaning the caller should write.
  */
+/**
+ * Bound a `data` map that arrived from a page, the way `record` bounds one it
+ * builds itself: each value snapshotted from depth 0, all of them sharing one
+ * budget. Snapshotting the map as a single value instead would charge a level
+ * of depth to the map, quietly costing every round-tripped bug one level of
+ * its context.
+ */
+function _boundInboundData(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  var budget = errors.budget();
+  var out = {};
+  Object.keys(data)
+    .slice(0, 25)
+    .forEach(function (key) {
+      out[key] = errors.snapshot(data[key], 0, [], budget);
+    });
+  return out;
+}
+
 function _throttleReference(fingerprintKey, reference) {
   try {
     var key = Utilities.base64EncodeWebSafe(
@@ -879,6 +980,9 @@ function reportClientError(payload) {
       reference: reference,
       source: source,
       code: errors.CODES.CLIENT,
+      // The page raised it and is showing this reference, so it is a bug
+      // somebody can quote - same tier as a round-tripped server one.
+      kind: "bug",
       detail: message,
       data: {
         page: String(safe.page || "").slice(0, 120),
@@ -953,6 +1057,7 @@ function reportServerError(payload) {
       source: source,
       code: code,
       reference: reference,
+      kind: "bug",
       detail: detail,
       trace: trace,
       stack: stack,
@@ -960,10 +1065,12 @@ function reportServerError(payload) {
       // This arrives over the wire. It was snapshotted on the way out, but
       // nothing guarantees what comes back is what we sent, so bound it again
       // rather than writing whatever shape the page handed us.
-      data:
-        safe.data && typeof safe.data === "object"
-          ? errors.snapshot(safe.data)
-          : null,
+      //
+      // Per key, exactly as `record` built it - NOT `snapshot(safe.data)`.
+      // Snapshotting the whole map would spend a level of depth on the map
+      // itself, so a bug's data came back one level shallower than the same
+      // context on an expected outcome, purely because it took the round trip.
+      data: _boundInboundData(safe.data),
     });
 
     errors._write(entry);

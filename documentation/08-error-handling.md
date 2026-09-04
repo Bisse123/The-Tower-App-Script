@@ -29,6 +29,46 @@ follows from the answer, and the answer is the error code — nothing else.
 | Reference shown | **No** | Yes, with a copy button |
 | Panel | ⚠️ amber | ⛔ red |
 
+### Three kinds in the log
+
+That is the decision the *code* makes. What lands in Cloud Logging splits the
+bug side once more, because a bug nobody saw is a different thing to search
+for than one a user is holding a reference to. Every entry carries
+`jsonPayload.kind`:
+
+| `kind` | Severity | Reference | Error Reporting | What it is |
+| --- | --- | --- | --- | --- |
+| `expected` | `WARNING` | none | no | The app working as designed |
+| `internal` | `ERROR` | **none** | yes | Our defect, but it never reached a browser — see [`reportFinal`](#the-failures-no-round-trip-can-carry) |
+| `bug` | `ERROR` | `TWR-…` | yes | Our defect, and the user is looking at the reference |
+
+An `internal` entry has **no reference field at all**. `record` mints one for
+any bug on the assumption it is going somewhere a user can read it; nothing is
+going to show this one to anybody, so an id nobody can quote only looks
+quotable to whoever finds it in the logs.
+
+> Why `kind` and not three severities. Apps Script's `console` exposes
+> `log`/`info`/`warn`/`error` and nothing above them, so `CRITICAL` is not
+> reachable from the script — `console.error` is the ceiling. Reaching it would
+> mean calling the Cloud Logging API over `UrlFetchApp`, which adds an OAuth
+> scope, an HTTP round trip per error, and a new way for the error path itself
+> to fail. `kind` is one field to filter on either way.
+
+### An access check that says "no" is not a defect
+
+`checkSheetAccess`, `checkTemplateAccess` and `checkScopePermissions` exist to
+find out whether something is reachable, and their `catch` is one of the two
+answers — the user has not granted access yet. They pass
+`errors.CODES.ACCESS_DENIED` explicitly rather than letting the classifier
+decide, and there is a second reason for that beyond intent: `CacheManager.getFile`
+reports Drive's real error itself and returns `null`, so what actually arrives
+in those catch blocks is a `TypeError` from dereferencing that null. Left to
+`errors.classify` it lands on `INTERNAL`, and every sheet a user has not shared
+yet writes an `ERROR` — twice, once from the cache layer and once from the
+check — with a reference nobody will ever see. `deleteOldSheet` passes
+`NOT_FOUND` for the same reason: already gone is the outcome it returns success
+for.
+
 Asking someone to report a working system wastes their time and ours, so an
 expected failure gets no reference at all — there is nothing to look up. The
 codes on the expected side live in one object, [`errors.EXPECTED`](../src/00_Errors.js):
@@ -320,14 +360,39 @@ getVersion1_0LabLevels: function (oldLabLevelsValues) {
 Every value passed this way goes through `errors.snapshot()` before it is
 logged:
 
-- arrays and objects are capped in both breadth (10 array items, 25 object
-  keys) and depth (3 levels) — a 2000-row sheet range comes back as its first
-  10 rows and a count of how many were cut, not a multi-megabyte log entry;
+- arrays and objects are capped in breadth (10 array items, 25 object keys) —
+  a 2000-row sheet range comes back as its first 10 rows and a count of how
+  many were cut, not a multi-megabyte log entry;
+- and in depth (6 levels), so ordinary nested state — `tracker.cannon["Death
+  Penalty"].substats.main.pct` — arrives whole rather than as an `"[Object]"`
+  that swallows every leaf under it;
 - strings are capped at 300 characters;
 - a value that points back at itself becomes `"[Circular]"` instead of
   recursing forever;
 - nothing in here can throw — a value that resists serialising becomes
   `"[unserializable]"` rather than losing the whole log entry over it.
+
+**Why depth is not the real cap.** Breadth is 25 keys per level, so the worst
+case multiplies by 25 for every level of depth allowed: measured at ~290 KB at
+depth 3, 7 MB at 4, 177 MB at 5. Depth 6 is only safe because it is not the
+binding constraint — a **budget**, shared by every value going into one entry,
+is. It allows 5000 values and 100,000 characters, and whichever runs out first
+leaves a `"[truncated: entry size]"` marker. That pins any entry near 100 KB
+whatever shape the context turns out to be, which is what lets the depth be
+generous. Real data never comes close: a 2000-row sheet range snapshots to
+under a kilobyte at any depth, because the breadth caps do the work.
+
+Only *containers* are ever refused by the budget. A scalar in front of the
+walk is still written down — it costs almost nothing and it is usually the
+part worth having, so a `sheetID` never comes back as `"[truncated]"` because
+some sprawling value earlier in the same context used the allowance up.
+
+One consequence worth knowing when reading entries: `record` snapshots each
+context value from depth 0, and `reportServerError` does the same, **per key**,
+to what comes back over the wire. Snapshotting the assembled `data` map as one
+value instead would spend a level of depth on the map itself, so a bug's
+context would come back one level shallower than the identical context on an
+expected outcome — purely because it took the round trip.
 
 That is what makes it safe to pass raw locals without a second thought. All
 232 catch blocks across the sheet modules were given their enclosing
@@ -504,10 +569,11 @@ either way — the payload Error Reporting ingests directly:
   message: "<the stack trace>",
   serviceContext: { service: "the-tower-app-script", version: "<APP_VERSION>" },
   context: { reportLocation: { functionName: "SheetsAPI.batchGetValues" }, user: "<hashed>" },
-  reference: "TWR-…",
+  reference: "TWR-…",                  // omitted entirely when kind is "internal"
   source: "SheetsAPI.batchGetValues",  // trace[0] - the deepest frame, not necessarily who wrote it
   code: "SHEET_STRUCTURE",
   expected: false,
+  kind: "bug",                         // "expected" | "internal" | "bug"
   detail: "API call to sheets.spreadsheets.values.batchGet failed with error: Unable to parse range: Master Sheet fail",
   trace: ["SheetsAPI.batchGetValues", "importData", "importAllData"],
   note: "Error getting spreadsheet",   // only when the call site passed one
@@ -542,17 +608,20 @@ Three things are load-bearing:
 3. Create a log-based metric — Logging ▸ Log-based metrics ▸ Create:
    - Name `app_script_errors`, type Counter
    - Filter: `severity>=ERROR AND jsonPayload.code!=""`
-   - Label `code` from `jsonPayload.code`, label `source` from `jsonPayload.source`
+   - Label `code` from `jsonPayload.code`, `source` from `jsonPayload.source`,
+     and `kind` from `jsonPayload.kind`
 4. Alert on it — Monitoring ▸ Alerting ▸ Create policy: `app_script_errors`
    grouped by `code`, above ~10 in 5 minutes. `QUOTA` and `ACCESS_DENIED` spikes
-   are user-driven; `INTERNAL` spikes are ours.
+   are user-driven; `INTERNAL` spikes are ours. Grouping by `kind` as well
+   separates "users are hitting this and can tell us the reference" from
+   "this is happening and nobody is going to report it".
 
 ### Privacy
 
 Raw locals are fine to pass in `context` — see
 [Capturing what led to the failure](#capturing-what-led-to-the-failure) —
 because `errors.snapshot()` runs over every value before it is logged and caps
-it in breadth, depth and length, so a sheet's worth of data cannot balloon a
+it in breadth, depth, length and total budget, so a sheet's worth of data cannot balloon a
 log entry or leak wholesale. That covers size; it does not decide what belongs
 in the log in the first place:
 
@@ -636,16 +705,34 @@ jsonPayload.serviceContext.service="the-tower-app-script-client"
 ```
 
 **Expected failures, which never reach Error Reporting** — how often people hit
-a sheet too old to convert, or run into a quota:
+a sheet too old to convert, run into a quota, or point us at a sheet they have
+not shared:
 
 ```
-severity=WARNING AND jsonPayload.expected=true
+jsonPayload.kind="expected"
 ```
 
 Worth watching as product signal rather than as a bug queue: a spike in
-`VERSION_OUTDATED` means a lot of people are stuck on an old template.
+`VERSION_OUTDATED` means a lot of people are stuck on an old template, and a
+spike in `ACCESS_DENIED` means the sharing step is confusing people.
 
-**Bugs only**, which is what Error Reporting shows:
+**Bugs a user can quote a reference for** — the ones a support message will
+arrive about:
+
+```
+jsonPayload.kind="bug"
+```
+
+**Bugs nobody saw** — a cache that would not open, a dialog that failed before
+it could be shown. Real defects, but they never reached a browser, so no one is
+going to report them and there is no reference to look one up by. This is the
+queue to go looking in rather than wait on:
+
+```
+jsonPayload.kind="internal"
+```
+
+**Every defect, both kinds**, which is what Error Reporting shows:
 
 ```
 severity>=ERROR AND jsonPayload.expected=false
@@ -664,7 +751,8 @@ When you write new code:
 | A precondition you checked yourself | `errors.reject(source, code, message)` |
 | An inner call already failed | `errors.propagate(source, inner, message?)` — never `reject`, or one incident is recorded twice |
 | Deciding the code | Ask whether *we* would have to change something. If yes it is a bug; if the user has to act, it is expected. Add it to `errors.EXPECTED` and to the mirror in `22_error_scripts.html`. |
-| Something recovered on its own | `errors.reportFinal(...)` and carry on — do not return a failure. Not `report`: nothing is going to hand this one back to be written. |
+| Something recovered on its own | `errors.reportFinal(...)` and carry on — do not return a failure. Not `report`: nothing is going to hand this one back to be written. It logs `kind: "internal"` with no reference. |
+| A `catch` that is one of the answers the function was called to give | Pass the code explicitly — `errors.reportFinal(source, error, context, errors.CODES.ACCESS_DENIED)`. An access check that comes back "no" is not a defect, and the classifier cannot tell, least of all when what reaches the catch is a null dereference rather than Google's own error. |
 | A wrapper that reports and returns `null` for its caller to relay | `errors.report(...)` — the `null` is the handoff, and `reportFinal` would clear the state `propagate` reads |
 | A failure with no code, from old `{ success: false, message }` code | Give it one. Until then the client treats it as `INTERNAL`, mints a reference and logs it, which is right but tells you nothing about what broke |
 | Client: a failed envelope | `AppError.show(result, { source })` |

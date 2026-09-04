@@ -495,17 +495,6 @@ const CacheManager = {
   },
 };
 
-/**
- * Every method here reports its own failure and returns `null` rather than
- * throwing, and that `null` is meant to be relayed: the caller checks it and
- * calls `errors.propagate`, which picks the reference and the real exception
- * text back up out of `errors._last*`. So these stay on `errors.report` — the
- * incident is on its way somewhere, and `errors.reportFinal` would both write
- * it early with a shorter trace and clear the very state `propagate` reads.
- *
- * A caller that swallows a `null` from here instead of relaying it loses the
- * incident. If you add one, use `errors.reportFinal` at that call site.
- */
 const SheetsAPI = {
   fetchSpreadsheet: function (spreadsheetId) {
     try {
@@ -1856,7 +1845,12 @@ function checkScopePermissions() {
     ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
     return true;
   } catch (error) {
-    errors.reportFinal("checkScopePermissions", error, { note: `Scope permission check failed` });
+    errors.reportFinal(
+      "checkScopePermissions",
+      error,
+      { note: `Scope permission check failed` },
+      errors.CODES.ACCESS_DENIED,
+    );
     return false;
   }
 }
@@ -1896,10 +1890,12 @@ function checkSheetAccess(sheetID) {
         parentFolderID: parentFolderID,
       };
     } catch (error) {
-      errors.reportFinal("checkSheetAccess", error, {
-        note: `Sheet access denied for ${sheetID}`,
-        sheetID: sheetID,
-      });
+      errors.reportFinal(
+        "checkSheetAccess",
+        error,
+        { note: `Sheet access denied for ${sheetID}`, sheetID: sheetID },
+        errors.CODES.ACCESS_DENIED,
+      );
 
       return {
         success: true,
@@ -2254,10 +2250,12 @@ function checkTemplateAccess(templateID) {
         name: file.name,
       };
     } catch (error) {
-      errors.reportFinal("checkTemplateAccess", error, {
-        note: `Template access denied for ${templateID}`,
-        templateID: templateID,
-      });
+      errors.reportFinal(
+        "checkTemplateAccess",
+        error,
+        { note: `Template access denied for ${templateID}`, templateID: templateID },
+        errors.CODES.ACCESS_DENIED,
+      );
 
       return {
         success: true,
@@ -3152,10 +3150,14 @@ function deleteOldSheet(sheetID) {
     try {
       fileInfo = CacheManager.getFile(sheetID);
     } catch (error) {
-      errors.reportFinal("deleteOldSheet", error, {
-        note: `Sheet ${sheetID} not found or already deleted`,
-        sheetID: sheetID,
-      });
+      // Already gone is a fine outcome here - the function returns success
+      // for exactly this case.
+      errors.reportFinal(
+        "deleteOldSheet",
+        error,
+        { note: `Sheet ${sheetID} not found or already deleted`, sheetID: sheetID },
+        errors.CODES.NOT_FOUND,
+      );
       return {
         success: true,
         message: `Sheet was already deleted or not found: ${sheetID}`,
