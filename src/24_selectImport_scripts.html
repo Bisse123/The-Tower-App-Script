@@ -1,4 +1,8 @@
 <script>
+  /**
+   * Reveals the select-import section and primes its controls.
+   * @returns {void}
+   */
   function showSelectImportSection() {
     var fileTypes = [
       "Laboratory",
@@ -31,6 +35,10 @@
     }
   }
 
+  /**
+   * Opens the picker for the new sheet and starts the template check.
+   * @returns {Promise<void>}
+   */
   async function chooseNewFile() {
     var chooseNewFileBtn = document.getElementById("chooseNewFileBtn");
     var chooseMasterFileBtn = document.getElementById("chooseMasterFileBtn");
@@ -75,6 +83,10 @@
     });
   }
 
+  /**
+   * Opens the picker for the IDS Master and resolves its sheet type.
+   * @returns {Promise<void>}
+   */
   async function chooseMasterFile() {
     var chooseNewFileBtn = document.getElementById("chooseNewFileBtn");
     var chooseMasterFileBtn = document.getElementById("chooseMasterFileBtn");
@@ -104,6 +116,11 @@
     });
   }
 
+  /**
+   * Handles a template access result: copies the template, or asks for access.
+   * @param {Object} result What checkFileTemplateAccess returned.
+   * @returns {void}
+   */
   function checkFileTemplateAccessSuccess(result) {
     console.log("checkFileTemplateAccessSuccess result:", result);
     if (result.success) {
@@ -137,7 +154,7 @@
           { allowSharedFiles: true }
         );
       } else {
-        // Access is granted, proceed with copying template
+
         document.getElementById("statusText").innerText =
           "Template access verified. Copying template...";
         google.script.run
@@ -158,6 +175,11 @@
     }
   }
 
+  /**
+   * Shows the panel when the template access check could not run.
+   * @param {*} error
+   * @returns {void}
+   */
   function checkFileTemplateAccessFailure(error) {
     document.getElementById("chooseNewFileBtn").disabled = false;
     document.getElementById("chooseMasterFileBtn").disabled = false;
@@ -167,6 +189,11 @@
     });
   }
 
+  /**
+   * Handles a finished template copy and moves on to the reference check.
+   * @param {Object} result
+   * @returns {void}
+   */
   function copyFileTemplateSuccess(result) {
     if (result.success) {
       document.getElementById("statusText").innerText =
@@ -183,6 +210,11 @@
     }
   }
 
+  /**
+   * Shows the panel when the template copy could not run.
+   * @param {*} error
+   * @returns {void}
+   */
   function copyFileTemplateFailure(error) {
     document.getElementById("chooseNewFileBtn").disabled = false;
     document.getElementById("chooseMasterFileBtn").disabled = false;
@@ -192,6 +224,11 @@
     });
   }
 
+  /**
+   * Renders the copied-sheet confirmation with a link to the new tab.
+   * @param {number} gid Grid id of the tab to link to.
+   * @returns {void}
+   */
   function showFileCopiedSuccess(gid) {
     document.getElementById(
       "selectImportTitle"
@@ -207,6 +244,10 @@
     document.getElementById("selectImportContinueBtn").style.display = "block";
   }
 
+  /**
+   * Checks the new sheet points back at its IDS Master before importing.
+   * @returns {void}
+   */
   function checkNewSheetRef() {
     document.getElementById("selectImportContinueBtn").disabled = true;
     document.getElementById("statusText").innerText =
@@ -240,6 +281,11 @@
       .checkNewSheetReference(newSheetID, sheetType);
   }
 
+  /**
+   * Resolves the new sheet and asks for access when it is not granted.
+   * @param {string} newFileID
+   * @returns {void}
+   */
   function findAndGrantNewSheet(newFileID) {
     return new Promise((resolve, reject) => {
       if (!newFileID) {
@@ -311,6 +357,11 @@
     });
   }
 
+  /**
+   * Resolves the IDS Master and asks for access when it is not granted.
+   * @param {string} sheetID
+   * @returns {void}
+   */
   function findAndGrantIdMaster(sheetID) {
     return new Promise((resolve, reject) => {
       google.script.run
@@ -387,6 +438,11 @@
     });
   }
 
+  /**
+   * Resolves the old sheet from the IDS Master result and asks for access.
+   * @param {Object} idMasterResult
+   * @returns {void}
+   */
   function findAndGrantOldSheet(idMasterResult) {
     return new Promise((resolve, reject) => {
       google.script.run

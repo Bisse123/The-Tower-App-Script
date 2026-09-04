@@ -6,7 +6,7 @@ const CacheManager = {
       try {
         this._userCache = CacheService.getUserCache();
       } catch (error) {
-        errors.reportFinal("CacheManager.userCache", error);
+        errors.report("CacheManager.userCache", error, null, errors.CODES.RECOVERED);
         return null;
       }
     }
@@ -16,7 +16,9 @@ const CacheManager = {
   CHUNK_SIZE: 90000,
 
   /**
-   * @private
+   * Byte length of a string in UTF-8.
+   * @param {string} str
+   * @returns {number}
    */
   _byteLength: function (str) {
     let bytes = 0;
@@ -29,7 +31,7 @@ const CacheManager = {
       } else if (code < 0x800) {
         bytes += 2;
       } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < str.length) {
-        // Surrogate pair - four bytes across the two code units, counted once
+
         bytes += 4;
         i++;
       } else {
@@ -41,9 +43,10 @@ const CacheManager = {
   },
 
   /**
-   * Split a string into chunks that each fit the byte budget, never cutting a
-   * surrogate pair in half
-   * @private
+   * Splits a string into chunks no larger than maxBytes.
+   * @param {string} str
+   * @param {number} [maxBytes]
+   * @returns {string[]}
    */
   _chunkString: function (str, maxBytes = this.CHUNK_SIZE) {
     const chunks = [];
@@ -81,9 +84,9 @@ const CacheManager = {
   },
 
   /**
-   * How many chunks the value currently stored under a key is split into, or 0
-   * when it is not stored chunked
-   * @private
+   * How many chunks a cached key was split into.
+   * @param {string} key
+   * @returns {number} 0 when the key is not chunked.
    */
   _chunkCount: function (key) {
     const chunksCountStr = this.userCache.get(`${key}__chunks`);
@@ -96,9 +99,9 @@ const CacheManager = {
   },
 
   /**
-   * Every key a stored value occupies - the value itself plus its chunks and
-   * their marker - so an entry can be invalidated whichever way it was stored
-   * @private
+   * Every cache key a value occupies, chunks included.
+   * @param {string} key
+   * @returns {string[]}
    */
   _entryKeys: function (key) {
     const keys = [key];
@@ -115,10 +118,9 @@ const CacheManager = {
   },
 
   /**
-   * Retrieve a value, automatically combining chunks if needed
-   * Returns null if the cache is unavailable, or if any chunk of a chunked
-   * value has been evicted - a partial value reads as corrupt, not as a miss
-   * @private
+   * Reads a cached value, rejoining its chunks.
+   * @param {string} key
+   * @returns {string|null}
    */
   _retrieveValue: function (key) {
     if (!this.userCache) {
@@ -151,14 +153,19 @@ const CacheManager = {
   },
 
   /**
-   * @private
+   * Caches a value, chunking it when it is too large.
+   * @param {string} key
+   * @param {string} value
+   * @returns {void}
    */
   _putValue: function (key, value) {
     this._putAllValues({ [key]: value });
   },
 
   /**
-   * @private
+   * Caches several values in one call.
+   * @param {Object} cacheData Key to value.
+   * @returns {void}
    */
   _putAllValues: function (cacheData) {
     if (!this.userCache) {
@@ -184,7 +191,6 @@ const CacheManager = {
         }
         toStore[`${key}__chunks`] = chunks.length.toString();
 
-        // The unchunked copy, plus any chunk a shorter new value leaves behind
         staleKeys.push(key);
         for (let i = chunks.length; i < previousChunkCount; i++) {
           staleKeys.push(`${key}__chunk_${i}`);
@@ -213,13 +219,10 @@ const CacheManager = {
   },
 
   /**
-   * Get or fetch spreadsheet metadata with smart cache invalidation
-   * Stores by spreadsheet type name (e.g., "Laboratory oldSpreadsheet")
-   * Validates sheetID against cached value and overwrites if different
-   * Automatically handles chunking for large spreadsheet metadata
-   * @param {string} spreadsheetTypeName - e.g., "Laboratory oldSpreadsheet", "Workshop newSpreadsheet"
-   * @param {string} sheetID - Sheet ID to fetch/validate
-   * @returns {Object} { spreadsheet metadata, sheetID } or null
+   * Spreadsheet metadata, from cache or the Sheets API.
+   * @param {string} spreadsheetTypeName Cache label, e.g. "Cards oldSpreadsheet".
+   * @param {string} sheetID
+   * @returns {Object|null}
    */
   getSpreadsheet: function (spreadsheetTypeName, sheetID) {
     if (!spreadsheetTypeName) {
@@ -275,9 +278,11 @@ const CacheManager = {
   },
 
   /**
-   * Cache sheet values with key "sheetID|sheetName|VALUE"
-   * Handles partial caching - only fetches uncached ranges
-   * Automatically chunks large values into multiple keys
+   * Cached values for ranges.
+   * @param {string} spreadsheetId
+   * @param {string[]} ranges
+   * @param {boolean} [forceRefresh]
+   * @returns {Array<Object>|null} valueRanges.
    */
   getSheetValues: function (spreadsheetId, ranges, forceRefresh = false) {
     const cachedData = [];
@@ -287,10 +292,7 @@ const CacheManager = {
     const cacheKeys = ranges.map((range) => `${spreadsheetId}|${range}|VALUE`);
 
     for (let i = 0; i < cacheKeys.length; i++) {
-      // `forceRefresh` treats every range as a miss, so the values below are
-      // fetched again and written back over the stale entry - for a caller
-      // that has reason to believe what it read was a live formula caught
-      // mid-calculation.
+
       const cached = forceRefresh ? null : this._retrieveValue(cacheKeys[i]);
 
       if (cached) {
@@ -327,8 +329,11 @@ const CacheManager = {
   },
 
   /**
-   * Cache sheet formulas with key "sheetID|sheetName|FORMULA"
-   * Automatically chunks large values into multiple keys
+   * Cached formulas for ranges.
+   * @param {string} spreadsheetId
+   * @param {string[]} ranges
+   * @param {boolean} [forceRefresh]
+   * @returns {Array<Object>|null} valueRanges.
    */
   getSheetFormulas: function (spreadsheetId, ranges, forceRefresh = false) {
     const cachedData = [];
@@ -376,8 +381,9 @@ const CacheManager = {
   },
 
   /**
-   * Clear cache for a specific spreadsheet type and all its sheet data
-   * Also removes chunked key variants (__chunk_0, __chunks, etc)
+   * Invalidates a spreadsheet's cache entries.
+   * @param {string} spreadsheetTypeName
+   * @returns {void}
    */
   RemoveSpreadsheet: function (spreadsheetTypeName) {
     if (!this.userCache) {
@@ -386,9 +392,7 @@ const CacheManager = {
     }
 
     try {
-      // Read through _retrieveValue, not the raw key: a chunked entry has
-      // nothing stored under the plain key, and reading it directly would make
-      // this look like there was nothing to invalidate.
+
       const cached = this._retrieveValue(spreadsheetTypeName);
       if (!cached) {
         console.log(
@@ -418,20 +422,17 @@ const CacheManager = {
         `Invalidated cache for ${spreadsheetTypeName} and ${keysToRemove.length - 1} sheet entries`,
       );
     } catch (error) {
-      errors.reportFinal("cacheData.RemoveSpreadsheet", error, {
+      errors.report("cacheData.RemoveSpreadsheet", error, {
         note: `Error invalidating cache`,
         spreadsheetTypeName: spreadsheetTypeName,
-      });
+      }, errors.CODES.RECOVERED);
     }
   },
 
   /**
-   * Get or fetch file metadata from Drive with caching
-   * Caches only the fields we need (id, name, parents, owners/me,
-   * capabilities/canEdit, trashed)
-   * Automatically handles chunking for large file metadata
-   * @param {string} fileID - File ID to fetch/cache
-   * @returns {Object} File metadata or null
+   * Drive file metadata, from cache or Drive.
+   * @param {string} fileID
+   * @returns {Object|null} Null when it cannot be read.
    */
   getFile: function (fileID) {
     if (!fileID) {
@@ -458,18 +459,19 @@ const CacheManager = {
         return file;
       }
     } catch (error) {
-      errors.reportFinal("cacheData.getFile", error, {
+      errors.report("cacheData.getFile", error, {
         note: `Error fetching file`,
         fileID: fileID,
-      });
+      }, errors.CODES.RECOVERED);
     }
 
     return null;
   },
 
   /**
-   * Clear cache for a specific file
-   * Also removes any chunked key variants
+   * Invalidates a file's cache entries.
+   * @param {string} fileID
+   * @returns {void}
    */
   RemoveFile: function (fileID) {
     if (!fileID) {
@@ -496,6 +498,11 @@ const CacheManager = {
 };
 
 const SheetsAPI = {
+  /**
+   * Sheet properties for a spreadsheet.
+   * @param {string} spreadsheetId
+   * @returns {Object|null} Null on failure; the failure is reported.
+   */
   fetchSpreadsheet: function (spreadsheetId) {
     try {
       const response = Sheets.Spreadsheets.get(spreadsheetId, {
@@ -511,6 +518,12 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Finds a tab by exact title.
+   * @param {Object} spreadsheet
+   * @param {string} sheetName
+   * @returns {Object|null} The tab's properties.
+   */
   getSheetByName: function (spreadsheet, sheetName) {
     try {
       const sheet = spreadsheet.sheets.find(
@@ -527,6 +540,12 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Finds a tab whose title contains substring.
+   * @param {Object} spreadsheet
+   * @param {string} substring
+   * @returns {Object|null} The tab's properties.
+   */
   getSheetBySubstring: function (spreadsheet, substring) {
     try {
       const sheet = spreadsheet.sheets.find((s) =>
@@ -543,6 +562,12 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Builds the requests that restore tab visibility.
+   * @param {Object} newSpreadsheet
+   * @param {Object} sheetVisibility Title to hidden flag.
+   * @returns {{success: boolean, message: string, requests?: Array<Object>}}
+   */
   applySheetVisibility: function (newSpreadsheet, sheetVisibility) {
     try {
       if (!newSpreadsheet) {
@@ -629,6 +654,14 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Reads several ranges' values in one call.
+   * @param {string} spreadsheetId
+   * @param {string[]} ranges
+   * @param {boolean} [useCache]
+   * @param {boolean} [forceRefresh]
+   * @returns {Array<Object>|null} Null on failure; the failure is reported.
+   */
   batchGetValues: function (
     spreadsheetId,
     ranges,
@@ -652,6 +685,14 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Reads several ranges' formulas in one call.
+   * @param {string} spreadsheetId
+   * @param {string[]} ranges
+   * @param {boolean} [useCache]
+   * @param {boolean} [forceRefresh]
+   * @returns {Array<Object>|null} Null on failure; the failure is reported.
+   */
   batchGetFormulas: function (
     spreadsheetId,
     ranges,
@@ -680,6 +721,12 @@ const SheetsAPI = {
     }
   },
 
+  /**
+   * Writes a batch of range updates.
+   * @param {string} spreadsheetId
+   * @param {Array<{range: string, values: Array}>} updates
+   * @returns {Object|null} Null on failure; the failure is reported.
+   */
   batchUpdateValues: function (spreadsheetId, updates) {
     try {
       const requestBody = {
@@ -698,6 +745,14 @@ const SheetsAPI = {
 };
 
 const shared = {
+  /**
+   * Reads a sheet's current and latest version from its Home Page.
+   * @param {string} sheetID
+   * @param {string} sheetName
+   * @param {string} sheetType
+   * @param {Array<Array<*>>} [preLoadedValues]
+   * @returns {{currentVersion: string, latestVersion: string}|null}
+   */
   findSheetVersion: function (sheetID, sheetName, sheetType, preLoadedValues) {
     try {
       if (sheetType === "Effective Paths") {
@@ -763,6 +818,13 @@ const shared = {
     }
   },
 
+  /**
+   * Reads an Effective Paths sheet's version.
+   * @param {string} sheetID
+   * @param {string} sheetName
+   * @param {Array<Array<*>>} [preLoadedValues]
+   * @returns {{currentVersion: string, latestVersion: string}|null}
+   */
   getEPathsVersion: function (sheetID, sheetName, preLoadedValues) {
     try {
       var values;
@@ -842,13 +904,9 @@ const shared = {
   },
 
   /**
-   * A version cell fed by a live formula reads "Loading..." for as long as
-   * Sheets is still calculating it. That string is truthy and contains no
-   * digits, so anything that trusts it draws the wrong conclusion — most
-   * damagingly `compareVersions`, which parses it to no version at all and
-   * therefore reports the template as "not newer", silently skipping a sheet
-   * that really does need updating. Every read of a version cell tests for
-   * it through here.
+   * Whether a version cell is still calculating.
+   * @param {*} value
+   * @returns {boolean}
    */
   isVersionLoading: function (value) {
     return (
@@ -859,13 +917,22 @@ const shared = {
     );
   },
 
-  /** Trimmed version text, or "" for a cell that is still calculating. */
+  /**
+   * Normalises a version cell to a version string.
+   * @param {*} value
+   * @returns {string}
+   */
   readVersion: function (value) {
     if (value == null) return "";
     var text = String(value).trim();
     return shared.isVersionLoading(text) ? "" : text;
   },
 
+  /**
+   * Classifies a version string as loading, missing or present.
+   * @param {*} version
+   * @returns {string}
+   */
   getVersionStatus: function (version) {
     var text = String(version == null ? "" : version).trim();
     if (!text) {
@@ -895,11 +962,19 @@ const shared = {
     return { status: "ok", label: "", blocked: false, version: text };
   },
 
+  /**
+   * Compares two version strings numerically, part by part.
+   * @param {string} oldVersion
+   * @param {string} newVersion
+   * @returns {"older"|"same"|"newer"}
+   */
   compareVersions: function (oldVersion, newVersion) {
-    // Dev only
-    // if (newVersion.includes("WIP")) {
-    //   return "older";
-    // }
+
+    /**
+     * Splits a version string into its numeric parts.
+     * @param {*} v
+     * @returns {number[]} Empty when there is no version in the string.
+     */
     function parseVersion(v) {
       var match = String(v || "").match(/\d+(?:\.\d+)*/);
       if (!match) {
@@ -921,6 +996,12 @@ const shared = {
     return "same";
   },
 
+  /**
+   * Whether a cell is the ID label for a sheet type.
+   * @param {*} cell
+   * @param {string} sheetType
+   * @returns {boolean}
+   */
   isSheetTypeCell: function (cell, sheetType) {
     if (typeof cell !== "string" || !sheetType) {
       return false;
@@ -933,6 +1014,14 @@ const shared = {
     );
   },
 
+  /**
+   * Finds a sheet type's ID in an IDS tab.
+   * @param {string} spreadsheetId
+   * @param {string} sheetName
+   * @param {string} sheetType
+   * @param {Array<Array<*>>} [values]
+   * @returns {string} "" when not found.
+   */
   findSheetTypeID: function (
     spreadsheetId,
     sheetName,
@@ -992,6 +1081,14 @@ const shared = {
     return null;
   },
 
+  /**
+   * Finds a sheet type's row in an IDS tab: id, template and version.
+   * @param {string} spreadsheetId
+   * @param {string} sheetName
+   * @param {string} sheetType
+   * @param {Array<Array<*>>} [values]
+   * @returns {Object|null}
+   */
   findSheetTypeURL: function (
     spreadsheetId,
     sheetName,
@@ -1056,6 +1153,11 @@ const shared = {
     return null;
   },
 
+  /**
+   * Pulls a spreadsheet ID out of a URL or a bare ID.
+   * @param {*} input
+   * @returns {string} "" when it is not a sheet link or ID.
+   */
   extractSheetId: function (input) {
     input = input.trim();
     var idPattern = /^[a-zA-Z0-9_-]{20,}$/;
@@ -1072,6 +1174,11 @@ const shared = {
     return null;
   },
 
+  /**
+   * 1-indexed column number to its A1 letters.
+   * @param {number} column
+   * @returns {string}
+   */
   columnToLetter: function (column) {
     var temp = "";
     var letter = "";
@@ -1083,6 +1190,11 @@ const shared = {
     return letter;
   },
 
+  /**
+   * Pulls the URL out of a HYPERLINK formula.
+   * @param {*} formula
+   * @returns {string}
+   */
   extractUrlFromHyperlink: function (formula) {
     if (!formula || typeof formula !== "string") {
       return null;
@@ -1100,6 +1212,12 @@ const shared = {
     return null;
   },
 
+  /**
+   * Resolves a data-validation value against its named range.
+   * @param {*} oldValue
+   * @param {Object} dvtNamedRangesData
+   * @returns {*}
+   */
   getDVTValue: function (oldValue, dvtNamedRangesData) {
     if (!oldValue || !dvtNamedRangesData) {
       return oldValue;
@@ -1117,23 +1235,13 @@ const shared = {
     return oldValue;
   },
 
-  /**
-   * The named presets the sheet templates ship with. Everything else is called
-   * "Preset N". None of these are guaranteed to exist in a user's data - they
-   * are only the labels a freshly copied template starts out with.
-   */
   templatePresetNames: ["Farming", "Tourney"],
-  
+
   /**
-   * Reorders a save file's preset names into the fixed slot order the sheet
-   * templates expect (e.g. ["Farming", "Tourney", "Preset 3", "Preset 4", "Preset 5"]),
-   * without requiring "Farming"/"Tourney" to already be first, or to exist at all.
-   * Any name in forcedNames found anywhere in presetNames is pulled into its
-   * matching slot; everything else fills the remaining slots in its original
-   * relative order.
-   * @param {Array} presetNames - preset names as they appear in the save file
-   * @param {Array} forcedNames - names that should be pulled into the front slots when present, e.g. ["Farming", "Tourney"]
-   * @returns {{order: Array, indices: Array}} order: slot-ordered names (empty slots fall back to "Preset N"); indices: for each slot, the original index in presetNames to pull parallel data from
+   * Orders preset names, honouring any forced ordering.
+   * @param {string[]} presetNames
+   * @param {string[]} [forcedNames]
+   * @returns {string[]}
    */
   resolvePresetOrder: function (presetNames, forcedNames) {
     var names = (presetNames || []).slice();
@@ -1176,6 +1284,13 @@ const shared = {
     return { order: order, indices: indices };
   },
 
+  /**
+   * Finds a sheet type's template ID in an IDS tab.
+   * @param {string} sheetID
+   * @param {string} sheetName
+   * @param {string} sheetType
+   * @returns {string|null}
+   */
   findSheetTemplateID: function (sheetID, sheetName, sheetType) {
     try {
       console.log(
@@ -1280,6 +1395,11 @@ const shared = {
     }
   },
 
+  /**
+   * Zero-based column offset of an A1 range's first column.
+   * @param {string} range
+   * @returns {number}
+   */
   getColumnOffsetFromRange: function (range) {
     var rangePart = range.split("!")[1];
     if (!rangePart) return 0;
@@ -1299,6 +1419,15 @@ const shared = {
     return columnIndex - 1;
   },
 
+  /**
+   * Appends the IDS Master ID writes to a batch update.
+   * @param {Array<Object>} batchUpdate Mutated in place.
+   * @param {string} sheetType
+   * @param {string} newSheetID
+   * @param {Array<Array<*>>} idsData
+   * @param {string} idMasterID
+   * @returns {Array<Object>} The same batch.
+   */
   addIDUpdatesToBatch: function (
     batchUpdate,
     sheetType,
@@ -1336,19 +1465,27 @@ const shared = {
       }
       return batchUpdate;
     } catch (error) {
-      errors.reportFinal("shared.addIDUpdatesToBatch", error, {
+      errors.report("shared.addIDUpdatesToBatch", error, {
         note: `Error adding ID updates to batch`,
         batchUpdate: batchUpdate,
         sheetType: sheetType,
         newSheetID: newSheetID,
         idsData: idsData,
         idMasterID: idMasterID,
-      });
+      }, errors.CODES.RECOVERED);
       return batchUpdate;
     }
   },
 };
 
+/**
+ * Moves the new sheet into the old one's folder and trashes the old.
+ * @param {string} sheetType
+ * @param {string} newSheetID
+ * @param {string} oldSheetID
+ * @param {string[]} [mergedOldSheetIDs] Extra sheets to trash.
+ * @returns {{success: boolean, message: string}} A failure envelope on error.
+ */
 function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
   try {
     var newSpreadsheet = spreadsheets(
@@ -1402,8 +1539,7 @@ function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
     if (sheetType === "IDS Collection") {
       newFileName = newFileName.replace("IDS Master", "IDS Collection");
     }
-    // The merged sheet takes over from the two sheets it replaced, so the name
-    // inherited from whichever one it was built from is renamed with it.
+
     if (
       sheetType === "Themes, Songs & Relics" &&
       newFileName.indexOf(sheetType) === -1
@@ -1466,9 +1602,6 @@ function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
       return errors.fail(errorReport);
     }
 
-    // A merged sheet replaces more than one old sheet, so every sheet it was
-    // built from is deleted. The new sheet is already moved and renamed at this
-    // point, so a leftover here is logged rather than failing the whole move.
     var extraOldSheetIDs = (mergedOldSheetIDs || []).filter(function (sheetID) {
       return sheetID && sheetID !== oldSheetID;
     });
@@ -1478,10 +1611,10 @@ function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
         CacheManager.RemoveFile(extraOldSheetIDs[i]);
         console.log(`Deleted merged old sheet: ${extraOldSheetIDs[i]}`);
       } catch (error) {
-        errors.reportFinal("deleteOldSheet", error, {
+        errors.report("deleteOldSheet", error, {
           note: `Error deleting merged old sheet`,
           sheetID: extraOldSheetIDs[i],
-        });
+        }, errors.CODES.RECOVERED);
       }
     }
 
@@ -1506,6 +1639,13 @@ function moveSheet(sheetType, newSheetID, oldSheetID, mergedOldSheetIDs) {
   }
 }
 
+/**
+ * Moves a sheet converted out of an IDS Collection into place.
+ * @param {string} sheetType
+ * @param {string} newSheetID
+ * @param {string} oldCollectionID
+ * @returns {{success: boolean, message: string}} A failure envelope on error.
+ */
 function moveConvertedSheet(sheetType, newSheetID, oldCollectionID) {
   try {
     var newSpreadsheet = spreadsheets(
@@ -1604,6 +1744,12 @@ function moveConvertedSheet(sheetType, newSheetID, oldCollectionID) {
   }
 }
 
+/**
+ * Writes sheet IDs into the IDS Master's IDS tab.
+ * @param {string} idMasterID
+ * @param {Array<{sheetType: string, sheetID: string}>} idDataEntries
+ * @returns {{success: boolean, message: string}} A failure envelope on error.
+ */
 function updateIdsMaster(idMasterID, idDataEntries) {
   var idsMasterSpreadsheet = spreadsheets("idMasterSpreadsheet", idMasterID);
   if (!idsMasterSpreadsheet) {
@@ -1695,10 +1841,9 @@ function updateIdsMaster(idMasterID, idDataEntries) {
 }
 
 /**
- * The combined update writes the new IDS Master's sheet IDs as part of its own
- * import, so nothing is left to set afterwards. This resolves just the IDS tab's
- * gid for the summary link, without the read and write updateIdsMaster spends on
- * IDs that are already in place.
+ * The grid id of the IDS Master's IDS tab.
+ * @param {string} idMasterID
+ * @returns {{success: boolean, gid: number}} A failure envelope on error.
  */
 function getIdsMasterGid(idMasterID) {
   try {
@@ -1735,6 +1880,13 @@ function getIdsMasterGid(idMasterID) {
   }
 }
 
+/**
+ * Client-callable. Compares a sheet's version against its template's.
+ * @param {string} sheetID
+ * @param {string} sheetType
+ * @param {boolean} [forceRefresh]
+ * @returns {{success: boolean, comparisonResult: string}} A failure envelope on error.
+ */
 function compareSheetVersions(sheetID, sheetType, forceRefresh = false) {
   var spreadsheet = spreadsheets(`${sheetType} spreadsheet`, sheetID);
   if (!spreadsheet) {
@@ -1754,7 +1906,7 @@ function compareSheetVersions(sheetID, sheetType, forceRefresh = false) {
       `Home Page sheet™ not found in ${sheetType} spreadsheet™`,
     );
   }
-  
+
   var homePageData = SheetsAPI.batchGetValues(
     sheetID,
     ["Home Page"],
@@ -1799,7 +1951,7 @@ function compareSheetVersions(sheetID, sheetType, forceRefresh = false) {
       comparisonResult: comparisonResult,
     };
   }
-  
+
   return {
     success: true,
     currentVersion: versionInfo.currentVersion,
@@ -1808,6 +1960,10 @@ function compareSheetVersions(sheetID, sheetType, forceRefresh = false) {
   };
 }
 
+/**
+ * Client-callable. An OAuth token for the Picker.
+ * @returns {string}
+ */
 function getOAuthToken() {
   try {
     const token = ScriptApp.getOAuthToken();
@@ -1827,6 +1983,10 @@ function getOAuthToken() {
   }
 }
 
+/**
+ * Client-callable. The URL where the user grants missing scopes.
+ * @returns {string} "" when it cannot be built.
+ */
 function getScopeAuthorizationUrl() {
   try {
     return (
@@ -1835,26 +1995,33 @@ function getScopeAuthorizationUrl() {
       ).getAuthorizationUrl() || ""
     );
   } catch (authInfoError) {
-    errors.reportFinal("getScopeAuthorizationUrl", authInfoError, { note: `Error getting authorization URL` });
+    errors.report("getScopeAuthorizationUrl", authInfoError, { note: `Error getting authorization URL` }, errors.CODES.RECOVERED);
     return "";
   }
 }
 
+/**
+ * Client-callable. Whether every required scope is granted.
+ * @returns {boolean}
+ */
 function checkScopePermissions() {
   try {
     ScriptApp.requireAllScopes(ScriptApp.AuthMode.FULL);
     return true;
   } catch (error) {
-    errors.reportFinal(
+    errors.report(
       "checkScopePermissions",
       error,
-      { note: `Scope permission check failed` },
-      errors.CODES.ACCESS_DENIED,
-    );
+      { note: `Scope permission check failed` }, errors.CODES.ACCESS_DENIED);
     return false;
   }
 }
 
+/**
+ * Client-callable. Whether the script can reach a sheet, and how.
+ * @param {string} sheetID
+ * @returns {{success: boolean, accessible: boolean, owned: boolean, canEdit: boolean, sheetID: string}}
+ */
 function checkSheetAccess(sheetID) {
   try {
     if (!sheetID) {
@@ -1890,12 +2057,10 @@ function checkSheetAccess(sheetID) {
         parentFolderID: parentFolderID,
       };
     } catch (error) {
-      errors.reportFinal(
+      errors.report(
         "checkSheetAccess",
         error,
-        { note: `Sheet access denied for ${sheetID}`, sheetID: sheetID },
-        errors.CODES.ACCESS_DENIED,
-      );
+        { note: `Sheet access denied for ${sheetID}`, sheetID: sheetID }, errors.CODES.ACCESS_DENIED);
 
       return {
         success: true,
@@ -1919,12 +2084,15 @@ function checkSheetAccess(sheetID) {
   }
 }
 
+/**
+ * Client-callable. Template and sheet IDs for every type in an IDS Master.
+ * @param {string} idMasterID
+ * @param {string} [copyMode]
+ * @returns {{success: boolean, sheetIds: Object, templateInfo: Object}} A failure envelope on error.
+ */
 function getTemplateAndsheetIds(idMasterID, copyMode) {
   try {
-    // "Themes, Songs & Relics" only exists on a v4.0 or later IDS Master; older
-    // ones still have the two sheet types it replaced. It is looked up first
-    // because "Relics" matches it by name too, and the two old sheet types are
-    // skipped once it has been found.
+
     const sheetTypes = [
       "Laboratory",
       "Workshop",
@@ -1947,11 +2115,6 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
       `Getting template and old sheet IDs for IDS Master: ${idMasterID}, mode: ${copyMode}`,
     );
 
-    // Version cells still calculating read "Loading...", and deciding what to
-    // update off one of those would skip a sheet that does need updating. One
-    // re-read past the cache, then we go with what we have - see
-    // `shared.isVersionLoading` and `getSaveFileImportTargets`, which does the
-    // same thing for the save-file workflow.
     var idsMasterData, templateInfo, skippedTemplates, sheetIds, versionLoading;
     var attempt = 0;
     var maxAttempts = 2;
@@ -2033,11 +2196,11 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
             );
           }
         } catch (templateError) {
-          errors.reportFinal("getTemplateAndsheetIds", templateError, {
+          errors.report("getTemplateAndsheetIds", templateError, {
             note: `Error processing template for ${sheetType}`,
             idMasterID: idMasterID,
             copyMode: copyMode,
-          });
+          }, errors.CODES.RECOVERED);
         }
       }
     } while (versionLoading && attempt < maxAttempts);
@@ -2059,6 +2222,13 @@ function getTemplateAndsheetIds(idMasterID, copyMode) {
   }
 }
 
+/**
+ * Template id, version and old sheet for one sheet type.
+ * @param {Object} idsMasterData
+ * @param {string} sheetType
+ * @param {string} [copyMode]
+ * @returns {{success: boolean}} Plus template details. A failure envelope on error.
+ */
 function getTemplateInfo(idsMasterData, sheetType, copyMode) {
   try {
     var values = idsMasterData.values;
@@ -2100,9 +2270,6 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
       };
     }
 
-    // Blank a version cell we caught mid-calculation rather than comparing
-    // against it, and say so, so the caller can re-read instead of skipping a
-    // sheet on the strength of a version nobody ever actually saw.
     var versionLoading =
       shared.isVersionLoading(spreadsheetInfo.version.value) ||
       shared.isVersionLoading(spreadsheetInfo.oldVersion.value);
@@ -2225,6 +2392,11 @@ function getTemplateInfo(idsMasterData, sheetType, copyMode) {
   }
 }
 
+/**
+ * Client-callable. Whether the script can reach a template.
+ * @param {string} templateID
+ * @returns {{success: boolean, accessible: boolean, templateID: string}}
+ */
 function checkTemplateAccess(templateID) {
   try {
     if (!templateID) {
@@ -2250,12 +2422,10 @@ function checkTemplateAccess(templateID) {
         name: file.name,
       };
     } catch (error) {
-      errors.reportFinal(
+      errors.report(
         "checkTemplateAccess",
         error,
-        { note: `Template access denied for ${templateID}`, templateID: templateID },
-        errors.CODES.ACCESS_DENIED,
-      );
+        { note: `Template access denied for ${templateID}`, templateID: templateID }, errors.CODES.ACCESS_DENIED);
 
       return {
         success: true,
@@ -2275,6 +2445,12 @@ function checkTemplateAccess(templateID) {
   }
 }
 
+/**
+ * Client-callable. Resolves a sheet's id and type from a link or ID.
+ * @param {string} sheetID
+ * @param {string} [sheetType]
+ * @returns {{success: boolean, sheetID: string, sheetType: string}} A failure envelope on error.
+ */
 function findSheetIdAndType(sheetID, sheetType) {
   if (!sheetID) {
     console.log(`Missing sheetId parameter.`);
@@ -2311,11 +2487,10 @@ function findSheetIdAndType(sheetID, sheetType) {
 }
 
 /**
+ * Reads an IDS Master's IDS tab.
  * @param {string} idMasterID
- * @param {boolean} [forceRefresh] Re-read the IDS sheet from the API even if
- *        it is in the cache. For a caller that read a live formula still
- *        showing "Loading..." and wants to give it another go - a plain
- *        re-call would otherwise be served the same cached copy.
+ * @param {boolean} [forceRefresh]
+ * @returns {{success: boolean, values: Array<Array<*>>}} A failure envelope on error.
  */
 function fetchIdsMasterData(idMasterID, forceRefresh = false) {
   try {
@@ -2392,6 +2567,13 @@ function fetchIdsMasterData(idMasterID, forceRefresh = false) {
   }
 }
 
+/**
+ * Resolves one sheet type's template and reports whether it is reachable.
+ * @param {Object} idsMasterData
+ * @param {string} sheetType
+ * @param {string} [copyMode]
+ * @returns {{success: boolean, accessDenied: boolean}} Plus template details.
+ */
 function processTemplateAccess(idsMasterData, sheetType, copyMode) {
   try {
     var values = idsMasterData.values;
@@ -2433,8 +2615,6 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
       };
     }
 
-    // Same as in `getTemplateInfo`: a cell still calculating is not a version,
-    // and must not be compared against - see `shared.isVersionLoading`.
     var versionLoading =
       shared.isVersionLoading(spreadsheetInfo.version.value) ||
       shared.isVersionLoading(spreadsheetInfo.oldVersion.value);
@@ -2543,12 +2723,12 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
         sheetType: sheetType,
       };
     } catch (error) {
-      errors.reportFinal("processTemplateAccess", error, {
+      errors.report("processTemplateAccess", error, {
         note: `Error retrieving template file information`,
         idsMasterData: idsMasterData,
         sheetType: sheetType,
         copyMode: copyMode,
-      });
+      }, errors.CODES.RECOVERED);
       console.log(`Template ID: ${templateID}, Sheet Type: ${sheetType}`);
 
       return {
@@ -2575,9 +2755,14 @@ function processTemplateAccess(idsMasterData, sheetType, copyMode) {
   }
 }
 
+/**
+ * Client-callable. Template access for one sheet type in an IDS Master.
+ * @param {string} idMasterID
+ * @param {string} sheetType
+ * @returns {Object} What processTemplateAccess returned.
+ */
 function checkFileTemplateAccess(idMasterID, sheetType) {
-  // One re-read past the cache when a version cell was still calculating -
-  // see `shared.isVersionLoading`.
+
   var result = null;
   for (var attempt = 1; attempt <= 2; attempt++) {
     if (attempt > 1) Utilities.sleep(700);
@@ -2594,6 +2779,12 @@ function checkFileTemplateAccess(idMasterID, sheetType) {
   return result;
 }
 
+/**
+ * Client-callable. The sheet each save-file category imports into.
+ * @param {string} idMasterID
+ * @param {string[]} [sheetTypes]
+ * @returns {{success: boolean, targets: Object}} A failure envelope on error.
+ */
 function getSaveFileImportTargets(idMasterID, sheetTypes) {
   try {
     var resolvedIdMasterID = idMasterID
@@ -2613,8 +2804,6 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
       );
     }
 
-    // When no specific types are requested, resolve every save-file category so
-    // the caller can grant access to all linked subsheets up front.
     var requestedTypes =
       Array.isArray(sheetTypes) && sheetTypes.length > 0
         ? sheetTypes
@@ -2632,20 +2821,15 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
             "IDS Master",
           ];
 
+    /**
+     * Reads a version out of a cell object.
+     * @param {{value: *}} cell
+     * @returns {string}
+     */
     function readSheetVersion(cell) {
       return shared.readVersion(cell && cell.value);
     }
 
-    // Version cells here come from live formulas pulling each template's
-    // version, so if the IDS Master was opened moments ago Sheets can still
-    // be showing "Loading..." in one or more of them at the exact moment we
-    // read. A sheet whose link we DID resolve but whose version came back
-    // blank is almost always that, not a structural problem, so it is worth
-    // one re-read before giving up and showing "?". The retry has to go past
-    // the cache: the read that returned "Loading..." cached that answer, and
-    // a plain re-call would be handed the same placeholder straight back.
-    // Still only the IDS Master and its Home Page - never a fetch per
-    // template, which would cost real quota for no better odds.
     var targets, missing, versions, idsMasterData, incomplete;
     var attempt = 0;
     var maxAttempts = 2;
@@ -2682,9 +2866,6 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
       for (var i = 0; i < requestedTypes.length; i++) {
         var sheetType = requestedTypes[i];
 
-        // The IDS Master is not one of its own linked subsheets - it is the sheet
-        // we were handed - so there is no IDS row to look it up in. Its version
-        // comes from its own Home Page instead.
         if (sheetType === "IDS Master") {
           targets[sheetType] = resolvedIdMasterID;
           var masterVersion = compareSheetVersions(
@@ -2768,6 +2949,14 @@ function getSaveFileImportTargets(idMasterID, sheetTypes) {
   }
 }
 
+/**
+ * Client-callable. Copies a template into the destination folder.
+ * @param {string} templateID
+ * @param {string} sheetType
+ * @param {string} version
+ * @param {string} parentFolderID
+ * @returns {{success: boolean, fileId: string}} A failure envelope on error.
+ */
 function copyFileTemplate(
   templateID,
   sheetType,
@@ -2852,6 +3041,12 @@ function copyFileTemplate(
   }
 }
 
+/**
+ * Client-callable. Moves an existing file into the Get Started folder.
+ * @param {string} fileId
+ * @param {string} parentFolderID
+ * @returns {{success: boolean, fileId: string}} A failure envelope on error.
+ */
 function moveGetStartedFileToFolder(fileId, parentFolderID) {
   try {
     if (!fileId) {
@@ -2929,6 +3124,12 @@ function moveGetStartedFileToFolder(fileId, parentFolderID) {
   }
 }
 
+/**
+ * Client-callable. Whether the new sheet points back at its IDS Master.
+ * @param {string} newSheetID
+ * @param {string} sheetType
+ * @returns {{success: boolean}} A failure envelope on error.
+ */
 function checkNewSheetReference(newSheetID, sheetType) {
   try {
     if (!newSheetID) {
@@ -2995,6 +3196,13 @@ function checkNewSheetReference(newSheetID, sheetType) {
   }
 }
 
+/**
+ * Client-callable. Resolves the old sheet and version for an import.
+ * @param {string} newSheetID
+ * @param {string} sheetType
+ * @param {string} idMasterID
+ * @returns {{success: boolean, oldSheetID: string, versionDifference: string}} A failure envelope on error.
+ */
 function prepareImportData(
   idMasterID,
   copiedTemplateFiles,
@@ -3068,9 +3276,6 @@ function prepareImportData(
         continue;
       }
 
-      // A cell still calculating is not a version to compare against - blank
-      // it and let the guard below skip the comparison, the same as it does
-      // for a version that is genuinely absent.
       var oldVersion = shared.readVersion(sheetTypeInfo.oldVersion.value);
       var templateVersion = shared.readVersion(sheetTypeInfo.version.value);
 
@@ -3142,6 +3347,11 @@ function prepareImportData(
   }
 }
 
+/**
+ * Trashes a sheet, treating already-gone as success.
+ * @param {string} sheetID
+ * @returns {{success: boolean, message: string}} A failure envelope on error.
+ */
 function deleteOldSheet(sheetID) {
   try {
     console.log(`Attempting to delete sheet with ID: ${sheetID}`);
@@ -3150,14 +3360,11 @@ function deleteOldSheet(sheetID) {
     try {
       fileInfo = CacheManager.getFile(sheetID);
     } catch (error) {
-      // Already gone is a fine outcome here - the function returns success
-      // for exactly this case.
-      errors.reportFinal(
+
+      errors.report(
         "deleteOldSheet",
         error,
-        { note: `Sheet ${sheetID} not found or already deleted`, sheetID: sheetID },
-        errors.CODES.NOT_FOUND,
-      );
+        { note: `Sheet ${sheetID} not found or already deleted`, sheetID: sheetID }, errors.CODES.NOT_FOUND);
       return {
         success: true,
         message: `Sheet was already deleted or not found: ${sheetID}`,
@@ -3188,6 +3395,12 @@ function deleteOldSheet(sheetID) {
   }
 }
 
+/**
+ * Client-callable. The template id for one sheet, from its own IDS tab.
+ * @param {string} sheetID
+ * @param {string} sheetType
+ * @returns {{success: boolean, templateID: string}} A failure envelope on error.
+ */
 function getTemplateIdForSingleSheet(sheetID, sheetType) {
   try {
     if (!sheetID) {
@@ -3240,6 +3453,12 @@ function getTemplateIdForSingleSheet(sheetID, sheetType) {
   }
 }
 
+/**
+ * Client-callable. Whether a sheet's version has a converter.
+ * @param {string} oldSheetID
+ * @param {string} sheetType
+ * @returns {{success: boolean, versionDifference: string}} A failure envelope on error.
+ */
 function checkExportCompatibility(oldSheetID, sheetType) {
   try {
     if (!oldSheetID) {
@@ -3297,7 +3516,7 @@ function checkExportCompatibility(oldSheetID, sheetType) {
     }
 
     var oldHomePageValues = oldHomePageData[0].values;
-    
+
     var oldVersionInfo = shared.findSheetVersion(
       oldSheetID,
       "Home Page",
@@ -3346,6 +3565,13 @@ function checkExportCompatibility(oldSheetID, sheetType) {
   }
 }
 
+/**
+ * Writes one sheet's ID into another sheet's IDS tab.
+ * @param {string} spreadsheetID Where to write.
+ * @param {string} sheetID What to write.
+ * @param {string} sheetType
+ * @returns {{success: boolean, message: string}} A failure envelope on error.
+ */
 function updateSheetID(spreadsheetID, sheetID, sheetType) {
   try {
     if (!spreadsheetID) {
@@ -3447,6 +3673,10 @@ function updateSheetID(spreadsheetID, sheetID, sheetType) {
   }
 }
 
+/**
+ * Client-callable. The Tower Drive folder, creating it if needed.
+ * @returns {{success: boolean, id: string, name: string, url: string}} A failure envelope on error.
+ */
 function getOrCreateGetStartedFolder() {
   try {
     var query =
@@ -3504,6 +3734,14 @@ function getOrCreateGetStartedFolder() {
   }
 }
 
+/**
+ * Client-callable. Links newly created sheets to each other and renames
+ * them with their version.
+ * @param {string} sheetID
+ * @param {string} sheetType
+ * @param {Array<{sheetType: string, sheetID: string}>} [relatedSheetIDs]
+ * @returns {{success: boolean, message: string, updatedCount: number}} A failure envelope on error.
+ */
 function updateGetStartedSheetIdsAndReferences(
   sheetID,
   sheetType,
@@ -3572,12 +3810,12 @@ function updateGetStartedSheetIdsAndReferences(
           );
         }
       } catch (error) {
-        errors.reportFinal("updateGetStartedSheetIdsAndReferences", error, {
+        errors.report("updateGetStartedSheetIdsAndReferences", error, {
           note: `Could not update file name with version info`,
           sheetID: sheetID,
           sheetType: sheetType,
           relatedSheetIDs: relatedSheetIDs,
-        });
+        }, errors.CODES.RECOVERED);
       }
 
       return {
@@ -3618,12 +3856,12 @@ function updateGetStartedSheetIdsAndReferences(
           );
         }
       } catch (error) {
-        errors.reportFinal("updateGetStartedSheetIdsAndReferences", error, {
+        errors.report("updateGetStartedSheetIdsAndReferences", error, {
           note: `Could not update file name with version info`,
           sheetID: sheetID,
           sheetType: sheetType,
           relatedSheetIDs: relatedSheetIDs,
-        });
+        }, errors.CODES.RECOVERED);
       }
 
       return {
@@ -3682,12 +3920,12 @@ function updateGetStartedSheetIdsAndReferences(
         );
       }
     } catch (error) {
-      errors.reportFinal("updateGetStartedSheetIdsAndReferences", error, {
+      errors.report("updateGetStartedSheetIdsAndReferences", error, {
         note: `Could not update file name with version info`,
         sheetID: sheetID,
         sheetType: sheetType,
         relatedSheetIDs: relatedSheetIDs,
-      });
+      }, errors.CODES.RECOVERED);
     }
 
     return {
@@ -3710,6 +3948,12 @@ function updateGetStartedSheetIdsAndReferences(
   }
 }
 
+/**
+ * Client-callable. Whether a linked file is an IDS Master or Collection,
+ * and whether it is out of date.
+ * @param {string} sheetID
+ * @returns {{success: boolean, sheetType: string, outdated?: boolean}} A failure envelope on error.
+ */
 function getSaveFileSheetType(sheetID) {
   try {
     var resolvedID = sheetID
@@ -3805,4 +4049,3 @@ function getSaveFileSheetType(sheetID) {
     });
   }
 }
-

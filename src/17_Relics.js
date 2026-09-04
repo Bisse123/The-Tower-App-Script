@@ -1,5 +1,12 @@
 const relics = {
-  // #region Export Functions
+
+  /**
+   * Reads Relics data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: relics.exportData");
@@ -32,8 +39,12 @@ const relics = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Relics data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: relics.importData");
@@ -56,7 +67,6 @@ const relics = {
 
       var batchUpdate = [];
 
-      // Only update relics if key exists
       if (data.hasOwnProperty("oldRelics")) {
         var oldRelics = data.oldRelics;
         var relicsResult = this.updateRelics(
@@ -71,7 +81,6 @@ const relics = {
         batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Relics",
@@ -80,7 +89,6 @@ const relics = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -103,8 +111,13 @@ const relics = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes Relics into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldRelics
+   * @param {Object} newRelicsData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateRelics: function (sheetName, oldRelics, newRelicsData) {
     try {
       console.log("Called: relics.updateRelics");
@@ -120,7 +133,6 @@ const relics = {
       var newRelicNameCol = null;
       var newRelicUnlockedCol = null;
 
-      // Scan each row to find the header
       for (var row = 0; row < newRelicsData.length; row++) {
         var rowValues = newRelicsData[row];
         var relicNameIndex = rowValues.indexOf("Relic Name");
@@ -143,7 +155,6 @@ const relics = {
 
       var startRow = newRelicHeaderRow + 1;
 
-      // Build unlocked status array directly by iterating through new relics data
       var newRelicsUnlocked = [];
       newRelicsData.slice(startRow - 1).forEach(function (row) {
         var relicName = (row[newRelicNameCol - 1] || "").trim();
@@ -187,13 +198,14 @@ const relics = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Relics data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: relics.version1_0");
-
-      // Check if Relics sheet exists in old spreadsheet
 
       var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
         "Relics",
@@ -221,8 +233,11 @@ const relics = {
     }
   },
 
-  // #endregion
-  // #region Get Relics
+  /**
+   * Extracts Relics from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldRelicsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0Relics: function (oldRelicsData) {
     try {
       console.log("Called: relics.getVersion1_0Relics");
@@ -230,7 +245,6 @@ const relics = {
       var relicNameIndex = -1;
       var relicUnlockedIndex = -1;
 
-      // Scan each row to find the header
       for (var row = 0; row < oldRelicsData.length; row++) {
         var rowValues = oldRelicsData[row];
         relicNameIndex = rowValues.indexOf("Relic Name");
@@ -281,16 +295,17 @@ const relics = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -310,5 +325,4 @@ const relics = {
     return null;
   },
 
-  // #endregion
 };

@@ -19,6 +19,10 @@
   const CONSENT_MESSAGE_MANUAL_RECHECK =
     "Automatic scope check failed. If you already approved access, click Recheck scope access.";
 
+  /**
+   * The consent modal's elements, looked up together.
+   * @returns {Object} Named element references; members may be null.
+   */
   function getConsentElements() {
     return {
       modalBackground: document.getElementById("consentModalBackground"),
@@ -29,6 +33,12 @@
     };
   }
 
+  /**
+   * Sets the modal's badge and message.
+   * @param {string} badgeText
+   * @param {string} messageText
+   * @returns {void}
+   */
   function setConsentModalStatus(badgeText, messageText) {
     const { badge, message } = getConsentElements();
     if (badge && badgeText) {
@@ -39,6 +49,11 @@
     }
   }
 
+  /**
+   * Enables or disables the authorize link.
+   * @param {boolean} isDisabled
+   * @returns {void}
+   */
   function setConsentAuthorizeLinkDisabled(isDisabled) {
     const { authorizeLink } = getConsentElements();
     if (!authorizeLink) {
@@ -49,6 +64,11 @@
     authorizeLink.setAttribute("aria-disabled", isDisabled ? "true" : "false");
   }
 
+  /**
+   * Shows or hides the recheck button.
+   * @param {boolean} isVisible
+   * @returns {void}
+   */
   function setConsentRecheckButtonVisible(isVisible) {
     const { recheckButton } = getConsentElements();
     if (!recheckButton) {
@@ -61,10 +81,18 @@
     }
   }
 
+  /**
+   * Whether this page is running as the add-on sidebar.
+   * @returns {boolean}
+   */
   function isAddonSidebarView() {
     return viewType === "sidebar";
   }
 
+  /**
+   * Stops polling for the consent-ready signal.
+   * @returns {void}
+   */
   function stopAddonConsentReadyPolling() {
     if (addonConsentReadyPollingId) {
       clearInterval(addonConsentReadyPollingId);
@@ -73,6 +101,10 @@
     addonConsentReadyPollingInFlight = false;
   }
 
+  /**
+   * Polls the server for the consent-ready signal the dialog sets.
+   * @returns {void}
+   */
   function startAddonConsentReadyPolling() {
     if (addonConsentReadyPollingId) {
       return;
@@ -111,6 +143,11 @@
     }, 1200);
   }
 
+  /**
+   * Asks the server to open the additional-permissions dialog.
+   * @param {string} [authorizationUrl]
+   * @returns {void}
+   */
   function openAddonConsentDialog(authorizationUrl) {
     google.script.run
       .withSuccessHandler(() => {
@@ -128,6 +165,10 @@
       .showAddonConsentDialog(authorizationUrl || "");
   }
 
+  /**
+   * Stops watching the authorization popup.
+   * @returns {void}
+   */
   function stopAuthorizationCloseWatcher() {
     if (consentAuthorizationCloseWatcher) {
       clearInterval(consentAuthorizationCloseWatcher);
@@ -136,6 +177,11 @@
     consentAuthorizationWindow = null;
   }
 
+  /**
+   * Rechecks access once the authorization popup closes.
+   * @param {Window} openedWindow
+   * @returns {void}
+   */
   function startAuthorizationCloseWatcher(openedWindow) {
     stopAuthorizationCloseWatcher();
     consentAuthorizationWindow = openedWindow;
@@ -152,6 +198,11 @@
     }, 700);
   }
 
+  /**
+   * Opens the authorization page and starts watching for it to close.
+   * @param {Event} event
+   * @returns {void}
+   */
   function onConsentAuthorizeLinkClick(event) {
     const authorizationUrl = event.currentTarget.href;
     if (!authorizationUrl || authorizationUrl === "#") {
@@ -176,6 +227,11 @@
     startAuthorizationCloseWatcher(openedWindow);
   }
 
+  /**
+   * Shows the consent modal wired to an authorization URL.
+   * @param {string} [authorizationUrl]
+   * @returns {void}
+   */
   function showConsentModal(authorizationUrl) {
     const { modalBackground, authorizeLink, recheckButton } =
       getConsentElements();
@@ -219,6 +275,10 @@
     modalBackground.style.display = "flex";
   }
 
+  /**
+   * Hides the consent modal and stops its watchers.
+   * @returns {void}
+   */
   function hideConsentModal() {
     stopAuthorizationCloseWatcher();
 
@@ -228,6 +288,11 @@
     }
   }
 
+  /**
+   * Shows the consent modal for a result that reported missing scopes.
+   * @param {Object} result
+   * @returns {void}
+   */
   function promptForMissingScopes(result) {
     const authorizationUrl = result.authorizationUrl || "";
 
@@ -242,6 +307,11 @@
     showConsentModal(authorizationUrl);
   }
 
+  /**
+   * Rechecks scope access and closes the modal once everything is granted.
+   * @param {boolean} [isAutomaticRecheck] Suppresses failure messaging.
+   * @returns {Promise<boolean>} Whether every scope is now granted.
+   */
   async function recheckAccessToken(isAutomaticRecheck = false) {
     const { recheckButton: recheckAuthorizationButton } = getConsentElements();
 
@@ -277,7 +347,7 @@
     }
 
     if (consentScopeCheckOutcome === "missing_scopes") {
-      // Missing scopes is an expected result. Keep the manual button hidden.
+
       setConsentRecheckButtonVisible(false);
       setConsentAuthorizeLinkDisabled(false);
       return false;
@@ -301,6 +371,10 @@
     return false;
   }
 
+  /**
+   * Fetches an OAuth token for the Picker.
+   * @returns {Promise<string>}
+   */
   async function requestOAuthTokenFromServer() {
     const hasAllScopes = await requestScopePermissionsFromServer();
     console.log("Scope permissions check result:", hasAllScopes);
@@ -323,6 +397,10 @@
     });
   }
 
+  /**
+   * Asks the server whether every required scope is granted.
+   * @returns {Promise<boolean>}
+   */
   function requestScopePermissionsFromServer() {
     return new Promise((resolve, reject) => {
       google.script.run
@@ -332,6 +410,10 @@
     });
   }
 
+  /**
+   * Asks the server for the scope authorization URL.
+   * @returns {Promise<string>}
+   */
   function requestScopeAuthorizationUrlFromServer() {
     return new Promise((resolve, reject) => {
       google.script.run
@@ -341,6 +423,10 @@
     });
   }
 
+  /**
+   * Asks the server for the update dialog's starting parameters.
+   * @returns {Promise<Object>}
+   */
   function requestUpdateDialogParametersFromServer() {
     return new Promise((resolve, reject) => {
       google.script.run
@@ -350,6 +436,10 @@
     });
   }
 
+  /**
+   * Loads the sidebar's sheet context, prompting for scopes if needed.
+   * @returns {Promise<Object|null>} Null when consent is still outstanding.
+   */
   async function getSideBarUpdateContext() {
     if (!isAddonSidebarView()) {
       return true;
@@ -392,6 +482,10 @@
     }
   }
 
+  /**
+   * An OAuth token, prompting for missing scopes first.
+   * @returns {Promise<string>} "" when consent is still outstanding.
+   */
   async function getOAuthToken() {
     setStatusWithSpinner("Requesting authorization...");
 
@@ -425,6 +519,11 @@
     }
   }
 
+  /**
+   * Ensures scopes are granted, then continues the update workflow.
+   * @param {boolean} [forceTokenRefresh]
+   * @returns {Promise<boolean>} Whether the workflow may continue.
+   */
   async function authorizeAndContinue(forceTokenRefresh = false) {
     setStatusWithSpinner("Checking scope access permissions...");
 
@@ -451,6 +550,11 @@
     return true;
   }
 
+  /**
+   * Ensures scopes are granted, then loads the Get Started parameters.
+   * @param {boolean} [forceTokenRefresh]
+   * @returns {Promise<boolean>} Whether the workflow may continue.
+   */
   async function authorizeGetStarted(forceTokenRefresh = false) {
     setStatusWithSpinner("Checking scope access permissions...");
 
@@ -504,6 +608,11 @@
     return true;
   }
 
+  /**
+   * Shows a setup error on the save-file page.
+   * @param {string} message
+   * @returns {void}
+   */
   function reportSaveFileSetupError(message) {
     if (typeof setSaveFileSetupError === "function") {
       setSaveFileSetupError(message);
@@ -512,6 +621,11 @@
     }
   }
 
+  /**
+   * Ensures scopes are granted, then loads the save-file parameters.
+   * @param {boolean} [forceTokenRefresh]
+   * @returns {Promise<boolean>} Whether the workflow may continue.
+   */
   async function authorizeSaveFile(forceTokenRefresh = false) {
     setStatusWithSpinner("Checking scope access permissions...");
 
@@ -555,5 +669,4 @@
     continueSaveFile();
     return true;
   }
-
 </script>

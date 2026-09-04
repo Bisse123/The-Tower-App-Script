@@ -1,7 +1,8 @@
 <style>
-  /* "Where do I find my save file?" guide. Sits between Status and the save
-     file section and uses a teal-leaning blue so it reads as its own area
-     without leaving the blue scheme of the save file workflow. */
+  /* =====================================================================
+     Save guide section shell
+     ===================================================================== */
+
   .saveGuideSection {
     padding: 0;
     background-color: #e4f3f9;
@@ -24,8 +25,6 @@
     word-break: break-word;
   }
 
-  /* Header row that folds the whole guide open/closed. Overrides the global
-     button styling, which is built for the big solid action buttons. */
   .saveGuideSection button.sgToggle,
   .saveGuideSection button.sgCardToggle {
     display: flex;
@@ -57,6 +56,10 @@
     outline: 2px solid #0e7490;
     outline-offset: -2px;
   }
+
+  /* =====================================================================
+     Collapsible toggle: icon, text, chevron
+     ===================================================================== */
 
   .sgToggleMain {
     display: flex;
@@ -105,6 +108,10 @@
     display: block;
   }
 
+  /* =====================================================================
+     Intro and group headings
+     ===================================================================== */
+
   .sgIntro {
     margin: 0 0 14px;
     padding-top: 12px;
@@ -123,8 +130,6 @@
     color: #0e7490;
   }
 
-  /* Android version split: the on-device routes only work up to Android 12,
-     everything newer has to go through adb. */
   .sgSubGroup {
     margin-bottom: 14px;
     padding-left: 12px;
@@ -142,6 +147,10 @@
     line-height: 1.55;
     color: #4b7688;
   }
+
+  /* =====================================================================
+     Step cards
+     ===================================================================== */
 
   .sgCard {
     margin-bottom: 8px;
@@ -240,8 +249,10 @@
     margin: 5px 0;
   }
 
-  /* Click-to-copy snippet. The badge in the corner doubles as the copy
-     feedback, so no extra markup is needed around each block. */
+  /* =====================================================================
+     Copyable code chips and blocks
+     ===================================================================== */
+
   .sgCode {
     position: relative;
     margin: 6px 0;
@@ -296,8 +307,6 @@
     color: #fff;
   }
 
-  /* Multi-line snippet (the .bat script): keep the author's line breaks and
-     let long lines scroll rather than reflow. */
   pre.sgCodeBlock {
     margin: 8px 0 0;
     overflow-x: auto;
@@ -305,13 +314,16 @@
     word-break: normal;
   }
 
+  /* =====================================================================
+     Notes and nested sub-cards
+     ===================================================================== */
+
   .sgNote {
     margin: 8px 0 0;
     font-size: 0.9em;
     color: #5d8090;
   }
 
-  /* Nested fold (e.g. the OAuth client steps inside option 3). */
   .sgCard.sgSubCard {
     margin: 6px 0 2px;
     background: #f5fbfd;
@@ -329,6 +341,10 @@
     padding: 4px 10px 10px;
     font-size: 0.95em;
   }
+
+  /* =====================================================================
+     Narrow screens
+     ===================================================================== */
 
   @media (max-width: 768px) {
     .saveGuideSection button.sgToggle,

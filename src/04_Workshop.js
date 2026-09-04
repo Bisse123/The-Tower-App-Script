@@ -1,5 +1,12 @@
 const workshop = {
-  // #region Export Functions
+
+  /**
+   * Reads Workshop data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: workshop.exportData");
@@ -32,8 +39,12 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Workshop data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: workshop.importData");
@@ -71,7 +82,6 @@ const workshop = {
 
       var batchUpdate = [];
 
-      // Only update workshop levels if key exists
       if (
         data.hasOwnProperty("oldWorkshopLevels") &&
         data.hasOwnProperty("oldWorkshopPlusLevels")
@@ -95,7 +105,6 @@ const workshop = {
         batchUpdate = batchUpdate.concat(workshopResult.batchUpdate || []);
       }
 
-      // Only update workshop plus ratios if key exists
       if (data.hasOwnProperty("oldWorkshopPlusRatios")) {
         var oldWorkshopPlusRatios = data.oldWorkshopPlusRatios;
         var ratioResult = this.updateWorkshopPlusRatios(
@@ -112,7 +121,6 @@ const workshop = {
         batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Workshop",
@@ -121,7 +129,6 @@ const workshop = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -144,8 +151,15 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes WorkshopLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldWorkshopLevels
+   * @param {Object} oldWorkshopPlusLevels
+   * @param {*} hasPresets
+   * @param {Object} masterSheetData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateWorkshopLevels: function (
     sheetName,
     oldWorkshopLevels,
@@ -324,6 +338,13 @@ const workshop = {
     }
   },
 
+  /**
+   * Builds the batch update that writes WorkshopPlusRatios into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldWorkshopPlusRatios
+   * @param {Object} desiredRatiosData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateWorkshopPlusRatios: function (
     sheetName,
     oldWorkshopPlusRatios,
@@ -423,8 +444,11 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Workshop data from a v2.2.8 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_2_8: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_2_8");
@@ -458,7 +482,6 @@ const workshop = {
       var oldWorkshopPlusRatiosValues =
         updateWorkshopValuesBatchResult[2].values;
 
-      // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues,
       );
@@ -466,7 +489,6 @@ const workshop = {
         return workshopLevelsResult;
       }
 
-      // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues,
       );
@@ -474,7 +496,6 @@ const workshop = {
         return workshopPlusLevelsResult;
       }
 
-      // Process workshop plus ratios
       var workshopPlusRatiosResult = this.getVersion2_2_8WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
         oldWorkshopPlusRatiosValues,
@@ -498,6 +519,11 @@ const workshop = {
     }
   },
 
+  /**
+   * Reads Workshop data from a v2.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_1");
@@ -546,7 +572,6 @@ const workshop = {
       var oldWorkshopPlusRatiosValues =
         updateWorkshopFormulasBatchResult[0].values;
 
-      // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues,
       );
@@ -554,7 +579,6 @@ const workshop = {
         return workshopLevelsResult;
       }
 
-      // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues,
       );
@@ -562,7 +586,6 @@ const workshop = {
         return workshopPlusLevelsResult;
       }
 
-      // Process workshop plus ratios
       var workshopPlusRatiosResult = this.getVersion2_1WorkshopPlusRatios(
         workshopPlusLevelsResult.oldWorkshopPlusLevels.presetNames,
         oldWorkshopPlusRatiosValues,
@@ -586,6 +609,11 @@ const workshop = {
     }
   },
 
+  /**
+   * Reads Workshop data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: workshop.version2_0");
@@ -614,7 +642,6 @@ const workshop = {
       var oldWorkshopPlusLevelsValues =
         updateWorkshopValuesBatchResult[1].values;
 
-      // Process workshop levels
       var workshopLevelsResult = this.getVersion2_0WorkshopLevels(
         oldWorkshopLevelsValues,
       );
@@ -622,7 +649,6 @@ const workshop = {
         return workshopLevelsResult;
       }
 
-      // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion2_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues,
       );
@@ -643,6 +669,11 @@ const workshop = {
     }
   },
 
+  /**
+   * Reads Workshop data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: workshop.version1_0");
@@ -669,7 +700,6 @@ const workshop = {
       var oldWorkshopLevelsValues = updateWorkshopBatchResult[0].values;
       var oldWorkshopPlusLevelsValues = updateWorkshopBatchResult[1].values;
 
-      // Process workshop levels
       var workshopLevelsResult = this.getVersion1_0WorkshopLevels(
         oldWorkshopLevelsValues,
       );
@@ -677,7 +707,6 @@ const workshop = {
         return workshopLevelsResult;
       }
 
-      // Process workshop plus levels
       var workshopPlusLevelsResult = this.getVersion1_0WorkshopPlusLevels(
         oldWorkshopPlusLevelsValues,
       );
@@ -699,8 +728,11 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Get Workshop Levels
+  /**
+   * Extracts WorkshopLevels from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldWorkshopLevelsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
       console.log("Called: workshop.getVersion2_0WorkshopLevels");
@@ -764,6 +796,11 @@ const workshop = {
     }
   },
 
+  /**
+   * Extracts WorkshopLevels from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldWorkshopLevelsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0WorkshopLevels: function (oldWorkshopLevelsValues) {
     try {
       console.log("Called: workshop.getVersion1_0WorkshopLevels");
@@ -797,8 +834,11 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Get Workshop Plus Levels
+  /**
+   * Extracts WorkshopPlusLevels from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldWorkshopPlusLevelsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
       console.log("Called: workshop.getVersion2_0WorkshopPlusLevels");
@@ -823,7 +863,7 @@ const workshop = {
       var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
         return presetColumns[sourceIndex];
       });
-      
+
       var oldWorkshopPlusLevels = {
         presetNames: presetOrder.order,
         data: {},
@@ -859,6 +899,11 @@ const workshop = {
     }
   },
 
+  /**
+   * Extracts WorkshopPlusLevels from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldWorkshopPlusLevelsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0WorkshopPlusLevels: function (oldWorkshopPlusLevelsValues) {
     try {
       console.log("Called: workshop.getVersion1_0WorkshopPlusLevels");
@@ -889,8 +934,12 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Get Workshop Plus Ratios
+  /**
+   * Extracts WorkshopPlusRatios from a v2.2.8 sheet's values.
+   * @param {*} presetNames
+   * @param {Array<Array<*>>} oldWorkshopPlusRatiosValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_2_8WorkshopPlusRatios: function (
     presetNames,
     oldWorkshopPlusRatiosValues,
@@ -945,6 +994,12 @@ const workshop = {
     }
   },
 
+  /**
+   * Extracts WorkshopPlusRatios from a v2.1 sheet's values.
+   * @param {*} presetNames
+   * @param {Array<Array<*>>} oldWorkshopPlusRatiosValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_1WorkshopPlusRatios: function (
     presetNames,
     oldWorkshopPlusRatiosValues,
@@ -1016,8 +1071,11 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Workshop data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseWorkshopData: function (data) {
     try {
       const attackUpgradeNamesByIndex = {
@@ -1126,6 +1184,11 @@ const workshop = {
         5: "Enemy Attack Level Skip",
       };
 
+      /**
+       * Turns an index-keyed name map into a dense array.
+       * @param {Object} namesByIndex
+       * @returns {Array<string>}
+       */
       function namesByIndexToArray(namesByIndex) {
         var array = [];
         Object.keys(namesByIndex).forEach(function (index) {
@@ -1150,7 +1213,7 @@ const workshop = {
       );
       var presetNames = presetOrder.order;
       const presetIndices = presetOrder.indices;
-      
+
       const activePreset = data.activePreset || 0;
       const attackUpgradeData = data.upgradeAttackLevels || [];
       const defenseUpgradeData = data.upgradeDefenseLevels || [];
@@ -1187,7 +1250,7 @@ const workshop = {
         attackPresetUpgradeUnlocked.some((unlocked) => unlocked) ||
         defensePresetUpgradeUnlocked.some((unlocked) => unlocked) ||
         utilityPresetUpgradeUnlocked.some((unlocked) => unlocked);
-      
+
       if (!hasPresets) {
         attackPresetUpgradeData = attackUpgradeData;
         defensePresetUpgradeData = defenseUpgradeData;
@@ -1200,7 +1263,13 @@ const workshop = {
         utilityPresetUpgradeUnlocked = utilityUpgradeUnlocked;
       }
 
-      /** A copy of `presetData` with one preset's block taken from `liveData`. */
+      /**
+       * Overlays a preset slice with the live values for that preset.
+       * @param {Array<*>} presetData
+       * @param {Array<*>} liveData
+       * @param {number} presetIndex
+       * @returns {Array<*>} A copy; the input is not modified.
+       */
       function withLiveValues(presetData, liveData, presetIndex) {
         if (!liveData || !liveData.length) return presetData;
         var copy = (presetData || []).slice();
@@ -1230,6 +1299,15 @@ const workshop = {
         data: {},
       };
 
+      /**
+       * Fills oldWorkshopLevels with one preset's upgrade levels and unlocks.
+       * @param {string[]} upgradeIndices
+       * @param {Array<*>} upgradeData
+       * @param {number} presetUpgradeIndex
+       * @param {string[]} upgradeUnlockIndices
+       * @param {Array<*>} upgradeUnlockedData
+       * @returns {void}
+       */
       function populateUpgradeLevels(upgradeIndices, upgradeData, presetUpgradeIndex, upgradeUnlockIndices, upgradeUnlockedData) {
         upgradeIndices.forEach((upgradeName, upgradeIndex) => {
           if (!oldWorkshopLevels.data[upgradeName]) {
@@ -1247,6 +1325,13 @@ const workshop = {
         })
       }
 
+      /**
+       * Fills oldWorkshopPlusLevels with one preset's enhancement levels.
+       * @param {string[]} enhancementIndices
+       * @param {Array<*>} enhancementData
+       * @param {number} presetEnhancementIndex
+       * @returns {void}
+       */
       function populateEnhancementLevels(enhancementIndices, enhancementData, presetEnhancementIndex) {
         enhancementIndices.forEach((enhancementName, enhancementIndex) => {
           if (!oldWorkshopPlusLevels.data[enhancementName]) {
@@ -1280,9 +1365,7 @@ const workshop = {
         oldWorkshopLevels: oldWorkshopLevels,
         oldWorkshopPlusLevels: oldWorkshopPlusLevels,
         hasPresets: hasPresets,
-        // Which preset the live values were taken to belong to, as a slot in
-        // `presetNames`, or -1 if none - so a mismatch report has something to
-        // check against.
+
         activePresetSlot:
           activePreset === -1 ? -1 : presetIndices.indexOf(activePreset),
         upgradeIndices: {
@@ -1306,8 +1389,6 @@ const workshop = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -1317,8 +1398,11 @@ const workshop = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: workshop.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -1339,5 +1423,4 @@ const workshop = {
     return null;
   },
 
-  // #endregion
 };

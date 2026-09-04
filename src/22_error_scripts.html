@@ -1,19 +1,4 @@
 <script>
-  /**
-   * One place for everything that can go wrong in a page.
-   *
-   * Server functions return { success: false, code, message, reference,
-   * detail, trace, note?, data? } (see 00_Errors.js). google.script.run
-   * transport failures and browser exceptions are normalised into the same
-   * shape, so every failure the user sees looks the same.
-   *
-   * A bug-side server envelope's `reference` is not yet in Cloud Logging when
-   * this page first sees it — the server builds the entry but does not write
-   * it (it cannot tell whether this catch is the request's last stop or just
-   * another hop). `show()` calling `finalize()` below is what actually
-   * writes it, the moment the browser — which unambiguously is the last stop
-   * — has the failure in hand.
-   */
   const AppError = {
     CODES: {
       ACCESS_DENIED: "ACCESS_DENIED",
@@ -45,7 +30,12 @@
 
     FALLBACK_MESSAGE: "Something went wrong. Please try again.",
 
-    /** Prefix with the sheet type only when the message does not say it. */
+    /**
+     * Prefixes a message with the sheet type unless it already starts with it.
+     * @param {string} sheetType
+     * @param {string} message
+     * @returns {string}
+     */
     labelled: function (sheetType, message) {
       const text = String(message || "").trim();
       if (!sheetType) return text;
@@ -54,11 +44,6 @@
         : sheetType + ": " + text;
     },
 
-    /**
-     * Mirrors errors.EXPECTED in 00_Errors.js. These are the app working as
-     * designed on input it cannot accept — the user's to act on, not ours to
-     * fix — so they render as warnings and carry no reference to quote.
-     */
     EXPECTED: {
       ACCESS_DENIED: true,
       INVALID_LINK: true,
@@ -72,34 +57,30 @@
     last: null,
     _reported: {},
 
-    /** The server's verdict wins; the code list is the fallback. */
+    /**
+     * Whether a normalised error is an expected outcome. The server's flag wins;
+     * the code list is the fallback.
+     * @param {Object} err
+     * @returns {boolean}
+     */
     _isExpected: function (err) {
       if (err && typeof err.expected === "boolean") return err.expected;
       return AppError.EXPECTED[err && err.code] === true;
     },
 
     /**
-     * Anything -> { code, title, message, detail, reference, origin }.
-     *
-     * @param {*} raw       An error envelope, an Error, or a string.
-     * @param {Object} [options] `source` names the call for the log;
-     *                           `message` overrides the user-facing text.
+     * Turns a server envelope, an Error, a string, or an already-normalised
+     * error into one shape. Idempotent: re-normalising extends the trace rather
+     * than reclassifying.
+     * @param {*} raw
+     * @param {{source?: string, message?: string}} [options]
+     * @returns {Object} { __appError, code, trace, title, message, detail,
+     *   reference, origin, source, stack, note, data, expected }
      */
     normalize: function (raw, options) {
       options = options || {};
       const source = options.source || "client";
 
-      // Already one of ours. A `runAppsScript` rejection arrives normalised,
-      // and then gets handed to `AppError.log` or falls through to the
-      // unhandledrejection handler - both of which normalise again.
-      //
-      // Running the classification a second time is destructive, because the
-      // branch below keys on `success === false` to recognise a server
-      // envelope and a normalised error does not carry that. It would match
-      // the `raw.message` branch instead, read the *user-facing* message back
-      // as the technical detail ("Something went wrong. Please try again."),
-      // and drop the code, the reference, the origin and the trace. So
-      // extend it instead of starting over.
       if (raw && raw.__appError === true) {
         const carried = Object.assign({}, raw);
         carried.trace = (raw.trace || []).slice();
@@ -120,9 +101,10 @@
 
       let note = "";
       let data = null;
+      let outdated = null;
 
       if (raw && typeof raw === "object" && raw.success === false) {
-        // a server envelope: it already carries everything
+
         origin = "server";
         code = raw.code || AppError.CODES.INTERNAL;
         message = raw.message || "";
@@ -132,6 +114,7 @@
         if (typeof raw.expected === "boolean") expected = raw.expected;
         if (raw.note) note = raw.note;
         if (raw.data) data = raw.data;
+        if (raw.outdated) outdated = raw.outdated;
       } else if (raw instanceof Error || (raw && raw.message)) {
         message = "";
         detail = String(raw.message || raw);
@@ -149,12 +132,10 @@
       }
       if (options.message) message = options.message;
 
-      // the page is the outermost frame, so it goes on the end
       if (source && trace[trace.length - 1] !== source) trace.push(source);
 
       const err = {
-        // Marks this as already classified, so normalising it again extends
-        // it instead of taking it apart. See the top of this function.
+
         __appError: true,
         code: code,
         trace: trace,
@@ -167,23 +148,21 @@
         stack: raw && raw.stack ? String(raw.stack) : "",
         note: note,
         data: data,
+        outdated: outdated,
       };
       err.expected = expected === null ? AppError._isExpected(err) : expected;
       return err;
     },
 
     /**
-     * What actually went wrong, for the person who has to fix it — the layer
-     * that failed, the path the failure took to reach the page, and the raw
-     * text Google gave us. An expected outcome gets none of this: it is fully
-     * described by the message above it.
+     * The text for the panel's Technical details block. Empty for an expected
+     * failure beyond its own detail.
+     * @param {Object} err A normalised error.
+     * @returns {string}
      */
     technicalDetails: function (err) {
       if (err.expected) return err.detail || "";
 
-      // Several failures sharing one panel: each keeps its own block, headed
-      // by what it was and carrying its own reference, because each one is a
-      // separate entry in Cloud Logging.
       if (err.parts && err.parts.length) {
         return err.parts
           .map(function (part) {
@@ -196,7 +175,12 @@
       return AppError._detailLines(err, false).join("\n");
     },
 
-    /** @private */
+    /**
+     * Builds the where/code/ref/note/detail lines for one failure.
+     * @param {Object} err
+     * @param {boolean} withReference Include the ref line.
+     * @returns {string[]}
+     */
     _detailLines: function (err, withReference) {
       const lines = [];
       if (err.trace && err.trace.length) {
@@ -214,12 +198,10 @@
     },
 
     /**
-     * Render an error into the panel. Client-side errors are also sent to
-     * Cloud Logging, so a reference exists even when the server never saw it.
-     *
+     * Normalises a failure, logs it, and renders it into the panel.
      * @param {*} raw
-     * @param {Object} [options] `source`, `message`, and `actions`:
-     *        [{ label, onClick }] rendered as buttons inside the panel.
+     * @param {{source?: string, message?: string, actions?: Array}} [options]
+     * @returns {Object} The normalised error.
      */
     show: function (raw, options) {
       options = options || {};
@@ -230,15 +212,11 @@
     },
 
     /**
-     * One panel for several failures at once - a save file where more than
-     * one category failed to parse, say. Every one of them still gets its own
-     * Cloud Logging entry and its own reference, and the panel lists them all,
-     * so a bug report covers the lot instead of whichever happened to be
-     * first in the array.
-     *
+     * Renders several failures in one panel, each with its own row, reference
+     * and log entry. Falls back to show() for a single failure.
      * @param {Array} rawList
-     * @param {Object} [options] As `show`, plus `label` — given a raw entry,
-     *        returns the heading for its block in the technical details.
+     * @param {{source?: string, message?: string, label?: Function}} [options]
+     * @returns {Object|null} The merged error, or null when the list is empty.
      */
     showAll: function (rawList, options) {
       options = options || {};
@@ -246,9 +224,6 @@
       if (list.length === 0) return null;
       if (list.length === 1) return AppError.show(list[0], options);
 
-      // `options.message` is the summary for the panel as a whole. Passing it
-      // down would overwrite each failure's own message with it, leaving every
-      // row saying the same thing.
       const partOptions = { source: options.source };
       const parts = list.map(function (raw) {
         const part = AppError.normalize(raw, partOptions);
@@ -284,21 +259,11 @@
     },
 
     /**
-     * A terminal failure list — the update workflow's per-sheet rows, the Get
-     * Started copy results. The list itself is the record of what happened to
-     * each sheet and shows no references; this raises the panel once, for the
-     * first failure in it that is a defect rather than an expected outcome.
-     *
-     * Every *other* defect in the batch still gets its own Cloud Logging
-     * entry, even though only one of them gets a panel. That is not a detail:
-     * a bug's entry is only written when the browser hands it back
-     * (00_Errors.js's `record` defers it), so a failure this function skips
-     * over is a failure nobody ever hears about. "Not worth its own panel"
-     * and "not worth knowing about" are different questions.
-     *
-     * @param {Array} entries `{ envelope, sheetType, error }`, the shape both
-     *        workflows already build for their own lists.
-     * @param {Object} [options] `source`.
+     * Raises the panel for the first failure that is a bug, and logs every other
+     * bug in the batch so none goes unrecorded.
+     * @param {Array<{envelope: *, sheetType?: string, error?: string}>} entries
+     * @param {{source?: string}} [options]
+     * @returns {Object|null} The shown error, or null when no bug was found.
      */
     surfaceBatch: function (entries, options) {
       options = options || {};
@@ -310,9 +275,7 @@
         const err = AppError.normalize(entry.envelope, { source: source });
         if (err.expected) return;
         if (!first) {
-          // Left undispatched on purpose: `show` below normalises and
-          // dispatches it, and doing it twice would mint two references for
-          // one failure.
+
           first = entry;
           return;
         }
@@ -327,9 +290,9 @@
     },
 
     /**
-     * One failure's own row when several share the panel: what failed, its
-     * own reference, and its own copy button.
-     * @private
+     * Builds one failure's row for a shared panel: message, reference, copy.
+     * @param {Object} part A normalised error with an optional label.
+     * @returns {HTMLElement}
      */
     _entry: function (part) {
       const row = document.createElement("div");
@@ -337,8 +300,7 @@
 
       const message = document.createElement("p");
       message.className = "errorPanelEntryMessage";
-      // `labelled` only prefixes what failed when the message does not
-      // already name it, so this never reads "Laboratory: Laboratory ...".
+
       message.textContent = AppError.labelled(
         part.label,
         part.message || part.detail,
@@ -375,29 +337,28 @@
     },
 
     /**
-     * Get the failure into Cloud Logging, by whichever route it came.
-     * @private
+     * Sends a failure to Cloud Logging by the route its origin calls for.
+     * @param {Object} err A normalised error; may gain a reference.
+     * @returns {void}
      */
     _dispatch: function (err) {
       if (err.origin === "client") {
         AppError.report(err);
       } else if (err.origin === "server" && !err.expected) {
-        // A server failure with no reference did not come from `errors.*` at
-        // all - it is one of the plain `{ success: false, message }` returns
-        // still scattered through the backend. Those carry no code, so they
-        // classify as INTERNAL, which makes them a bug by definition: a
-        // failure we cannot name is exactly the kind we need to hear about.
-        // Give it an id here so the panel has something to show and the entry
-        // has something to be found by.
+
         if (!err.reference) err.reference = AppError._reference();
-        // The server never wrote this one's log entry itself - see
-        // 00_Errors.js's `record` for why. Having it here, with nothing left
-        // to relay it any further, is what makes this the moment to.
+
         AppError.finalize(err);
       }
     },
 
-    /** @private */
+    /**
+     * Paints a normalised error into the panel, or falls back to the console and
+     * status line when no panel exists on the page.
+     * @param {Object} err
+     * @param {{actions?: Array<{label: string, onClick: Function}>}} [options]
+     * @returns {Object} The same error.
+     */
     _render: function (err, options) {
       options = options || {};
       const panel = document.getElementById("errorPanel");
@@ -413,13 +374,19 @@
 
       document.getElementById("errorPanelTitle").textContent = err.title;
 
-      // With several failures each one states its own case below, so the
-      // summary would only be the same thing said once more in general terms.
-      // It stays on `err` for the status line, which has room for one line.
       const parts = err.parts && err.parts.length > 1 ? err.parts : null;
       const messageEl = document.getElementById("errorPanelMessage");
       messageEl.textContent = parts ? "" : err.message;
       messageEl.hidden = !!parts;
+
+      const updateEl = document.getElementById("errorPanelUpdate");
+      if (updateEl) {
+        const stale = err.outdated || (parts || []).map(function (part) {
+          return part.outdated;
+        }).filter(Boolean)[0];
+        updateEl.hidden = !stale;
+        updateEl.textContent = stale ? versionNotice(stale) : "";
+      }
 
       const details = document.getElementById("errorPanelDetails");
       const detailText = document.getElementById("errorPanelDetailText");
@@ -429,9 +396,6 @@
         details.open = false;
       }
 
-      // Several failures reached the page together: each is its own incident
-      // with its own entry in Cloud Logging, so each gets its own row and its
-      // own reference rather than being run together into one string.
       const list = document.getElementById("errorPanelList");
       if (list) {
         list.innerHTML = "";
@@ -447,9 +411,6 @@
         }
       }
 
-      // No reference on an expected outcome, so the whole row goes: inviting a
-      // bug report for a working system wastes the user's time and ours. The
-      // rows above already carry every reference when there are several.
       const footer = panel.querySelector(".errorPanelFooter");
       if (footer) footer.hidden = !err.reference || !!parts;
       const refEl = document.getElementById("errorPanelReference");
@@ -475,6 +436,10 @@
       return err;
     },
 
+    /**
+     * Hides the panel and forgets the last error.
+     * @returns {void}
+     */
     clear: function () {
       const panel = document.getElementById("errorPanel");
       if (panel) panel.hidden = true;
@@ -482,9 +447,10 @@
     },
 
     /**
-     * @param {string} [reference] Defaults to the panel's own, for the shared
-     *        footer button; a multi-failure row passes its own.
-     * @param {Element} [button] The button to flash "Copied" on.
+     * Copies a reference to the clipboard and flashes the button.
+     * @param {string} [reference] Defaults to the panel's own.
+     * @param {HTMLElement} [button] Defaults to the shared footer button.
+     * @returns {void}
      */
     copyReference: function (reference, button) {
       reference = reference || (AppError.last && AppError.last.reference);
@@ -506,6 +472,12 @@
       }
     },
 
+    /**
+     * Clipboard copy via a hidden textarea, for when the async API is refused.
+     * @param {string} text
+     * @param {Function} done Called on success.
+     * @returns {void}
+     */
     _copyFallback: function (text, done) {
       const field = document.createElement("textarea");
       field.value = text;
@@ -518,42 +490,37 @@
         document.execCommand("copy");
         done();
       } catch (ignored) {
-        /* the reference is selectable in the panel either way */
+
       }
       document.body.removeChild(field);
     },
 
     /**
-     * Record a failure without interrupting the user. For the paths that
-     * recover on their own — a version check that falls back, an optional
-     * cleanup step — where a panel would be noise but silence means we never
-     * find out it happened.
+     * Records a failure without interrupting the user, for paths that recover.
+     * @param {*} raw
+     * @param {string} source
+     * @returns {Object} The normalised error.
      */
     log: function (raw, source) {
       const err = AppError.normalize(raw, { source: source });
       console.error(`[${source}]`, raw);
-      // `_dispatch`, not `report`: what gets passed here is often a rejected
-      // `runAppsScript`, and a server bug belongs under the server's service
-      // context with the reference it already has - not re-filed as a browser
-      // error. `_dispatch` is also what keeps an expected server outcome from
-      // being logged a second time; `record` already wrote that one.
+
       AppError._dispatch(err);
       return err;
     },
 
     /**
-     * Send a browser-side failure to Cloud Logging. Fire and forget: the same
-     * error is only sent once per page load, and a failure to report must
-     * never surface anything of its own.
+     * Sends a browser-side failure to reportClientError. Fire and forget, once
+     * per distinct failure per page load.
+     * @param {Object} err A normalised error; gains a reference.
+     * @returns {void}
      */
     report: function (err) {
       try {
         const fingerprint = `${err.source}|${err.detail || err.message}`;
         const already = AppError._reported[fingerprint];
         if (already) {
-          // Same failure again this page load: it's already in Cloud
-          // Logging under `already` - show that reference rather than a
-          // freshly-minted one nothing was ever written for.
+
           err.reference = already;
           return;
         }
@@ -578,32 +545,28 @@
             context: { code: err.code },
           });
       } catch (ignored) {
-        /* nothing to do — reporting is best effort */
+
       }
     },
 
     /**
-     * The server throttles identical failures, and when it does it writes no
-     * entry — but it does say which reference the surviving entry was written
-     * under. Ours was never written, so showing it would hand the user an id
-     * that leads nowhere. Swap in the one that exists, everywhere it is
-     * already on screen.
-     * @private
+     * Swaps in the reference the server actually wrote under when our own was
+     * throttled away, updating the error and every copy of it on screen.
+     * @param {Object} err
+     * @param {string} fingerprint
+     * @param {{reference?: string}} response
+     * @returns {void}
      */
     _adoptReference: function (err, fingerprint, response) {
       const reference = response && response.reference;
       if (!reference || reference === err.reference) return;
 
       const previous = err.reference;
-      // The panel's copy buttons read `.reference` off this same object at
-      // click time, so updating it is most of the job.
+
       err.reference = reference;
       if (fingerprint) AppError._reported[fingerprint] = reference;
       if (!previous) return;
 
-      // Matching on the text rather than on an id covers both places a
-      // reference is rendered: the shared footer, and a per-failure row when
-      // several share the panel.
       const nodes = document.querySelectorAll(".errorPanelReference");
       Array.prototype.forEach.call(nodes, function (node) {
         if (node.textContent === previous) node.textContent = reference;
@@ -611,22 +574,17 @@
     },
 
     /**
-     * Send a bug the server already told us about back to the server, so it
-     * can finally be written — see the long comment on `reportServerError`
-     * in 00_Errors.js for why this, rather than the server writing it
-     * itself. Fire and forget, same as `report`: a failure here must not
-     * surface anything of its own, and this is only ever called once per
-     * distinct failure per page load regardless of how many times the same
-     * broken action gets retried.
+     * Sends a server bug back to reportServerError so its deferred entry gets
+     * written. Fire and forget, once per distinct failure per page load.
+     * @param {Object} err A normalised error carrying a reference.
+     * @returns {void}
      */
     finalize: function (err) {
       try {
         const fingerprint = `server:${(err.trace && err.trace[0]) || err.source}|${err.detail || err.message}`;
         const already = AppError._reported[fingerprint];
         if (already) {
-          // Same failure again this page load: it's already in Cloud
-          // Logging under `already` - show that reference rather than a
-          // freshly-minted one nothing was ever written for.
+
           err.reference = already;
           return;
         }
@@ -641,9 +599,7 @@
             reference: err.reference,
             code: err.code,
             detail: err.detail,
-            // Load-bearing, not decoration: an `errors.reject` with no note
-            // has an empty `detail`, and its reason is here. Drop this and
-            // every one of those logs as an entry with no text at all.
+
             message: err.message,
             trace: err.trace,
             note: err.note,
@@ -651,11 +607,14 @@
             stack: err.stack,
           });
       } catch (ignored) {
-        /* nothing to do — reporting is best effort */
+
       }
     },
 
-    /** Same shape as the server's, so a client-only error still has an id. */
+    /**
+     * Mints a client-side reference in the server's format.
+     * @returns {string}
+     */
     _reference: function () {
       const stamp = Date.now().toString(36).toUpperCase();
       const salt = Math.floor(Math.random() * 0xffff)
@@ -665,8 +624,11 @@
     },
 
     /**
-     * Show `result` if it is a failed envelope. Returns true when it was an
-     * error, so callers can `if (AppError.check(result, "importData")) return;`
+     * Shows result if it is a failed envelope.
+     * @param {*} result
+     * @param {string} source
+     * @param {Object} [options]
+     * @returns {boolean} True when it was a failure and the panel was raised.
      */
     check: function (result, source, options) {
       if (result && result.success === false) {
@@ -678,8 +640,10 @@
   };
 
   /**
-   * The single way to call the server. Rejects with a normalised error, so
-   * `catch` blocks in the pages never have to guess at the shape.
+   * Calls a server function, rejecting with a normalised error.
+   * @param {string} method Name of the google.script.run function.
+   * @param {...*} args
+   * @returns {Promise<*>} Whatever the server returned.
    */
   function runAppsScript(method, ...args) {
     return new Promise(function (resolve, reject) {
@@ -693,12 +657,7 @@
   }
 
   window.addEventListener("error", function (event) {
-    // A cross-origin script that throws - the Picker and gapi are both loaded
-    // from apis.google.com - is reported to us as the bare string "Script
-    // error." with no error object, no file and no line. There is nothing in
-    // that to report and nothing the user can do about it, so raising the red
-    // panel for it only turns a hiccup inside Google's own code into a
-    // reference that leads to an entry saying "Script error.".
+
     if (!event.error && (!event.message || event.message === "Script error.")) {
       return;
     }
@@ -708,10 +667,50 @@
   });
 
   window.addEventListener("unhandledrejection", function (event) {
-    // A rejected runAppsScript that nobody handled is already normalised, and
-    // `normalize` now recognises its own output and extends it rather than
-    // taking it apart - so a server bug arriving here keeps its code, its
-    // reference and its trace.
+
     AppError.show(event.reason, { source: "unhandledrejection" });
   });
+
+  /**
+   * Sentence for an out-of-date copy of the script.
+   * @param {{running: string, latest: string, minimum: string,
+   *   unsupported: boolean}} status
+   * @returns {string}
+   */
+  function versionNotice(status) {
+    const running = status.running;
+    if (status.unsupported) {
+      return `This add-on is version ${running} and is no longer supported${
+        status.minimum ? ` — ${status.minimum} or newer is required` : ""
+      }. Update it before continuing, or things will not work correctly.`;
+    }
+    return `You are running version ${running} of the add-on${
+      status.latest ? ` and ${status.latest} is available` : ""
+    }. Updating may fix this.`;
+  }
+
+  /**
+   * Shows the banner when this copy is below the supported floor. Runs on
+   * load; a copy that is merely behind says nothing here, and is mentioned
+   * only if an error happens.
+   * @returns {void}
+   */
+  function checkAppVersion() {
+    const banner = document.getElementById("appVersionBanner");
+    if (!banner || typeof google === "undefined") return;
+    google.script.run
+      .withSuccessHandler(function (status) {
+        if (!status || !status.unsupported) return;
+        banner.textContent = versionNotice(status);
+        banner.hidden = false;
+      })
+      .withFailureHandler(function () {})
+      .getAppVersionStatus();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkAppVersion);
+  } else {
+    checkAppVersion();
+  }
 </script>

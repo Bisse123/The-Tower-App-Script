@@ -1,5 +1,12 @@
 const modules = {
-  // #region Export Functions
+
+  /**
+   * Reads Modules data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: modules.exportData");
@@ -31,13 +38,16 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Modules data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: modules.importData");
 
-      // Batch get required data for update function only
       var requiredRanges = ["Inventory", "Presets", "Planner v2", "Tracker", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
@@ -74,7 +84,7 @@ const modules = {
       });
 
       var batchUpdate = [];
-      // Only update modules inventory if key exists
+
       if (data.hasOwnProperty("oldModulesInventory")) {
         var oldModulesInventory = data.oldModulesInventory;
         var inventoryResult = this.updateModulesInventory(
@@ -91,7 +101,6 @@ const modules = {
         batchUpdate = batchUpdate.concat(inventoryResult.batchUpdate || []);
       }
 
-      // Only update modules presets if key exists
       if (data.hasOwnProperty("oldModulesPresets")) {
         var oldModulesPresets = data.oldModulesPresets;
         var presetsResult = this.updateModulesPresets(
@@ -109,7 +118,6 @@ const modules = {
         batchUpdate = batchUpdate.concat(presetsResult.batchUpdate || []);
       }
 
-      // Only update modules planner if key exists
       if (data.hasOwnProperty("oldModulesPlanner")) {
         var oldModulesPlanner = data.oldModulesPlanner;
         var PlannerResult = this.updateModulesInventory(
@@ -126,7 +134,6 @@ const modules = {
         batchUpdate = batchUpdate.concat(PlannerResult.batchUpdate || []);
       }
 
-      // Only update modules tracker if key exists
       if (data.hasOwnProperty("oldModulesTracker")) {
         var oldModulesTracker = data.oldModulesTracker;
         var trackerResult = this.updateModulesTracker(
@@ -143,7 +150,6 @@ const modules = {
         batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Modules",
@@ -177,8 +183,14 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes ModulesPresets into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldModulesPresets
+   * @param {Array<Array<*>>} newModulePresetsValues
+   * @param {Object} dvtNamedRangesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateModulesPresets: function (
     sheetName,
     oldModulesPresets,
@@ -319,7 +331,6 @@ const modules = {
           presetCol + 3,
         )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 4}`;
 
-        // Transform values using DVT
         var dvtMultiplier = shared.getDVTValue(
           presetData.multiplier || null,
           dvtNamedRangesData["Main Efficiency"],
@@ -365,6 +376,13 @@ const modules = {
     }
   },
 
+  /**
+   * Builds the batch update that writes ModulesInventory into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldModulesInventory
+   * @param {Array<Array<*>>} newModuleInventoryValues
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateModulesInventory: function (
     sheetName,
     oldModulesInventory,
@@ -481,6 +499,13 @@ const modules = {
     }
   },
 
+  /**
+   * Builds the batch update that writes ModulesTracker into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldModulesTracker
+   * @param {Array<Array<*>>} newModulesTrackerValues
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateModulesTracker: function (
     sheetName,
     oldModulesTracker,
@@ -646,6 +671,12 @@ const modules = {
     }
   },
 
+  /**
+   * Finds ModuleTypesRowIndex.
+   * @param {*} targetModuleTypes
+   * @param {Array<Array<*>>} moduleRange
+   * @returns {*}
+   */
   findModuleTypesRowIndex: function (targetModuleTypes, moduleRange) {
     try {
       console.log("Called: modules.findModuleTypesRowIndex");
@@ -666,23 +697,26 @@ const modules = {
             moduleFound[moduleType] = true;
           }
         });
-        // If all terms are found, we can break early
+
         if (Object.values(moduleFound).every(Boolean)) {
           break;
         }
       }
       return moduleTypeIndex;
     } catch (error) {
-      errors.reportFinal("dvtNamedRanges.findModuleTypesRowIndex", error, {
+      errors.report("dvtNamedRanges.findModuleTypesRowIndex", error, {
         targetModuleTypes: targetModuleTypes,
         moduleRange: moduleRange,
-      });
+      }, errors.CODES.RECOVERED);
       return {};
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Modules data from a v6.4.3 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version6_4_3: function (oldSheetID) {
     try {
       console.log("Called: modules.version6_4_3");
@@ -756,6 +790,11 @@ const modules = {
     }
   },
 
+  /**
+   * Reads Modules data from a v5.2.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_2_1: function (oldSheetID) {
     try {
       console.log("Called: modules.version5_2_1");
@@ -820,6 +859,11 @@ const modules = {
     }
   },
 
+  /**
+   * Reads Modules data from a v5.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_0: function (oldSheetID) {
     try {
       console.log("Called: modules.version5_0");
@@ -884,6 +928,11 @@ const modules = {
     }
   },
 
+  /**
+   * Reads Modules data from a v4.7 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_7: function (oldSheetID) {
     try {
       console.log("Called: modules.version4_7");
@@ -948,6 +997,11 @@ const modules = {
     }
   },
 
+  /**
+   * Reads Modules data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: modules.version4_0");
@@ -991,8 +1045,11 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Get Modules Inventory
+  /**
+   * Extracts ModulesInventory from a v5.0 sheet's values.
+   * @param {Array<Array<*>>} oldModulesInventoryValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_0ModulesInventory: function (oldModulesInventoryValues) {
     try {
       console.log("Called: modules.getVersion5_0ModulesInventory");
@@ -1065,6 +1122,11 @@ const modules = {
     }
   },
 
+  /**
+   * Extracts ModulesInventory from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldModulesInventoryValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0ModulesInventory: function (oldModulesInventoryValues) {
     try {
       console.log("Called: modules.getVersion4_0ModulesInventory");
@@ -1137,8 +1199,12 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Get Modules Planner
+  /**
+   * Extracts ModulesPlanner from a v6.4.3 sheet's values.
+   * @param {Array<Array<*>>} oldModulesPlannerValues
+   * @param {Array<Array<*>>} oldModulesInventory
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion6_4_3ModulesPlanner: function (
     oldModulesPlannerValues,
     oldModulesInventory,
@@ -1151,8 +1217,12 @@ const modules = {
         oldModulesPlannerValues,
       );
 
-      // These cells hold dropdown text, so an empty cell and a missing cell are
-      // the same thing when deciding whether the planner changed anything.
+      /**
+       * Whether a planner cell names the same module as an inventory cell.
+       * @param {*} plannerValue
+       * @param {*} inventoryValue
+       * @returns {boolean}
+       */
       function matchesInventory(plannerValue, inventoryValue) {
         var planner = plannerValue == null ? "" : String(plannerValue).trim();
         var inventory =
@@ -1252,8 +1322,11 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Get Modules Presets
+  /**
+   * Extracts ModulesPresets from a v5.0 sheet's values.
+   * @param {Array<Array<*>>} oldModulesPresetsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_0ModulesPresets: function (oldModulesPresetsValues) {
     try {
       console.log("Called: modules.getVersion5_0ModulesPresets");
@@ -1344,6 +1417,11 @@ const modules = {
     }
   },
 
+  /**
+   * Extracts ModulesPresets from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldModulesPresetsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0ModulesPresets: function (oldModulesPresetsValues) {
     try {
       console.log("Called: modules.getVersion4_0ModulesPresets");
@@ -1406,8 +1484,12 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Get Modules Tracker
+  /**
+   * Extracts ModulesTracker from a v6.4.3 sheet's values.
+   * @param {Array<Array<*>>} oldModulesTrackerValues
+   * @param {Array<Array<string>>} oldModulesTrackerFormulas
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion6_4_3ModulesTracker: function (
     oldModulesTrackerValues,
     oldModulesTrackerFormulas,
@@ -1543,6 +1625,12 @@ const modules = {
     }
   },
 
+  /**
+   * Extracts ModulesTracker from a v4.7 sheet's values.
+   * @param {Array<Array<*>>} oldModulesTrackerValues
+   * @param {Array<Array<string>>} oldModulesTrackerFormulas
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_7ModulesTracker: function (
     oldModulesTrackerValues,
     oldModulesTrackerFormulas,
@@ -1663,7 +1751,7 @@ const modules = {
             break;
           }
         }
-        // summaryIndexes now contains all indexes for each type in this row
+
       }
       return {
         success: true,
@@ -1678,8 +1766,11 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Modules data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseModulesData: function (data) {
     try {
       const moduleNames = {
@@ -1740,6 +1831,11 @@ const modules = {
 
       const assistRarities = ["Epic", "Legendary", "Mythic", "Ancestral"];
 
+      /**
+       * Resolves a module effect id to its substat name and rarity.
+       * @param {number} effectID
+       * @returns {Object|null}
+       */
       function lookupEffectID(effectID) {
         const effectRarities = [
           "Common",
@@ -1750,9 +1846,8 @@ const modules = {
           "Ancestral",
         ];
 
-        // [label, n] - rarityStart = 6 - n, effectIDs assigned sequentially
         const substatClusters = [
-          // Cannon (C=1-17)
+
           ["Attack Speed", 6],
           ["Critical Chance", 6],
           ["Critical Factor", 6],
@@ -1770,7 +1865,7 @@ const modules = {
           ["Rend Armor Chance", 3],
           ["Rend Armor Multi", 3],
           ["Max Rend Armor Multi", 3],
-          // Armor (C=18-34)
+
           ["Health Regen", 6],
           ["Defense %", 6],
           ["Defense Absolute", 6],
@@ -1788,7 +1883,7 @@ const modules = {
           ["Death Defy", 3],
           ["Wall Health", 4],
           ["Wall Rebuild", 4],
-          // Generator (C=35-46)
+
           ["Cash Bonus", 6],
           ["Cash / Wave", 6],
           ["Coins / Kill Bonus", 6],
@@ -1801,7 +1896,7 @@ const modules = {
           ["Package Chance", 4],
           ["Enemy Attack Level Skip", 4],
           ["Enemy Health Level Skip", 4],
-          // Core (C=47-73)
+
           ["Chain Lightning - Damage", 6],
           ["Chain Lightning - Quantity", 4],
           ["Chain Lightning - Chance", 6],
@@ -1829,7 +1924,7 @@ const modules = {
           ["Spotlight - Bonus", 6],
           ["Spotlight - Angle", 4],
           ["Spotlight - Quantity", 1],
-          // Generator appendix (C=74)
+
           ["Max Recovery", 4],
         ];
         if (effectID < 1 || effectID > 331) {
@@ -1862,6 +1957,12 @@ const modules = {
       var oldModulesPresets = {};
       var moduleInstances = {};
 
+      /**
+       * Records a module instance by guid, keeping its effects and category.
+       * @param {Object} module
+       * @param {string} [fallbackCategory]
+       * @returns {Object|null} The stored instance, or null without a guid.
+       */
       function collectModuleInstance(module, fallbackCategory) {
         if (!module || !module.guid) {
           return null;
@@ -1887,6 +1988,12 @@ const modules = {
         return moduleInstances[module.guid];
       }
 
+      /**
+       * Writes one module instance into the inventory under a display name.
+       * @param {Object} instance
+       * @param {string} moduleName
+       * @returns {void}
+       */
       function writeModuleEntry(instance, moduleName) {
         instance.displayName = moduleName;
         var moduleSubstats = [];
@@ -1907,6 +2014,12 @@ const modules = {
         };
       }
 
+      /**
+       * The preset slot a module category occupies.
+       * @param {number} index
+       * @param {string} presetName
+       * @returns {Object|null} Null when the category is unknown.
+       */
       function presetSlot(index, presetName) {
         const moduleCategory = (moduleCategories[index] || "").toLowerCase();
         if (!moduleCategory) {
@@ -1923,7 +2036,12 @@ const modules = {
         }
         return oldModulesPresets[moduleCategory][presetName];
       }
-    
+
+      /**
+       * Places a stored module instance into its preset slot.
+       * @param {string} guid
+       * @returns {Object|null} Null when the guid is unknown.
+       */
       function placeModuleInstance(guid) {
         const instance = guid ? moduleInstances[guid] : null;
         if (!instance) {
@@ -1937,8 +2055,7 @@ const modules = {
           writeModuleEntry(instance, instance.name);
           return instance.displayName;
         }
-        // "Spare" is the marker updateModulesInventory looks for when filling the
-        // sheet's spare columns, and there is room for only one of them.
+
         const spareName = `Spare ${instance.name}`;
         if (!placed.hasOwnProperty(spareName)) {
           writeModuleEntry(instance, spareName);
@@ -2052,10 +2169,6 @@ const modules = {
         });
       });
 
-      // Every other module the player owns is represented by its best copy. The
-      // rest are "fodder" - duplicates kept only to raise another copy's rarity,
-      // an Ancestral module being fed an Epic+ copy of itself to reach
-      // Ancestral 1* - and are dropped, along with anything already placed above.
       Object.keys(moduleNames).forEach(function (infoIndex) {
         const moduleInfo = moduleNames[infoIndex];
         const moduleCategory = moduleInfo.category.toLowerCase();
@@ -2087,8 +2200,6 @@ const modules = {
         shared.templatePresetNames,
       ).order;
 
-      // The order the game lists modules in, for anything that has to display
-      // them - the inventory is keyed by name, which says nothing about order.
       const moduleOrder = Object.keys(moduleNames)
         .map(Number)
         .sort(function (a, b) {
@@ -2113,8 +2224,6 @@ const modules = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v4.0": this.version4_0.bind(this),
@@ -2125,8 +2234,11 @@ const modules = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -2146,5 +2258,4 @@ const modules = {
     return null;
   },
 
-  // #endregion
 };

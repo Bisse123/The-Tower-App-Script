@@ -1,5 +1,12 @@
 const ultimate = {
-  // #region Export Functions
+
+  /**
+   * Reads Ultimate_Weapons data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: ultimate.exportData");
@@ -32,13 +39,16 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Ultimate_Weapons data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: ultimate.importData");
 
-      // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "UW Cost Calculator v3", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
@@ -131,7 +141,6 @@ const ultimate = {
 
       var batchUpdate = [];
 
-      // Only update ultimate levels if key exists
       if (data.hasOwnProperty("oldUltimate")) {
         var oldUltimate = data.oldUltimate;
         var ultimateResult = this.updateUltimateLevels(
@@ -149,7 +158,6 @@ const ultimate = {
         batchUpdate = batchUpdate.concat(ultimateResult.batchUpdate || []);
       }
 
-      // Only update ultimate cost calculator if key exists
       if (data.hasOwnProperty("oldUltimateCostCalculator")) {
         var oldUltimateCostCalculator = data.oldUltimateCostCalculator;
         var ultimateCostCalculatorResult = this.updateUltimateCostCalculator(
@@ -171,7 +179,6 @@ const ultimate = {
         );
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Ultimate Weapon",
@@ -180,7 +187,6 @@ const ultimate = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -203,8 +209,14 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes UltimateLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldUltimate
+   * @param {Object} masterSheetData
+   * @param {Object} dvtNamedRangesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateUltimateLevels: function (
     sheetName,
     oldUltimate,
@@ -244,14 +256,13 @@ const ultimate = {
         };
       }
 
-      // Extract current ultimate weapons data from pre-fetched data
-      var startCol = ultimateCol + 1; // Column after "Ultimate Weapon" (1-based)
-      var endCol = ultimateCol + 6; // 5 columns after "Ultimate Weapon"
+      var startCol = ultimateCol + 1;
+      var endCol = ultimateCol + 6;
 
       var newUltimateData = masterSheetData
-        .slice(1) // Skip header row
+        .slice(1)
         .map(function (row) {
-          return row.slice(startCol - 1, endCol); // Extract columns (convert to 0-based)
+          return row.slice(startCol - 1, endCol);
         })
         .filter(function (row) {
           return row.some(function (cell) {
@@ -331,7 +342,7 @@ const ultimate = {
       }
 
       var batchUpdate = [];
-      // Update the unlocked column (column after Ultimate Weapon)
+
       if (newUltimateUnlocked.length > 0) {
         var unlockedCol = shared.columnToLetter(ultimateCol + 1);
         var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
@@ -343,7 +354,6 @@ const ultimate = {
         });
       }
 
-      // Update the level column (5 columns after Ultimate Weapon)
       if (newUltimateLevel.length > 0) {
         var levelCol = shared.columnToLetter(ultimateCol + 5);
         var targetCol = shared.columnToLetter(ultimateCol + 6);
@@ -357,7 +367,7 @@ const ultimate = {
       }
 
       if (batchUpdate.length !== 0) {
-        // Return batch update data instead of calling API directly
+
         return {
           success: true,
           message: `Ultimate weapons levels updated successfully`,
@@ -379,6 +389,13 @@ const ultimate = {
     }
   },
 
+  /**
+   * Builds the batch update that writes UltimateCostCalculator into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldUltimateCostCalculator
+   * @param {Object} ultimateCostCalculatorData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateUltimateCostCalculator: function (
     sheetName,
     oldUltimateCostCalculator,
@@ -410,10 +427,10 @@ const ultimate = {
       }
 
       var batchUpdate = [];
-      var missingWeapons = [...targetWeapons]; // Copy of targetWeapons array
+      var missingWeapons = [...targetWeapons];
 
       for (var row = 0; row < ultimateCostCalculatorData.length; row++) {
-        // If we've found all weapons, no need to continue
+
         if (missingWeapons.length === 0) {
           break;
         }
@@ -444,7 +461,7 @@ const ultimate = {
             values: [[oldUltimateCostCalculator["# Of UW+ Wanted"]]],
           });
         }
-        // Check each missing weapon to see if it's in this row
+
         for (
           var weaponIndex = 0;
           weaponIndex < missingWeapons.length;
@@ -459,9 +476,8 @@ const ultimate = {
             var weaponColIndex = rowData.indexOf(weapon);
             var oldWeaponData = oldUltimateCostCalculator[weapon];
 
-            // Update unlocked value if it exists
             if (oldWeaponData.hasOwnProperty("unlocked")) {
-              var unlockedCol = shared.columnToLetter(weaponColIndex + 4); // weaponIndex + 3 + 1 (for 1-based)
+              var unlockedCol = shared.columnToLetter(weaponColIndex + 4);
               var unlockedRange = `${sheetName}!${unlockedCol}${row + 1}`;
               batchUpdate.push({
                 range: unlockedRange,
@@ -469,12 +485,11 @@ const ultimate = {
               });
             }
 
-            // Update sub-values if they exist
             if (
               oldWeaponData.hasOwnProperty("values") &&
               Object.keys(oldWeaponData.values).length > 0
             ) {
-              // Find the sub-data row (next row)
+
               if (row + 1 < ultimateCostCalculatorData.length) {
                 var subData = ultimateCostCalculatorData[row + 1];
                 var currentValueIndex = subData.indexOf("Current Value");
@@ -482,7 +497,6 @@ const ultimate = {
                 var targetValueIndex = subData.indexOf("Target Value");
                 var modSubIndex = subData.indexOf("Sub");
 
-                // Process the sub-rows
                 for (
                   var subRow = row + 2;
                   subRow < ultimateCostCalculatorData.length;
@@ -493,7 +507,6 @@ const ultimate = {
                     ? subRowData[subNameIndex].toString().trim()
                     : "";
 
-                  // Stop if we hit an empty row or another weapon
                   if (
                     subName === "" ||
                     targetWeapons.includes(
@@ -505,11 +518,9 @@ const ultimate = {
                     break;
                   }
 
-                  // Check if we have data for this sub-property
                   if (oldWeaponData.values.hasOwnProperty(subName)) {
                     var subValues = oldWeaponData.values[subName];
 
-                    // Update current value
                     if (subValues.hasOwnProperty("currentValue")) {
                       var currentCol = shared.columnToLetter(
                         currentValueIndex + 1,
@@ -523,7 +534,6 @@ const ultimate = {
                       });
                     }
 
-                    // Update target value
                     if (subValues.hasOwnProperty("targetValue")) {
                       var targetCol = shared.columnToLetter(
                         targetValueIndex + 1,
@@ -537,7 +547,6 @@ const ultimate = {
                       });
                     }
 
-                    // Update mod sub value
                     if (subValues.hasOwnProperty("modSub")) {
                       var modCol = shared.columnToLetter(modSubIndex + 1);
                       var modRange = `${sheetName}!${modCol}${subRow + 1}`;
@@ -548,16 +557,13 @@ const ultimate = {
                     }
                   }
 
-                  // Update the outer loop row to skip processed sub-rows
                   row = subRow;
                 }
               }
             }
 
-            // Remove the weapon from missing weapons list
             missingWeapons.splice(weaponIndex, 1);
 
-            // Break out of the weapon loop since we found the weapon in this row
             break;
           }
         }
@@ -585,8 +591,11 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Ultimate_Weapons data from a v3.1.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_1_1: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version3_1_1");
@@ -625,7 +634,6 @@ const ultimate = {
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
-      // Process ultimate weapons data
       var ultimateWeaponsData = this.getVersion3_1_1UltimateWeapons(
         oldUltimateDataValues,
       );
@@ -633,7 +641,6 @@ const ultimate = {
         return ultimateWeaponsData;
       }
 
-      // Process cost calculator data
       var costCalculatorData = this.getVersion1_0CostCalculator(
         oldUltimateCostCalculatorValues,
       );
@@ -655,6 +662,11 @@ const ultimate = {
     }
   },
 
+  /**
+   * Reads Ultimate_Weapons data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version2_0");
@@ -693,7 +705,6 @@ const ultimate = {
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
-      // Process ultimate weapons data
       var ultimateWeaponsData = this.getVersion2_0UltimateWeapons(
         oldUltimateDataValues,
       );
@@ -701,7 +712,6 @@ const ultimate = {
         return ultimateWeaponsData;
       }
 
-      // Process cost calculator data
       var costCalculatorData = this.getVersion1_0CostCalculator(
         oldUltimateCostCalculatorValues,
       );
@@ -723,6 +733,11 @@ const ultimate = {
     }
   },
 
+  /**
+   * Reads Ultimate_Weapons data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: ultimate.version1_0");
@@ -761,7 +776,6 @@ const ultimate = {
       }
       var oldUltimateCostCalculatorValues = costCalculatorBatchResult[0].values;
 
-      // Process ultimate weapons data
       var ultimateWeaponsData = this.getVersion1_0UltimateWeapons(
         oldUltimateDataValues,
       );
@@ -769,7 +783,6 @@ const ultimate = {
         return ultimateWeaponsData;
       }
 
-      // Process cost calculator data
       var costCalculatorData = this.getVersion1_0CostCalculator(
         oldUltimateCostCalculatorValues,
       );
@@ -791,8 +804,11 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Get Ultimate Weapons
+  /**
+   * Extracts UltimateWeapons from a v3.1.1 sheet's values.
+   * @param {Array<Array<*>>} oldUltimateDataValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_1_1UltimateWeapons: function (oldUltimateDataValues) {
     try {
       console.log("Called: ultimate.getVersion3_1_1UltimateWeapons");
@@ -820,7 +836,7 @@ const ultimate = {
       var oldUltimate = {};
       for (var row = 0; row < oldUltimateLevels.length; row++) {
         var weaponName = oldUltimateLevels[row][0];
-        // Process only weapons that are in our targetWeapons list
+
         if (weaponName && targetWeapons.includes(weaponName)) {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
@@ -868,6 +884,11 @@ const ultimate = {
     }
   },
 
+  /**
+   * Extracts UltimateWeapons from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldUltimateDataValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0UltimateWeapons: function (oldUltimateDataValues) {
     try {
       console.log("Called: ultimate.getVersion2_0UltimateWeapons");
@@ -895,7 +916,7 @@ const ultimate = {
       var oldUltimate = {};
       for (var row = 0; row < oldUltimateLevels.length; row++) {
         var weaponName = oldUltimateLevels[row][0];
-        // Process only weapons that are in our targetWeapons list
+
         if (weaponName && targetWeapons.includes(weaponName)) {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
@@ -933,6 +954,11 @@ const ultimate = {
     }
   },
 
+  /**
+   * Extracts UltimateWeapons from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldUltimateDataValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0UltimateWeapons: function (oldUltimateDataValues) {
     try {
       console.log("Called: ultimate.getVersion1_0UltimateWeapons");
@@ -960,7 +986,7 @@ const ultimate = {
       var oldUltimate = {};
       for (var row = 0; row < oldUltimateLevels.length; row++) {
         var weaponName = oldUltimateLevels[row][0];
-        // Process only weapons that are in our targetWeapons list
+
         if (weaponName && targetWeapons.includes(weaponName)) {
           var unlocked = oldUltimateLevels[row + 2][0];
           var weapon = {
@@ -1010,8 +1036,11 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Get Cost Calculator
+  /**
+   * Extracts CostCalculator from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldUltimateCostCalculatorValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0CostCalculator: function (oldUltimateCostCalculatorValues) {
     try {
       console.log("Called: ultimate.getVersion1_0CostCalculator");
@@ -1042,7 +1071,7 @@ const ultimate = {
           oldUltimateCostCalculator["# Of UW+ Wanted"] =
             rowData[uwPlusWantedIndex + 2];
         }
-        // Check each cell in the row to find weapon names
+
         for (var colIndex = 0; colIndex < rowData.length; colIndex++) {
           var cellValue = rowData[colIndex];
           if (
@@ -1052,7 +1081,6 @@ const ultimate = {
           ) {
             var weapon = cellValue.trim();
 
-            // Skip if this weapon was already processed or if it's a header/metadata
             if (
               processedWeapons[weapon] ||
               weapon === "# Of UWs Wanted" ||
@@ -1064,12 +1092,10 @@ const ultimate = {
               break;
             }
 
-            // Only process if this weapon is in our targetWeapons list
             if (!targetWeapons.includes(weapon)) {
               continue;
             }
 
-            // Mark as processed and initialize
             processedWeapons[weapon] = true;
             oldUltimateCostCalculator[weapon] = {};
             var weaponColIndex = colIndex;
@@ -1138,7 +1164,7 @@ const ultimate = {
                   weaponValues[subName] &&
                   Object.keys(weaponValues[subName]).length === 0
                 ) {
-                  delete weaponValues[subName]; // Remove empty sub entry
+                  delete weaponValues[subName];
                 }
                 row = subRow;
               }
@@ -1151,10 +1177,9 @@ const ultimate = {
               oldUltimateCostCalculator[weapon] &&
               Object.keys(oldUltimateCostCalculator[weapon]).length === 0
             ) {
-              delete oldUltimateCostCalculator[weapon]; // Remove empty weapon entry
+              delete oldUltimateCostCalculator[weapon];
             }
 
-            // Break out of the column loop since we found a weapon in this row
             break;
           }
         }
@@ -1172,8 +1197,11 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Ultimate_Weapons data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseUltimateWeaponData: function (data) {
     try {
       const targetWeapons = {
@@ -1213,7 +1241,7 @@ const ultimate = {
           levels: weaponLevels,
         };
       });
-    
+
       return {
         success: true,
         oldUltimate: oldUltimate,
@@ -1229,8 +1257,6 @@ const ultimate = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -1239,8 +1265,11 @@ const ultimate = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: ultimate.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -1260,6 +1289,5 @@ const ultimate = {
 
     return null;
   },
-  
-  // #endregion
+
 };

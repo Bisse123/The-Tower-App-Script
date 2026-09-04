@@ -1,5 +1,8 @@
 <script>
-  // Detect mobile devices with enhanced touch detection
+  /**
+   * Whether this looks like a mobile device, by user agent or touch plus size.
+   * @returns {boolean}
+   */
   function detectMobile() {
     const userAgent = navigator.userAgent.toLowerCase();
     const mobileKeywords = [
@@ -21,17 +24,24 @@
     return isMobileUA || (isTouchDevice && isSmallScreen);
   }
 
-  // Check if device is touch-only (no mouse/trackpad)
+  /**
+   * Whether the device has touch and no fine pointer.
+   * @returns {boolean}
+   */
   function isTouchOnlyDevice() {
     return (
       "ontouchstart" in window && !window.matchMedia("(pointer: fine)").matches
     );
   }
 
-  // Initialize mobile detection
   isMobile = detectMobile();
   console.log("Mobile device detected:", isMobile);
 
+  /**
+   * Passes through only Google Sheets and Drive folder URLs.
+   * @param {*} url
+   * @returns {string} The URL, or "" if it is not one we allow.
+   */
   function sanitizeGetStartedUrl(url) {
     if (typeof url === "string") {
       if (
@@ -44,8 +54,13 @@
     return "";
   }
 
+  /**
+   * Shows a spinner and message on the status line, clearing any error panel.
+   * @param {string} message
+   * @returns {void}
+   */
   function setStatusWithSpinner(message) {
-    // A new step is starting, so whatever failed before is no longer current.
+
     if (typeof AppError !== "undefined") AppError.clear();
     document.getElementById("statusText").innerHTML = `
         <span class="spinner spinner-small"></span>
@@ -53,6 +68,11 @@
       `;
   }
 
+  /**
+   * Sets the status line, shortening known messages on mobile.
+   * @param {string} message
+   * @returns {void}
+   */
   function setStatusText(message) {
     if (isMobile) {
       const mobileMessages = {

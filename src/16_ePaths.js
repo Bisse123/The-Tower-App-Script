@@ -1,5 +1,12 @@
 const ePaths = {
-  // #region Export Functions
+
+  /**
+   * Reads EPaths data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: ePaths.exportData");
@@ -30,8 +37,12 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported EPaths data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: ePaths.importData");
@@ -67,7 +78,6 @@ const ePaths = {
         eDiscountLabRange,
       ];
 
-      // Calculate column offsets for each range
       var eHPColumnOffset = shared.getColumnOffsetFromRange(eHPRange);
       var eDamageColumnOffset = shared.getColumnOffsetFromRange(eDamageRange);
       var eEconColumnOffset = shared.getColumnOffsetFromRange(eEconRange);
@@ -92,7 +102,7 @@ const ePaths = {
       var eDiscountLabValues = batchGetResult[9].values;
 
       var batchUpdate = [];
-      // Call the respective update functions
+
       if (data.hasOwnProperty("eHP")) {
         var eHPResult = this.updateEHP(
           "eHP",
@@ -156,7 +166,6 @@ const ePaths = {
         batchUpdate = batchUpdate.concat(eEconResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Effective Paths",
@@ -187,9 +196,18 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
-
+  /**
+   * Builds the batch update that writes EHP into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldData
+   * @param {Object} eHPData
+   * @param {*} columnOffset
+   * @param {Object} eHPLabData
+   * @param {Object} eRegenLabData
+   * @param {*} eHPLabColumn
+   * @param {*} eRegenLabColumn
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateEHP: function (
     sheetName,
     oldData,
@@ -254,10 +272,10 @@ const ePaths = {
         for (var column = 0; column < eHPData[row].length; column++) {
           var cell = eHPData[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names to update
+
             for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
               var customName = eHPData[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
                 var cellCol = shared.columnToLetter(
@@ -270,32 +288,7 @@ const ePaths = {
                 });
               }
             }
-          // } else if (cell === "Perks") {
-          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
-          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-          //     var perksAreActive = oldData.Perks["Active"];
-          //     var perksCellAddress = `${perksCol}${row + 1}`;
-          //     batchUpdate.push({
-          //       range: `${sheetName}!${perksCellAddress}`,
-          //       values: [[perksAreActive]],
-          //     });
-          //   }
-          //   for (var nextRow = row + 2; nextRow < eHPData.length; nextRow++) {
-          //     var perkName = eHPData[nextRow][column];
-          //     if (!perkName) break;
-          //     if (perkName.startsWith("=")) {
-          //       var parts = perkName.split("&");
-          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-          //     }
-          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-          //       var perkValue = oldData.Perks[perkName];
-          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
-          //       batchUpdate.push({
-          //         range: `${sheetName}!${perkCellAddress}`,
-          //         values: [[perkValue]],
-          //       });
-          //     }
-          //   }
+
           } else if (cell === "User Specific Guesses") {
             for (var nextRow = row + 1; nextRow < eHPData.length; nextRow++) {
               var guessName = eHPData[nextRow][column];
@@ -337,23 +330,7 @@ const ePaths = {
                 values: [[rowsCalculatedValue]],
               });
             }
-          // } else if (cell === "Presets") {
-          //   if (oldData.hasOwnProperty("Presets")) {
-          //     var presetValues = oldData.Presets;
-          //     var presetCol = shared.columnToLetter(columnOffset + column + 5);
-          //     for (var nextRow = row; nextRow < eHPData.length; nextRow++) {
-          //       var presetName = eHPData[nextRow][column];
-          //       if (!presetName) break;
-          //       if (presetValues.hasOwnProperty(presetName)) {
-          //         var presetValue = presetValues[presetName];
-          //         var presetCellAddress = `${presetCol}${nextRow + 1}`;
-          //         batchUpdate.push({
-          //           range: `${sheetName}!${presetCellAddress}`,
-          //           values: [[presetValue]],
-          //         });
-          //       }
-          //     }
-          //   }
+
           }
         }
       }
@@ -378,6 +355,16 @@ const ePaths = {
     }
   },
 
+  /**
+   * Builds the batch update that writes EDamage into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldData
+   * @param {Object} eDamageData
+   * @param {*} columnOffset
+   * @param {Object} eDamageLabData
+   * @param {*} eDamageLabColumn
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateEDamage: function (
     sheetName,
     oldData,
@@ -420,26 +407,18 @@ const ePaths = {
         }
       }
 
-      // if (oldData.hasOwnProperty("CLDamage")) {
-      //   var cLDamageValue = oldData.CLDamage;
-      //   batchUpdate.push({
-      //     range: `${sheetName}!AM149`,
-      //     values: [[cLDamageValue]],
-      //   });
-      // }
-
       for (var row = 0; row < eDamageData.length; row++) {
         for (var column = 0; column < eDamageData[row].length; column++) {
           var cell = eDamageData[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names to update
+
             for (
               var nextRow = row + 1;
               nextRow < eDamageData.length;
               nextRow++
             ) {
               var customName = eDamageData[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
                 var cellCol = shared.columnToLetter(
@@ -452,36 +431,7 @@ const ePaths = {
                 });
               }
             }
-          // } else if (cell === "Perks") {
-          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
-          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-          //     var perksAreActive = oldData.Perks["Active"];
-          //     var perksCellAddress = `${perksCol}${row + 1}`;
-          //     batchUpdate.push({
-          //       range: `${sheetName}!${perksCellAddress}`,
-          //       values: [[perksAreActive]],
-          //     });
-          //   }
-          //   for (
-          //     var nextRow = row + 2;
-          //     nextRow < eDamageData.length;
-          //     nextRow++
-          //   ) {
-          //     var perkName = eDamageData[nextRow][column];
-          //     if (!perkName) break;
-          //     if (perkName.startsWith("=")) {
-          //       var parts = perkName.split("&");
-          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-          //     }
-          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-          //       var perkValue = oldData.Perks[perkName];
-          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
-          //       batchUpdate.push({
-          //         range: `${sheetName}!${perkCellAddress}`,
-          //         values: [[perkValue]],
-          //       });
-          //     }
-          //   }
+
           } else if (cell === "User Specific Guesses") {
             for (
               var nextRow = row + 1;
@@ -533,23 +483,7 @@ const ePaths = {
                 values: [[rowsCalculatedValue]],
               });
             }
-          // } else if (cell === "Presets") {
-          //   if (oldData.hasOwnProperty("Presets")) {
-          //     var presetValues = oldData.Presets;
-          //     var presetCol = shared.columnToLetter(columnOffset + column + 5);
-          //     for (var nextRow = row; nextRow < eDamageData.length; nextRow++) {
-          //       var presetName = eDamageData[nextRow][column];
-          //       if (!presetName) break;
-          //       if (presetValues.hasOwnProperty(presetName)) {
-          //         var presetValue = presetValues[presetName];
-          //         var presetCellAddress = `${presetCol}${nextRow + 1}`;
-          //         batchUpdate.push({
-          //           range: `${sheetName}!${presetCellAddress}`,
-          //           values: [[presetValue]],
-          //         });
-          //       }
-          //     }
-          //   }
+
           } else if (cell === "PS Beta Testing") {
             if (oldData.hasOwnProperty("PSBeta")) {
               var psBetaValue = oldData.PSBeta;
@@ -582,6 +516,20 @@ const ePaths = {
     }
   },
 
+  /**
+   * Builds the batch update that writes EEcon into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldData
+   * @param {Object} eEconData
+   * @param {*} columnOffset
+   * @param {Object} eEconLabData
+   * @param {Object} eEconStoneMultData
+   * @param {Object} eDiscountLabData
+   * @param {*} eEconLabColumn
+   * @param {*} eEconStoneMultColumn
+   * @param {*} eDiscountLabColumn
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateEEcon: function (
     sheetName,
     oldData,
@@ -664,49 +612,7 @@ const ePaths = {
       for (var row = 0; row < eEconData.length; row++) {
         for (var column = 0; column < eEconData[row].length; column++) {
           var cell = eEconData[row][column];
-          // if (cell === "Total Value") {
-          //   // Search rows below "Total Value" in column j - 2 for custom names to update
-          //   for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
-          //     var customName = eEconData[nextRow][column - 2];
-          //     if (!customName) break; // Stop when customName is empty
-          //     if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
-          //       var newValue = oldData.Custom[customName];
-          //       var cellCol = shared.columnToLetter(columnOffset + (column - 1) + 1);
-          //       var cellAddress = `${cellCol}${nextRow + 1}`;
-          //       batchUpdate.push({
-          //         range: `${sheetName}!${cellAddress}`,
-          //         values: [[newValue]],
-          //       });
-          //     }
-          //   }
-          // } else
-          // if (cell === "Perks") {
-          //   var perksCol = shared.columnToLetter(columnOffset + column + 6);
-          //   if (oldData.Perks && oldData.Perks.hasOwnProperty("Active")) {
-          //     var perksAreActive = oldData.Perks["Active"];
-          //     var perksCellAddress = `${perksCol}${row + 1}`;
-          //     batchUpdate.push({
-          //       range: `${sheetName}!${perksCellAddress}`,
-          //       values: [[perksAreActive]],
-          //     });
-          //   }
-          //   for (var nextRow = row + 2; nextRow < eEconData.length; nextRow++) {
-          //     var perkName = eEconData[nextRow][column];
-          //     if (!perkName) break;
-          //     if (perkName.startsWith("=")) {
-          //       var parts = perkName.split("&");
-          //       perkName = parts[parts.length - 1].replace(/"/g, "").trim();
-          //     }
-          //     if (oldData.Perks && oldData.Perks.hasOwnProperty(perkName)) {
-          //       var perkValue = oldData.Perks[perkName];
-          //       var perkCellAddress = `${perksCol}${nextRow + 1}`;
-          //       batchUpdate.push({
-          //         range: `${sheetName}!${perkCellAddress}`,
-          //         values: [[perkValue]],
-          //       });
-          //     }
-          //   }
-          // } else 
+
           if (cell === "User Inputs") {
             var skipPresets = false;
             for (var nextRow = row + 1; nextRow < eEconData.length; nextRow++) {
@@ -822,8 +728,11 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads EPaths data from a v5.09.00.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_09_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_09_00_00");
@@ -898,6 +807,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.08.04.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_08_04_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_08_04_00");
@@ -972,6 +886,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.08.00.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_08_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_08_00_00");
@@ -1044,6 +963,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.06.02.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_06_02_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_06_02_00");
@@ -1112,6 +1036,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.05.01.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_05_01_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_05_01_00");
@@ -1184,6 +1113,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.05.00.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_05_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_05_00_00");
@@ -1256,6 +1190,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.03.00.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_03_00_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_03_00_00");
@@ -1328,6 +1267,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v5.00.01.04 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version5_00_01_04: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version5_00_01_04");
@@ -1400,6 +1344,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v4.11.03.21 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_11_03_21: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version4_11_03_21");
@@ -1472,6 +1421,11 @@ const ePaths = {
     }
   },
 
+  /**
+   * Reads EPaths data from a v4.11.02.00 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_11_02_00: function (oldSheetID) {
     try {
       console.log("Called: ePaths.version4_11_02_00");
@@ -1540,8 +1494,13 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Get eHP
+  /**
+   * Extracts eHP from a v5.09.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeHPLabValues
+   * @param {Array<Array<*>>} oldeRegenLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_09_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -1593,10 +1552,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -1712,6 +1671,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eHP from a v5.05.01.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeHPLabValues
+   * @param {Array<Array<*>>} oldeRegenLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_05_01_00eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -1763,10 +1729,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -1874,6 +1840,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eHP from a v5.03.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeHPLabValues
+   * @param {Array<Array<*>>} oldeRegenLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_03_00_00eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -1925,10 +1898,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2034,6 +2007,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eHP from a v4.11.03.21 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeHPLabValues
+   * @param {Array<Array<*>>} oldeRegenLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_03_21eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -2085,10 +2065,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2187,6 +2167,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eHP from a v4.11.02.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeHPLabValues
+   * @param {Array<Array<*>>} oldeRegenLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_02_00eHP: function (
     oldValues,
     oldeHPLabValues,
@@ -2230,10 +2217,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2332,8 +2319,12 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Get eDamage
+  /**
+   * Extracts eDamage from a v5.09.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeDamageLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_09_00_00eDamage: function (oldValues, oldeDamageLabValues) {
     try {
       console.log("Called: ePaths.getVersion5_09_00_00eDamage");
@@ -2361,10 +2352,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2485,6 +2476,12 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eDamage from a v5.06.02.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeDamageLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_06_02_00eDamage: function (oldValues, oldeDamageLabValues) {
     try {
       console.log("Called: ePaths.getVersion5_06_02_00eDamage");
@@ -2512,10 +2509,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2628,6 +2625,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eDamage from a v5.05.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeDamageLabValues
+   * @param {Array<Array<*>>} cLDmgValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_05_00_00eDamage: function (
     oldValues,
     oldeDamageLabValues,
@@ -2662,10 +2666,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2779,6 +2783,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eDamage from a v4.11.03.21 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeDamageLabValues
+   * @param {Array<Array<*>>} cLDmgValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_03_21eDamage: function (
     oldValues,
     oldeDamageLabValues,
@@ -2813,10 +2824,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -2924,6 +2935,12 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eDamage from a v4.11.02.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeDamageLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_02_00eDamage: function (oldValues, oldeDamageLabValues) {
     try {
       console.log("Called: ePaths.getVersion4_11_02_00eDamage");
@@ -2947,10 +2964,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -3057,8 +3074,14 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Get eEcon
+  /**
+   * Extracts eEcon from a v5.09.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeEconStoneMultValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_09_00_00eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3113,26 +3136,7 @@ const ePaths = {
       for (var row = 0; row < oldValues.length; row++) {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
-          // if (cell === "Total Value") {
-          //   // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-          //   for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
-          //     var customName = oldValues[nextRow][column - 2];
-          //     if (!customName) break; // Stop when customName is empty
-          //     if (customData.includes(customName)) {
-          //       var customValue = oldValues[nextRow][column - 1];
-          //       if (
-          //         !String(customValue) ||
-          //         String(customValue).startsWith("=")
-          //       ) {
-          //         continue;
-          //       }
-          //       if (!oldData.hasOwnProperty("Custom")) {
-          //         oldData.Custom = {};
-          //       }
-          //       oldData.Custom[customName] = customValue;
-          //     }
-          //   }
-          // } else
+
           if (cell === "Perks") {
             var perksAreActive = oldValues[row][column + 5];
             if (
@@ -3233,6 +3237,14 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eEcon from a v5.08.00.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeEconStoneMultValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_08_00_00eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3287,26 +3299,7 @@ const ePaths = {
       for (var row = 0; row < oldValues.length; row++) {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
-          // if (cell === "Total Value") {
-          //   // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
-          //   for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
-          //     var customName = oldValues[nextRow][column - 2];
-          //     if (!customName) break; // Stop when customName is empty
-          //     if (customData.includes(customName)) {
-          //       var customValue = oldValues[nextRow][column - 1];
-          //       if (
-          //         !String(customValue) ||
-          //         String(customValue).startsWith("=")
-          //       ) {
-          //         continue;
-          //       }
-          //       if (!oldData.hasOwnProperty("Custom")) {
-          //         oldData.Custom = {};
-          //       }
-          //       oldData.Custom[customName] = customValue;
-          //     }
-          //   }
-          // } else
+
           if (cell === "Perks") {
             var perksAreActive = oldValues[row][column + 4];
             if (
@@ -3407,6 +3400,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eEcon from a v5.06.02.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_06_02_00eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3451,10 +3451,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -3576,6 +3576,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eEcon from a v5.00.01.04 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion5_00_01_04eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3620,10 +3627,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -3745,6 +3752,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eEcon from a v4.11.03.21 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_03_21eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3789,10 +3803,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -3898,6 +3912,13 @@ const ePaths = {
     }
   },
 
+  /**
+   * Extracts eEcon from a v4.11.02.00 sheet's values.
+   * @param {Array<Array<*>>} oldValues
+   * @param {Array<Array<*>>} oldeEconLabValues
+   * @param {Array<Array<*>>} oldeDiscountLabValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_11_02_00eEcon: function (
     oldValues,
     oldeEconLabValues,
@@ -3934,10 +3955,10 @@ const ePaths = {
         for (var column = 0; column < oldValues[row].length; column++) {
           var cell = oldValues[row][column];
           if (cell === "Total Value") {
-            // Search rows below "Total Value" in column j - 2 for custom names and j - 1 for values
+
             for (var nextRow = row + 1; nextRow < oldValues.length; nextRow++) {
               var customName = oldValues[nextRow][column - 2];
-              if (!customName) break; // Stop when customName is empty
+              if (!customName) break;
               if (customData.includes(customName)) {
                 var customValue = oldValues[nextRow][column - 1];
                 if (
@@ -4043,8 +4064,6 @@ const ePaths = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v4.11.02.00": this.version4_11_02_00.bind(this),
@@ -4060,8 +4079,11 @@ const ePaths = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
@@ -4076,5 +4098,5 @@ const ePaths = {
     }
     return null;
   },
-  // #endregion
+
 };

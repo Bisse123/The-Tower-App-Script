@@ -1,5 +1,12 @@
 const vault = {
-  // #region Export Functions
+
+  /**
+   * Reads Vault data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: vault.exportData");
@@ -32,12 +39,15 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Vault data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: vault.importData");
-
 
       var requiredRanges = ["IDS", "Master Sheet"];
 
@@ -71,7 +81,6 @@ const vault = {
         batchUpdate = batchUpdate.concat(updateResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Vault",
@@ -80,7 +89,6 @@ const vault = {
         data.idMasterID
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -103,8 +111,13 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes Vault into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldVault
+   * @param {Object} newVaultData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateVault: function (sheetName, oldVault, newVaultData) {
     try {
       console.log("Called: vault.updateVault");
@@ -151,7 +164,6 @@ const vault = {
         };
       }
 
-      // Find all occurrences of each column type
       var uIndices = [];
       var upgradeIndices = [];
       var levelIndices = [];
@@ -179,7 +191,7 @@ const vault = {
           const levelIdx = levelIndices[idx];
           const sectionName = row[UIdx];
           const upgradeName = row[upgradeIdx];
-          
+
           if (sectionName || upgradeName) {
             breakLoop = false;
           } else if (!sectionName && !upgradeName) {
@@ -243,8 +255,11 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Vault data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: vault.version4_0");
@@ -281,6 +296,11 @@ const vault = {
     }
   },
 
+  /**
+   * Reads Vault data from a v3.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_1: function (oldSheetID) {
     try {
       console.log("Called: vault.version3_1");
@@ -338,6 +358,11 @@ const vault = {
     }
   },
 
+  /**
+   * Reads Vault data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: vault.version1_0");
@@ -395,8 +420,11 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Get Vault
+  /**
+   * Extracts Vault from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldVaultData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0Vault: function (oldVaultData) {
     try {
       console.log("Called: vault.getVersion4_0Vault");
@@ -444,6 +472,11 @@ const vault = {
     }
   },
 
+  /**
+   * Extracts Vault from a v3.1 sheet's values.
+   * @param {Array<Array<*>>} oldSheetData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_1Vault: function (oldSheetData) {
     try {
       console.log("Called: vault.getVersion3_1Vault");
@@ -508,7 +541,7 @@ const vault = {
       }
 
       var oldVault = {};
-      
+
       for (var r = 0; r < oldVaultData.length; r++) {
         var row = oldVaultData[r];
         for (var g = 0; g < columnGroups.length; g++) {
@@ -534,6 +567,12 @@ const vault = {
     }
   },
 
+  /**
+   * Extracts Vault from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldSheetData
+   * @param {*} addIndexToKey = false
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0Vault: function (oldSheetData, addIndexToKey = false) {
     try {
       console.log("Called: vault.getVersion1_0Vault");
@@ -599,7 +638,7 @@ const vault = {
 
       var oldVault = {};
       var oldVaultValues = {};
-      
+
       for (var r = 0; r < oldVaultData.length; r++) {
         var row = oldVaultData[r];
         for (var g = 0; g < columnGroups.length; g++) {
@@ -640,12 +679,15 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Vault data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseVaultData: function (data) {
     try {
       const vaultGroupsByIndex = {
-        // Harmony
+
         100: {
           group: "Harmony",
           section: "Gameplay Section",
@@ -671,8 +713,7 @@ const vault = {
             1270: "Spawn Accelerator Toggle",
             1280: "Life Saving Ordering",
             1290: "Energy Shield Restriction",
-            // 1300: "Bastion Automation",
-            // 1310: "Smart Bastion Automation",
+
           },
         },
         120: {
@@ -724,7 +765,7 @@ const vault = {
             2205: "Guardian Presets",
           },
         },
-        // Power
+
         1000: {
           group: "Power",
           section: "Attack Section",
@@ -796,7 +837,7 @@ const vault = {
             680: "Black Hole Size",
           },
         },
-        // Enemy
+
         2000: {
           group: "Enemy",
           section: "Simple Section",
@@ -948,8 +989,6 @@ const vault = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -958,8 +997,11 @@ const vault = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -978,6 +1020,5 @@ const vault = {
 
     return null;
   },
-  
-  // #endregion
+
 };

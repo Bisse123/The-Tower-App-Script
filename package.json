@@ -1,12 +1,12 @@
 {
   "name": "the-tower-app-script",
-  "version": "1.0.0",
   "description": "Google Apps Script project for The Tower",
   "scripts": {
     "dev": "powershell -Command \"Copy-Item .clasp.prod.json .clasp.json; 'y' | clasp push; Remove-Item .clasp.json\"",
     "draft": "powershell -Command \"Copy-Item .clasp.prod.json .clasp.json; 'y' | clasp push; clasp version 'add-on draft'; Remove-Item .clasp.json; Write-Host 'Now set the add-on DRAFT config (Marketplace SDK) to the version number above, save the draft, and test.'\"",
     "sandbox": "powershell -Command \"Copy-Item .clasp.dev.json .clasp.json; 'y' | clasp push; Remove-Item .clasp.json\"",
-    "archive": "node archive-wrapper.js"
+    "archive": "node archive-wrapper.js",
+    "bump": "node bump.js"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"

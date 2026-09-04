@@ -1,5 +1,4 @@
 <script>
-  // Get Started section functions
   let GET_STARTED_TEMPLATE_CONFIG = {
     "effective-paths": [
       {
@@ -68,7 +67,6 @@
     url: "",
   };
 
-  // Persistent state across retries
   let allCreatedFiles = [];
   let allFailedCopyFiles = [];
   let allFailedIDUpdateFiles = [];
@@ -76,6 +74,10 @@
   let lastFailedIDUpdateFiles = [];
   let getStartedLastCopyMode = "master-and-subsheets";
 
+  /**
+   * Renders the manual copy links for every template.
+   * @returns {void}
+   */
   function renderGetStartedTemplateLinks() {
     var linksContainer = document.getElementById("getStartedTemplateLinks");
     if (!linksContainer) {
@@ -101,6 +103,10 @@
     linksContainer.innerHTML = htmlParts.join("");
   }
 
+  /**
+   * Reveals the Get Started section and enables the copy button.
+   * @returns {void}
+   */
   function continueGetStarted() {
     var getStartedSection = document.getElementById("getStartedSection");
     if (getStartedSection) {
@@ -113,6 +119,11 @@
     setStatusText("Ready to copy templates");
   }
 
+  /**
+   * Resolves the destination Drive folder, creating it if needed.
+   * @returns {Promise<void>}
+   * @throws {Error} When the folder cannot be resolved.
+   */
   async function getOrCreateGetStartedFolder() {
     var folderResult = await new Promise(function (resolve, reject) {
       google.script.run
@@ -143,6 +154,10 @@
     }
   }
 
+  /**
+   * Shows the chosen destination folder, or hides the row when unset.
+   * @returns {void}
+   */
   function updateGetStartedSelectedFolderDisplay() {
     var folderElement = document.getElementById("getStartedSelectedFolder");
     if (!folderElement) {
@@ -159,6 +174,10 @@
     folderElement.innerHTML = `Destination: <a href="${getStartedSelectedFolder.url}" target="_blank">${safeName}</a>`;
   }
 
+  /**
+   * gapi onload hook: loads the client and picker libraries.
+   * @returns {void}
+   */
   function getStartedGapiLoaded() {
     console.log("Get Started GAPI script loaded, loading client and picker...");
     gapi.load("client:picker", {
@@ -170,6 +189,10 @@
     });
   }
 
+  /**
+   * Initialises the Drive picker, then starts authorization.
+   * @returns {Promise<void>}
+   */
   async function initializeGetStartedPicker() {
     try {
       console.log("Initializing Get Started GAPI client...");
@@ -202,6 +225,12 @@
     }
   }
 
+  /**
+   * Renders created, failed and retryable sheets, and raises the panel for
+   * the first failure that is a defect.
+   * @param {Object} result
+   * @returns {void}
+   */
   function renderGetStartedCopyResult(result) {
     var resultElement = document.getElementById("getStartedCopyResult");
     if (!resultElement) return;
@@ -229,7 +258,6 @@
       }
     });
 
-    // Track copy failures separately
     failedCopies.forEach(function (newFail) {
       if (!newFail || !newFail.templateID) {
         return;
@@ -261,14 +289,12 @@
       }
     });
 
-    // Remove copy failures that are now created
     allFailedCopyFiles = allFailedCopyFiles.filter(function (fail) {
       return !allCreatedFiles.some(function (created) {
         return created.sheetType === fail.sheetType;
       });
     });
 
-    // Track ID update failures separately
     failedIDUpdates.forEach(function (newFail) {
       if (!newFail || !newFail.fileId) {
         return;
@@ -296,7 +322,6 @@
       }
     });
 
-    // Remove ID update failures that succeeded on retry
     allFailedIDUpdateFiles = allFailedIDUpdateFiles.filter(function (fail) {
       var stillCreated = allCreatedFiles.some(function (created) {
         return created.fileId === fail.fileId;
@@ -311,7 +336,6 @@
       });
     });
 
-    // Store pending retries
     lastFailedCopyTemplates = allFailedCopyFiles.map(function (file) {
       return {
         sheetType: file.sheetType,
@@ -330,7 +354,6 @@
       };
     });
 
-    // Build HTML
     var htmlParts = [];
     if (allCreatedFiles.length > 0) {
       htmlParts.push('<div class="copyResultBlock copyResultSuccess">');
@@ -391,16 +414,10 @@
     }
     resultElement.innerHTML = htmlParts.join("");
 
-    // The lists above say what happened to each sheet. If one of those
-    // failures was a defect rather than an expected outcome, raise the panel
-    // once so the user has a reference to quote — and log every one of them,
-    // panel or not, since a bug the browser never hands back is a bug that
-    // never gets written (see 00_Errors.js).
     AppError.surfaceBatch(allFailedCopyFiles.concat(allFailedIDUpdateFiles), {
       source: "getStartedCopy",
     });
 
-    // Hide copy button and dropdown, show retry button if needed
     var copyButton = document.getElementById("getStartedCopyBtn");
     var modeSelect = document.getElementById("getStartedCopyMode");
     var modeSelectLabel = document.getElementById("getStartedCopyModeLabel");
@@ -416,6 +433,12 @@
     }
   }
 
+  /**
+   * Copies one template, resolving rather than rejecting on failure.
+   * @param {{sheetType: string, templateID: string, templateVersion?: string}} template
+   * @param {string} parentFolderID
+   * @returns {Promise<Object>} { success, result, error?, sheetType, templateID }
+   */
   function copyGetStartedTemplateAsync(template, parentFolderID) {
     return new Promise(function (resolve) {
       google.script.run
@@ -447,6 +470,11 @@
     });
   }
 
+  /**
+   * Splits templates into those the script can read and those it cannot.
+   * @param {Array<Object>} templates
+   * @returns {Promise<{success: boolean, accessibleTemplates: Array, inaccessibleTemplates: Array}>}
+   */
   async function checkGetStartedTemplateAccess(templates) {
     try {
       if (!Array.isArray(templates) || templates.length === 0) {
@@ -462,7 +490,6 @@
         `Checking access to ${templates.length} Get Started templates`,
       );
 
-      // Create promises for all template access checks
       const promises = templates.map((template) => {
         return new Promise((resolve, reject) => {
           google.script.run
@@ -472,10 +499,8 @@
         });
       });
 
-      // Wait for all access checks to complete
       const results = await Promise.allSettled(promises);
 
-      // Process results
       const accessibleTemplates = [];
       const inaccessibleTemplates = [];
 
@@ -531,6 +556,11 @@
     }
   }
 
+  /**
+   * Opens the picker so the user can grant the templates that failed.
+   * @param {Array<Object>} failedTemplates
+   * @returns {Promise<boolean>} Whether access was granted.
+   */
   async function openGetStartedAccessPicker(failedTemplates) {
     if (
       !getStartedPickerReady ||
@@ -618,8 +648,14 @@
     });
   }
 
+  /**
+   * Copies every template in parallel.
+   * @param {Array<Object>} templates
+   * @param {string} parentFolderID
+   * @returns {Promise<Array<Object>>} One response per template.
+   */
   async function executeGetStartedTemplateCopies(templates, parentFolderID) {
-    // Execute the actual template copying in parallel
+
     var copyResponses = await Promise.all(
       templates.map(function (template) {
         if (
@@ -662,9 +698,14 @@
     return copyResponses;
   }
 
+  /**
+   * Links the created sheets to each other by writing their IDs.
+   * @param {Array<Object>} createdFiles
+   * @param {string} copyMode
+   * @returns {Promise<{success: boolean, updateResults: Array<Object>}>}
+   */
   async function applyGetStartedIDUpdates(createdFiles, copyMode) {
-    // Apply ID updates to all created files after copying
-    // This links sheets to their IDS Master or IDS Collection references
+
     try {
       if (!Array.isArray(createdFiles) || createdFiles.length === 0) {
         return { success: true, updateResults: [] };
@@ -679,6 +720,11 @@
       var knownCreatedFiles = [];
       var knownCreatedFileMap = {};
 
+      /**
+       * Merges a created file into the known set, by file id.
+       * @param {{fileId: string, sheetType?: string, fileName?: string, fileUrl?: string}} file
+       * @returns {void}
+       */
       function mergeKnownCreatedFile(file) {
         if (!file || !file.fileId) {
           return;
@@ -793,6 +839,12 @@
     }
   }
 
+  /**
+   * Sorts ID-update results into successes and failures.
+   * @param {Array<Object>} createdFiles
+   * @param {Object} idUpdateResult
+   * @returns {Object} { successfulIDUpdates, failedIDUpdates }
+   */
   function processGetStartedIDUpdateResults(createdFiles, idUpdateResult) {
     var successfulIDUpdates = [];
     var failedIDUpdates = [];
@@ -863,8 +915,14 @@
     };
   }
 
+  /**
+   * Sorts copy responses into created files and failures, keeping each
+   * failure's envelope so it can be reported.
+   * @param {Array<Object>} copyResponses
+   * @returns {Object} { success, createdFiles, failedCopies, message, ... }
+   */
   function processGetStartedCopyResults(copyResponses) {
-    // Process copy responses and build result summary
+
     var createdFiles = [];
     var failedCopies = [];
 
@@ -930,6 +988,13 @@
     };
   }
 
+  /**
+   * Checks template access, copies what it can, and links the results.
+   * @param {Array<Object>} templates
+   * @param {string} parentFolderID
+   * @param {string} copyMode
+   * @returns {Promise<Object>} The copy result summary.
+   */
   async function performGetStartedAccessCheckAndCopy(
     templates,
     parentFolderID,
@@ -1047,6 +1112,10 @@
     }
   }
 
+  /**
+   * Runs the whole Get Started copy for the selected mode.
+   * @returns {Promise<void>}
+   */
   async function createGetStartedCopies() {
     var modeSelect = document.getElementById("getStartedCopyMode");
     var copyButton = document.getElementById("getStartedCopyBtn");
@@ -1115,6 +1184,10 @@
     }
   }
 
+  /**
+   * Retries the templates that failed on the previous attempt.
+   * @returns {Promise<void>}
+   */
   async function retryFailedCopies() {
     var modeSelect = document.getElementById("getStartedCopyMode");
     var retryBtn = document.getElementById("retryFailedCopiesBtn");

@@ -1,8 +1,30 @@
 <style>
-  /* Three columns with equal side tracks, so the brand stays centred on the
-     page no matter how wide the side panels get: creator codes on the left,
-     support on the right. The panels wrap inside their own track rather than
-     pushing the brand off centre. */
+  /* =====================================================================
+     Out-of-date banner
+     ===================================================================== */
+
+  .appVersionBanner {
+    margin: 0 0 12px 0;
+    padding: 12px 14px;
+    background-color: #fff3cd;
+    border: 1px solid #d39e00;
+    border-left: 5px solid #b36b00;
+    border-radius: 6px;
+    color: #2b2200;
+    font-size: 0.95em;
+    line-height: 1.5;
+    word-break: break-word;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18);
+  }
+
+  .appVersionBanner[hidden] {
+    display: none;
+  }
+
+  /* =====================================================================
+     App header bar
+     ===================================================================== */
+
   .appHeader {
     text-align: center;
     padding: 18px 12px;
@@ -49,8 +71,10 @@
     vertical-align: middle;
   }
 
-  /* Title + links on top, one chip per creator underneath. Everything wraps,
-     so the panel gets taller instead of stealing space from the brand. */
+  /* =====================================================================
+     Creator codes panel
+     ===================================================================== */
+
   .creatorCodes {
     grid-column: 1;
     justify-self: start;
@@ -99,7 +123,10 @@
     gap: 4px;
   }
 
-  /* Same neutral card as the creator codes, mirrored to the right edge. */
+  /* =====================================================================
+     Support links
+     ===================================================================== */
+
   .headerSupport {
     grid-column: 3;
     justify-self: end;
@@ -159,8 +186,11 @@
     border-color: #b6bcc5;
     color: #1f2937;
   }
-  /* One creator = one chip, tinted so the name and its code read as a pair.
-     Clicking a chip copies its code (see 21_header_scripts). */
+
+  /* =====================================================================
+     Creator chip: copy-to-clipboard states
+     ===================================================================== */
+
   .creatorChip {
     display: flex;
     flex-direction: column;
@@ -191,7 +221,7 @@
     background: #fff3cd;
     border-color: #b36b00;
   }
-  /* The name row doubles as the copy feedback, so the chip keeps its size. */
+
   .creatorChip.is-copied .creatorName,
   .creatorChip.is-copyfailed .creatorName {
     font-size: 0;
@@ -221,6 +251,10 @@
     white-space: nowrap;
   }
 
+  /* =====================================================================
+     Narrow screens
+     ===================================================================== */
+
   @media (max-width: 768px) {
     .appHeader {
       padding: 15px 10px;
@@ -228,7 +262,7 @@
       grid-template-columns: 1fr;
       gap: 12px;
     }
-    /* Stacked: brand on top, creator codes underneath it. */
+
     .appHeaderBrand {
       grid-column: 1;
       order: 1;
