@@ -1,0 +1,43 @@
+<div id="errorPanel" class="errorPanel" role="alert" aria-live="assertive" hidden>
+  <div class="errorPanelHead">
+    <span class="errorPanelIcon" aria-hidden="true">⛔</span>
+    <span id="errorPanelTitle" class="errorPanelTitle"></span>
+    <button
+      type="button"
+      id="errorPanelDismiss"
+      class="errorPanelDismiss"
+      onclick="AppError.clear()"
+      aria-label="Dismiss this error"
+    >
+      ✕
+    </button>
+  </div>
+
+  <p id="errorPanelMessage" class="errorPanelMessage"></p>
+
+  <!-- Several failures at once: one row each, so every reference stays
+       attached to the thing it belongs to. Hidden for a single failure,
+       which uses the shared footer below instead. -->
+  <div id="errorPanelList" class="errorPanelList" hidden></div>
+
+  <div id="errorPanelActions" class="errorPanelActions"></div>
+
+  <details id="errorPanelDetails" class="errorPanelDetails">
+    <summary>Technical details</summary>
+    <pre id="errorPanelDetailText" class="errorPanelDetailText"></pre>
+  </details>
+
+  <div class="errorPanelFooter">
+    <span class="errorPanelRefLabel">Reference</span>
+    <code id="errorPanelReference" class="errorPanelReference"></code>
+    <button
+      type="button"
+      id="errorPanelCopy"
+      class="errorPanelCopy"
+      onclick="AppError.copyReference()"
+    >
+      Copy
+    </button>
+    <span class="errorPanelRefHint">Quote this when reporting the problem.</span>
+  </div>
+</div>

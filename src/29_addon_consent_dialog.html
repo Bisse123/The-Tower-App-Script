@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <?!= include('27_consent_styles'); ?>
+    <?!= include('22_error_styles'); ?>
     <style>
       body {
         margin: 0;
@@ -30,6 +31,11 @@
     </style>
   </head>
   <body>
+    <!-- This dialog pulls in 22_error_scripts for AppError, so it needs
+         somewhere to put an error. Without the panel, AppError falls back to
+         console.error plus the status line - which reports the failure but
+         never shows the user the reference it was filed under. -->
+    <?!= include('22_error_section'); ?>
     <?!= include('27_consent_section'); ?>
 
     <script>
@@ -40,6 +46,9 @@
         "<?= authorizationUrl ? authorizationUrl : '' ?>";
 
       function setStatusWithSpinner(message) {
+        // A new step is starting, so whatever failed before is no longer
+        // current - same rule as 22_status_scripts.html.
+        if (typeof AppError !== "undefined") AppError.clear();
         if (typeof setConsentModalStatus === "function") {
           setConsentModalStatus("Checking scope access", message);
         }
@@ -63,6 +72,7 @@
       }
     </script>
 
+    <?!= include('22_error_scripts'); ?>
     <?!= include('27_consent_scripts'); ?>
 
     <script>
@@ -72,7 +82,7 @@
             google.script.host.close();
           })
           .withFailureHandler(function (error) {
-            console.error("Unable to mark consent as ready:", error);
+            AppError.log(error, "markAddonConsentReadySignal");
             google.script.host.close();
           })
           .markAddonConsentReadySignal();

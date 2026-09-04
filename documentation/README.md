@@ -12,6 +12,7 @@ Deep-dive documentation for **The Tower — App Script**. Start with the
 | 05 | [Sheet modules reference](05-sheet-modules.md) | …need to add a new template version or a new sheet type. |
 | 06 | [Frontend](06-frontend.md) | …are editing the HTML pages, the picker, the consent flow, or client state. |
 | 07 | [Deployment & operations](07-deployment.md) | …are shipping a release or debugging CI. |
+| 08 | [Error handling & reporting](08-error-handling.md) | …are diagnosing a reported failure, or writing code that can fail. |
 
 ## Common tasks → where to look
 
@@ -24,3 +25,5 @@ Deep-dive documentation for **The Tower — App Script**. Start with the
 | Stale data after an import | [01](01-architecture.md) | *Cache invalidation* |
 | A picker keeps re-asking for access | [06](06-frontend.md) | *The access-grant cycle* |
 | The deploy workflow fails with "Production HEAD does not match" | [07](07-deployment.md) | *The CI guard* |
+| A user quotes an error reference like `TWR-M4X2K9-A7F3` | [08](08-error-handling.md) | *Runbook* |
+| Cloud Logging / Error Reporting shows nothing | [08](08-error-handling.md) | *Google Cloud* |

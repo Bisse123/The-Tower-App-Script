@@ -23,11 +23,11 @@ const modules = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting modules data: " + error.message,
-      };
+      var errorReport = errors.report("modules.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -169,11 +169,11 @@ const modules = {
             : "No modules data to update, but ID setting completed",
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing modules data: ${error.message}`,
-      };
+      var errorReport = errors.report("modules.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -355,11 +355,13 @@ const modules = {
         message: `No updates needed for modules presets`,
       };
     } catch (error) {
-      console.log("Error in updateModulesPresets:", error.toString());
-      return {
-        success: false,
-        message: "Error in updateModulesPresets: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateModulesPresets", error, {
+        sheetName: sheetName,
+        oldModulesPresets: oldModulesPresets,
+        newModulePresetsValues: newModulePresetsValues,
+        dvtNamedRangesData: dvtNamedRangesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -470,11 +472,12 @@ const modules = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log("Error in updateModulesInventory:", error.toString());
-      return {
-        success: false,
-        message: "Error in updateModulesInventory: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateModulesInventory", error, {
+        sheetName: sheetName,
+        oldModulesInventory: oldModulesInventory,
+        newModuleInventoryValues: newModuleInventoryValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -634,11 +637,12 @@ const modules = {
         batchUpdate: batchUpdate,
       };
     } catch (error) {
-      console.log("Error in updateModulesTracker:", error.toString());
-      return {
-        success: false,
-        message: "Error in updateModulesTracker: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateModulesTracker", error, {
+        sheetName: sheetName,
+        oldModulesTracker: oldModulesTracker,
+        newModulesTrackerValues: newModulesTrackerValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -669,7 +673,10 @@ const modules = {
       }
       return moduleTypeIndex;
     } catch (error) {
-      console.log("Error in findModuleTypesRowIndex:", error.toString());
+      errors.reportFinal("dvtNamedRanges.findModuleTypesRowIndex", error, {
+        targetModuleTypes: targetModuleTypes,
+        moduleRange: moduleRange,
+      });
       return {};
     }
   },
@@ -742,11 +749,10 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version6_4_3: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version6_4_3: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version6_4_3", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -807,11 +813,10 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version5_2_1: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version5_2_1: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version5_2_1", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -872,11 +877,10 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version5_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version5_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version5_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -937,11 +941,10 @@ const modules = {
         oldModulesTracker: trackerData.oldModulesTracker || {},
       };
     } catch (error) {
-      console.log("Error in version4_7: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version4_7: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version4_7", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -981,11 +984,10 @@ const modules = {
         oldModulesPresets: presetsData.oldModulesPresets || {},
       };
     } catch (error) {
-      console.log("Error in version4_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version4_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version4_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1056,13 +1058,10 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion5_0ModulesInventory: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion5_0ModulesInventory: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion5_0ModulesInventory", error, {
+        oldModulesInventoryValues: oldModulesInventoryValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1131,13 +1130,10 @@ const modules = {
         oldModulesInventory: oldModulesInventory,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion4_0ModulesInventory: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion4_0ModulesInventory: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion4_0ModulesInventory", error, {
+        oldModulesInventoryValues: oldModulesInventoryValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1248,13 +1244,11 @@ const modules = {
         oldModulesPlanner: oldModulesPlanner,
       };
     } catch (error) {
-      console.log(
-        "Error in getVersion6_4_3ModulesPlanner: " + error.toString(),
-      );
-      return {
-        success: false,
-        message: "Error in getVersion6_4_3ModulesPlanner: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion6_4_3ModulesPlanner", error, {
+        oldModulesPlannerValues: oldModulesPlannerValues,
+        oldModulesInventory: oldModulesInventory,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1343,11 +1337,10 @@ const modules = {
         oldModulesPresets: oldModulesPresets,
       };
     } catch (error) {
-      console.log("Error in getVersion5_0ModulesPresets: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion5_0ModulesPresets: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion5_0ModulesPresets", error, {
+        oldModulesPresetsValues: oldModulesPresetsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1406,11 +1399,10 @@ const modules = {
         oldModulesPresets: oldModulesPresets,
       };
     } catch (error) {
-      console.log("Error in getVersion4_0ModulesPresets: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion4_0ModulesPresets: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion4_0ModulesPresets", error, {
+        oldModulesPresetsValues: oldModulesPresetsValues,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1543,11 +1535,11 @@ const modules = {
         oldModulesTracker: oldModulesTracker,
       };
     } catch (error) {
-      console.log("Error in getVersion6_4_3ModulesTracker: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion6_4_3ModulesTracker: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion6_4_3ModulesTracker", error, {
+        oldModulesTrackerValues: oldModulesTrackerValues,
+        oldModulesTrackerFormulas: oldModulesTrackerFormulas,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1678,437 +1670,447 @@ const modules = {
         oldModulesTracker: oldModulesTracker,
       };
     } catch (error) {
-      console.log("Error in getVersion4_7ModulesTracker: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion4_7ModulesTracker: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion4_7ModulesTracker", error, {
+        oldModulesTrackerValues: oldModulesTrackerValues,
+        oldModulesTrackerFormulas: oldModulesTrackerFormulas,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseModulesData: function (data) {
-    const moduleNames = {
-      7: { name: "Havoc Bringer", category: "Cannon" },
-      8: { name: "Death Penalty", category: "Cannon" },
-      9: { name: "Being Annihilator", category: "Cannon" },
-      10: { name: "Astral Deliverance", category: "Cannon" },
-      17: { name: "Wormhole Redirector", category: "Armor" },
-      18: { name: "Negative Mass Projector", category: "Armor" },
-      19: { name: "Space Displacer", category: "Armor" },
-      20: { name: "Anti-Cube Portal", category: "Armor" },
-      27: { name: "Black Hole Digestor", category: "Generator" },
-      28: { name: "Pulsar Harvester", category: "Generator" },
-      29: { name: "Galaxy Compressor", category: "Generator" },
-      30: { name: "Singularity Harness", category: "Generator" },
-      37: { name: "Multiverse Nexus", category: "Core" },
-      38: { name: "Dimension Core", category: "Core" },
-      39: { name: "Harmony Conductor", category: "Core" },
-      40: { name: "Om Chip", category: "Core" },
-      41: { name: "Shrink Ray", category: "Cannon" },
-      42: { name: "Sharp Fortitude", category: "Armor" },
-      43: { name: "Project Funding", category: "Generator" },
-      44: { name: "Magnetic Hook", category: "Core" },
-      45: { name: "Amplifying Strike", category: "Cannon" },
-      46: { name: "Orbital Augment", category: "Armor" },
-      47: { name: "Restorative Bonus", category: "Generator" },
-      48: { name: "Primordial Collapse", category: "Core" },
-      49: { name: "Gilded Sniper", category: "Cannon" },
-      50: { name: "Sentry Protocol", category: "Armor" },
-      51: { name: "New Generator", category: "Generator" },
-      52: { name: "Tactical Barrage", category: "Core" },
-    };
+    try {
+      const moduleNames = {
+        7: { name: "Havoc Bringer", category: "Cannon" },
+        8: { name: "Death Penalty", category: "Cannon" },
+        9: { name: "Being Annihilator", category: "Cannon" },
+        10: { name: "Astral Deliverance", category: "Cannon" },
+        17: { name: "Wormhole Redirector", category: "Armor" },
+        18: { name: "Negative Mass Projector", category: "Armor" },
+        19: { name: "Space Displacer", category: "Armor" },
+        20: { name: "Anti-Cube Portal", category: "Armor" },
+        27: { name: "Black Hole Digestor", category: "Generator" },
+        28: { name: "Pulsar Harvester", category: "Generator" },
+        29: { name: "Galaxy Compressor", category: "Generator" },
+        30: { name: "Singularity Harness", category: "Generator" },
+        37: { name: "Multiverse Nexus", category: "Core" },
+        38: { name: "Dimension Core", category: "Core" },
+        39: { name: "Harmony Conductor", category: "Core" },
+        40: { name: "Om Chip", category: "Core" },
+        41: { name: "Shrink Ray", category: "Cannon" },
+        42: { name: "Sharp Fortitude", category: "Armor" },
+        43: { name: "Project Funding", category: "Generator" },
+        44: { name: "Magnetic Hook", category: "Core" },
+        45: { name: "Amplifying Strike", category: "Cannon" },
+        46: { name: "Orbital Augment", category: "Armor" },
+        47: { name: "Restorative Bonus", category: "Generator" },
+        48: { name: "Primordial Collapse", category: "Core" },
+        49: { name: "Gilded Sniper", category: "Cannon" },
+        50: { name: "Sentry Protocol", category: "Armor" },
+        51: { name: "New Generator", category: "Generator" },
+        52: { name: "Tactical Barrage", category: "Core" },
+      };
 
-    const moduleRarities = {
-      1: "Common",
-      2: "Rare",
-      3: "Rare+",
-      4: "Epic",
-      5: "Epic+",
-      6: "Legendary",
-      7: "Legendary+",
-      8: "Mythic",
-      9: "Mythic+",
-      10: "Ancestral",
-      11: "Ancestral 1*",
-      12: "Ancestral 2*",
-      13: "Ancestral 3*",
-      14: "Ancestral 4*",
-      15: "Ancestral 5*",
-    };
+      const moduleRarities = {
+        1: "Common",
+        2: "Rare",
+        3: "Rare+",
+        4: "Epic",
+        5: "Epic+",
+        6: "Legendary",
+        7: "Legendary+",
+        8: "Mythic",
+        9: "Mythic+",
+        10: "Ancestral",
+        11: "Ancestral 1*",
+        12: "Ancestral 2*",
+        13: "Ancestral 3*",
+        14: "Ancestral 4*",
+        15: "Ancestral 5*",
+      };
 
-    const moduleCategories = {
-      0: "Cannon",
-      1: "Armor",
-      2: "Generator",
-      3: "Core",
-    };
+      const moduleCategories = {
+        0: "Cannon",
+        1: "Armor",
+        2: "Generator",
+        3: "Core",
+      };
 
-    const assistRarities = ["Epic", "Legendary", "Mythic", "Ancestral"];
+      const assistRarities = ["Epic", "Legendary", "Mythic", "Ancestral"];
 
-    function lookupEffectID(effectID) {
-      const effectRarities = [
-        "Common",
-        "Rare",
-        "Epic",
-        "Legendary",
-        "Mythic",
-        "Ancestral",
-      ];
+      function lookupEffectID(effectID) {
+        const effectRarities = [
+          "Common",
+          "Rare",
+          "Epic",
+          "Legendary",
+          "Mythic",
+          "Ancestral",
+        ];
 
-      // [label, n] - rarityStart = 6 - n, effectIDs assigned sequentially
-      const substatClusters = [
-        // Cannon (C=1-17)
-        ["Attack Speed", 6],
-        ["Critical Chance", 6],
-        ["Critical Factor", 6],
-        ["Attack Range", 6],
-        ["Damage / Meter", 6],
-        ["Multishot Chance", 5],
-        ["Multishot Targets", 4],
-        ["Rapid Fire Chance", 5],
-        ["Rapid Fire Duration", 5],
-        ["Bounce Shot Chance", 5],
-        ["Bounce Shot Targets", 4],
-        ["Bounce Shot Range", 5],
-        ["Super Crit Chance", 4],
-        ["Super Crit Multi", 4],
-        ["Rend Armor Chance", 3],
-        ["Rend Armor Multi", 3],
-        ["Max Rend Armor Multi", 3],
-        // Armor (C=18-34)
-        ["Health Regen", 6],
-        ["Defense %", 6],
-        ["Defense Absolute", 6],
-        ["Thorns Damage", 4],
-        ["Lifesteal", 4],
-        ["Knockback Chance", 4],
-        ["Knockback Force", 4],
-        ["Orb Speed", 4],
-        ["Orbs", 2],
-        ["Shockwave Size", 4],
-        ["Shockwave Frequency", 4],
-        ["Land Mine Chance", 5],
-        ["Land Mine Damage", 5],
-        ["Land Mine Radius", 5],
-        ["Death Defy", 3],
-        ["Wall Health", 4],
-        ["Wall Rebuild", 4],
-        // Generator (C=35-46)
-        ["Cash Bonus", 6],
-        ["Cash / Wave", 6],
-        ["Coins / Kill Bonus", 6],
-        ["Coins / Wave", 6],
-        ["Free Attack Upgrade", 6],
-        ["Free Defense Upgrade", 6],
-        ["Free Utility Upgrade", 6],
-        ["Interest / Wave", 4],
-        ["Recovery Amount", 4],
-        ["Package Chance", 4],
-        ["Enemy Attack Level Skip", 4],
-        ["Enemy Health Level Skip", 4],
-        // Core (C=47-73)
-        ["Chain Lightning - Damage", 6],
-        ["Chain Lightning - Quantity", 4],
-        ["Chain Lightning - Chance", 6],
-        ["Smart Missiles - Damage", 6],
-        ["Smart Missiles - Quantity", 4],
-        ["Smart Missiles - Cooldown", 3],
-        ["Death Wave - Damage", 6],
-        ["Death Wave - Quantity", 3],
-        ["Death Wave - Cooldown", 3],
-        ["Chrono Field - Duration", 3],
-        ["Chrono Field - Speed Reduction", 4],
-        ["Chrono Field - Cooldown", 3],
-        ["Inner Land Mines - Damage", 6],
-        ["Inner Land Mines - Quantity", 3],
-        ["Inner Land Mines - Cooldown", 4],
-        ["Golden Tower - Bonus", 4],
-        ["Golden Tower - Duration", 3],
-        ["Golden Tower - Cooldown", 3],
-        ["Poison Swamp - Damage", 6],
-        ["Poison Swamp - Duration", 3],
-        ["Poison Swamp - Cooldown", 5],
-        ["Black Hole - Size", 6],
-        ["Black Hole - Duration", 3],
-        ["Black Hole - Cooldown", 3],
-        ["Spotlight - Bonus", 6],
-        ["Spotlight - Angle", 4],
-        ["Spotlight - Quantity", 1],
-        // Generator appendix (C=74)
-        ["Max Recovery", 4],
-      ];
-      if (effectID < 1 || effectID > 331) {
-        return null;
-      }
-      var id = 1;
-      for (var c = 0; c < substatClusters.length; c++) {
-        var cluster = substatClusters[c];
-        var numRarities = cluster[1];
-        if (effectID < id + numRarities) {
-          var label = cluster[0];
-          return {
-            label: label,
-            rarity: effectRarities[6 - numRarities + (effectID - id)],
-          };
-        }
-        id += numRarities;
-      }
-      return null;
-    }
-
-    const equippedModulesData = data.moduleEquipped || [];
-    const assistSlotData = data.assistModuleSlots || [];
-    const inventoryData = data.inventory || [];
-    const modulePresetsData = data.modulePresets || [];
-    const moduleLevelsData = data.moduleLevels || [];
-
-    var oldModuleInventory = {};
-    var oldModulesPresets = {};
-    var moduleInstances = {};
-
-    function collectModuleInstance(module, fallbackCategory) {
-      if (!module || !module.guid) {
-        return null;
-      }
-      if (!moduleInstances.hasOwnProperty(module.guid)) {
-        const moduleInfo = moduleNames[module.infoIndex];
-        const category = (moduleInfo && moduleInfo.category) || fallbackCategory;
-        if (!category) {
+        // [label, n] - rarityStart = 6 - n, effectIDs assigned sequentially
+        const substatClusters = [
+          // Cannon (C=1-17)
+          ["Attack Speed", 6],
+          ["Critical Chance", 6],
+          ["Critical Factor", 6],
+          ["Attack Range", 6],
+          ["Damage / Meter", 6],
+          ["Multishot Chance", 5],
+          ["Multishot Targets", 4],
+          ["Rapid Fire Chance", 5],
+          ["Rapid Fire Duration", 5],
+          ["Bounce Shot Chance", 5],
+          ["Bounce Shot Targets", 4],
+          ["Bounce Shot Range", 5],
+          ["Super Crit Chance", 4],
+          ["Super Crit Multi", 4],
+          ["Rend Armor Chance", 3],
+          ["Rend Armor Multi", 3],
+          ["Max Rend Armor Multi", 3],
+          // Armor (C=18-34)
+          ["Health Regen", 6],
+          ["Defense %", 6],
+          ["Defense Absolute", 6],
+          ["Thorns Damage", 4],
+          ["Lifesteal", 4],
+          ["Knockback Chance", 4],
+          ["Knockback Force", 4],
+          ["Orb Speed", 4],
+          ["Orbs", 2],
+          ["Shockwave Size", 4],
+          ["Shockwave Frequency", 4],
+          ["Land Mine Chance", 5],
+          ["Land Mine Damage", 5],
+          ["Land Mine Radius", 5],
+          ["Death Defy", 3],
+          ["Wall Health", 4],
+          ["Wall Rebuild", 4],
+          // Generator (C=35-46)
+          ["Cash Bonus", 6],
+          ["Cash / Wave", 6],
+          ["Coins / Kill Bonus", 6],
+          ["Coins / Wave", 6],
+          ["Free Attack Upgrade", 6],
+          ["Free Defense Upgrade", 6],
+          ["Free Utility Upgrade", 6],
+          ["Interest / Wave", 4],
+          ["Recovery Amount", 4],
+          ["Package Chance", 4],
+          ["Enemy Attack Level Skip", 4],
+          ["Enemy Health Level Skip", 4],
+          // Core (C=47-73)
+          ["Chain Lightning - Damage", 6],
+          ["Chain Lightning - Quantity", 4],
+          ["Chain Lightning - Chance", 6],
+          ["Smart Missiles - Damage", 6],
+          ["Smart Missiles - Quantity", 4],
+          ["Smart Missiles - Cooldown", 3],
+          ["Death Wave - Damage", 6],
+          ["Death Wave - Quantity", 3],
+          ["Death Wave - Cooldown", 3],
+          ["Chrono Field - Duration", 3],
+          ["Chrono Field - Speed Reduction", 4],
+          ["Chrono Field - Cooldown", 3],
+          ["Inner Land Mines - Damage", 6],
+          ["Inner Land Mines - Quantity", 3],
+          ["Inner Land Mines - Cooldown", 4],
+          ["Golden Tower - Bonus", 4],
+          ["Golden Tower - Duration", 3],
+          ["Golden Tower - Cooldown", 3],
+          ["Poison Swamp - Damage", 6],
+          ["Poison Swamp - Duration", 3],
+          ["Poison Swamp - Cooldown", 5],
+          ["Black Hole - Size", 6],
+          ["Black Hole - Duration", 3],
+          ["Black Hole - Cooldown", 3],
+          ["Spotlight - Bonus", 6],
+          ["Spotlight - Angle", 4],
+          ["Spotlight - Quantity", 1],
+          // Generator appendix (C=74)
+          ["Max Recovery", 4],
+        ];
+        if (effectID < 1 || effectID > 331) {
           return null;
         }
-        const name = (moduleInfo && moduleInfo.name) || "Any Other";
-        moduleInstances[module.guid] = {
-          guid: module.guid,
-          name: name,
-          category: category.toLowerCase(),
-          rarityLevel: module.currentRarity,
-          rarity: moduleRarities.hasOwnProperty(module.currentRarity)
-            ? moduleRarities[module.currentRarity]
-            : "Epic",
-          effects: module.effects || [],
-        };
-      }
-      return moduleInstances[module.guid];
-    }
-
-    function writeModuleEntry(instance, moduleName) {
-      instance.displayName = moduleName;
-      var moduleSubstats = [];
-      instance.effects.forEach(function (effectID) {
-        var substatInfo = lookupEffectID(effectID);
-        if (substatInfo) {
-          moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
-        } else {
-          moduleSubstats.push([null, null]);
+        var id = 1;
+        for (var c = 0; c < substatClusters.length; c++) {
+          var cluster = substatClusters[c];
+          var numRarities = cluster[1];
+          if (effectID < id + numRarities) {
+            var label = cluster[0];
+            return {
+              success: true,
+              label: label,
+              rarity: effectRarities[6 - numRarities + (effectID - id)],
+            };
+          }
+          id += numRarities;
         }
-      });
-      if (!oldModuleInventory.hasOwnProperty(instance.category)) {
-        oldModuleInventory[instance.category] = {};
-      }
-      oldModuleInventory[instance.category][moduleName] = {
-        rarity: instance.rarity,
-        substats: moduleSubstats,
-      };
-    }
-
-    function presetSlot(index, presetName) {
-      const moduleCategory = (moduleCategories[index] || "").toLowerCase();
-      if (!moduleCategory) {
         return null;
       }
-      if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
-        oldModulesPresets[moduleCategory] = {};
+
+      const equippedModulesData = data.moduleEquipped || [];
+      const assistSlotData = data.assistModuleSlots || [];
+      const inventoryData = data.inventory || [];
+      const modulePresetsData = data.modulePresets || [];
+      const moduleLevelsData = data.moduleLevels || [];
+
+      var oldModuleInventory = {};
+      var oldModulesPresets = {};
+      var moduleInstances = {};
+
+      function collectModuleInstance(module, fallbackCategory) {
+        if (!module || !module.guid) {
+          return null;
+        }
+        if (!moduleInstances.hasOwnProperty(module.guid)) {
+          const moduleInfo = moduleNames[module.infoIndex];
+          const category = (moduleInfo && moduleInfo.category) || fallbackCategory;
+          if (!category) {
+            return null;
+          }
+          const name = (moduleInfo && moduleInfo.name) || "Any Other";
+          moduleInstances[module.guid] = {
+            guid: module.guid,
+            name: name,
+            category: category.toLowerCase(),
+            rarityLevel: module.currentRarity,
+            rarity: moduleRarities.hasOwnProperty(module.currentRarity)
+              ? moduleRarities[module.currentRarity]
+              : "Epic",
+            effects: module.effects || [],
+          };
+        }
+        return moduleInstances[module.guid];
       }
-      if (!oldModulesPresets[moduleCategory].hasOwnProperty(presetName)) {
-        oldModulesPresets[moduleCategory][presetName] = {
-          primary: "Any Other",
-          secondary: "",
+
+      function writeModuleEntry(instance, moduleName) {
+        instance.displayName = moduleName;
+        var moduleSubstats = [];
+        instance.effects.forEach(function (effectID) {
+          var substatInfo = lookupEffectID(effectID);
+          if (substatInfo) {
+            moduleSubstats.push([substatInfo.label, substatInfo.rarity]);
+          } else {
+            moduleSubstats.push([null, null]);
+          }
+        });
+        if (!oldModuleInventory.hasOwnProperty(instance.category)) {
+          oldModuleInventory[instance.category] = {};
+        }
+        oldModuleInventory[instance.category][moduleName] = {
+          rarity: instance.rarity,
+          substats: moduleSubstats,
         };
       }
-      return oldModulesPresets[moduleCategory][presetName];
-    }
+
+      function presetSlot(index, presetName) {
+        const moduleCategory = (moduleCategories[index] || "").toLowerCase();
+        if (!moduleCategory) {
+          return null;
+        }
+        if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
+          oldModulesPresets[moduleCategory] = {};
+        }
+        if (!oldModulesPresets[moduleCategory].hasOwnProperty(presetName)) {
+          oldModulesPresets[moduleCategory][presetName] = {
+            primary: "Any Other",
+            secondary: "",
+          };
+        }
+        return oldModulesPresets[moduleCategory][presetName];
+      }
     
-    function placeModuleInstance(guid) {
-      const instance = guid ? moduleInstances[guid] : null;
-      if (!instance) {
-        return null;
-      }
-      if (instance.displayName) {
+      function placeModuleInstance(guid) {
+        const instance = guid ? moduleInstances[guid] : null;
+        if (!instance) {
+          return null;
+        }
+        if (instance.displayName) {
+          return instance.displayName;
+        }
+        const placed = oldModuleInventory[instance.category] || {};
+        if (!placed.hasOwnProperty(instance.name)) {
+          writeModuleEntry(instance, instance.name);
+          return instance.displayName;
+        }
+        // "Spare" is the marker updateModulesInventory looks for when filling the
+        // sheet's spare columns, and there is room for only one of them.
+        const spareName = `Spare ${instance.name}`;
+        if (!placed.hasOwnProperty(spareName)) {
+          writeModuleEntry(instance, spareName);
+        } else {
+          instance.displayName = spareName;
+        }
         return instance.displayName;
       }
-      const placed = oldModuleInventory[instance.category] || {};
-      if (!placed.hasOwnProperty(instance.name)) {
-        writeModuleEntry(instance, instance.name);
-        return instance.displayName;
-      }
-      // "Spare" is the marker updateModulesInventory looks for when filling the
-      // sheet's spare columns, and there is room for only one of them.
-      const spareName = `Spare ${instance.name}`;
-      if (!placed.hasOwnProperty(spareName)) {
-        writeModuleEntry(instance, spareName);
-      } else {
-        instance.displayName = spareName;
-      }
-      return instance.displayName;
-    }
 
-    moduleLevelsData.forEach(function (moduleLevel, index) {
-      const moduleCategory = moduleCategories[index].toLowerCase();
-      if (!moduleCategory) {
-        return;
-      }
-      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
-        oldModuleInventory[moduleCategory] = {};
-      }
-      oldModuleInventory[moduleCategory]["Highest Level"] = moduleLevel || null;
-    });
-
-    equippedModulesData.forEach(function (module, index) {
-      if (!module) {
-        return;
-      }
-      const moduleCategory = moduleCategories[index].toLowerCase();
-      if (!moduleCategory) {
-        return;
-      }
-      collectModuleInstance(module, moduleCategory);
-      if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
-        oldModuleInventory[moduleCategory] = {};
-      }
-      if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
-        oldModulesPresets[moduleCategory] = {};
-      }
-    });
-
-    assistSlotData.forEach(function (assistSlot, index) {
-      const assistCategory = moduleCategories[index].toLowerCase();
-      if (!assistCategory) {
-        return;
-      }
-      const assistUnlocked = assistSlot.unlocked || false;
-      const assistMainEffiency = String(
-        assistSlot.mainEffectEfficiencyLevel || 0,
-      ).padStart(2, "0");
-      const assistSubEffiency = String(
-        assistSlot.substatEfficiencyLevel || 0,
-      ).padStart(2, "0");
-      const assistUniqueEffect = assistSlot.uniqueEffectEfficiencyLevel || 0;
-      const assistRarity = assistRarities[assistUniqueEffect] || "Epic";
-      if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
-        oldModulesPresets[assistCategory] = {};
-      }
-      oldModulesPresets[assistCategory]["Assist Slot"] = {
-        locked: assistUnlocked,
-        rarity: assistRarity,
-        multiplier: assistMainEffiency,
-        substat: assistSubEffiency,
-      };
-
-      if (!assistUnlocked) {
-        return;
-      }
-      const equippedAssistModule = assistSlot.equippedModule || {};
-      if (!equippedAssistModule) {
-        return;
-      }
-      collectModuleInstance(equippedAssistModule, assistCategory);
-      if (!oldModuleInventory.hasOwnProperty(assistCategory)) {
-        oldModuleInventory[assistCategory] = {};
-      }
-      oldModuleInventory[assistCategory]["Assist Level"] =
-        assistSlot.level || null;
-      if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
-        oldModulesPresets[assistCategory] = {};
-      }
-    });
-
-    inventoryData.forEach(function (module) {
-      collectModuleInstance(module);
-    });
-
-    var presetNames = [];
-    modulePresetsData.forEach(function (preset) {
-      var presetName = preset.presetName || null;
-      if (!presetName) {
-        return;
-      }
-      if (presetName === "Preset 1") {
-        presetName = "Farming";
-      }
-      presetNames.push(presetName);
-
-      (preset.primaryModuleGuids || []).forEach(function (moduleGuid, index) {
-        const slot = presetSlot(index, presetName);
-        if (!slot) {
+      moduleLevelsData.forEach(function (moduleLevel, index) {
+        const moduleCategory = moduleCategories[index].toLowerCase();
+        if (!moduleCategory) {
           return;
         }
-        slot.primary = placeModuleInstance(moduleGuid) || "Any Other";
+        if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
+          oldModuleInventory[moduleCategory] = {};
+        }
+        oldModuleInventory[moduleCategory]["Highest Level"] = moduleLevel || null;
       });
-      (preset.assistModuleGuids || []).forEach(function (moduleGuid, index) {
-        const moduleName = placeModuleInstance(moduleGuid);
-        if (!moduleName) {
+
+      equippedModulesData.forEach(function (module, index) {
+        if (!module) {
           return;
         }
-        const slot = presetSlot(index, presetName);
-        if (slot) {
-          slot.secondary = moduleName;
+        const moduleCategory = moduleCategories[index].toLowerCase();
+        if (!moduleCategory) {
+          return;
+        }
+        collectModuleInstance(module, moduleCategory);
+        if (!oldModuleInventory.hasOwnProperty(moduleCategory)) {
+          oldModuleInventory[moduleCategory] = {};
+        }
+        if (!oldModulesPresets.hasOwnProperty(moduleCategory)) {
+          oldModulesPresets[moduleCategory] = {};
         }
       });
-    });
 
-    // Every other module the player owns is represented by its best copy. The
-    // rest are "fodder" - duplicates kept only to raise another copy's rarity,
-    // an Ancestral module being fed an Epic+ copy of itself to reach
-    // Ancestral 1* - and are dropped, along with anything already placed above.
-    Object.keys(moduleNames).forEach(function (infoIndex) {
-      const moduleInfo = moduleNames[infoIndex];
-      const moduleCategory = moduleInfo.category.toLowerCase();
-      if (
-        oldModuleInventory.hasOwnProperty(moduleCategory) &&
-        oldModuleInventory[moduleCategory].hasOwnProperty(moduleInfo.name)
-      ) {
-        return;
-      }
-      var bestCopy = null;
-      Object.keys(moduleInstances).forEach(function (guid) {
-        const instance = moduleInstances[guid];
-        if (instance.name !== moduleInfo.name || instance.displayName) {
+      assistSlotData.forEach(function (assistSlot, index) {
+        const assistCategory = moduleCategories[index].toLowerCase();
+        if (!assistCategory) {
           return;
         }
+        const assistUnlocked = assistSlot.unlocked || false;
+        const assistMainEffiency = String(
+          assistSlot.mainEffectEfficiencyLevel || 0,
+        ).padStart(2, "0");
+        const assistSubEffiency = String(
+          assistSlot.substatEfficiencyLevel || 0,
+        ).padStart(2, "0");
+        const assistUniqueEffect = assistSlot.uniqueEffectEfficiencyLevel || 0;
+        const assistRarity = assistRarities[assistUniqueEffect] || "Epic";
+        if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
+          oldModulesPresets[assistCategory] = {};
+        }
+        oldModulesPresets[assistCategory]["Assist Slot"] = {
+          locked: assistUnlocked,
+          rarity: assistRarity,
+          multiplier: assistMainEffiency,
+          substat: assistSubEffiency,
+        };
+
+        if (!assistUnlocked) {
+          return;
+        }
+        const equippedAssistModule = assistSlot.equippedModule || {};
+        if (!equippedAssistModule) {
+          return;
+        }
+        collectModuleInstance(equippedAssistModule, assistCategory);
+        if (!oldModuleInventory.hasOwnProperty(assistCategory)) {
+          oldModuleInventory[assistCategory] = {};
+        }
+        oldModuleInventory[assistCategory]["Assist Level"] =
+          assistSlot.level || null;
+        if (!oldModulesPresets.hasOwnProperty(assistCategory)) {
+          oldModulesPresets[assistCategory] = {};
+        }
+      });
+
+      inventoryData.forEach(function (module) {
+        collectModuleInstance(module);
+      });
+
+      var presetNames = [];
+      modulePresetsData.forEach(function (preset) {
+        var presetName = preset.presetName || null;
+        if (!presetName) {
+          return;
+        }
+        if (presetName === "Preset 1") {
+          presetName = "Farming";
+        }
+        presetNames.push(presetName);
+
+        (preset.primaryModuleGuids || []).forEach(function (moduleGuid, index) {
+          const slot = presetSlot(index, presetName);
+          if (!slot) {
+            return;
+          }
+          slot.primary = placeModuleInstance(moduleGuid) || "Any Other";
+        });
+        (preset.assistModuleGuids || []).forEach(function (moduleGuid, index) {
+          const moduleName = placeModuleInstance(moduleGuid);
+          if (!moduleName) {
+            return;
+          }
+          const slot = presetSlot(index, presetName);
+          if (slot) {
+            slot.secondary = moduleName;
+          }
+        });
+      });
+
+      // Every other module the player owns is represented by its best copy. The
+      // rest are "fodder" - duplicates kept only to raise another copy's rarity,
+      // an Ancestral module being fed an Epic+ copy of itself to reach
+      // Ancestral 1* - and are dropped, along with anything already placed above.
+      Object.keys(moduleNames).forEach(function (infoIndex) {
+        const moduleInfo = moduleNames[infoIndex];
+        const moduleCategory = moduleInfo.category.toLowerCase();
         if (
-          !bestCopy ||
-          (instance.rarityLevel || 0) > (bestCopy.rarityLevel || 0)
+          oldModuleInventory.hasOwnProperty(moduleCategory) &&
+          oldModuleInventory[moduleCategory].hasOwnProperty(moduleInfo.name)
         ) {
-          bestCopy = instance;
+          return;
+        }
+        var bestCopy = null;
+        Object.keys(moduleInstances).forEach(function (guid) {
+          const instance = moduleInstances[guid];
+          if (instance.name !== moduleInfo.name || instance.displayName) {
+            return;
+          }
+          if (
+            !bestCopy ||
+            (instance.rarityLevel || 0) > (bestCopy.rarityLevel || 0)
+          ) {
+            bestCopy = instance;
+          }
+        });
+        if (bestCopy) {
+          writeModuleEntry(bestCopy, moduleInfo.name);
         }
       });
-      if (bestCopy) {
-        writeModuleEntry(bestCopy, moduleInfo.name);
-      }
-    });
-    oldModulesPresets.presetNames = shared.resolvePresetOrder(
-      presetNames,
-      shared.templatePresetNames,
-    ).order;
+      oldModulesPresets.presetNames = shared.resolvePresetOrder(
+        presetNames,
+        shared.templatePresetNames,
+      ).order;
 
-    // The order the game lists modules in, for anything that has to display
-    // them - the inventory is keyed by name, which says nothing about order.
-    const moduleOrder = Object.keys(moduleNames)
-      .map(Number)
-      .sort(function (a, b) {
-        return a - b;
-      })
-      .map(function (infoIndex) {
-        return moduleNames[infoIndex].name;
+      // The order the game lists modules in, for anything that has to display
+      // them - the inventory is keyed by name, which says nothing about order.
+      const moduleOrder = Object.keys(moduleNames)
+        .map(Number)
+        .sort(function (a, b) {
+          return a - b;
+        })
+        .map(function (infoIndex) {
+          return moduleNames[infoIndex].name;
+        });
+
+      return {
+        oldModulesInventory: oldModuleInventory,
+        oldModulesPresets: oldModulesPresets,
+        moduleOrder: moduleOrder,
+      };
+    } catch (error) {
+      var errorReport = errors.report("modules.parseModulesData", error, {
+        data: data,
+        oldModuleInventory: oldModuleInventory,
+        oldModulesPresets: oldModulesPresets,
       });
-
-    return {
-      oldModulesInventory: oldModuleInventory,
-      oldModulesPresets: oldModulesPresets,
-      moduleOrder: moduleOrder,
-    };
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

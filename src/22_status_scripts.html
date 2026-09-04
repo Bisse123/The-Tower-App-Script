@@ -45,6 +45,8 @@
   }
 
   function setStatusWithSpinner(message) {
+    // A new step is starting, so whatever failed before is no longer current.
+    if (typeof AppError !== "undefined") AppError.clear();
     document.getElementById("statusText").innerHTML = `
         <span class="spinner spinner-small"></span>
         ${message}

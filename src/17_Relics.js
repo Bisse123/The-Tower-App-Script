@@ -24,11 +24,11 @@ const relics = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting relics data: " + error.message,
-      };
+      var errorReport = errors.report("relics.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -95,11 +95,11 @@ const relics = {
         message: `Relics import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing relics data: ${error.message}`,
-      };
+      var errorReport = errors.report("relics.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -178,11 +178,12 @@ const relics = {
         message: `No updates needed for relics`,
       };
     } catch (error) {
-      console.log("Error in updateRelics: " + error.toString());
-      return {
-        success: false,
-        message: "Error updating relics: " + error.message,
-      };
+      var errorReport = errors.report("relics.updateRelics", error, {
+        sheetName: sheetName,
+        oldRelics: oldRelics,
+        newRelicsData: newRelicsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -213,11 +214,10 @@ const relics = {
       var relicsData = this.getVersion1_0Relics(oldRelicsData);
       return relicsData;
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("relics.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -274,11 +274,10 @@ const relics = {
         oldRelics: oldRelics,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0Relics: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0Relics: " + error.message,
-      };
+      var errorReport = errors.report("relics.getVersion1_0Relics", error, {
+        oldRelicsData: oldRelicsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 

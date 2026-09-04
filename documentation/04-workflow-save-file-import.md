@@ -160,10 +160,13 @@ sequenceDiagram
         C->>C: picker → grant → re-check
     end
 
-    alt sheetType still unknown
+    alt sheetType is not IDS Master / IDS Collection
         C->>S: getSaveFileSheetType(idMasterID)
         S->>S: Home Page!B2 (+ version check if IDS Collection)
-        S-->>C: { sheetType, outdated?, currentVersion, latestVersion }
+        S-->>C: { success, sheetType, outdated?, currentVersion, latestVersion }
+        opt not readable, or not one of the two types
+            C->>C: drop idMasterID → parse-only,<br/>reason shown in the import summary
+        end
     end
 
     alt IDS Master

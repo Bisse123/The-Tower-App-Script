@@ -22,6 +22,11 @@ the conventions the whole codebase relies on.
 flowchart TB
     CLIENT["Client pages<br/>(google.script.run)"]
 
+    subgraph L0["Layer 0 — Error reporting · 00_Errors.js"]
+        X1["errors.report · errors.fail · errors.reject"]
+        X2["reportClientError — browser-side intake"]
+    end
+
     subgraph L1["Layer 1 — Entry points · 01_Main.js"]
         E1["doGet · onOpen · onInstall · createMenu"]
         E2["showGetStartedDialog · showUpdateDialog · openSaveFileDialog"]
@@ -50,6 +55,9 @@ flowchart TB
     end
 
     CLIENT --> L1
+    L1 --> L0
+    L2 --> L0
+    L4 --> L0
     L1 --> L2
     L1 --> L4
     L2 --> L3
@@ -359,7 +367,7 @@ Every function below is callable from the client via `google.script.run`.
 | --- | --- |
 | `getUpdateDialogParameters()` | `{ oldSheetID, idMasterID, sheetType, accessRequired }` for the active spreadsheet. Detects `Effective Paths` by the presence of `eHP`/`eDamage`/`eEcon`; otherwise reads `Home Page!B2`. |
 | `getGetStartedParameters()` | `{ sheetId }` when the active sheet is an Effective Paths sheet. |
-| `getSaveFileParameters()` | `{ idMasterID, sheetType }` — resolves the IDS Master from the active sheet's `IDS` tab. |
+| `getSaveFileParameters()` | `{ idMasterID, sheetType }` — resolves the import target from the active sheet's `IDS` tab. `sheetType` is only ever `"IDS Master"`, `"IDS Collection"` or `""`, and is filled in only when the active file *is* the target. A linked target's type cannot be read here (no access to it yet under `drive.file`), so the client resolves it with `getSaveFileSheetType` after the access check. |
 
 ### Authorization
 
@@ -408,15 +416,30 @@ Every function below is callable from the client via `google.script.run`.
 No server function throws across the boundary. Every one returns:
 
 ```javascript
-{ success: false, message: "human-readable reason" }
+{
+  success: false,
+  code: "ACCESS_DENIED",          // one of errors.CODES - the client switches on this
+  expected: true,                 // the app working as designed, not a defect
+  message: "The script does not have access to that file. Grant access and try again.",
+  reference: "",                  // bugs only; matches the Cloud Logging entry
+  detail: "Exception: You do not have permission to call …",
+}
 ```
 
-The client displays `message` verbatim in the status line, so messages are
-written for end users, not developers. A few carry extra fields:
+`expected` splits the two kinds of failure: an expected one is logged at
+WARNING, stays out of Error Reporting and carries no reference, because there
+is nothing for the user to report. A bug is logged at ERROR with a stack and
+gets a reference. `message` is written for end users; `detail` carries the
+technical text and is shown only behind *Technical details* in the error panel.
+Both come from
+[00_Errors.js](../src/00_Errors.js) — see
+[08 — Error handling](08-error-handling.md) for how a failure travels from a
+catch block to Cloud Logging and back to the user. A few envelopes carry extra
+fields:
 
 | Field | On | Meaning |
 | --- | --- | --- |
-| `failedUpdates: [{ sheetType, message }]` | `importData` | Per-category failures inside a multi-category import (IDS Collection, IDS Master). |
+| `failedUpdates: [{ sheetType, message, reference }]` | `importData` | Per-category failures inside a multi-category import (IDS Collection, IDS Master). |
 | `collection: true` | `getTemplateAndsheetIds` | The sheet has no `IDS` tab — it is an IDS Collection, not an IDS Master. |
 | `versionFiltered: true` | `getTemplateInfo` | Skipped because it is already up to date under `copyMode: "update"`. |
 

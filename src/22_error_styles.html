@@ -1,0 +1,211 @@
+<style>
+  .errorPanel {
+    margin: 14px 0;
+    padding: 14px 16px;
+    background-color: #fdecea;
+    border: 1px solid #d93025;
+    border-left: 5px solid #a50e0e;
+    border-radius: 6px;
+    color: #2b0f0d;
+    font-size: 1em;
+    line-height: 1.6;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18);
+  }
+
+  .errorPanel[hidden] {
+    display: none;
+  }
+
+  .errorPanel.errorPanelWarning {
+    background-color: #fff3cd;
+    border-color: #d39e00;
+    border-left-color: #b36b00;
+    color: #2b2200;
+  }
+
+  .errorPanelHead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .errorPanelIcon {
+    font-size: 1.15em;
+    line-height: 1;
+  }
+
+  .errorPanelTitle {
+    font-weight: 700;
+    font-size: 1.05em;
+    flex: 1 1 auto;
+    /* A flex item's default min-width is its own unwrapped content width, so
+       without this a narrow container (the sidebar) can't shrink it and
+       falls back to breaking every character instead of wrapping words. */
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  /* 21_shared_styles.html sizes every button for touch under 768px, including
+     `min-width: 100%` and `min-height: 54px`. Those are meant for the big
+     action buttons; on this one they would take the whole row, leaving the
+     title beside it nothing to wrap in. `width: auto` alone does not undo it -
+     used width is max(min-width, width) - so the min and max have to go too. */
+  .errorPanelDismiss {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 2px 8px;
+    font-size: 1em;
+    line-height: 1;
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+    border-radius: 4px;
+  }
+
+  .errorPanelDismiss:hover {
+    opacity: 1;
+    transform: none;
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .errorPanelMessage {
+    margin: 0 0 10px 0;
+    word-break: break-word;
+  }
+
+  .errorPanelActions {
+    margin-bottom: 10px;
+  }
+
+  .errorPanelActions:empty {
+    display: none;
+  }
+
+  .errorPanelActions button {
+    height: 40px;
+    padding: 0 18px;
+    font-size: 0.95em;
+    margin: 0 6px 0 0;
+    background-color: #a50e0e;
+  }
+
+  .errorPanelList {
+    margin: 0 0 10px 0;
+  }
+
+  .errorPanelList[hidden] {
+    display: none;
+  }
+
+  .errorPanelEntry {
+    padding: 10px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .errorPanelEntryMessage {
+    margin: 0 0 6px 0;
+    word-break: break-word;
+  }
+
+  /* Directly under the message it belongs to, not pushed out to the far side
+     of the panel - on a wide screen that leaves the reference stranded away
+     from the failure it identifies. */
+  .errorPanelEntryRef {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88em;
+    opacity: 0.9;
+  }
+
+  .errorPanelDetails {
+    margin-bottom: 10px;
+  }
+
+  .errorPanelDetails[hidden] {
+    display: none;
+  }
+
+  .errorPanelDetails summary {
+    cursor: pointer;
+    font-size: 0.92em;
+    opacity: 0.85;
+    user-select: none;
+  }
+
+  .errorPanelDetailText {
+    margin: 8px 0 0 0;
+    padding: 10px;
+    max-height: 220px;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .errorPanelFooter[hidden] {
+    display: none;
+  }
+
+  .errorPanelFooter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88em;
+    opacity: 0.9;
+  }
+
+  .errorPanelRefLabel {
+    font-weight: 600;
+  }
+
+  .errorPanelReference {
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.07);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    user-select: all;
+  }
+
+  /* Same reason as .errorPanelDismiss above: this sits inline beside the
+     reference it copies, so it must not stretch to the full row width. */
+  .errorPanelCopy {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    height: 28px;
+    min-height: 0;
+    padding: 0 12px;
+    margin: 0;
+    font-size: 0.85em;
+    background-color: #5f6368;
+    border-radius: 4px;
+  }
+
+  .errorPanelRefHint {
+    flex: 1 1 100%;
+    opacity: 0.75;
+  }
+
+  @media (max-width: 600px) {
+    .errorPanel {
+      padding: 12px;
+      font-size: 0.95em;
+    }
+    .errorPanelRefHint {
+      display: none;
+    }
+  }
+</style>

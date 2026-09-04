@@ -24,11 +24,11 @@ const bots = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting bots data: " + error.message,
-      };
+      var errorReport = errors.report("bots.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -152,11 +152,11 @@ const bots = {
         message: `Bots import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing bots data: ${error.message}`,
-      };
+      var errorReport = errors.report("bots.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -400,11 +400,13 @@ const bots = {
         message: `No updates needed for bot levels`,
       };
     } catch (error) {
-      console.log(`Error in updateBotLevels: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error updating bot levels: ${error.message}`,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateBotLevels", error, {
+        sheetName: sheetName,
+        oldBots: oldBots,
+        masterSheetData: masterSheetData,
+        dvtNamedRangesData: dvtNamedRangesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -434,11 +436,10 @@ const bots = {
       var botsData = this.getVersion3_2Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version3_2: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version3_2: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version3_2", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -466,11 +467,10 @@ const bots = {
       var botsData = this.getVersion3_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version3_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version3_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version3_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -498,11 +498,10 @@ const bots = {
       var botsData = this.getVersion2_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version2_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version2_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -530,11 +529,10 @@ const bots = {
       var botsData = this.getVersion1_0Bots(oldBotLevelsData);
       return botsData;
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -650,11 +648,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion3_2Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion3_2Bots: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion3_2Bots", error, {
+        oldBotLevelsData: oldBotLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -775,11 +772,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion3_0Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion3_0Bots: " + error.message,
-      };
+      var errorReport = errors.report("bot.getVersion3_0Bots", error, {
+        oldBotLevelsData: oldBotLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -843,11 +839,10 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion2_0Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_0Bots: " + error.message,
-      };
+      var errorReport = errors.report("bot.getVersion2_0Bots", error, {
+        oldBotLevelsData: oldBotLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -919,109 +914,117 @@ const bots = {
         oldBots: oldBots,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0Bots: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0Bots: " + error.message,
-      };
+      var errorReport = errors.report("bot.getVersion1_0Bots", error, {
+        oldBotLevelsData: oldBotLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseBotsData: function (data) {
-    const targetBots = {
-      "Flame Bot": {
-        upgrades: ["Damage", "Range", "Cooldown", "Damage R."],
-        plusUpgrade: "Wildfire",
-      },
-      "Thunder Bot": {
-        upgrades: ["Linger", "Range", "Cooldown", "Duration"],
-        plusUpgrade: "Titan Shock",
-      },
-      "Golden Bot": {
-        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
-        plusUpgrade: "Bonus Cell",
-      },
-      "Amplify Bot": {
-        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
-        plusUpgrade: "Echoing Shot",
-      },
-      "Bot Bot": {
-        upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
-        plusUpgrade: "Maximum Power",
-      },
-    };
+    try {
+      const targetBots = {
+        "Flame Bot": {
+          upgrades: ["Damage", "Range", "Cooldown", "Damage R."],
+          plusUpgrade: "Wildfire",
+        },
+        "Thunder Bot": {
+          upgrades: ["Linger", "Range", "Cooldown", "Duration"],
+          plusUpgrade: "Titan Shock",
+        },
+        "Golden Bot": {
+          upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+          plusUpgrade: "Bonus Cell",
+        },
+        "Amplify Bot": {
+          upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+          plusUpgrade: "Echoing Shot",
+        },
+        "Bot Bot": {
+          upgrades: ["Bonus", "Range", "Cooldown", "Duration"],
+          plusUpgrade: "Maximum Power",
+        },
+      };
 
-    const presetOrder = shared.resolvePresetOrder(
-      data.presetNames || [],
-      shared.templatePresetNames,
-    );
-    const presetNames = presetOrder.order;
-    const presetIndices = presetOrder.indices;
+      const presetOrder = shared.resolvePresetOrder(
+        data.presetNames || [],
+        shared.templatePresetNames,
+      );
+      const presetNames = presetOrder.order;
+      const presetIndices = presetOrder.indices;
 
-    const flameBotData = data.flameBotPresets || {};
-    const thunderBotData = data.thunderBotPresets || {};
-    const goldenBotData = data.goldenBotPresets || {};
-    const amplifyBotData = data.amplifyBotPresets || {};
-    const botBotData = data.botBotPresets || {};
+      const flameBotData = data.flameBotPresets || {};
+      const thunderBotData = data.thunderBotPresets || {};
+      const goldenBotData = data.goldenBotPresets || {};
+      const amplifyBotData = data.amplifyBotPresets || {};
+      const botBotData = data.botBotPresets || {};
 
-    const syncPresets = data.synchronicityPresets || {};
-    var oldBots = {
-      presetNames: presetNames,
-      data: {},
-    };
+      const syncPresets = data.synchronicityPresets || {};
+      var oldBots = {
+        presetNames: presetNames,
+        data: {},
+      };
 
-    presetNames.forEach(function (presetName, slot) {
-      const index = presetIndices[slot];
-      const allBotPresets = [
-        flameBotData[index] || {},
-        thunderBotData[index] || {},
-        goldenBotData[index] || {},
-        amplifyBotData[index] || {},
-        botBotData[index] || {},
-      ];
-      allBotPresets.forEach(function (botPreset, botIndex) {
-        var botName = Object.keys(targetBots)[botIndex];
-        var botLevels = botPreset.levels || [];
-        var props = targetBots[botName].upgrades.reduce(function (
-          acc,
-          upgrade,
-          idx,
-        ) {
-          var level = botLevels[idx];
-          acc[upgrade] = level ? String(level).padStart(2, "0") : "00";
-          return acc;
-        }, {});
+      presetNames.forEach(function (presetName, slot) {
+        const index = presetIndices[slot];
+        const allBotPresets = [
+          flameBotData[index] || {},
+          thunderBotData[index] || {},
+          goldenBotData[index] || {},
+          amplifyBotData[index] || {},
+          botBotData[index] || {},
+        ];
+        allBotPresets.forEach(function (botPreset, botIndex) {
+          var botName = Object.keys(targetBots)[botIndex];
+          var botLevels = botPreset.levels || [];
+          var props = targetBots[botName].upgrades.reduce(function (
+            acc,
+            upgrade,
+            idx,
+          ) {
+            var level = botLevels[idx];
+            acc[upgrade] = level ? String(level).padStart(2, "0") : "00";
+            return acc;
+          }, {});
         
-        props[targetBots[botName].plusUpgrade] = "Lo";
-        if (botPreset.plusUnlocked) {
-          props[targetBots[botName].plusUpgrade] =
-            botPreset.plusLevel === null ||
-            botPreset.plusLevel === undefined ||
-            botPreset.plusLevel === ""
-              ? "Lo"
-              : String(botPreset.plusLevel).padStart(2, "0");
-        }
-        if (!oldBots.data.hasOwnProperty(botName)) {
-          oldBots.data[botName] = {
-            presets: {},
+          props[targetBots[botName].plusUpgrade] = "Lo";
+          if (botPreset.plusUnlocked) {
+            props[targetBots[botName].plusUpgrade] =
+              botPreset.plusLevel === null ||
+              botPreset.plusLevel === undefined ||
+              botPreset.plusLevel === ""
+                ? "Lo"
+                : String(botPreset.plusLevel).padStart(2, "0");
+          }
+          if (!oldBots.data.hasOwnProperty(botName)) {
+            oldBots.data[botName] = {
+              presets: {},
+            };
+          }
+          const active = botPreset.unlocked !== undefined ? botPreset.unlocked : null;
+          oldBots.data[botName].presets[presetName] = {
+            props: props,
+            sync: syncPresets[index][botIndex] || null,
+            active: active,
           };
-        }
-        const active = botPreset.unlocked !== undefined ? botPreset.unlocked : null;
-        oldBots.data[botName].presets[presetName] = {
-          props: props,
-          sync: syncPresets[index][botIndex] || null,
-          active: active,
-        };
+        });
       });
-    });
 
-    return {
-      oldBots: oldBots,
-      targetBots: targetBots,
-      botOrder: Object.keys(targetBots),
-    };
+      return {
+        success: true,
+        oldBots: oldBots,
+        targetBots: targetBots,
+        botOrder: Object.keys(targetBots),
+      };
+    } catch (error) {
+      var errorReport = errors.report("bots.parseBotsData", error, {
+        data: data,
+        oldBots: oldBots,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

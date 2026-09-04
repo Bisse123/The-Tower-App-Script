@@ -3,6 +3,7 @@ const labHeaders = {
 }
 
 const workshopHeaders = {
+  activePreset: "currentWorkshopPreset",
   presetNames: "workshopPresetName",
   upgradeAttackLevels: "upgradeWorkshopLevel",
   upgradeDefenseLevels: "upgradeWorkshopDefenseLevel",
@@ -112,20 +113,44 @@ const MasterHeaders = {
 
 function parseSaveFileBytes(byteArray) {
   const uint8 = Uint8Array.from(byteArray);
-  // Decompress the GZIP data
-  const decompressedBlob = Utilities.ungzip(
-    Utilities.newBlob(Array.from(uint8), "application/x-gzip"),
-  );
+
+  // Decompress the GZIP data. A failure here almost always means the user
+  // picked something other than playerInfo.dat - not a defect in the parser.
+  var decompressedBlob;
+  try {
+    decompressedBlob = Utilities.ungzip(
+      Utilities.newBlob(Array.from(uint8), "application/x-gzip"),
+    );
+  } catch (error) {
+    var errorReport = errors.report("parseSaveFileBytes", error, {
+      byteLength: uint8.length,
+    }, errors.CODES.INVALID_FILE);
+    return errors.fail(errorReport);
+  }
   // Convert the decompressed Blob to a Uint8Array
   const bytes = blobToUint8Array_(decompressedBlob);
+
   // Parse the NRBF data
   // .NET's BinaryFormatter uses a format called NRBF (Net Remote Binary Format) to serialize objects. This format is not natively supported in JavaScript, so we need to implement a parser for it.
   // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
   // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
-  const data = parseNRBF(bytes);
+  // Unlike the ungzip step, a failure here means our own parser could not make
+  // sense of a file that WAS a valid gzip stream - closer to a bug in this
+  // parser (a save-file format change we have not caught up with yet) than to
+  // user error, so this one is left to classify as INTERNAL and keeps its
+  // reference.
+  var data;
+  try {
+    data = parseNRBF(bytes);
+  } catch (error) {
+    var errorReport = errors.report("parseSaveFileBytes", error, {
+      byteLength: bytes.length,
+    });
+    return errors.fail(errorReport);
+  }
 
   // Object.keys(data).forEach((key) => {
-  //   if (key.toLowerCase().includes("perk")) {
+  //   if (key.toLowerCase().includes("workshop")) {
   //     console.log(`Key: ${key}, Value: ${JSON.stringify(data[key], bigIntJsonReplacer_)}`);
   //   }
   // });
@@ -198,9 +223,49 @@ function parseSaveFileBytes(byteArray) {
     "IDS Master": masterData,
   };
 
+  // Each leaf parser already reported its own failure in full - with a stack,
+  // the input that broke it, and how far it had gotten - so this only relays
+  // it, and does so per category rather than aborting the whole file: one
+  // save-file category breaking on an unexpected shape must not cost the user
+  // the other ten that parsed fine. `parsed` ends up holding only the
+  // categories that succeeded, so the existing renderer (which already skips
+  // a type with no data) needs no change to keep working; the failed ones are
+  // reported separately.
+  var order = Object.keys(parsed);
+  var successfulParsed = {};
+  var failedCategories = [];
+  order.forEach(function (type) {
+    var categoryResult = parsed[type];
+    if (categoryResult && categoryResult.success === false) {
+      var failure = errors.propagate(
+        "parseSaveFileBytes",
+        categoryResult,
+        `${type} could not be read from your save file.`,
+      );
+      var failedCategory = {
+        type: type,
+        success: false,
+        code: failure.code,
+        expected: failure.expected,
+        message: failure.message,
+        reference: failure.reference,
+        detail: failure.detail,
+        trace: failure.trace,
+      };
+      if (failure.note) failedCategory.note = failure.note;
+      if (failure.data) failedCategory.data = failure.data;
+      if (failure.stack) failedCategory.stack = failure.stack;
+      failedCategories.push(failedCategory);
+      return;
+    }
+    successfulParsed[type] = categoryResult;
+  });
+
   return {
-    parsed: parsed,
-    order: Object.keys(parsed),
+    success: true,
+    parsed: successfulParsed,
+    order: order,
+    failedCategories: failedCategories,
   };
 }
 

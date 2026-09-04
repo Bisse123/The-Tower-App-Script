@@ -161,11 +161,10 @@
   function checkFileTemplateAccessFailure(error) {
     document.getElementById("chooseNewFileBtn").disabled = false;
     document.getElementById("chooseMasterFileBtn").disabled = false;
-    document.getElementById(
-      "statusText"
-    ).innerText = `Error checking Template file access: ${
-      error.message || error
-    }`;
+    AppError.show(error, {
+      source: "checkFileTemplateAccess",
+      message: "The script could not check access to the template file.",
+    });
   }
 
   function copyFileTemplateSuccess(result) {
@@ -187,9 +186,10 @@
   function copyFileTemplateFailure(error) {
     document.getElementById("chooseNewFileBtn").disabled = false;
     document.getElementById("chooseMasterFileBtn").disabled = false;
-    document.getElementById(
-      "statusText"
-    ).innerText = `Error copying template: ${error.message || error}`;
+    AppError.show(error, {
+      source: "copyFileTemplate",
+      message: "The template could not be copied.",
+    });
   }
 
   function showFileCopiedSuccess(gid) {
@@ -227,16 +227,15 @@
             .catch(onSheetAccessCheckFailure);
         } else {
           document.getElementById("selectImportContinueBtn").disabled = false;
-          document.getElementById("statusText").innerText = `${result.message}`;
+          AppError.show(result, { source: "checkNewSheetReference" });
         }
       })
       .withFailureHandler(function (error) {
         document.getElementById("selectImportContinueBtn").disabled = false;
-        document.getElementById(
-          "statusText"
-        ).innerText = `Error checking new sheet™ reference: ${
-          error.message || error
-        }`;
+        AppError.show(error, {
+          source: "checkNewSheetReference",
+          message: "The script could not check the new Sheet™ reference.",
+        });
       })
       .checkNewSheetReference(newSheetID, sheetType);
   }
@@ -371,14 +370,15 @@
                 );
               });
           } else {
-            document.getElementById("statusText").innerText =
-              idMasterResult.message || "Could not find IDS Master in Sheet™.";
+            AppError.show(idMasterResult, { source: "findSheetIdAndType" });
             reject(new Error(idMasterResult.message || "Could not find IDS Master in Sheet™."));
           }
         })
         .withFailureHandler(function (e) {
-          document.getElementById("statusText").innerText =
-            "Error searching for IDS Master: " + (e.message || e);
+          AppError.show(e, {
+            source: "findSheetIdAndType",
+            message: "The script could not look up your IDS Master.",
+          });
           reject(
             new Error("Error searching for IDS Master: " + (e.message || e))
           );
@@ -435,14 +435,15 @@
                 );
               });
           } else {
-            document.getElementById("statusText").innerText =
-              oldSheetResult.message || "Could not find old Sheet™ in IDS Master.";
+            AppError.show(oldSheetResult, { source: "findSheetIdAndType" });
             reject(new Error(oldSheetResult.message || "Could not find old Sheet™ in IDS Master."));
           }
         })
         .withFailureHandler(function (e) {
-          document.getElementById("statusText").innerText =
-            "Error searching for old Sheet™: " + (e.message || e);
+          AppError.show(e, {
+            source: "findSheetIdAndType",
+            message: "The script could not look up your old Sheet™.",
+          });
           reject(
             new Error("Error searching for old Sheet™: " + (e.message || e))
           );

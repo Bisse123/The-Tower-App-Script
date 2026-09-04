@@ -120,9 +120,10 @@
       })
       .withFailureHandler((error) => {
         console.error("Unable to open add-on consent dialog:", error);
-        setStatusText(
-          `Unable to open consent dialog: ${error.message || error}`,
-        );
+        AppError.show(error, {
+          source: "openAddonConsentDialog",
+          message: "The permissions dialog could not be opened.",
+        });
       })
       .showAddonConsentDialog(authorizationUrl || "");
   }
@@ -264,7 +265,10 @@
     } catch (error) {
       consentScopeCheckOutcome = "error";
       console.error("Scope recheck failed with an error:", error);
-      setStatusText(`Automatic scope check error: ${error.message || error}`);
+      AppError.show(error, {
+        source: "recheckAccessToken",
+        message: "The permission check did not finish.",
+      });
     }
 
     if (authSuccess) {
@@ -380,8 +384,10 @@
 
       return true;
     } catch (error) {
-      console.error("Sidebar update context load failed:", error);
-      setStatusText(`Unable to load update details: ${error.message || error}`);
+      AppError.show(error, {
+        source: "getSideBarUpdateContext",
+        message: "The update details could not be loaded.",
+      });
       return false;
     }
   }
@@ -405,13 +411,16 @@
         promptForMissingScopes(result);
       } else {
         consentScopeCheckOutcome = "error";
-        setStatusText(`Authorization failed: ${result.message}`);
+        AppError.show(result, { source: "getOAuthToken" });
       }
 
       return false;
     } catch (error) {
       consentScopeCheckOutcome = "error";
-      setStatusText(`Authorization error: ${error.message || error}`);
+      AppError.show(error, {
+        source: "getOAuthToken",
+        message: "Authorization did not finish.",
+      });
       return false;
     }
   }
@@ -486,13 +495,21 @@
           effectivePathsID = "";
         }
       } catch (error) {
-        console.error("Error loading Get Started parameters:", error);
+        AppError.log(error, "authorizeGetStarted: Error loading Get Started parameters");
         effectivePathsID = "";
       }
     }
 
     continueGetStarted();
     return true;
+  }
+
+  function reportSaveFileSetupError(message) {
+    if (typeof setSaveFileSetupError === "function") {
+      setSaveFileSetupError(message);
+    } else {
+      console.error(message);
+    }
   }
 
   async function authorizeSaveFile(forceTokenRefresh = false) {
@@ -518,9 +535,20 @@
         if (saveFileParams && saveFileParams.idMasterID) {
           idMasterID = saveFileParams.idMasterID;
           sheetType = saveFileParams.sheetType || "";
+        } else {
+          reportSaveFileSetupError(
+            (saveFileParams && saveFileParams.message) ||
+              "Could not find your IDS Master or IDS Collection from this sheet.",
+          );
+          if (saveFileParams && saveFileParams.success === false) {
+            AppError.show(saveFileParams, { source: "getSaveFileParameters" });
+          }
         }
       } catch (error) {
-        console.error("Error loading save file parameters:", error);
+        AppError.log(error, "authorizeSaveFile: Error loading save file parameters");
+        reportSaveFileSetupError(
+          `Could not read this sheet's IDS tab: ${error.message || error}`,
+        );
       }
     }
 

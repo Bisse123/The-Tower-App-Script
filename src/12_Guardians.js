@@ -22,11 +22,11 @@ const guardians = {
         data: oldDataResult,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting guardians data: " + error.message,
-      };
+      var errorReport = errors.report("guardians.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -141,11 +141,11 @@ const guardians = {
         message: `Guardians import completed successfully`,
       };
     } catch (error) {
-      console.log(`Error in importData: ${error.toString()}`);
-      return {
-        success: false,
-        message: `Error importing guardians data: ${error.message}`,
-      };
+      var errorReport = errors.report("guardians.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -373,11 +373,13 @@ const guardians = {
         message: `No updates needed for guardians`,
       };
     } catch (error) {
-      console.log("Error in updateGuardianLevels: " + error.toString());
-      return {
-        success: false,
-        message: "Error updating guardian levels: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.updateGuardianLevels", error, {
+        sheetName: sheetName,
+        oldGuardians: oldGuardians,
+        masterSheetData: masterSheetData,
+        dvtNamedRangesData: dvtNamedRangesData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -407,11 +409,10 @@ const guardians = {
       var guardiansData = this.getVersion3_1Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version3_1: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version3_1: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version3_1", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -439,11 +440,10 @@ const guardians = {
       var guardiansData = this.getVersion2_2Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version2_2: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_2: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version2_2", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -471,11 +471,10 @@ const guardians = {
       var guardiansData = this.getVersion2_1Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version2_1: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version2_1: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version2_1", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -503,11 +502,10 @@ const guardians = {
       var guardiansData = this.getVersion1_0Guardians(oldGuardianLevelsData);
       return guardiansData;
     } catch (error) {
-      console.log("Error in version1_0: " + error.toString());
-      return {
-        success: false,
-        message: "Error in version1_0: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -638,11 +636,10 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion3_1Guardians: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion3_1Guardians: " + error.message,
-      };
+      var errorReport = errors.report("dvtNamedRanges.getVersion3_1Guardians", error, {
+        oldGuardianLevelsData: oldGuardianLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -702,11 +699,10 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion2_2Guardians: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_2Guardians: " + error.message,
-      };
+      var errorReport = errors.report("guardian.getVersion2_2Guardians", error, {
+        oldGuardianLevelsData: oldGuardianLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -766,11 +762,10 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion2_1Guardians: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion2_1Guardians: " + error.message,
-      };
+      var errorReport = errors.report("guardian.getVersion2_1Guardians", error, {
+        oldGuardianLevelsData: oldGuardianLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -831,111 +826,119 @@ const guardians = {
         oldGuardians: oldGuardians,
       };
     } catch (error) {
-      console.log("Error in getVersion1_0Guardians: " + error.toString());
-      return {
-        success: false,
-        message: "Error in getVersion1_0Guardians: " + error.message,
-      };
+      var errorReport = errors.report("guardian.getVersion1_0Guardians", error, {
+        oldGuardianLevelsData: oldGuardianLevelsData,
+      });
+      return errors.fail(errorReport);
     }
   },
 
   // #endregion
   // #region Parse Saved File
   parseGuardiansData: function (data) {
-    // Keyed by the guardian's index in the save file's flat chip arrays. Slots
-    // the game ships but has never implemented simply have no entry here, so
-    // nothing downstream has to filter them back out.
-    const targetGuardians = {
-      0: { name: "Bounty", upgrades: ["Multiplier", "Cooldown", "Targets"] },
-      2: { name: "Attack", upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
-      5: { name: "Ally", upgrades: ["Recovery Amount", "Max Recovery", "Cooldown"], alwaysUnlocked: true },
-      6: { name: "Fetch", upgrades: ["Cooldown", "Find Chance", "Double Find Chance"] },
-      7: { name: "Summon", upgrades: ["Cooldown", "Duration", "Cash Bonus"] },
-      8: { name: "Scout", upgrades: ["Cooldown", "Range Bonus", "Duration"] },
-    };
-    const guardianIndices = Object.keys(targetGuardians)
-      .map(Number)
-      .sort(function (a, b) {
-        return a - b;
-      });
-
-    const guardianUnlockedData = data.guardianChipUnlocked || [];
-    const guardianPresetsData = data.guardianPresets || [];
-
-    const presets = guardianPresetsData.length
-      ? guardianPresetsData
-      : [
-          {
-            presetName: "Farming",
-            chipSlot: data.guardianChipSlot || [],
-            chipLevel: data.guardianChipLevel || [],
-          },
-        ];
-
-    var presetNames = [];
-    var oldGuardians = {
-      presetNames: presetNames,
-      data: {},
-    };
-
-    presets.forEach(function (preset, index) {
-      const unlocked = preset.unlocked;
-      if (!unlocked && index) {
-        return;
-      }
-      var presetName = unlocked ? preset.presetName : "Farming";
-
-      presetNames.push(presetName);
-
-      const chipLevel = preset.chipLevel || [];
-      // A slot list of one comes through as a bare value rather than an array.
-      const chipSlot =
-        preset.chipSlot == null ? [] : [].concat(preset.chipSlot);
-
-      guardianIndices.forEach(function (guardianIndex) {
-        const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
-
-        var chipLevels = {};
-        upgrades.forEach(function (attr, j) {
-          const level = chipLevel[guardianIndex * upgrades.length + j];
-          chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+    try {
+      // Keyed by the guardian's index in the save file's flat chip arrays. Slots
+      // the game ships but has never implemented simply have no entry here, so
+      // nothing downstream has to filter them back out.
+      const targetGuardians = {
+        0: { name: "Bounty", upgrades: ["Multiplier", "Cooldown", "Targets"] },
+        2: { name: "Attack", upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
+        5: { name: "Ally", upgrades: ["Recovery Amount", "Max Recovery", "Cooldown"], alwaysUnlocked: true },
+        6: { name: "Fetch", upgrades: ["Cooldown", "Find Chance", "Double Find Chance"] },
+        7: { name: "Summon", upgrades: ["Cooldown", "Duration", "Cash Bonus"] },
+        8: { name: "Scout", upgrades: ["Cooldown", "Range Bonus", "Duration"] },
+      };
+      const guardianIndices = Object.keys(targetGuardians)
+        .map(Number)
+        .sort(function (a, b) {
+          return a - b;
         });
 
-        if (!oldGuardians.data[name]) {
-          oldGuardians.data[name] = {
-            unlocked: alwaysUnlocked
-              ? null
-              : guardianUnlockedData[guardianIndex] || false,
-            presets: {},
-          };
+      const guardianUnlockedData = data.guardianChipUnlocked || [];
+      const guardianPresetsData = data.guardianPresets || [];
+
+      const presets = guardianPresetsData.length
+        ? guardianPresetsData
+        : [
+            {
+              presetName: "Farming",
+              chipSlot: data.guardianChipSlot || [],
+              chipLevel: data.guardianChipLevel || [],
+            },
+          ];
+
+      var presetNames = [];
+      var oldGuardians = {
+        presetNames: presetNames,
+        data: {},
+      };
+
+      presets.forEach(function (preset, index) {
+        const unlocked = preset.unlocked;
+        if (!unlocked && index) {
+          return;
         }
-        oldGuardians.data[name].presets[presetName] = {
-          props: chipLevels,
-          equipped: chipSlot.includes(guardianIndex),
-        };
+        var presetName = unlocked ? preset.presetName : "Farming";
+
+        presetNames.push(presetName);
+
+        const chipLevel = preset.chipLevel || [];
+        // A slot list of one comes through as a bare value rather than an array.
+        const chipSlot =
+          preset.chipSlot == null ? [] : [].concat(preset.chipSlot);
+
+        guardianIndices.forEach(function (guardianIndex) {
+          const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
+
+          var chipLevels = {};
+          upgrades.forEach(function (attr, j) {
+            const level = chipLevel[guardianIndex * upgrades.length + j];
+            chipLevels[attr] = level ? String(level).padStart(2, "0") : "00";
+          });
+
+          if (!oldGuardians.data[name]) {
+            oldGuardians.data[name] = {
+              unlocked: alwaysUnlocked
+                ? null
+                : guardianUnlockedData[guardianIndex] || false,
+              presets: {},
+            };
+          }
+          oldGuardians.data[name].presets[presetName] = {
+            props: chipLevels,
+            equipped: chipSlot.includes(guardianIndex),
+          };
+        });
       });
-    });
 
-    oldGuardians.presetNames = shared.resolvePresetOrder(
-      presetNames,
-      shared.templatePresetNames,
-    ).order;
+      oldGuardians.presetNames = shared.resolvePresetOrder(
+        presetNames,
+        shared.templatePresetNames,
+      ).order;
 
-    var targetGuardiansByName = {};
-    var guardianOrder = [];
-    guardianIndices.forEach(function (guardianIndex) {
-      const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
-      targetGuardiansByName[name] = alwaysUnlocked
-        ? { upgrades: upgrades, alwaysUnlocked: alwaysUnlocked }
-        : { upgrades: upgrades };
-      guardianOrder.push(name);
-    });
+      var targetGuardiansByName = {};
+      var guardianOrder = [];
+      guardianIndices.forEach(function (guardianIndex) {
+        const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
+        targetGuardiansByName[name] = alwaysUnlocked
+          ? { upgrades: upgrades, alwaysUnlocked: alwaysUnlocked }
+          : { upgrades: upgrades };
+        guardianOrder.push(name);
+      });
 
-    return {
-      oldGuardians: oldGuardians,
-      targetGuardians: targetGuardiansByName,
-      guardianOrder: guardianOrder,
-    };
+      return {
+        success: true,
+        oldGuardians: oldGuardians,
+        targetGuardians: targetGuardiansByName,
+        guardianOrder: guardianOrder,
+      };
+    } catch (error) {
+      var errorReport = errors.report("guardians.parseGuardiansData", error, {
+        data: data,
+        oldGuardians: oldGuardians,
+      });
+      return errors.fail(errorReport);
+    }
   },
 
   // #endregion

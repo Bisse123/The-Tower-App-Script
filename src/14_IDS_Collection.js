@@ -24,11 +24,11 @@
         data: oldDataResult.data,
       };
     } catch (error) {
-      console.log(`Error in exportData: ${error.toString()}`);
-      return {
-        success: false,
-        message: "Error exporting IDS Collection data: " + error.message,
-      };
+      var errorReport = errors.report("collection.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -415,10 +415,15 @@
               : "Laboratory update failed: " + labMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("buildDVTNamedRangesData", error, {
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Laboratory",
             success: false,
-            message: "Error in Laboratory update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -488,10 +493,15 @@
               : "Workshop update failed: " + workshopMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("buildDVTNamedRangesData", error, {
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Workshop",
             success: false,
-            message: "Error in Workshop update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -567,10 +577,15 @@
               : "Ultimate Weapon update failed: " + ultimateMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("buildDVTNamedRangesData", error, {
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Ultimate Weapon",
             success: false,
-            message: "Error in Ultimate Weapon update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -631,10 +646,16 @@
                 themesAndRelicsMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in Themes, Songs & Relics update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Themes, Songs & Relics",
             success: false,
-            message: "Error in Themes, Songs & Relics update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -676,10 +697,15 @@
               : "Bots update failed: " + botsMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("buildDVTNamedRangesData", error, {
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Bots",
             success: false,
-            message: "Error in Bots update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -717,10 +743,15 @@
               : "Vault update failed: " + vaultMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("buildDVTNamedRangesData", error, {
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Vault",
             success: false,
-            message: "Error in Vault update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -812,10 +843,16 @@
               : "Cards update failed: " + cardsMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in Cards update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Cards",
             success: false,
-            message: "Error in Cards update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -922,10 +959,16 @@
               : "Modules update failed: " + modulesMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in Modules update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Modules",
             success: false,
-            message: "Error in Modules update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -973,10 +1016,16 @@
               : "Guardians update failed: " + guardiansMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in Guardians update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Guardians",
             success: false,
-            message: "Error in Guardians update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -1045,10 +1094,16 @@
               : "Player & Stuff update failed: " + playerMessages.join(", "),
           });
         } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in Player & Stuff update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
           updateResults.push({
             sheetType: "Player & Stuff",
             success: false,
-            message: "Error in Player & Stuff update: " + error.message,
+            message: errorReport.message,
+            reference: errorReport.reference,
           });
         }
       }
@@ -1113,11 +1168,12 @@
         message: "IDS Collection import completed successfully",
       };
     } catch (error) {
-      console.log(`Error in IDS Collection importData: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection importData: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection importData`,
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1520,11 +1576,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version4_2_4: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version4_2_4: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version4_2_4`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -1925,11 +1981,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version4_2: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version4_2: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version4_2`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2337,11 +2393,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version4_0: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version4_0: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version4_0`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -2749,11 +2805,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version3_2: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version3_2: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version3_2`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3149,11 +3205,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version3_0_4: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version3_0_4: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version3_0_4`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3549,11 +3605,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version3_0: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version3_0: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version3_0`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -3949,11 +4005,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_1_4_3: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_1_4_3: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_1_4_3`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -4349,11 +4405,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_1_3_1: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_1_3_1: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_1_3_1`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -4752,11 +4808,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_1_1_8: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_1_1_8: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_1_1_8`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -5155,11 +5211,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_1_1_6: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_1_1_6: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_1_1_6`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -5558,11 +5614,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_1: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_1: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_1`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -5963,11 +6019,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_0_4: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_0_4: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_0_4`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -6365,11 +6421,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version2_0: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version2_0: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version2_0`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -6753,11 +6809,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version1_4_1_7: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version1_4_1_7: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version1_4_1_7`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 
@@ -7093,11 +7149,11 @@
         data: collectedData,
       };
     } catch (error) {
-      console.log(`Error in IDS Collection version1_3_5: ${error.message}`);
-      return {
-        success: false,
-        message: `Error in IDS Collection version1_3_5: ${error.message}`,
-      };
+      var errorReport = errors.report("IDS", error, {
+        note: `Error in IDS Collection version1_3_5`,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
     }
   },
 

@@ -6,6 +6,8 @@
   let saveFileCollectionVersionChecked = false;
 
   const SF_MASTER_TYPE = "IDS Master";
+  const SF_COLLECTION_TYPE = "IDS Collection";
+  let saveFileSetupError = "";
   let saveFileImportTargets = null;
   let saveFilePendingAccessIds = [];
   let saveFileNotOwnedFiles = [];
@@ -23,15 +25,6 @@
   let lastSaveFileResult = null;
   let saveFileSelectedTypes = null;
   let saveFilePendingDriveFile = null;
-
-  function runAppsScript(method, ...args) {
-    return new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(reject)
-        [method](...args);
-    });
-  }
 
   document
     .getElementById("saveFileInput")
@@ -154,6 +147,9 @@
     ])
       .then(async function (results) {
         const result = results[0];
+        setSaveFileBusy(false);
+        if (AppError.check(result, "parseSaveFileBytes")) return;
+
         parsedSaveData = (result && result.parsed) || {};
         lastSaveFileResult = result;
         setStatusText(`${fileName} parsed successfully`);
@@ -161,12 +157,14 @@
           saveFileViewMode = "diff";
           setStatusText(`${fileName} parsed successfully. Showing differences.`);
         }
-        setSaveFileBusy(false);
         renderSaveFileResults(result);
       })
       .catch(function (err) {
         setSaveFileBusy(false);
-        setStatusText("Error: " + (err.message || err));
+        AppError.show(err, {
+          source: "parseSaveFileByteArray",
+          message: "That save file could not be parsed.",
+        });
       });
   }
 
@@ -277,12 +275,83 @@
     });
   }
 
+  /**
+   * One category's parser breaking must not cost the user the other ten that
+   * parsed fine, so `parseSaveFileBytes` no longer aborts on the first
+   * failure - it returns the categories that succeeded plus a list of the
+   * ones that did not. This renders that list, and - matching the pattern
+   * used everywhere else in this app - raises the error panel once for the
+   * first failure that is an actual defect, not an expected outcome, since a
+   * list entry alone carries no reference to quote.
+   */
+  /** "A", "A and B", "A, B and C" */
+  function listSaveFileNames(names) {
+    if (names.length <= 1) return names[0] || "";
+    return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+
+  /**
+   * Which parse result's failures have already been put in the panel.
+   * `renderSaveFileResults` runs again on every view-mode switch and every
+   * checkbox toggle, always with this same object — so without this, a panel
+   * the user has dismissed comes straight back (and scrolls itself into view)
+   * the next time they touch a control.
+   */
+  let saveFileFailuresSurfacedFor = null;
+
+  function renderSaveFileParseFailures(failedCategories, result) {
+    if (!failedCategories || failedCategories.length === 0) return "";
+
+    let html = '<div class="sfParseFailedSection">';
+    html +=
+      "<strong>⛔ Could not be read from your save file (" +
+      failedCategories.length +
+      "):</strong>";
+    failedCategories.forEach(function (failure) {
+      html +=
+        "<br>&nbsp;&nbsp;• " +
+        escSaveFileHtml(failure.type) +
+        " - " +
+        escSaveFileHtml(failure.message || "Unknown error");
+    });
+    html +=
+      "<br><em>The categories above were skipped. Everything else in this save file is unaffected.</em>";
+    html += "</div>";
+
+    const bugs = failedCategories.filter(function (failure) {
+      return failure.expected === false;
+    });
+    if (bugs.length && saveFileFailuresSurfacedFor !== result) {
+      saveFileFailuresSurfacedFor = result;
+      const names = bugs.map(function (bug) {
+        return bug.type;
+      });
+      AppError.showAll(bugs, {
+        source: "parseSaveFileBytes",
+        message:
+          bugs.length === 1
+            ? AppError.labelled(bugs[0].type, bugs[0].message)
+            : listSaveFileNames(names) +
+              " could not be read from your save file.",
+        label: function (bug) {
+          return bug.type;
+        },
+      });
+    }
+
+    return html;
+  }
+
   function renderSaveFileResults(result) {
     if (result) lastSaveFileResult = result;
     const container = document.getElementById("saveFileResults");
     const parsed = (result && result.parsed) || {};
     const order = (result && result.order) || Object.keys(parsed);
-    let html = "<br>";
+    const parseFailuresHtml = renderSaveFileParseFailures(
+      result && result.failedCategories,
+      result,
+    );
+    let html = parseFailuresHtml;
     let cardCount = 0;
     const selectedTypes = new Set();
     const openTypes = sfOpenCategoryTypes(container);
@@ -334,7 +403,8 @@
       html += "</div></div>";
     }
 
-    if (cardCount === 0) {
+    const failedCount = (result && result.failedCategories && result.failedCategories.length) || 0;
+    if (cardCount === 0 && failedCount === 0) {
       html +=
         '<div class="sfMissingSection">No recognizable data found in this save file.</div>';
     }
@@ -413,11 +483,25 @@
       });
   }
 
+  function setSaveFileSetupError(message) {
+    saveFileSetupError = message || "";
+    if (saveFileSetupError) console.error(saveFileSetupError);
+  }
+
+  function saveFileTargetLabel() {
+    return saveFileSheetType || "IDS Master or IDS Collection";
+  }
+
   function refreshSaveFileImportSummary() {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
     if (!idMasterID) {
-      el.innerHTML = `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileSheetType} automatically, so importing is unavailable.</strong></div>`;
+      el.innerHTML =
+        `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileTargetLabel()} automatically, so importing is unavailable.</strong>` +
+        (saveFileSetupError
+          ? `<br>${escSaveFileHtml(saveFileSetupError)}`
+          : "") +
+        `</div>`;
       return;
     }
     if (saveFileCollectionOutdated) {
@@ -509,7 +593,7 @@
     if (saveFileViewMode === "all") {
       if (!idMasterID) {
         setStatusText(
-          `Cannot compare: your ${saveFileSheetType || "sheet"} could not be determined.`,
+          `Cannot compare: your ${saveFileTargetLabel()} could not be determined.`,
         );
         return;
       }
@@ -1662,7 +1746,8 @@
     }
     if (!idMasterID) {
       setStatusText(
-        `Could not determine your ${saveFileSheetType || "sheet"} automatically.`,
+        `Could not determine your ${saveFileTargetLabel()} automatically.` +
+          (saveFileSetupError ? ` ${saveFileSetupError}` : ""),
       );
       return;
     }
@@ -1734,20 +1819,34 @@
 
   async function resolveSaveFileSubsheetAccess() {
     saveFileNotOwnedFiles = [];
-    if (!saveFileSheetType && typeof sheetType === "string") {
+    if (
+      !saveFileSheetType &&
+      (sheetType === SF_MASTER_TYPE || sheetType === SF_COLLECTION_TYPE)
+    ) {
       saveFileSheetType = sheetType;
     }
     if (
-      saveFileSheetType !== "IDS Master" &&
-      saveFileSheetType !== "IDS Collection"
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
     ) {
       await resolveSaveFileSheetType();
     }
 
-    if (saveFileSheetType === "IDS Collection") {
+    if (
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
+    ) {
+      idMasterID = "";
+      saveFileSheetType = "";
+      saveFilePendingAccessIds = [];
+      saveFileWarningFiles = [];
+      return true;
+    }
+
+    if (saveFileSheetType === SF_COLLECTION_TYPE) {
       await ensureSaveFileCollectionVersion();
     }
-    if (saveFileSheetType !== "IDS Master") {
+    if (saveFileSheetType !== SF_MASTER_TYPE) {
       saveFilePendingAccessIds = [];
       return true;
     }
@@ -1761,7 +1860,7 @@
         );
         if (result && result.success) saveFileImportTargets = result;
       } catch (err) {
-        console.error("Could not resolve IDS Master sheets:", err);
+        AppError.log(err, "resolveSaveFileSubsheetAccess: Could not resolve IDS Master sheets");
       }
     }
 
@@ -1802,7 +1901,8 @@
       const result = await runAppsScript("getSaveFileSheetType", idMasterID);
       if (result && result.success && result.sheetType) {
         saveFileSheetType = result.sheetType;
-        if (saveFileSheetType === "IDS Collection") {
+        setSaveFileSetupError("");
+        if (saveFileSheetType === SF_COLLECTION_TYPE) {
           saveFileCollectionVersionChecked = true;
           if (result.outdated) {
             saveFileCollectionOutdated = {
@@ -1811,9 +1911,17 @@
             };
           }
         }
+      } else {
+        setSaveFileSetupError(
+          (result && result.message) ||
+            "Could not tell whether the linked file is an IDS Master or an IDS Collection.",
+        );
       }
     } catch (err) {
-      console.error("Could not determine sheet type:", err);
+      AppError.log(err, "resolveSaveFileSheetType: Could not determine sheet type");
+      setSaveFileSetupError(
+        `Could not read the linked file: ${err.message || err}`,
+      );
     }
   }
 
@@ -1826,7 +1934,7 @@
       if (
         result &&
         result.success &&
-        result.sheetType === "IDS Collection" &&
+        result.sheetType === SF_COLLECTION_TYPE &&
         result.outdated
       ) {
         saveFileCollectionOutdated = {
@@ -1835,7 +1943,7 @@
         };
       }
     } catch (err) {
-      console.error("Could not check IDS Collection version:", err);
+      AppError.log(err, "ensureSaveFileCollectionVersion: Could not check IDS Collection version");
     }
   }
 
@@ -2104,7 +2212,7 @@
             );
             return {
               type: task.type,
-              result: { success: false, message: e.message || e },
+              result: Object.assign({ success: false }, e),
             };
           });
       }),
@@ -2154,7 +2262,7 @@
         idMasterID,
       );
     } catch (err) {
-      result = { success: false, message: err.message || err };
+      result = Object.assign({ success: false }, err);
     }
 
     const failedMap = {};
@@ -2246,6 +2354,22 @@
     }
 
     el.innerHTML = html;
+
+    // The list above says what happened to each category. If one of those
+    // failures was a defect rather than an expected outcome, raise the panel
+    // once so the user has a reference to quote.
+    const bug = fail.find(function (r) {
+      return !AppError.normalize(r.result, { source: "importData" }).expected;
+    });
+    if (bug) {
+      AppError.show(bug.result, {
+        source: "importData",
+        message: AppError.labelled(
+          bug.type,
+          (bug.result && bug.result.message) || "Import failed",
+        ),
+      });
+    }
   }
 
   function renderSaveFileUpdateRequired(needsAttention, outdated) {
@@ -2309,7 +2433,7 @@
       console.log("Save file picker initialized.");
       authorizeSaveFile();
     } catch (error) {
-      console.error("Error initializing save file picker:", error);
+      AppError.log(error, "initializeSaveFilePicker: Error initializing save file picker");
     }
   }
 
@@ -2460,8 +2584,10 @@
     try {
       pickedIds = await openSaveFileAccessPicker(saveFilePendingAccessIds);
     } catch (error) {
-      console.error("Error opening save file access picker:", error);
-      setStatusText(`Error opening file picker: ${error.message || error}`);
+      AppError.show(error, {
+        source: "ensureSaveFileAccess",
+        message: "The file picker could not be opened.",
+      });
       return false;
     }
 
@@ -2475,8 +2601,10 @@
     try {
       recheck = await checkSaveFileSheetAccess(pickedIds);
     } catch (error) {
-      console.error("Error re-checking access to picked files:", error);
-      setStatusText(`Error verifying access: ${error.message || error}`);
+      AppError.show(error, {
+        source: "ensureSaveFileAccess",
+        message: "The script could not verify access to the selected sheets.",
+      });
       return false;
     }
 

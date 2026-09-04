@@ -100,6 +100,7 @@ screen.
 | `21_header` | ✓ | ✓ | ✓ | Branding, creator-code chips, shared click-to-copy |
 | `21_shared` | | ✓ | ✓ | Picker, access checks, template copying, combined update |
 | `22_status` | ✓ | ✓ | ✓ | The one-line status bar; mobile detection |
+| `22_error` | ✓ | ✓ | ✓ | The error panel, `AppError`, and the shared `runAppsScript` |
 | `23_getStarted` | ✓ | ✓ | ✓ | Get Started explainer + quick setup |
 | `24_selectImport` | ✓ | ✓ | ✓ | Manual file selection when params are missing |
 | `25_fileAccess` | ✓ | ✓ | ✓ | The update workflow's buttons and orchestration |
@@ -145,19 +146,31 @@ conversion).
 
 ## Calling the server
 
-Both `25_fileAccess_scripts` and `28_saveFile_scripts` define the same promise
-wrapper:
+`22_error_scripts` defines the one promise wrapper every page uses. It rejects
+with a **normalised** error — the same shape a failed envelope has — so no
+caller has to guess what it got:
 
 ```javascript
 function runAppsScript(method, ...args) {
-  return new Promise((resolve, reject) => {
+  return new Promise(function (resolve, reject) {
     google.script.run
       .withSuccessHandler(resolve)
-      .withFailureHandler(reject)
+      .withFailureHandler(function (error) {
+        reject(AppError.normalize(error, { source: method }));
+      })
       [method](...args);
   });
 }
 ```
+
+A resolved call can still be a failure — that is what the envelope is for:
+
+```javascript
+const result = await runAppsScript("importData", newSheetID, sheetType, data);
+if (AppError.check(result, "importData")) return;   // panel shown, reference included
+```
+
+See [08 — Error handling](08-error-handling.md) for `AppError` in full.
 
 Bulk operations then become plain `Promise.all` fan-outs with per-item progress:
 
@@ -177,6 +190,9 @@ Two habits worth copying when adding flows:
   down `Promise.all` for the other ten.
 - **Update the DOM inside the handler**, not after the `await`. The user watches
   each sheet land in the summary as it completes.
+- **Report what you swallowed.** A resolved-on-failure item still has to reach
+  the log: `AppError.log(error, "copyTemplates")` records it without putting a
+  panel in front of someone whose other ten sheets copied fine.
 
 ---
 
