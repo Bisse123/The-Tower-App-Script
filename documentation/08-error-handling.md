@@ -126,6 +126,7 @@ the boundary.
   reference: "TWR-M4X2K9-A7F3",   // "" when expected
   detail: "API call to sheets.spreadsheets.values.batchGet failed with error: …",
   trace: ["SheetsAPI.batchGetValues", "importData"],
+  outdated: { running, latest, minimum, unsupported },  // only when behind
   // bugs only, carried so the browser can hand them back for logging:
   note: "…", data: { … }, stack: "…",
 }
@@ -327,9 +328,10 @@ Three things are load-bearing:
 2. **A stack trace in `message`, with a non-empty first line.** Events without
    one are dropped, and the first line is what Error Reporting names the group.
    `errors.text` and `errors.stack` both guard this — do not simplify either.
-3. **`serviceContext.version`**, read from the `APP_VERSION` script property, so
-   a regression can be attributed to a release. It falls back to
-   `"unversioned"`.
+3. **`serviceContext.version`**, the version constant baked into the
+   source by `npm version`, so a regression can be attributed to a release. It
+   falls back to `"unversioned"`. See
+   [07 ▸ Versioning](07-deployment.md#versioning).
 
 ### One-time setup per project
 

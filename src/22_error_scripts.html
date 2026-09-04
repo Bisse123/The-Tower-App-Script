@@ -101,6 +101,7 @@
 
       let note = "";
       let data = null;
+      let outdated = null;
 
       if (raw && typeof raw === "object" && raw.success === false) {
 
@@ -113,6 +114,7 @@
         if (typeof raw.expected === "boolean") expected = raw.expected;
         if (raw.note) note = raw.note;
         if (raw.data) data = raw.data;
+        if (raw.outdated) outdated = raw.outdated;
       } else if (raw instanceof Error || (raw && raw.message)) {
         message = "";
         detail = String(raw.message || raw);
@@ -146,6 +148,7 @@
         stack: raw && raw.stack ? String(raw.stack) : "",
         note: note,
         data: data,
+        outdated: outdated,
       };
       err.expected = expected === null ? AppError._isExpected(err) : expected;
       return err;
@@ -375,6 +378,15 @@
       const messageEl = document.getElementById("errorPanelMessage");
       messageEl.textContent = parts ? "" : err.message;
       messageEl.hidden = !!parts;
+
+      const updateEl = document.getElementById("errorPanelUpdate");
+      if (updateEl) {
+        const stale = err.outdated || (parts || []).map(function (part) {
+          return part.outdated;
+        }).filter(Boolean)[0];
+        updateEl.hidden = !stale;
+        updateEl.textContent = stale ? versionNotice(stale) : "";
+      }
 
       const details = document.getElementById("errorPanelDetails");
       const detailText = document.getElementById("errorPanelDetailText");
@@ -658,4 +670,47 @@
 
     AppError.show(event.reason, { source: "unhandledrejection" });
   });
+
+  /**
+   * Sentence for an out-of-date copy of the script.
+   * @param {{running: string, latest: string, minimum: string,
+   *   unsupported: boolean}} status
+   * @returns {string}
+   */
+  function versionNotice(status) {
+    const running = status.running;
+    if (status.unsupported) {
+      return `This add-on is version ${running} and is no longer supported${
+        status.minimum ? ` — ${status.minimum} or newer is required` : ""
+      }. Update it before continuing, or things will not work correctly.`;
+    }
+    return `You are running version ${running} of the add-on${
+      status.latest ? ` and ${status.latest} is available` : ""
+    }. Updating may fix this.`;
+  }
+
+  /**
+   * Shows the banner when this copy is below the supported floor. Runs on
+   * load; a copy that is merely behind says nothing here, and is mentioned
+   * only if an error happens.
+   * @returns {void}
+   */
+  function checkAppVersion() {
+    const banner = document.getElementById("appVersionBanner");
+    if (!banner || typeof google === "undefined") return;
+    google.script.run
+      .withSuccessHandler(function (status) {
+        if (!status || !status.unsupported) return;
+        banner.textContent = versionNotice(status);
+        banner.hidden = false;
+      })
+      .withFailureHandler(function () {})
+      .getAppVersionStatus();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkAppVersion);
+  } else {
+    checkAppVersion();
+  }
 </script>

@@ -53,9 +53,135 @@ Picker will not initialise:
 | --- | --- |
 | `API_KEY` | Picker developer key |
 | `APP_ID` | Picker app (GCP project number) |
-| `APP_VERSION` | Release label attached to every error report (`serviceContext.version`). Optional — falls back to `unversioned` — but without it a regression cannot be attributed to a release. Bump it when you cut one. See [08](08-error-handling.md). |
+| `LATEST_APP_VERSION` | The newest published release. Written by the deploy workflow when `main` ships; see [Versioning](#versioning). |
+| `MINIMUM_APP_VERSION` | The oldest release still supported. Yours to set, by hand, when a release fixes something users cannot see for themselves. |
 
-Set them under *Project Settings ▸ Script Properties* in the Apps Script editor.
+Set `API_KEY` and `APP_ID` under *Project Settings ▸ Script Properties* in the
+Apps Script editor.
+
+---
+
+## Versioning
+
+The running release is **baked into the source** as `appVersion.VERSION` in
+[00_Version.js](../src/00_Version.js). That file is the source of truth: it
+is the only copy that ships, because clasp pushes just `src/`.
+
+```
+npm run bump patch              1.4.1 -> 1.4.2
+npm run bump minor              1.4.1 -> 1.5.0
+npm run bump major              1.4.1 -> 2.0.0
+npm run bump minor min          … and raise the supported floor to it
+```
+
+It gets the current version by *evaluating* `00_Version.js` and calling
+`appVersion.running()` — the same accessor the app uses — then increments it
+and writes it back along with the floor. **It edits files only**: nothing is
+committed, tagged or staged, and it does not care whether the working tree
+is clean. Commit the change along with the work it belongs to.
+
+The write itself has to be textual. Apps Script source has no filesystem, so
+nothing inside `00_Version.js` can write itself; a `setVersion()` there could
+only change an object in memory. What the evaluation buys instead is a check
+on the way out: the file is re-evaluated afterwards to prove the edit
+produced valid JavaScript carrying the intended values, and is put back
+untouched if it did not.
+
+`appVersion.MINIMUM` is read as a member rather than through `minimum()`,
+which answers a different question — the floor that has been *published* to
+the script property, not the one this release declares.
+
+Keeping it out of git is deliberate: a release here is a push to `main`, not
+a tag, so a bump that insisted on a clean tree would force an artificial
+commit in the middle of ordinary work.
+
+`package.json` has **no `version` field**, deliberately. This is not an npm
+package and is never published, so a version there would only be a second
+copy of the same number with nothing keeping it honest — and a stale one is
+worse than none, because it reads like an answer. npm does not mind: `npm
+run` and `npm install` both work without it.
+
+A bump that cannot finish leaves the file untouched rather than
+half-applied — whether the version is unreadable, the file will not evaluate,
+or the write reads back wrong.
+
+**Why not a script property.** Script properties are project-scoped: one store
+shared by every version and every deployment. Setting the version there would
+report the newest release to everybody, including a user still running an older
+add-on — so error reports would name the wrong release, and no code could tell
+whether the user was up to date. A constant ships with the code that contains
+it, so it always names what is actually running.
+
+Three values work together:
+
+| | Where it lives | What it means | Who sets it |
+| --- | --- | --- | --- |
+| `appVersion.VERSION` | Baked into the source | The release **this** user is running | `npm run bump` |
+| `LATEST_APP_VERSION` | Script property | The newest release **anyone** is running | The deploy workflow |
+| `MINIMUM_APP_VERSION` | Script property | The oldest release still supported | You, by hand |
+
+### The two thresholds
+
+They answer different questions, and behave differently on purpose.
+
+| Running version | What happens |
+| --- | --- |
+| At or above `LATEST` | Nothing |
+| Below `LATEST`, at or above `MINIMUM` | Nothing up front. If an error happens, the panel adds a line saying an update is available and may fix it. |
+| Below `MINIMUM` | A banner on page load, before the user does anything, telling them to update. |
+
+`LATEST` alone would only ever surface after something went wrong, which is no
+use for a bug a user reported and you fixed — the kind that misbehaves quietly
+rather than throwing. `MINIMUM` is how you say *this one you have to take*.
+Leave it where it is for releases an older copy can live without.
+
+The status reaches the page two ways: `getAppVersionStatus()` on load for the
+banner, and an `outdated: { running, latest, minimum, unsupported }` field on
+every failure envelope for the panel line. See [08](08-error-handling.md).
+
+### Publishing `LATEST_APP_VERSION`
+
+Shipping `main` updates the web app and the add-on together, so that is the
+moment the pointer becomes true. The deploy workflow's last step calls
+`setLatestAppVersion()`, which writes the running version into the
+property.
+
+**Why this needs setup when `clasp deploy` does not.** They are different APIs.
+`clasp deploy` calls `projects.deployments.create`, which the workflow's token
+already covers. `clasp run` calls `scripts.run`, and there is no properties
+endpoint in the Apps Script API — running a function is the only way to reach
+`PropertiesService` from outside the script. `scripts.run` additionally
+requires:
+
+1. An **API executable** deployment: *Deploy ▸ New deployment ▸ API executable*
+   in the production project. This is separate from the web app deployment and
+   is the piece most likely to be missing.
+2. The **Apps Script API** enabled for the account behind `CLASP_REFRESH_TOKEN`,
+   at <https://script.google.com/home/usersettings>.
+3. The caller and the script sharing one Cloud project — already true, from
+   `projectId` in `.clasp.prod.json`.
+
+If the run is refused on scopes, re-mint `CLASP_REFRESH_TOKEN` with
+`clasp login --creds` and update the secret.
+
+The step runs in clasp's default **dev mode**, which executes the project's
+HEAD — the content the previous step just verified against this commit, so the
+version it publishes is this release. `--nondev` would run the version
+the API-executable deployment is pinned to instead, and nothing in this
+workflow updates that deployment, so it would publish a stale version as the
+newest one.
+
+The step runs **after** the deploy and fails the build if it cannot write the
+property: the release is already out at that point, so a red build means the
+pointer is stale, not that the deploy broke. The fallback while you sort the
+setup out is one field — set `LATEST_APP_VERSION` under *Project Settings ▸
+Script Properties*, or run `setLatestAppVersion` once from the editor.
+
+**Note on Apps Script's own version numbers.** `clasp version` assigns a number
+(229, 230, …) only *after* a push, so it cannot be baked in beforehand, and it
+differs between the dev and production projects. The semver in
+`00_Version.js` is the one label that is stable across both and known before
+the push.
 
 ---
 

@@ -288,18 +288,30 @@ const errors = {
   },
 
   /**
-   * The APP_VERSION script property.
-   * @returns {string} The version, or "unversioned".
+   * Adds the outdated-release notice to a failure envelope, when there is one.
+   * @param {Object} envelope Mutated in place.
+   * @returns {Object} The same envelope.
    */
-  version: function () {
+  /**
+   * The running release, for serviceContext. Tolerates appVersion being
+   * absent so a log entry is never lost over a missing version label.
+   * @returns {string}
+   */
+  _runningVersion: function () {
     try {
-      return (
-        PropertiesService.getScriptProperties().getProperty("APP_VERSION") ||
-        "unversioned"
-      );
+      return appVersion.running();
     } catch (ignored) {
       return "unversioned";
     }
+  },
+
+  _attachOutdated: function (envelope) {
+    try {
+      var stale = appVersion.status();
+      if (stale) envelope.outdated = stale;
+    } catch (ignored) {
+    }
+    return envelope;
   },
 
   /**
@@ -322,7 +334,7 @@ const errors = {
         ),
       serviceContext: {
         service: fields.service,
-        version: errors.version(),
+        version: errors._runningVersion(),
       },
       context: {
         reportLocation: { functionName: fields.source },
@@ -469,6 +481,8 @@ const errors = {
       if (report && report.stack) envelope.stack = report.stack;
     }
 
+    errors._attachOutdated(envelope);
+
     if (extra) {
       Object.keys(extra).forEach(function (key) {
         envelope[key] = extra[key];
@@ -537,6 +551,8 @@ const errors = {
       if (stack) envelope.stack = stack;
     }
 
+    errors._attachOutdated(envelope);
+
     if (extra) {
       Object.keys(extra).forEach(function (key) {
         envelope[key] = extra[key];
@@ -572,6 +588,8 @@ const errors = {
       if (report.note) envelope.note = report.note;
       if (report.data) envelope.data = report.data;
     }
+
+    errors._attachOutdated(envelope);
 
     if (extra) {
       Object.keys(extra).forEach(function (key) {
@@ -649,7 +667,7 @@ function reportClientError(payload) {
       message: stack || `Error: ${message}\n    at ${source} (${source}:0:0)`,
       serviceContext: {
         service: "the-tower-app-script-client",
-        version: errors.version(),
+        version: errors._runningVersion(),
       },
       context: {
         reportLocation: { functionName: source },
