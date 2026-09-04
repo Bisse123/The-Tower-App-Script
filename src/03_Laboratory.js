@@ -1,5 +1,12 @@
 const lab = {
-  // #region Export Functions
+
+  /**
+   * Reads Laboratory data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: lab.exportData");
@@ -24,9 +31,7 @@ const lab = {
         data: oldDataResult,
       };
     } catch (error) {
-      // oldDataResult is undefined if the failure happened before the
-      // version-specific export function returned - that alone says how far
-      // this got.
+
       var errorReport = errors.report("lab.exportData", error, {
         versionDifference: versionDifference,
         oldSheetID: oldSheetID,
@@ -36,8 +41,12 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Laboratory data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: lab.importData");
@@ -63,7 +72,6 @@ const lab = {
         requiredRanges.push(labPlannerSheetName);
       }
 
-      // Batch get required data for update function only
       var batchResults = SheetsAPI.batchGetFormulas(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
         console.log(`Could not read required data from spreadsheet`);
@@ -77,7 +85,6 @@ const lab = {
       var idsData = batchResults[1].values;
       var labPlannerData = batchResults[2] ? batchResults[2].values : null;
 
-      // Only update lab levels if key exists
       if (data.hasOwnProperty("oldLabLevels")) {
         var oldLabLevels = data.oldLabLevels;
         var labResult = this.updateLabLevels(
@@ -92,7 +99,6 @@ const lab = {
         batchUpdate = batchUpdate.concat(labResult.batchUpdate || []);
       }
 
-      // Only update lab planner if key exists
       if (data.hasOwnProperty("oldLabPlanner")) {
         var oldLabPlanner = data.oldLabPlanner;
         var labPlannerResult = this.updateLabPlanner(
@@ -109,7 +115,6 @@ const lab = {
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
-      // Set sheet IDs and IDS Master ID (moved from copyFileTemplate for optimization)
       batchUpdate = shared.addIDUpdatesToBatch(
         batchUpdate,
         "Laboratory",
@@ -118,7 +123,6 @@ const lab = {
         data.idMasterID,
       );
 
-      // Apply all updates
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -143,8 +147,13 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes LabLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldLabLevels
+   * @param {Object} masterSheetData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateLabLevels: function (sheetName, oldLabLevels, masterSheetData) {
     try {
       console.log("Called: lab.updateLabLevels");
@@ -232,6 +241,13 @@ const lab = {
     }
   },
 
+  /**
+   * Builds the batch update that writes LabPlanner into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldLabPlanner
+   * @param {Object} labPlannerData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateLabPlanner: function (sheetName, oldLabPlanner, labPlannerData) {
     try {
       console.log("Called: lab.updateLabPlanner");
@@ -367,7 +383,7 @@ const lab = {
                 for (var index = 0; index < miscData.length; index++) {
                   var dataRow = miscData[index];
                   if (dataRow && dataRow.length > 0) {
-                    // var headers = Object.keys(oldLabPlanner);
+
                     var oldLabHeader =
                       oldLabPlanner[estimatedCoinsHeader[index]];
                     if (!oldLabHeader) {
@@ -500,8 +516,7 @@ const lab = {
         message: "No lab planner formulas found to update",
       };
     } catch (error) {
-      // rowIndex is which row of labPlannerData was being processed when it
-      // broke - the exact point of failure in a 800-line scan.
+
       var errorReport = errors.report("lab.updateLabPlanner", error, {
         sheetName: sheetName,
         oldLabPlanner: oldLabPlanner,
@@ -513,8 +528,11 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Laboratory data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: lab.version1_0");
@@ -565,7 +583,6 @@ const lab = {
         oldLabPlannerValues = labBatchResult[1].values;
       }
 
-      // Process lab levels first
       var labLevelsResult = this.getVersion1_0LabLevels(oldLabLevelsValues);
       if (!labLevelsResult || !labLevelsResult.success) {
         return labLevelsResult;
@@ -574,7 +591,6 @@ const lab = {
       var oldLabLevels = labLevelsResult.oldLabLevels;
       var oldLabMax = labLevelsResult.oldLabMax;
 
-      // Process lab planner if data exists
       var labPlannerResult = this.getVersion1_0LabPlanner(
         oldLabPlannerValues,
         oldLabPlannerFormulas,
@@ -612,8 +628,11 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Get Lab Levels
+  /**
+   * Extracts LabLevels from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldLabLevelsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0LabLevels: function (oldLabLevelsValues) {
     try {
       console.log("Called: lab.getVersion1_0LabLevels");
@@ -650,8 +669,14 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Get Lab Planner
+  /**
+   * Extracts LabPlanner from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldLabPlannerValues
+   * @param {Array<Array<string>>} oldLabPlannerFormulas
+   * @param {Array<Array<*>>} oldLabLevels
+   * @param {Array<Array<*>>} oldLabMax
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0LabPlanner: function (
     oldLabPlannerValues,
     oldLabPlannerFormulas,
@@ -869,8 +894,11 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Laboratory data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseLabData: function (data) {
     try {
       const labNamesByIndex = {
@@ -1099,14 +1127,14 @@ const lab = {
         245: "Saboteur Enemy Health",
         251: "Cells Mastery",
         252: "Global Presets",
-        // Not confirmed
+
         253: "Overcharge Exponent Reducer",
-        // Not confirmed
+
         254: "Commander Radius",
-        // Not confirmed
+
         255: "Saboteur Attack Speed",
       };
-    
+
       const labLevels = data.researchLevel || [];
       var oldLabLevels = {};
       var labOrder = [];
@@ -1138,16 +1166,17 @@ const lab = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: lab.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -1167,6 +1196,5 @@ const lab = {
 
     return null;
   },
-  
-  // #endregion
+
 };

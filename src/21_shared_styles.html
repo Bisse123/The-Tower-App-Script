@@ -1,10 +1,18 @@
 <style>
+  /* =====================================================================
+     Page base
+     ===================================================================== */
+
   body {
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 20px;
     line-height: 1.4;
   }
+
+  /* =====================================================================
+     Form controls: buttons, inputs, selects
+     ===================================================================== */
 
   button {
     padding: 0 32px;
@@ -115,6 +123,10 @@
     box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
   }
 
+  /* =====================================================================
+     Typography: labels, lists, keyboard keys
+     ===================================================================== */
+
   label {
     display: block;
     font-size: 0.85em;
@@ -139,15 +151,17 @@
     color: #3c4043;
   }
 
+  /* =====================================================================
+     Section blocks and their headings
+     ===================================================================== */
+
   .section {
     margin: 10px 0;
     padding: 15px;
     border-radius: 6px;
     border-width: 1px;
     border-style: solid;
-    /* Thicker accent bar on the left edge, shared by every root section and
-       subsection. Each section supplies its own scheme colour via border-color;
-       must stay after border-width so the shorthand doesn't reset it. */
+
     border-left-width: 5px;
     box-sizing: border-box;
     word-wrap: break-word;
@@ -174,6 +188,10 @@
     word-break: break-all;
   }
 
+  /* =====================================================================
+     Section entry animation
+     ===================================================================== */
+
   @keyframes slideIn {
     from {
       opacity: 0;
@@ -184,6 +202,10 @@
       transform: translateY(0);
     }
   }
+
+  /* =====================================================================
+     Touch sizing under 768px
+     ===================================================================== */
 
   @media (max-width: 768px) {
     button {
@@ -234,7 +256,10 @@
     }
   }
 
-  /* Loading Spinner Styles */
+  /* =====================================================================
+     Spinners and loading states
+     ===================================================================== */
+
   .spinner {
     display: inline-block;
     width: 20px;
@@ -260,7 +285,6 @@
     margin-right: 6px;
   }
 
-  /* Spinner with text container */
   .loading-container {
     display: flex;
     align-items: center;
@@ -273,7 +297,6 @@
     font-size: 14px;
   }
 
-  /* Button with spinner */
   .button-loading {
     position: relative;
     color: transparent !important;
@@ -293,7 +316,6 @@
     animation: spin 1s ease-in-out infinite;
   }
 
-  /* Overlay spinner for full loading states */
   .loading-overlay {
     position: absolute;
     top: 0;
@@ -314,7 +336,6 @@
     margin-right: 0;
   }
 
-  /* Keyframe animation */
   @keyframes spin {
     0% {
       transform: rotate(0deg);
@@ -324,7 +345,10 @@
     }
   }
 
-  /* Hide element utility */
+  /* =====================================================================
+     Utilities
+     ===================================================================== */
+
   .hidden {
     display: none !important;
   }

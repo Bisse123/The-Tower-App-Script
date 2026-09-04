@@ -1,5 +1,12 @@
 const bots = {
-  // #region Export Functions
+
+  /**
+   * Reads Bots data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: bots.exportData");
@@ -32,13 +39,16 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Bots data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: bots.importData");
 
-      // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "IDS"];
       var dvtIndex = requiredRanges.length;
       var dvtNamedRanges = {
@@ -112,7 +122,6 @@ const bots = {
 
       var batchUpdate = [];
 
-      // Only update bots if key exists
       if (data.hasOwnProperty("oldBots")) {
         var oldBots = data.oldBots;
         var botsResult = this.updateBotLevels(
@@ -128,7 +137,6 @@ const bots = {
         batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Bots",
@@ -137,7 +145,6 @@ const bots = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -160,8 +167,14 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes BotLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldBots
+   * @param {Object} masterSheetData
+   * @param {Object} dvtNamedRangesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateBotLevels: function (
     sheetName,
     oldBots,
@@ -271,7 +284,6 @@ const bots = {
         };
       }
 
-      // Filter out empty rows
       var newBotData = newBotDataValues.filter((row) =>
         row.some(
           (cell) =>
@@ -318,12 +330,11 @@ const bots = {
             if (!presetData) {
               continue;
             }
-            
+
             if (!newBotToggle.hasOwnProperty(presetName)) {
               newBotToggle[presetName] = [];
             }
 
-            // One entry per sheet row so the toggle column stays aligned with the levels column
             if (botRowOffset === 1 && presetData.hasOwnProperty("active")) {
               newBotToggle[presetName].push([presetData.active]);
             } else if (botRowOffset === 4 && presetData.hasOwnProperty("sync")) {
@@ -410,8 +421,11 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Bots data from a v3.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_2: function (oldSheetID) {
     try {
       console.log("Called: bots.version3_2");
@@ -443,6 +457,11 @@ const bots = {
     }
   },
 
+  /**
+   * Reads Bots data from a v3.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version3_0");
@@ -474,6 +493,11 @@ const bots = {
     }
   },
 
+  /**
+   * Reads Bots data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version2_0");
@@ -505,6 +529,11 @@ const bots = {
     }
   },
 
+  /**
+   * Reads Bots data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: bots.version1_0");
@@ -536,8 +565,11 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Get Bots
+  /**
+   * Extracts Bots from a v3.2 sheet's values.
+   * @param {Array<Array<*>>} oldBotLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_2Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion3_2Bots");
@@ -624,17 +656,10 @@ const bots = {
           if (!key) {
             continue;
           }
-          
-          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
-          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
+
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            // if (
-            //   presetMap.levelColIndex !== defaultLevelColIndex &&
-            //   levelValue === defaultLevelValue
-            // ) {
-            //   levelValue = null;
-            // }
+
             bot.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
@@ -655,6 +680,11 @@ const bots = {
     }
   },
 
+  /**
+   * Extracts Bots from a v3.0 sheet's values.
+   * @param {Array<Array<*>>} oldBotLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_0Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion3_0Bots");
@@ -749,16 +779,9 @@ const bots = {
             continue;
           }
 
-          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
-          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            // if (
-            //   presetMap.levelColIndex !== defaultLevelColIndex &&
-            //   levelValue === defaultLevelValue
-            // ) {
-            //   levelValue = null;
-            // }
+
             bot.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
@@ -779,6 +802,11 @@ const bots = {
     }
   },
 
+  /**
+   * Extracts Bots from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldBotLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion2_0Bots");
@@ -804,7 +832,7 @@ const bots = {
       };
       for (var row = 0; row < oldBotLevels.length; row++) {
         var botName = oldBotLevels[row][0];
-        // Only proceed if botName is in targetBots
+
         if (botName && targetBots.includes(botName)) {
           var unlocked = oldBotLevels[row + 3][0];
           var bot = {
@@ -846,6 +874,11 @@ const bots = {
     }
   },
 
+  /**
+   * Extracts Bots from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldBotLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0Bots: function (oldBotLevelsData) {
     try {
       console.log("Called: bots.getVersion1_0Bots");
@@ -871,7 +904,7 @@ const bots = {
       };
       for (var row = 0; row < oldBotLevels.length; row++) {
         var botName = oldBotLevels[row][0];
-        // Only proceed if botName is in targetBots
+
         if (botName && targetBots.includes(botName)) {
           var unlocked = oldBotLevels[row + 3][0];
           var bot = {
@@ -921,8 +954,11 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Bots data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseBotsData: function (data) {
     try {
       const targetBots = {
@@ -988,7 +1024,7 @@ const bots = {
             acc[upgrade] = level ? String(level).padStart(2, "0") : "00";
             return acc;
           }, {});
-        
+
           props[targetBots[botName].plusUpgrade] = "Lo";
           if (botPreset.plusUnlocked) {
             props[targetBots[botName].plusUpgrade] =
@@ -1027,8 +1063,6 @@ const bots = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -1038,8 +1072,11 @@ const bots = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -1059,5 +1096,4 @@ const bots = {
     return null;
   },
 
-  // #endregion
 };

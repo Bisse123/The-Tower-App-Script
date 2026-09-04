@@ -1,5 +1,12 @@
 const themes = {
-  // #region Export Functions
+
+  /**
+   * Reads Themes_&_Songs data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: themes.exportData");
@@ -32,13 +39,16 @@ const themes = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Themes_&_Songs data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: themes.importData");
 
-      // Batch get required data for update function only
       var requiredRanges = ["Themes & Songs", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -54,7 +64,6 @@ const themes = {
 
       var batchUpdate = [];
 
-      // Only update themes if key exists
       if (data.hasOwnProperty("oldThemesNames")) {
         var oldThemesNames = data.oldThemesNames;
         var themesResult = this.updateThemes(
@@ -69,7 +78,6 @@ const themes = {
         batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Themes & Songs",
@@ -78,7 +86,6 @@ const themes = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -101,8 +108,13 @@ const themes = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes Themes into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldThemesNames
+   * @param {Object} newThemesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateThemes: function (sheetName, oldThemesNames, newThemesData) {
     try {
       console.log("Called: themes.updateThemes");
@@ -129,11 +141,9 @@ const themes = {
         targetThemes.push("Milestone Skin");
       }
 
-      // For each header, store {col, startRow} for quick reference
       var headerLocations = {};
       var batchUpdate = [];
 
-      // Pre-scan to find header columns and their start rows
       for (var i = 0; i < newThemesData.length; i++) {
         for (var j = 0; j < newThemesData[i].length; j++) {
           var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
@@ -145,16 +155,15 @@ const themes = {
             break;
           }
           if (targetThemes.indexOf(newThemeUnlocked) !== -1) {
-            // If not already recorded for this col, store its location
+
             if (!headerLocations[newThemeUnlocked]) {
               headerLocations[newThemeUnlocked] = [];
             }
-            headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 }); // +1 to start below header
+            headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 });
           }
         }
       }
 
-      // For each header, possibly in multiple places
       for (var key in headerLocations) {
         headerLocations[key].forEach(function (loc) {
           var checkboxCol = loc.col;
@@ -207,8 +216,11 @@ const themes = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Themes_&_Songs data from a v2.1.6 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1_6: function (oldSheetID) {
     try {
       console.log("Called: themes.version2_1_6");
@@ -237,6 +249,11 @@ const themes = {
     }
   },
 
+  /**
+   * Reads Themes_&_Songs data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: themes.version1_0");
@@ -265,8 +282,11 @@ const themes = {
     }
   },
 
-  // #endregion
-  // #region Get Themes
+  /**
+   * Extracts Themes from a v2.1.6 sheet's values.
+   * @param {Array<Array<*>>} oldThemesData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_1_6Themes: function (oldThemesData) {
     try {
       console.log("Called: themes.getVersion2_1_6Themes");
@@ -287,7 +307,7 @@ const themes = {
       });
       var currentHeader = null;
       var headerCol = -1;
-      // Loop through each column first, then rows
+
       for (var col = 1; col < oldThemesData[1].length; col++) {
         for (var row = 0; row < oldThemesData.length; row++) {
           var oldThemeUnlocked = oldThemesData[row][col];
@@ -295,7 +315,7 @@ const themes = {
             oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
             continue;
           }
-          // If cell is a header
+
           if (
             targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
           ) {
@@ -326,6 +346,11 @@ const themes = {
     }
   },
 
+  /**
+   * Extracts Themes from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldThemesData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0Themes: function (oldThemesData) {
     try {
       console.log("Called: themes.getVersion1_0Themes");
@@ -345,11 +370,11 @@ const themes = {
       });
       var currentHeader = null;
       var headerCol = -1;
-      // Loop through each column first, then rows
+
       for (var col = 1; col < oldThemesData[1].length; col++) {
         for (var row = 0; row < oldThemesData.length; row++) {
           var oldThemeUnlocked = oldThemesData[row][col];
-          // If cell is a header
+
           if (
             targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
           ) {
@@ -384,8 +409,6 @@ const themes = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -393,8 +416,11 @@ const themes = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -414,5 +440,4 @@ const themes = {
     return null;
   },
 
-  // #endregion
 };

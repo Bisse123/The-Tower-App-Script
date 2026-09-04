@@ -1,11 +1,10 @@
 <script>
-  /* Every click-to-copy element in the app lives here: the creator code chips
-     in the header and the snippet blocks in the save file guide all behave the
-     same way, so they share one implementation. */
-
-  // Copies text and reports whether it worked. The Clipboard API is blocked in
-  // some sandboxed Apps Script iframes, so fall back to the old execCommand
-  // path while we are still inside the user's click handler.
+  /**
+   * Copies text, falling back to execCommand when the async API is refused.
+   * @param {string} text
+   * @param {Function} [done] Called with (ok: boolean).
+   * @returns {void}
+   */
   function copyTextToClipboard(text, done) {
     const finish = typeof done === "function" ? done : function () {};
     if (!text) {
@@ -26,6 +25,11 @@
     finish(legacyCopyText(text));
   }
 
+  /**
+   * Clipboard copy via a hidden textarea.
+   * @param {string} text
+   * @returns {boolean} Whether the copy succeeded.
+   */
   function legacyCopyText(text) {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -45,8 +49,11 @@
     return ok;
   }
 
-  // Last resort when every copy path was refused: leave the text selected so
-  // the user can still hit Ctrl+C.
+  /**
+   * Selects an element's text in the document.
+   * @param {HTMLElement} el
+   * @returns {void}
+   */
   function selectElementText(el) {
     try {
       const range = document.createRange();
@@ -57,7 +64,12 @@
     } catch (e) {}
   }
 
-  // Both stylesheets render the feedback from these two classes.
+  /**
+   * Flashes a copied/failed class on an element for 1.2s.
+   * @param {HTMLElement} el
+   * @param {boolean} ok
+   * @returns {void}
+   */
   function flashCopyState(el, ok) {
     el.classList.remove("is-copied", "is-copyfailed");
     el.classList.add(ok ? "is-copied" : "is-copyfailed");
@@ -67,8 +79,13 @@
     }, 1700);
   }
 
-  // Turns an element into a copy button. getText() supplies what to copy and
-  // onFail (optional) runs when copying was refused.
+  /**
+   * Wires click and Enter/Space on an element to copy the text it supplies.
+   * @param {HTMLElement} el
+   * @param {Function} getText Returns the string to copy.
+   * @param {Function} [onFail] Called when the copy fails.
+   * @returns {void}
+   */
   function initCopyOnClick(el, getText, onFail) {
     const run = function () {
       const text = getText();
@@ -89,7 +106,6 @@
     });
   }
 
-  // Creator code chips in the header: copy that creator's code.
   (function initCreatorCodeCopy() {
     const chips = document.querySelectorAll(".creatorChip");
     Array.prototype.forEach.call(chips, function (chip) {
@@ -103,9 +119,6 @@
     });
   })();
 
-  // Snippet blocks in the save file guide (absent on the other pages). The
-  // multi-line <pre> keeps its line breaks; the inline boxes are written across
-  // several source lines, so their whitespace collapses back into one command.
   (function initSaveGuideCopy() {
     const blocks = document.querySelectorAll(".saveGuideSection .sgCode");
     Array.prototype.forEach.call(blocks, function (el) {

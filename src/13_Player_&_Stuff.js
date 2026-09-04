@@ -1,5 +1,12 @@
 const playerStuff = {
-  // #region Export Functions
+
+  /**
+   * Reads Player_&_Stuff data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: playerStuff.exportData");
@@ -32,13 +39,16 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Player_&_Stuff data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: playerStuff.importData");
 
-      // Batch get required data for update function only
       var requiredRanges = ["Master Sheet", "Perk Preset", "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length === 0) {
@@ -55,7 +65,6 @@ const playerStuff = {
 
       var batchUpdate = [];
 
-      // Only update player & stuff data if key exists
       if (
         data.hasOwnProperty("oldPlayerStuffTierData") &&
         data.hasOwnProperty("oldPlayerStuffStatsData")
@@ -98,7 +107,6 @@ const playerStuff = {
         batchUpdate = batchUpdate.concat(playerPerksResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Player & Stuff",
@@ -129,8 +137,14 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes PlayerStuffData into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldPlayerTierData
+   * @param {Object} oldPlayerStatsData
+   * @param {Object} masterSheetData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updatePlayerStuffData: function (
     sheetName,
     oldPlayerTierData,
@@ -328,6 +342,14 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Builds the batch update that writes PlayerPerksPreset into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldPlayerPerksData
+   * @param {*} shouldRemoveUsedPerks
+   * @param {Object} perksSheetData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updatePlayerPerksPreset: function (
     sheetName,
     oldPlayerPerksData,
@@ -473,8 +495,11 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Player_&_Stuff data from a v4.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_2: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version4_2");
@@ -523,6 +548,11 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Reads Player_&_Stuff data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version4_0");
@@ -563,6 +593,11 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Reads Player_&_Stuff data from a v3.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_2: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version3_2");
@@ -603,6 +638,11 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Reads Player_&_Stuff data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: playerStuff.version2_0");
@@ -643,8 +683,11 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Get PlayerStuff Tiers
+  /**
+   * Extracts PlayerStuffTiers from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldPlayerStuffTierValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
       console.log("Called: playerStuff.getVersion4_0PlayerStuffTiers");
@@ -656,8 +699,7 @@ const playerStuff = {
           message: "No data found in old player & stuff tier data",
         };
       }
-      // Wave / dissonant cells may be display-formatted (e.g. "5,000"); strip
-      // the thousands separators so values match the raw save file numbers.
+
       var stripCommas = function (v) {
         if (v === null || v === undefined || v === "") return v;
         var s = String(v).replace(/,/g, "");
@@ -700,6 +742,11 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Extracts PlayerStuffTiers from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldPlayerStuffTierValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0PlayerStuffTiers: function (oldPlayerStuffTierValues) {
     try {
       console.log("Called: playerStuff.getVersion2_0PlayerStuffTiers");
@@ -711,7 +758,7 @@ const playerStuff = {
           message: "No data found in old player & stuff tier data",
         };
       }
-      // Strip thousands separators (e.g. "5,000") so wave values compare cleanly.
+
       var stripCommas = function (v) {
         if (v === null || v === undefined || v === "") return v;
         var s = String(v).replace(/,/g, "");
@@ -744,8 +791,11 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Get PlayerStuff Stats
+  /**
+   * Extracts PlayerStuffStats from a v3.2 sheet's values.
+   * @param {Array<Array<*>>} oldPlayerStuffStatsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_2PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
       console.log("Called: playerStuff.getVersion3_2PlayerStuffStats");
@@ -792,6 +842,11 @@ const playerStuff = {
     }
   },
 
+  /**
+   * Extracts PlayerStuffStats from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} oldPlayerStuffStatsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0PlayerStuffStats: function (oldPlayerStuffStatsValues) {
     try {
       console.log("Called: playerStuff.getVersion2_0PlayerStuffStats");
@@ -838,8 +893,11 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Get PlayerStuff Perks
+  /**
+   * Extracts PlayerStuffPerks from a v4.2 sheet's values.
+   * @param {Array<Array<*>>} oldPlayerStuffPerksValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_2PlayerStuffPerks: function (oldPlayerStuffPerksValues) {
     try {
       console.log("Called: playerStuff.getVersion4_2PlayerStuffPerks");
@@ -856,9 +914,6 @@ const playerStuff = {
       var shouldRemoveUsedPerks;
       var oldPerksPreset = {};
 
-      // Every preset name may have been renamed, so the header row is located
-      // from the "Remove used perks from the pool" toggle above it, which the
-      // template always puts two rows higher.
       var headerRowIndex = -1;
       for (
         var rowIndex = 0;
@@ -955,8 +1010,11 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Player_&_Stuff data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parsePlayerStuffData: function (data) {
     try {
       const tourneyNames = {
@@ -983,6 +1041,11 @@ const playerStuff = {
 
       const battleHistory = data.battleHistory || [];
 
+      /**
+       * Formats a lifetime total with a magnitude suffix.
+       * @param {*} value
+       * @returns {string|null} Null when there is no usable number.
+       */
       function formatLifeTime(value) {
         if (value === null || value === undefined || value === "") {
           return null;
@@ -991,14 +1054,17 @@ const playerStuff = {
           return value;
         }
 
-        // Suffix for a given power-of-1000 group.
-        // 0 -> "", 1 -> K, 2 -> M, ... 11 -> D, then aa, ab, ac, ...
+        /**
+         * The magnitude suffix for a thousands group: K, M, B, then aa, ab, …
+         * @param {number} group
+         * @returns {string}
+         */
         function getSuffix(group) {
           var named = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "D"];
           if (group < named.length) {
             return named[group];
           }
-          var n = group - named.length; // 0-based index into aa, ab, ac, ...
+          var n = group - named.length;
           var first = Math.floor(n / 26);
           var second = n % 26;
           return (
@@ -1009,7 +1075,6 @@ const playerStuff = {
         var negative = value < 0;
         var num = Math.abs(value);
 
-        // Below 1000 there is no suffix.
         if (num < 1000) {
           return (negative ? "-" : "") + String(Math.round(num * 100) / 100);
         }
@@ -1017,7 +1082,6 @@ const playerStuff = {
         var group = Math.floor(Math.log10(num) / 3);
         var mantissa = num / Math.pow(1000, group);
 
-        // Guard against floating point / rounding pushing the mantissa to 1000+.
         if (mantissa >= 1000) {
           mantissa /= 1000;
           group += 1;
@@ -1080,8 +1144,7 @@ const playerStuff = {
 
       var nextPremium = 0;
       for (var tier = 0; tier < highestWavePerTier.length; tier++) {
-        // Waves are kept uncapped here; the save file UI decides whether to show
-        // and import them at the cap or as the highest wave actually reached.
+
         var wave = highestWavePerTier[tier];
         if (wave <= 0) {
           continue;
@@ -1121,8 +1184,6 @@ const playerStuff = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v2.0": this.version2_0.bind(this),
@@ -1132,8 +1193,11 @@ const playerStuff = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -1153,5 +1217,4 @@ const playerStuff = {
     return null;
   },
 
-  // #endregion
 };

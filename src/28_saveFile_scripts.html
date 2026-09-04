@@ -42,6 +42,10 @@
       }
     });
 
+  /**
+   * Clears the parsed results and any parse warning.
+   * @returns {void}
+   */
   function clearSaveFileParseUI() {
     parsedSaveData = null;
     saveFilePendingDriveFile = null;
@@ -54,6 +58,10 @@
     refreshSaveFileImportSummary();
   }
 
+  /**
+   * Shows which save file is currently held, and where it came from.
+   * @returns {void}
+   */
   function updateHeldSaveFileLabel() {
     const el = document.getElementById("saveFileHeldName");
     if (!el) return;
@@ -86,6 +94,10 @@
     el.style.display = "";
   }
 
+  /**
+   * Reads the chosen local file and parses it.
+   * @returns {void}
+   */
   function parseFile() {
     const file = document.getElementById("saveFileInput").files[0];
     if (file) {
@@ -111,6 +123,10 @@
     }
   }
 
+  /**
+   * Downloads and parses the Drive file the user picked.
+   * @returns {Promise<void>}
+   */
   async function parsePendingDriveFile() {
     const picked = saveFilePendingDriveFile;
     if (!picked) return;
@@ -139,6 +155,12 @@
     await parseSaveFileByteArray(byteArray, picked.name);
   }
 
+  /**
+   * Sends save-file bytes to the server and renders what comes back.
+   * @param {number[]} byteArray
+   * @param {string} fileName
+   * @returns {void}
+   */
   function parseSaveFileByteArray(byteArray, fileName) {
     setStatusWithSpinner("Parsing…");
     return Promise.all([
@@ -168,6 +190,10 @@
       });
   }
 
+  /**
+   * Opens the Drive picker for a playerInfo.dat and parses the choice.
+   * @returns {Promise<void>}
+   */
   async function pickSaveFileFromDrive() {
     if (!saveFilePickerReady || typeof google === "undefined" || !google.picker) {
       setStatusText(
@@ -206,6 +232,11 @@
     );
   }
 
+  /**
+   * Downloads a Drive file's bytes.
+   * @param {string} fileId
+   * @returns {Promise<number[]>}
+   */
   async function downloadDriveFileBytes(fileId) {
     const res = await fetch(
       "https://www.googleapis.com/drive/v3/files/" +
@@ -225,6 +256,10 @@
     return Array.from(new Uint8Array(buffer));
   }
 
+  /**
+   * Opens the Drive picker for the save file.
+   * @returns {Promise<{id: string, name: string}|null>} Null when cancelled.
+   */
   function openSaveFileDrivePicker() {
     return new Promise(function (resolve, reject) {
       try {
@@ -276,29 +311,24 @@
   }
 
   /**
-   * One category's parser breaking must not cost the user the other ten that
-   * parsed fine, so `parseSaveFileBytes` no longer aborts on the first
-   * failure - it returns the categories that succeeded plus a list of the
-   * ones that did not. This renders that list, and - matching the pattern
-   * used everywhere else in this app - raises the error panel once for the
-   * first failure that is an actual defect, not an expected outcome, since a
-   * list entry alone carries no reference to quote.
+   * Joins names as "A", "A and B", "A, B and C".
+   * @param {string[]} names
+   * @returns {string}
    */
-  /** "A", "A and B", "A, B and C" */
   function listSaveFileNames(names) {
     if (names.length <= 1) return names[0] || "";
     return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
   }
 
-  /**
-   * Which parse result's failures have already been put in the panel.
-   * `renderSaveFileResults` runs again on every view-mode switch and every
-   * checkbox toggle, always with this same object — so without this, a panel
-   * the user has dismissed comes straight back (and scrolls itself into view)
-   * the next time they touch a control.
-   */
   let saveFileFailuresSurfacedFor = null;
 
+  /**
+   * Renders the categories that could not be read, and raises the panel once
+   * per parse for the ones that are defects.
+   * @param {Array<Object>} failedCategories
+   * @param {Object} result
+   * @returns {string} Markup for the block.
+   */
   function renderSaveFileParseFailures(failedCategories, result) {
     if (!failedCategories || failedCategories.length === 0) return "";
 
@@ -342,6 +372,11 @@
     return html;
   }
 
+  /**
+   * Renders every parsed category as a card, in diff or full view.
+   * @param {Object} result
+   * @returns {void}
+   */
   function renderSaveFileResults(result) {
     if (result) lastSaveFileResult = result;
     const container = document.getElementById("saveFileResults");
@@ -428,11 +463,20 @@
     updateSaveFileViewControls();
   }
 
+  /**
+   * Forgets the fetched sheet data and returns to the full view.
+   * @returns {void}
+   */
   function resetSaveFileDiffState() {
     saveFileViewMode = "all";
     saveFileSelectedTypes = null;
   }
 
+  /**
+   * Which category cards are currently expanded.
+   * @param {HTMLElement} container
+   * @returns {Set<string>}
+   */
   function sfOpenCategoryTypes(container) {
     const open = new Set();
     if (!container) return open;
@@ -443,10 +487,20 @@
     return open;
   }
 
+  /**
+   * Whether a category is selected for import.
+   * @param {string} type
+   * @returns {boolean}
+   */
   function sfTypeChecked(type) {
     return saveFileSelectedTypes === null || saveFileSelectedTypes.has(type);
   }
 
+  /**
+   * Version information for a category whose sheet is out of date.
+   * @param {string} type
+   * @returns {Object|null}
+   */
   function sfTypeOutdatedInfo(type) {
     if (saveFileCollectionOutdated) {
       return {
@@ -466,6 +520,10 @@
     };
   }
 
+  /**
+   * The categories whose target sheets are too old to import into.
+   * @returns {Array<Object>}
+   */
   function getSaveFileOutdatedTargets() {
     if (!saveFileImportTargets || !saveFileImportTargets.versions) return [];
     const versions = saveFileImportTargets.versions;
@@ -483,15 +541,28 @@
       });
   }
 
+  /**
+   * Shows a setup error above the workflow, or clears it.
+   * @param {string} message
+   * @returns {void}
+   */
   function setSaveFileSetupError(message) {
     saveFileSetupError = message || "";
     if (saveFileSetupError) console.error(saveFileSetupError);
   }
 
+  /**
+   * What the import writes into, for display.
+   * @returns {string}
+   */
   function saveFileTargetLabel() {
     return saveFileSheetType || "IDS Master or IDS Collection";
   }
 
+  /**
+   * Re-renders the import summary for the current selection.
+   * @returns {void}
+   */
   function refreshSaveFileImportSummary() {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -516,6 +587,10 @@
     el.innerHTML = "";
   }
 
+  /**
+   * Remembers which categories are ticked, across a re-render.
+   * @returns {Set<string>}
+   */
   function captureSaveFileSelection() {
     const set = new Set();
     document
@@ -526,6 +601,10 @@
     saveFileSelectedTypes = set;
   }
 
+  /**
+   * Enables the view controls once sheet data is available.
+   * @returns {void}
+   */
   function updateSaveFileViewControls() {
     const controls = document.getElementById("saveFileViewControls");
     const btn = document.getElementById("saveFileViewToggleBtn");
@@ -544,6 +623,12 @@
     }
   }
 
+  /**
+   * Body markup for one category, diffed against the sheet when in diff view.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function buildSaveFileCategoryBody(type, data) {
     if (saveFileViewMode !== "diff") {
       return renderCategoryBody(type, data);
@@ -566,10 +651,18 @@
     return diffHtml;
   }
 
+  /**
+   * Markup for a category whose values already match the sheet.
+   * @returns {string} Markup for the block.
+   */
   function sfDiffNoneHtml() {
     return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
   }
 
+  /**
+   * Starts fetching sheet data in the background.
+   * @returns {void}
+   */
   function startSaveFileSheetPrefetch() {
     if (!idMasterID || sheetExportFetched || sheetExportPromise) return;
     if (saveFileCollectionOutdated) return;
@@ -578,6 +671,10 @@
     });
   }
 
+  /**
+   * Fetches sheet data if it is not already loaded.
+   * @returns {Promise<boolean>} Whether data is available.
+   */
   async function ensureSaveFileSheetData() {
     if (sheetExportFetched) return true;
     if (sheetExportPromise) {
@@ -589,6 +686,10 @@
     return fetchSaveFileSheetData();
   }
 
+  /**
+   * Switches between the full and difference views.
+   * @returns {Promise<void>}
+   */
   async function toggleSaveFileViewMode() {
     if (saveFileViewMode === "all") {
       if (!idMasterID) {
@@ -612,6 +713,11 @@
     renderSaveFileResults(lastSaveFileResult);
   }
 
+  /**
+   * Reads the current values out of the target sheets, for diffing.
+   * @param {boolean} background
+   * @returns {Promise<boolean>} Whether the fetch succeeded.
+   */
   async function fetchSaveFileSheetData(background) {
     if (!idMasterID) return false;
     const report = function (message, spinner) {
@@ -654,10 +760,7 @@
           result[type] = data[type];
         });
       } else {
-        // The master's own export carries both halves we need: its global
-        // presets, and the sub-sheet ids for every other category. Reading it
-        // first means the ids arrive as a by-product of a category export we
-        // had to make anyway, instead of a separate id lookup before it.
+
         let masterIds = null;
         try {
           const masterCompat = await runAppsScript(
@@ -696,7 +799,6 @@
           result[SF_MASTER_TYPE] = { __error: err.message || String(err) };
         }
 
-        // Only fall back to the separately resolved targets if that failed.
         const targets =
           masterIds ||
           (saveFileImportTargets && saveFileImportTargets.targets) ||
@@ -776,6 +878,11 @@
     }
   }
 
+  /**
+   * Trims a level value to its bare number.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfTrimLevel(v) {
     if (v === null || v === undefined) return null;
     let s = String(v);
@@ -783,6 +890,11 @@
     return s.trim();
   }
 
+  /**
+   * Normalises a level for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfNormLevel(v) {
     const t = sfTrimLevel(v);
     if (t === null || t === "") return "0";
@@ -790,6 +902,11 @@
     return t.toLowerCase();
   }
 
+  /**
+   * Normalises any value for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfNormGeneric(v) {
     if (v === true || v === "true" || v === "TRUE") return "true";
     if (v === false || v === "false" || v === "FALSE") return "false";
@@ -799,10 +916,20 @@
     return t.toLowerCase();
   }
 
+  /**
+   * Normalises a boolean-ish value for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfNormBool(v) {
     return v === true || v === "true" || v === "TRUE" || v === 1 || v === "1";
   }
 
+  /**
+   * Formats a level for display.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfDisplayLevel(v) {
     const t = sfTrimLevel(v);
     if (t === null || t === "") return "0";
@@ -810,6 +937,11 @@
     return t;
   }
 
+  /**
+   * Formats any value for display.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfDisplayValue(v) {
     if (v === true || v === "true" || v === "TRUE") return "✓";
     if (v === false || v === "false" || v === "FALSE") return "✗";
@@ -817,11 +949,22 @@
     return sfTrimLevel(v);
   }
 
+  /**
+   * Formats a boolean-ish value for display.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfDisplayBool(v) {
     return sfNormBool(v) ? "✓" : "✗";
   }
 
-
+  /**
+   * One difference row, or "" when the two sides match.
+   * @param {string} oldDisp
+   * @param {string} newDisp
+   * @param {string} name
+   * @returns {string} Markup for the block.
+   */
   function sfDiffRow(oldDisp, newDisp, name) {
     return (
       '<div class="sfDiffRow">' +
@@ -839,6 +982,11 @@
     );
   }
 
+  /**
+   * A row marking something the save file adds.
+   * @param {string} label
+   * @returns {string} Markup for the block.
+   */
   function sfDiffAddItem(label) {
     return (
       '<span class="sfArrayItem sfDiffAddItem">+ ' +
@@ -847,6 +995,11 @@
     );
   }
 
+  /**
+   * A row marking something the save file removes.
+   * @param {string} label
+   * @returns {string} Markup for the block.
+   */
   function sfDiffRemItem(label) {
     return (
       '<span class="sfArrayItem sfDiffRemItem">− ' +
@@ -855,14 +1008,30 @@
     );
   }
 
+  /**
+   * Wraps difference rows in a grid.
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
   function sfDiffGrid(rows) {
     return '<div class="sfDiffGrid">' + rows + "</div>";
   }
 
+  /**
+   * Wraps difference rows in a stacked grid, for narrow content.
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
   function sfDiffGridStacked(rows) {
     return '<div class="sfDiffGrid sfDiffStack">' + rows + "</div>";
   }
 
+  /**
+   * A titled block of differences, or "" when there are none.
+   * @param {string} title
+   * @param {string} inner
+   * @returns {string} Markup for the block.
+   */
   function sfDiffBlock(title, inner) {
     return (
       '<div class="sfBlock"><div class="sfBlockHeader">' +
@@ -873,6 +1042,12 @@
     );
   }
 
+  /**
+   * A titled sub-block of differences, or "" when there are none.
+   * @param {string} title
+   * @param {string} inner
+   * @returns {string} Markup for the block.
+   */
   function sfDiffSub(title, inner) {
     return (
       '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
@@ -883,6 +1058,13 @@
     );
   }
 
+  /**
+   * Dispatches to the right per-category diff renderer.
+   * @param {string} type
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderSaveFileDiffBody(type, parsed, sheet) {
     switch (type) {
       case "Laboratory":
@@ -912,6 +1094,12 @@
     }
   }
 
+  /**
+   * Differences between the save file's lab data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderLaboratoryDiff(parsed, sheet) {
     const p = parsed.oldLabLevels || {};
     const s = sheet.oldLabLevels || {};
@@ -927,6 +1115,12 @@
     return rows ? sfDiffGrid(rows) : "";
   }
 
+  /**
+   * Differences between the save file's workshop data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderWorkshopDiff(parsed, sheet) {
     const pUp = parsed.oldWorkshopLevels || {};
     const sUp = sheet.oldWorkshopLevels || {};
@@ -993,6 +1187,13 @@
     return html;
   }
 
+  /**
+   * A group of difference rows keyed by workshop track.
+   * @param {string} groupLabel
+   * @param {Object} rowsByTrack
+   * @param {string[]} tracks
+   * @returns {string} Markup for the block.
+   */
   function sfDiffTrackGroup(groupLabel, rowsByTrack, tracks) {
     let columns = "";
     tracks.forEach(function (track) {
@@ -1015,6 +1216,14 @@
     );
   }
 
+  /**
+   * Reads one preset's value out of a sheet range.
+   * @param {Array<Array<*>>} arr
+   * @param {number} idx
+   * @param {number} presetIndex
+   * @param {number} farmingIdx
+   * @returns {*}
+   */
   function sfSheetPresetVal(arr, idx, presetIndex, farmingIdx) {
     if (!arr) return undefined;
     let v = arr[idx];
@@ -1027,6 +1236,12 @@
     return v;
   }
 
+  /**
+   * Differences between the save file's ultimate weapon data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderUltimateDiff(parsed, sheet) {
     const p = parsed.oldUltimate || {};
     const s = sheet.oldUltimate || {};
@@ -1062,6 +1277,12 @@
     return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
   }
 
+  /**
+   * Differences for the combined Themes, Songs and Relics sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderThemesAndRelicsDiff(parsed, sheet) {
     const relicsDiff = renderRelicsDiff(parsed, sheet);
     return (
@@ -1070,6 +1291,12 @@
     );
   }
 
+  /**
+   * Differences between the save file's themes and songs and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderThemesDiff(parsed, sheet) {
     const p = parsed.oldThemesNames || {};
     const s = sheet.oldThemesNames || {};
@@ -1099,6 +1326,12 @@
     return html;
   }
 
+  /**
+   * Differences between the save file's bot data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderBotsDiff(parsed, sheet) {
     const pBots = (parsed.oldBots && parsed.oldBots.data) || {};
     const sBots = (sheet.oldBots && sheet.oldBots.data) || {};
@@ -1181,6 +1414,12 @@
       : "";
   }
 
+  /**
+   * Differences between the save file's relics and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderRelicsDiff(parsed, sheet) {
     const pArr = parsed.oldRelics || [];
     const sArr = sheet.oldRelics || [];
@@ -1203,6 +1442,12 @@
     return '<div class="sfDiffChips">' + items + "</div>";
   }
 
+  /**
+   * Differences between the save file's vault data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderVaultDiff(parsed, sheet) {
     const pVault = parsed.oldVault || {};
     const sVault = sheet.oldVault || {};
@@ -1261,6 +1506,12 @@
     return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
   }
 
+  /**
+   * Differences between the save file's cards and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderCardsDiff(parsed, sheet) {
     const pLevels = parsed.oldCardsLevel || {};
     const sLevels = sheet.oldCardsLevel || {};
@@ -1333,6 +1584,12 @@
     return html;
   }
 
+  /**
+   * Differences between the save file's module data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderModulesDiff(parsed, sheet) {
     const moduleCats = ["cannon", "armor", "generator", "core"];
     const pPre = parsed.oldModulesPresets || {};
@@ -1351,6 +1608,13 @@
     );
   }
 
+  /**
+   * Differences in module presets.
+   * @param {Object} pPre
+   * @param {Object} sPre
+   * @param {string[]} moduleCats
+   * @returns {string} Markup for the block.
+   */
   function renderModulesPresetsDiff(pPre, sPre, moduleCats) {
     const pNames = pPre.presetNames || [];
     const sNames = sPre.presetNames || [];
@@ -1395,6 +1659,14 @@
       : "";
   }
 
+  /**
+   * Differences in module inventory, per category.
+   * @param {Object} pInv
+   * @param {Object} sInv
+   * @param {string[]} moduleCats
+   * @param {string[]} moduleOrder
+   * @returns {string} Markup for the block.
+   */
   function renderModulesInventoryDiff(
     pInv,
     sInv,
@@ -1511,6 +1783,12 @@
       : "";
   }
 
+  /**
+   * One module's difference rows, under its name.
+   * @param {string} name
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
   function sfModuleDiffEntry(name, rows) {
     return (
       '<div class="sfModuleEntry"><div class="sfModuleName">' +
@@ -1521,6 +1799,11 @@
     );
   }
 
+  /**
+   * Label for a module substat pair.
+   * @param {*} pair
+   * @returns {string}
+   */
   function sfModuleSubstatLabel(pair) {
     if (!pair || (pair[0] == null && pair[1] == null)) return "-";
     const label = pair[0] == null ? "" : String(pair[0]);
@@ -1528,6 +1811,12 @@
     return (rarity + " - " + label).trim() || "-";
   }
 
+  /**
+   * Differences between the save file's guardian data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderGuardiansDiff(parsed, sheet) {
     const p = (parsed.oldGuardians && parsed.oldGuardians.data) || {};
     const s = (sheet.oldGuardians && sheet.oldGuardians.data) || {};
@@ -1610,6 +1899,12 @@
     return html;
   }
 
+  /**
+   * Differences between the save file's player data and the sheet.
+   * @param {Object} rawParsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderPlayerDiff(rawParsed, sheet) {
     const parsed = sfPlayerWaveData(rawParsed);
     const pStats = parsed.oldPlayerStuffStatsData || {};
@@ -1680,6 +1975,11 @@
     return sfPlayerWaveToggle() + (html || sfDiffNoneHtml());
   }
 
+  /**
+   * Whether a parsed category holds anything worth showing.
+   * @param {*} data
+   * @returns {boolean}
+   */
   function categoryHasData(data) {
     if (!data || typeof data !== "object") return false;
     return Object.keys(data).some(function (k) {
@@ -1690,6 +1990,10 @@
     });
   }
 
+  /**
+   * The category names currently ticked for import.
+   * @returns {string[]}
+   */
   function getSelectedSheetTypes() {
     const out = [];
     document
@@ -1700,6 +2004,10 @@
     return out;
   }
 
+  /**
+   * Enables the import button when a valid selection exists.
+   * @returns {void}
+   */
   function updateImportButtonState() {
     const btn = document.getElementById("saveFileImportBtn");
     const hasSelection = getSelectedSheetTypes().length > 0;
@@ -1711,6 +2019,11 @@
     );
   }
 
+  /**
+   * Disables or restores the controls while work is running.
+   * @param {boolean} busy
+   * @returns {void}
+   */
   function setSaveFileBusy(busy) {
     document.getElementById("saveFileInput").disabled = busy;
     const driveBtn = document.getElementById("saveFileDriveBtn");
@@ -1739,6 +2052,10 @@
     }
   }
 
+  /**
+   * Starts the import for the current selection.
+   * @returns {void}
+   */
   function startSaveFileImport() {
     if (!parsedSaveData) {
       setStatusText("Parse a save file first.");
@@ -1764,6 +2081,10 @@
     runSaveFileImport();
   }
 
+  /**
+   * Expands or collapses the save-file guide.
+   * @returns {void}
+   */
   function toggleSaveFileGuide() {
     const section = document.getElementById("saveGuideSection");
     const btn = document.getElementById("saveGuideToggle");
@@ -1772,6 +2093,11 @@
     btn.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
+  /**
+   * Expands or collapses one guide card.
+   * @param {HTMLElement} btn
+   * @returns {void}
+   */
   function toggleSaveGuideCard(btn) {
     const card = btn.closest(".sgCard");
     if (!card) return;
@@ -1779,6 +2105,10 @@
     btn.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
+  /**
+   * Moves from setup into the import workflow once access is settled.
+   * @returns {Promise<void>}
+   */
   async function continueSaveFile() {
     const ready = await evaluateSaveFileAccess();
     const guide = document.getElementById("saveGuideSection");
@@ -1793,6 +2123,10 @@
     }
   }
 
+  /**
+   * Checks access to every sheet the import will touch.
+   * @returns {Promise<boolean>} Whether everything is reachable.
+   */
   async function evaluateSaveFileAccess() {
     saveFilePendingAccessIds = [];
     saveFileNotOwnedFiles = [];
@@ -1817,6 +2151,10 @@
     return await resolveSaveFileSubsheetAccess();
   }
 
+  /**
+   * Resolves the IDS Master's subsheets and checks access to them.
+   * @returns {Promise<boolean>} Whether everything is reachable.
+   */
   async function resolveSaveFileSubsheetAccess() {
     saveFileNotOwnedFiles = [];
     if (
@@ -1893,6 +2231,10 @@
     return saveFilePendingAccessIds.length === 0;
   }
 
+  /**
+   * Works out whether the linked file is an IDS Master or a Collection.
+   * @returns {Promise<void>}
+   */
   async function resolveSaveFileSheetType() {
     if (!idMasterID) return;
     saveFileCollectionOutdated = null;
@@ -1925,6 +2267,10 @@
     }
   }
 
+  /**
+   * Checks an IDS Collection's version once, recording if it is outdated.
+   * @returns {Promise<void>}
+   */
   async function ensureSaveFileCollectionVersion() {
     if (saveFileCollectionVersionChecked || !idMasterID) return;
     saveFileCollectionVersionChecked = true;
@@ -1947,6 +2293,11 @@
     }
   }
 
+  /**
+   * Renders the blocked-import notice for an outdated IDS Collection.
+   * @param {Object} info
+   * @returns {void}
+   */
   function renderSaveFileCollectionOutdated(info) {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -1960,6 +2311,11 @@
       "</div>";
   }
 
+  /**
+   * Renders the blocked-import notice for outdated subsheets.
+   * @param {Array<Object>} outdated
+   * @returns {void}
+   */
   function renderSaveFileOutdatedSheets(outdated) {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -1983,6 +2339,10 @@
     el.innerHTML = html;
   }
 
+  /**
+   * Asks the user to grant the sheets the import needs.
+   * @returns {void}
+   */
   function showSaveFileAccessPrompt() {
     hideSaveFileNotOwned();
     clearSaveFileWarning();
@@ -2000,16 +2360,28 @@
     setStatusText("File access required. Please grant access...");
   }
 
+  /**
+   * Hides the not-owned warning.
+   * @returns {void}
+   */
   function hideSaveFileNotOwned() {
     const controls = document.getElementById("saveFileNotOwnedControls");
     if (controls) controls.style.display = "none";
   }
 
+  /**
+   * Clears the access warning list.
+   * @returns {void}
+   */
   function clearSaveFileWarning() {
     const warn = document.getElementById("saveFileWarning");
     if (warn) warn.innerHTML = "";
   }
 
+  /**
+   * Shows the warning for sheets the user does not own.
+   * @returns {void}
+   */
   function showSaveFileNotOwned() {
     clearSaveFileWarning();
     document.getElementById("saveFileInputRow").style.display = "none";
@@ -2046,6 +2418,10 @@
     );
   }
 
+  /**
+   * Reveals the import workflow once setup is complete.
+   * @returns {void}
+   */
   function showSaveFileWorkflow() {
     hideSaveFileNotOwned();
     document.getElementById("saveFileAccessControls").style.display = "none";
@@ -2076,6 +2452,11 @@
     startSaveFileSheetPrefetch();
   }
 
+  /**
+   * Renders the warning list for files needing attention.
+   * @param {Array<Object>} files
+   * @returns {void}
+   */
   function renderSaveFileWarning(files) {
     const el = document.getElementById("saveFileWarning");
     if (!el) return;
@@ -2091,6 +2472,10 @@
       `<ul class="saveFileWarningList">${items}</ul>`;
   }
 
+  /**
+   * Opens the picker so the user can grant the missing sheets.
+   * @returns {Promise<void>}
+   */
   async function grantSaveFileAccess() {
     document.getElementById("saveFileAccessBtn").disabled = true;
 
@@ -2124,6 +2509,10 @@
     }
   }
 
+  /**
+   * Imports the selected categories into an IDS Master's subsheets.
+   * @returns {Promise<void>}
+   */
   async function runSaveFileImport() {
     const selected = getSelectedSheetTypes();
     if (!idMasterID || selected.length === 0) return;
@@ -2239,6 +2628,11 @@
     setSaveFileBusy(false);
   }
 
+  /**
+   * Imports the selected categories into an IDS Collection.
+   * @param {string[]} selected
+   * @returns {Promise<void>}
+   */
   async function runSaveFileCollectionImport(selected) {
     const filtered = {};
     selected.forEach(function (type) {
@@ -2311,6 +2705,12 @@
     setStatusText(msg);
   }
 
+  /**
+   * Renders which categories imported, and which were skipped.
+   * @param {Array<Object>} results
+   * @param {Array<Object>} skipped
+   * @returns {void}
+   */
   function renderSaveFileImportResults(results, skipped) {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -2355,9 +2755,6 @@
 
     el.innerHTML = html;
 
-    // The list above says what happened to each category. If one of those
-    // failures was a defect rather than an expected outcome, raise the panel
-    // once so the user has a reference to quote.
     const bug = fail.find(function (r) {
       return !AppError.normalize(r.result, { source: "importData" }).expected;
     });
@@ -2372,6 +2769,12 @@
     }
   }
 
+  /**
+   * Renders the notice telling the user to update their sheets first.
+   * @param {Array<Object>} needsAttention
+   * @param {Array<Object>} outdated
+   * @returns {void}
+   */
   function renderSaveFileUpdateRequired(needsAttention, outdated) {
     const el = document.getElementById("saveFileImportSummary");
     if (!el) return;
@@ -2407,6 +2810,10 @@
     el.innerHTML = html;
   }
 
+  /**
+   * gapi onload hook: loads the client and picker libraries.
+   * @returns {void}
+   */
   function saveFileGapiLoaded() {
     gapi.load("client:picker", {
       callback: initializeSaveFilePicker,
@@ -2416,6 +2823,10 @@
     });
   }
 
+  /**
+   * Initialises the Drive picker for the save-file page.
+   * @returns {Promise<void>}
+   */
   async function initializeSaveFilePicker() {
     try {
       if (!API_KEY || !APP_ID) {
@@ -2437,6 +2848,12 @@
     }
   }
 
+  /**
+   * Merges two warning lists, without duplicating files.
+   * @param {Array<Object>} existing
+   * @param {Array<Object>} additions
+   * @returns {Array<Object>}
+   */
   function mergeSaveFileWarnings(existing, additions) {
     const merged = (existing || []).slice();
     (additions || []).forEach(function (file) {
@@ -2447,6 +2864,11 @@
     return merged;
   }
 
+  /**
+   * Checks access to several sheets at once.
+   * @param {string[]} fileIds
+   * @returns {Promise<Object>} Accessible, inaccessible and not-owned files.
+   */
   async function checkSaveFileSheetAccess(fileIds) {
     const ids = (fileIds || []).filter(function (id) {
       return typeof id === "string" && id.length > 0;
@@ -2495,6 +2917,11 @@
       warningFiles: warningFiles,
     };
   }
+  /**
+   * Opens the picker so the user can grant specific sheets.
+   * @param {string[]} fileIds
+   * @returns {Promise<boolean>} Whether access was granted.
+   */
   function openSaveFileAccessPicker(fileIds) {
     return new Promise(function (resolve, reject) {
       try {
@@ -2561,6 +2988,11 @@
     });
   }
 
+  /**
+   * Ensures every sheet the import needs is reachable, prompting if not.
+   * @param {string} label
+   * @returns {Promise<boolean>}
+   */
   async function ensureSaveFileAccess(label) {
     if (saveFilePendingAccessIds.length === 0) return true;
 
@@ -2635,6 +3067,12 @@
     return true;
   }
 
+  /**
+   * Dispatches to the right per-category body renderer.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderCategoryBody(type, data) {
     switch (type) {
       case "Laboratory":
@@ -2664,8 +3102,11 @@
     }
   }
 
-  // One column per global preset, in the order the parser resolved, with a row
-  // per preset type so the same type lines up across every column.
+  /**
+   * Full view of the save file's IDS Master data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderMasterBody(data) {
     const presetsData = data.oldPresetsData || {};
     const presets = presetsData.data || {};
@@ -2705,6 +3146,12 @@
     );
   }
 
+  /**
+   * Differences between the save file's IDS Master data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
   function renderMasterDiff(parsed, sheet) {
     const pPresets = (parsed.oldPresetsData || {}).data || {};
     const sPresets = (sheet.oldPresetsData || {}).data || {};
@@ -2745,6 +3192,11 @@
     );
   }
 
+  /**
+   * Full view of a category with no bespoke renderer.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderGenericBody(data) {
     let html = "";
     for (const key of Object.keys(data)) {
@@ -2761,16 +3213,31 @@
     return html;
   }
 
+  /**
+   * A sub-section label.
+   * @param {string} text
+   * @returns {string} Markup for the block.
+   */
   function sfSubLabel(text) {
     return '<div class="sfSubLabel">' + escSaveFileHtml(text) + "</div>";
   }
 
+  /**
+   * A tick or cross for an unlocked flag.
+   * @param {*} unlocked
+   * @returns {string} Markup for the block.
+   */
   function sfUnlockMark(unlocked) {
     return unlocked
       ? '<span class="sfBool is-true">✓</span>'
       : '<span class="sfBool is-false">✗</span>';
   }
 
+  /**
+   * Formats a value for the full view.
+   * @param {*} v
+   * @returns {string}
+   */
   function sfFmtVal(v) {
     if (v === true || v === false) return sfUnlockMark(v);
     if (v === null || v === undefined || v === "")
@@ -2780,6 +3247,12 @@
     );
   }
 
+  /**
+   * An inline key and value pair.
+   * @param {string} key
+   * @param {*} val
+   * @returns {string} Markup for the block.
+   */
   function sfInlinePair(key, val) {
     return (
       '<span class="sfInlinePair">' +
@@ -2792,6 +3265,12 @@
     );
   }
 
+  /**
+   * A level row with its name.
+   * @param {*} level
+   * @param {string} nameHtml
+   * @returns {string} Markup for the block.
+   */
   function sfLevelRow(level, nameHtml) {
     return (
       '<div class="sfLevelRow"><span class="sfLevel">' +
@@ -2803,6 +3282,13 @@
     );
   }
 
+  /**
+   * Level rows for an entity's upgrades.
+   * @param {string[]} upgradeNames
+   * @param {string} plusName
+   * @param {Array<*>} levels
+   * @returns {string} Markup for the block.
+   */
   function sfEntityUpgradeRows(upgradeNames, plusName, levels) {
     let html = "";
     (upgradeNames || []).forEach(function (attr) {
@@ -2826,6 +3312,11 @@
     return html;
   }
 
+  /**
+   * Full view of the save file's lab data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderLaboratoryBody(data) {
     const labs = data.oldLabLevels || {};
     const labOrder = data.labOrder || [];
@@ -2842,6 +3333,11 @@
     return html + "</div>";
   }
 
+  /**
+   * Full view of the save file's workshop data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderWorkshopBody(data) {
     const upgrades = data.oldWorkshopLevels || null;
     const enhancements = data.oldWorkshopPlusLevels || null;
@@ -2886,6 +3382,13 @@
     return html;
   }
 
+  /**
+   * One workshop preset group's rows.
+   * @param {string} title
+   * @param {Object} presets
+   * @param {string[]} tracks
+   * @returns {string} Markup for the block.
+   */
   function renderWorkshopPresetGroup(
     groupLabel,
     group,
@@ -2931,6 +3434,11 @@
     );
   }
 
+  /**
+   * Full view of the save file's ultimate weapon data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderUltimateBody(data) {
     const uw = data.oldUltimate || {};
     const defs = data.targetWeapons || {};
@@ -2953,6 +3461,11 @@
     return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
   }
 
+  /**
+   * Full view of the combined Themes, Songs and Relics data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderThemesAndRelicsBody(data) {
     const relics = data.oldRelics || [];
     return (
@@ -2962,6 +3475,11 @@
     );
   }
 
+  /**
+   * Full view of the save file's themes and songs.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderThemesBody(data) {
     const themes = data.oldThemesNames || {};
     const order = data.themesOrder || Object.keys(themes);
@@ -2983,6 +3501,11 @@
     return html + "</div>";
   }
 
+  /**
+   * Full view of the save file's bot data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderBotsBody(data) {
     const bots = data.oldBots || {};
     const botData = bots.data || {};
@@ -3025,6 +3548,11 @@
     return html + "</div>";
   }
 
+  /**
+   * Full view of the save file's relics.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderRelicsBody(data) {
     const relics = data.oldRelics || [];
     let html = '<div class="sfRelicsGrid">';
@@ -3034,6 +3562,11 @@
     return html + "</div>";
   }
 
+  /**
+   * Full view of the save file's vault data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderVaultBody(data) {
     const oldVault = data.oldVault || {};
     const unlockedGroups = oldVault.unlockedGroups || [];
@@ -3082,6 +3615,11 @@
     return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
   }
 
+  /**
+   * Full view of the save file's cards.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderCardsBody(data) {
     const levels = data.oldCardsLevel || {};
     const presets = data.oldCardsPreset || {};
@@ -3136,6 +3674,11 @@
     return html;
   }
 
+  /**
+   * Full view of the save file's module data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderModulesBody(data) {
     const inv = data.oldModulesInventory || {};
     const presets = data.oldModulesPresets || {};
@@ -3146,6 +3689,12 @@
     );
   }
 
+  /**
+   * Module presets, per category.
+   * @param {Object} presets
+   * @param {string[]} categories
+   * @returns {string} Markup for the block.
+   */
   function renderModulesPresets(presets, categories) {
     const presetNames = presets.presetNames || [];
     if (!presetNames.length) return "";
@@ -3174,6 +3723,12 @@
     return sfSubLabel("Presets") + html + "</div>";
   }
 
+  /**
+   * A row naming the module equipped in a slot.
+   * @param {string} label
+   * @param {string} moduleName
+   * @returns {string} Markup for the block.
+   */
   function sfModuleEquipRow(label, moduleName) {
     return (
       '<div class="sfSubstatRow"><span class="sfSubstatRarity">' +
@@ -3186,6 +3741,13 @@
     );
   }
 
+  /**
+   * Module keys for a category, in the save file's own order.
+   * @param {Object} invCat
+   * @param {string[]} moduleOrder
+   * @param {string[]} skipKeys
+   * @returns {string[]}
+   */
   function sfOrderedModuleKeys(invCat, moduleOrder, skipKeys) {
     const ordered = [];
     const placed = {};
@@ -3209,6 +3771,14 @@
     return ordered;
   }
 
+  /**
+   * Module inventory, per category, with substats.
+   * @param {Object} inv
+   * @param {Object} presets
+   * @param {string[]} categories
+   * @param {string[]} moduleOrder
+   * @returns {string} Markup for the block.
+   */
   function renderModulesInventory(inv, presets, categories, moduleOrder) {
     const metaKeys = ["Highest Level", "Assist Level"];
     let html = '<div class="sfModuleColumns">';
@@ -3286,6 +3856,11 @@
     return hasColumn ? sfSubLabel("Inventory") + html + "</div>" : "";
   }
 
+  /**
+   * Full view of the save file's guardian data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
   function renderGuardiansBody(data) {
     const guardians = data.oldGuardians || {};
     const gData = guardians.data || {};
@@ -3344,17 +3919,33 @@
     return html + "</div>";
   }
 
+  /**
+   * The tier number a key refers to.
+   * @param {string} key
+   * @returns {number}
+   */
   function sfTierNumber(key) {
     const m = String(key).match(/(\d+)/);
     return m ? parseInt(m[1], 10) : 0;
   }
 
+  /**
+   * Caps a wave value at the sheet's maximum.
+   * @param {*} value
+   * @param {*} cap
+   * @returns {*}
+   */
   function sfCapWave(value, cap) {
     const num = typeof value === "number" ? value : parseFloat(value);
     if (!isFinite(num)) return value;
     return num > cap ? cap : value;
   }
 
+  /**
+   * The player's per-tier wave values, capped as the user prefers.
+   * @param {Object} data
+   * @returns {Object}
+   */
   function sfPlayerWaveData(data) {
     if (!saveFilePlayerWavesAtCap || !data || !data.oldPlayerStuffTierData) {
       return data;
@@ -3379,10 +3970,20 @@
     return Object.assign({}, data, { oldPlayerStuffTierData: cappedTiers });
   }
 
+  /**
+   * The payload for one category, ready to send to the server.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {Object}
+   */
   function sfImportPayload(type, data) {
     return type === "Player & Stuff" ? sfPlayerWaveData(data) : data;
   }
 
+  /**
+   * The wave-cap toggle switch markup.
+   * @returns {string} Markup for the block.
+   */
   function sfPlayerWaveToggle() {
     const capped = saveFilePlayerWavesAtCap;
     return (
@@ -3408,6 +4009,10 @@
     );
   }
 
+  /**
+   * Loads the stored wave-cap preference once.
+   * @returns {Promise<boolean>}
+   */
   function ensureSaveFilePlayerWaveCapPreference() {
     if (!saveFilePlayerWaveCapPrefPromise) {
       saveFilePlayerWaveCapPrefPromise = runAppsScript(
@@ -3421,6 +4026,11 @@
     return saveFilePlayerWaveCapPrefPromise;
   }
 
+  /**
+   * Sets the wave-cap preference and re-renders.
+   * @param {boolean} atCap
+   * @returns {void}
+   */
   function setSaveFilePlayerWaveMode(atCap) {
     const input = document.querySelector(
       "#saveFileResults .sfPlayerWaveCheckbox",
@@ -3435,6 +4045,11 @@
     ).catch(function () {});
   }
 
+  /**
+   * Full view of the save file's player data.
+   * @param {Object} rawData
+   * @returns {string} Markup for the block.
+   */
   function renderPlayerBody(rawData) {
     const data = sfPlayerWaveData(rawData);
     const stats = data.oldPlayerStuffStatsData || {};
@@ -3513,6 +4128,12 @@
     return html;
   }
 
+  /**
+   * Renders any value, recursing into objects and arrays.
+   * @param {*} val
+   * @param {number} depth
+   * @returns {string} Markup for the block.
+   */
   function renderSaveFileValue(val, depth) {
     depth = depth || 0;
 
@@ -3593,10 +4214,20 @@
     );
   }
 
+  /**
+   * Expands or collapses one category card.
+   * @param {HTMLElement} header
+   * @returns {void}
+   */
   function toggleSaveFileCategory(header) {
     header.parentElement.classList.toggle("open");
   }
 
+  /**
+   * Escapes a string for the save-file markup.
+   * @param {*} str
+   * @returns {string}
+   */
   function escSaveFileHtml(str) {
     return String(str)
       .replace(/&/g, "&amp;")

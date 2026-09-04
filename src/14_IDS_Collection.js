@@ -1,5 +1,12 @@
 ﻿const collection = {
-  // #region Export Functions
+
+  /**
+   * Reads IDS_Collection data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: collection.exportData");
@@ -32,13 +39,16 @@
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported IDS_Collection data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: collection.importData");
 
-      // Define DVT named ranges for each Ultimate Weapon, Bot, Module, and Guardian
       var dvtNamedRangesUW = {
         "Chain Lightning": {
           Damage: "DVT_UW_UG_CL_DMG",
@@ -172,7 +182,6 @@
         },
       };
 
-      // Configuration dictionary mapping sheet types to their required ranges
       var sheetRequiredRanges = {
         values: {
           "Home Page": { sheetName: "Home Page", range: "Home Page" },
@@ -225,7 +234,6 @@
         },
       };
 
-      // Add Ultimate Weapons DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesUW).forEach(function (weapon) {
         Object.keys(dvtNamedRangesUW[weapon]).forEach(function (prop) {
           var rangeName = dvtNamedRangesUW[weapon][prop];
@@ -236,7 +244,6 @@
         });
       });
 
-      // Add Bots DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesBots).forEach(function (bot) {
         Object.keys(dvtNamedRangesBots[bot]).forEach(function (prop) {
           var rangeName = dvtNamedRangesBots[bot][prop];
@@ -247,7 +254,6 @@
         });
       });
 
-      // Add Modules DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesModules).forEach(function (item) {
         var rangeName = dvtNamedRangesModules[item];
         sheetRequiredRanges.values[rangeName] = {
@@ -256,7 +262,6 @@
         };
       });
 
-      // Add Guardians DVT ranges to sheetRequiredRanges
       Object.keys(dvtNamedRangesGuardians).forEach(function (guardian) {
         Object.keys(dvtNamedRangesGuardians[guardian]).forEach(function (prop) {
           var rangeName = dvtNamedRangesGuardians[guardian][prop];
@@ -267,7 +272,6 @@
         });
       });
 
-      // Create ranges arrays from the configuration
       var allValuesRanges = Object.keys(sheetRequiredRanges.values).map(
         function (key) {
           return sheetRequiredRanges.values[key].range;
@@ -280,7 +284,6 @@
         },
       );
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -318,13 +321,11 @@
         }
       }
 
-      // Update each sheet type with its data
       var updateResults = [];
       var batchUpdate = [];
 
-      // Helper function to get range data
       var getRangeData = function (sheetName, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "formulas") {
           var index = Object.keys(sheetRequiredRanges.formulas).indexOf(
@@ -343,20 +344,19 @@
         }
       };
 
-      // Build DVT named ranges data for each module
       var buildDVTNamedRangesData = function (dvtNamedRanges) {
         var dvtNamedRangesData = {};
         Object.keys(dvtNamedRanges).forEach(function (item) {
           var value = dvtNamedRanges[item];
           if (typeof value === "object" && value !== null) {
-            // Nested structure: { item: { prop: rangeName } }
+
             dvtNamedRangesData[item] = {};
             Object.keys(value).forEach(function (prop) {
               var rangeData = getRangeData(value[prop], "values");
               dvtNamedRangesData[item][prop] = rangeData || [];
             });
           } else {
-            // Flat structure: { item: rangeName }
+
             var rangeData = getRangeData(value, "values");
             dvtNamedRangesData[item] = rangeData || [];
           }
@@ -364,7 +364,6 @@
         return dvtNamedRangesData;
       };
 
-      // Laboratory updates
       if (data.Laboratory) {
         try {
           var labData = data.Laboratory;
@@ -428,7 +427,6 @@
         }
       }
 
-      // Workshop updates
       if (data.Workshop) {
         try {
           var workshopData = data.Workshop;
@@ -506,7 +504,6 @@
         }
       }
 
-      // Ultimate Weapon updates
       if (data["Ultimate Weapon"]) {
         try {
           var ultimateData = data["Ultimate Weapon"];
@@ -590,8 +587,6 @@
         }
       }
 
-      // Themes, Songs & Relics updates - one sheet type, but still written to
-      // the two separate sheets the IDS Collection keeps them in.
       if (data["Themes, Songs & Relics"]) {
         try {
           var themesAndRelicsData = data["Themes, Songs & Relics"];
@@ -660,7 +655,6 @@
         }
       }
 
-      // Bots updates
       if (data.Bots) {
         try {
           var botsData = data.Bots;
@@ -710,7 +704,6 @@
         }
       }
 
-      // Vault updates
       if (data.Vault) {
         try {
           var vaultData = data.Vault;
@@ -718,7 +711,7 @@
           var vaultSuccess = true;
           var vaultMessages = [];
           var vaultResult;
-          
+
           if (vaultData.hasOwnProperty("oldVault") && vaultMasterSheetData) {
             vaultResult = vault.updateVault(
               sheetRequiredRanges.values["Vault_MS"].sheetName,
@@ -734,7 +727,7 @@
               );
             }
           }
-          
+
           updateResults.push({
             sheetType: "Vault",
             success: vaultSuccess,
@@ -756,7 +749,6 @@
         }
       }
 
-      // Cards updates
       if (data.Cards) {
         try {
           var cardsData = data.Cards;
@@ -857,7 +849,6 @@
         }
       }
 
-      // Modules updates
       if (data.Modules) {
         try {
           var modulesData = data.Modules;
@@ -973,7 +964,6 @@
         }
       }
 
-      // Guardians updates
       if (data.Guardians) {
         try {
           var guardiansData = data.Guardians;
@@ -1030,7 +1020,6 @@
         }
       }
 
-      // Player updates
       if (data["Player & Stuff"]) {
         try {
           var playerData = data["Player & Stuff"];
@@ -1108,12 +1097,10 @@
         }
       }
 
-      // Check if any updates failed
       var failedUpdates = updateResults.filter(function (result) {
         return !result.success;
       });
 
-      // Set the newSheetID in "Your ID:" field for performance optimization
       var homePageData = getRangeData("Home Page", "values");
       var yourIdInfo = shared.findSheetTypeID(
         newSheetID,
@@ -1131,7 +1118,6 @@
         );
       }
 
-      // Apply all batch updates at once if we have any
       if (batchUpdate.length > 0) {
         var finalUpdateResult = SheetsAPI.batchUpdateValues(
           newSheetID,
@@ -1177,47 +1163,47 @@
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads IDS_Collection data from a v4.2.4 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_2_4: function (oldSheetID) {
     try {
       console.log("Called: collection.version4_2_4");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:H", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:N", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault": "EXPORT_Vault!B4:C", // Vault data
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Planner": "Modules Planner v2", // Modules planner (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B4:O", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
-          "Player Perks": "Perk Preset", // Player perks data (full sheet)
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:H",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:N",
+          Relics: "Relics",
+          "Vault": "EXPORT_Vault!B4:C",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Planner": "Modules Planner v2",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B4:O",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
+          "Player Perks": "Perk Preset",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -1226,7 +1212,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -1255,9 +1240,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -1273,10 +1257,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -1310,7 +1292,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -1350,7 +1331,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -1383,8 +1363,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -1403,7 +1381,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -1411,7 +1388,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var vaultResult = getBatchResult("Vault", "values");
       if (vaultResult && vaultResult.values) {
         var vaultValues = vaultResult.values;
@@ -1419,7 +1395,6 @@
         collectedData.Vault = vaultData;
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -1464,7 +1439,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -1524,7 +1498,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -1532,7 +1505,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       var playerPerksResult = getBatchResult("Player Perks", "values");
@@ -1584,45 +1556,47 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v4.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_2: function (oldSheetID) {
     try {
       console.log("Called: collection.version4_2");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:H", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:N", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault": "EXPORT_Vault!B4:C", // Vault data
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Planner": "Modules Planner", // Modules planner (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B4:O", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
-          "Player Perks": "Perk Preset", // Player perks data (full sheet)
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:H",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:N",
+          Relics: "Relics",
+          "Vault": "EXPORT_Vault!B4:C",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Planner": "Modules Planner",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B4:O",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
+          "Player Perks": "Perk Preset",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -1631,7 +1605,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -1660,9 +1633,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -1678,10 +1650,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -1715,7 +1685,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -1755,7 +1724,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -1788,8 +1756,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -1808,7 +1774,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -1816,7 +1781,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var vaultResult = getBatchResult("Vault", "values");
       if (vaultResult && vaultResult.values) {
         var vaultValues = vaultResult.values;
@@ -1824,7 +1788,6 @@
         collectedData.Vault = vaultData;
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -1869,7 +1832,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -1929,7 +1891,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -1937,7 +1898,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       var playerPerksResult = getBatchResult("Player Perks", "values");
@@ -1989,45 +1949,47 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version4_0");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:H", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:N", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B4:O", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
-          "Player Perks": "Perk Preset", // Player perks data (full sheet)
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:H",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:N",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B4:O",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
+          "Player Perks": "Perk Preset",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -2036,7 +1998,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -2065,9 +2026,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -2083,10 +2043,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -2120,7 +2078,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -2160,7 +2117,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -2193,8 +2149,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -2213,7 +2167,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -2221,7 +2174,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -2247,7 +2199,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -2292,7 +2243,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -2341,7 +2291,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -2349,7 +2298,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       var playerPerksResult = getBatchResult("Player Perks", "values");
@@ -2401,45 +2349,47 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v3.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_2: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_2");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:H", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:L", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
-          "Player Perks": "Perk Preset", // Player perks data (full sheet)
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:H",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:L",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B5:F",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
+          "Player Perks": "Perk Preset",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -2448,7 +2398,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -2477,9 +2426,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -2495,10 +2443,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -2532,7 +2478,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -2572,7 +2517,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -2605,8 +2549,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -2625,7 +2567,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -2633,7 +2574,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -2659,7 +2599,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -2704,7 +2643,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -2753,7 +2691,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -2761,7 +2698,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       var playerPerksResult = getBatchResult("Player Perks", "values");
@@ -2813,44 +2749,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v3.0.4 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_0_4: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_0_4");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:H", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:L", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:H",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:L",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B5:F",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -2859,7 +2797,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -2888,9 +2825,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -2906,10 +2842,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -2943,7 +2877,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -2983,7 +2916,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -3016,8 +2948,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -3036,7 +2966,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -3044,7 +2973,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -3070,7 +2998,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -3115,7 +3042,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -3164,7 +3090,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -3172,7 +3097,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -3213,44 +3137,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v3.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version3_0");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C4:L", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:H", // Player tier data
-          "Player Stat": "EXPORT_Player!J3:K", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C4:L",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B5:F",
+          "Player Tier": "EXPORT_Player!B3:H",
+          "Player Stat": "EXPORT_Player!J3:K",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -3259,7 +3185,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -3288,9 +3213,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -3306,10 +3230,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -3343,7 +3265,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -3383,7 +3304,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -3416,8 +3336,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -3436,7 +3354,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -3444,7 +3361,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -3470,7 +3386,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -3515,7 +3430,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -3564,7 +3478,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -3572,7 +3485,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -3613,44 +3525,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.1.4.3 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1_4_3: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_4_3");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardians!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:D", // Player tier data
-          "Player Stat": "EXPORT_Player!F3:G", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardians!B5:F",
+          "Player Tier": "EXPORT_Player!B3:D",
+          "Player Stat": "EXPORT_Player!F3:G",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -3659,7 +3573,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -3688,9 +3601,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -3706,10 +3618,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -3743,7 +3653,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -3783,7 +3692,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -3816,8 +3724,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -3836,7 +3742,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -3844,7 +3749,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -3870,7 +3774,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -3915,7 +3818,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -3964,7 +3866,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -3972,7 +3873,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -4013,44 +3913,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.1.3.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1_3_1: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_3_1");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:D", // Player tier data
-          "Player Stat": "EXPORT_Player!F3:G", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Workshop Ratio": "Desired Ratios",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B3:D",
+          "Player Stat": "EXPORT_Player!F3:G",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -4059,7 +3961,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -4088,9 +3989,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -4106,10 +4006,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -4143,7 +4041,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult("Workshop Ratio", "values");
@@ -4183,7 +4080,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -4216,8 +4112,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -4236,7 +4130,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -4244,7 +4137,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -4270,7 +4162,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -4315,7 +4206,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -4364,7 +4254,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -4372,7 +4261,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -4413,44 +4301,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.1.1.8 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1_1_8: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_1_8");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:D", // Player tier data
-          "Player Stat": "EXPORT_Player!F3:G", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B3:D",
+          "Player Stat": "EXPORT_Player!F3:G",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "Workshop Ratio": "Desired Ratios",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -4459,7 +4349,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -4488,9 +4377,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -4506,10 +4394,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -4543,7 +4429,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
@@ -4586,7 +4471,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -4619,8 +4503,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -4639,7 +4521,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -4647,7 +4528,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -4673,7 +4553,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -4718,7 +4597,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -4767,7 +4645,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -4775,7 +4652,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -4816,44 +4692,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.1.1.6 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1_1_6: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1_1_6");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:D", // Player tier data
-          "Player Stat": "EXPORT_Player!F3:G", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B3:D",
+          "Player Stat": "EXPORT_Player!F3:G",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "Workshop Ratio": "Desired Ratios",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -4862,7 +4740,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -4891,9 +4768,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -4909,10 +4785,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -4946,7 +4820,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
@@ -4989,7 +4862,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -5022,8 +4894,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -5042,7 +4912,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -5050,7 +4919,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -5076,7 +4944,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -5121,7 +4988,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -5170,7 +5036,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -5178,7 +5043,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -5219,44 +5083,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_1");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B3:D", // Player tier data
-          "Player Stat": "EXPORT_Player!F3:G", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B3:D",
+          "Player Stat": "EXPORT_Player!F3:G",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "Workshop Ratio": "Desired Ratios",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -5265,7 +5131,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -5294,9 +5159,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -5312,10 +5176,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -5349,7 +5211,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
@@ -5392,7 +5253,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -5425,8 +5285,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -5445,7 +5303,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -5453,7 +5310,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -5479,7 +5335,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -5524,7 +5379,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -5573,7 +5427,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -5581,7 +5434,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -5622,44 +5474,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.0.4 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0_4: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_0_4");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B16:D", // Player tier data
-          "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B16:D",
+          "Player Stat": "EXPORT_Player!B2:C12",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "Workshop Ratio": "Desired Ratios",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -5668,7 +5522,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -5697,9 +5550,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -5715,10 +5567,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -5752,7 +5602,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
@@ -5795,7 +5644,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -5828,8 +5676,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -5848,7 +5694,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -5856,7 +5701,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -5882,7 +5726,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -5929,7 +5772,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -5978,7 +5820,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -5986,7 +5827,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -6027,44 +5867,46 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: collection.version2_0");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B2:M", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!P2:V", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B16:D", // Player tier data
-          "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B2:M",
+          "Workshop Plus": "EXPORT_WS!P2:V",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B16:D",
+          "Player Stat": "EXPORT_Player!B2:C12",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "Workshop Ratio": "Desired Ratios", // Workshop ratios (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "Workshop Ratio": "Desired Ratios",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -6073,7 +5915,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -6102,9 +5943,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -6120,10 +5960,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -6157,7 +5995,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       var workshopPlusRatioResult = getBatchResult(
@@ -6200,7 +6037,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -6233,8 +6069,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -6253,7 +6087,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -6261,7 +6094,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -6287,7 +6119,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -6331,7 +6162,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -6380,7 +6210,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -6388,7 +6217,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -6429,43 +6257,45 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v1.4.1.7 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_4_1_7: function (oldSheetID) {
     try {
       console.log("Called: collection.version1_4_1_7");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B3:F", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!H3:K", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
-          "Player Tier": "EXPORT_Player!B16:D", // Player tier data
-          "Player Stat": "EXPORT_Player!B2:C12", // Player stat data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B3:F",
+          "Workshop Plus": "EXPORT_WS!H3:K",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          "Modules Tracker": "Modules Tracker",
+          Guardians: "EXPORT_Guardian!B5:F",
+          "Player Tier": "EXPORT_Player!B16:D",
+          "Player Stat": "EXPORT_Player!B2:C12",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
-          "Modules Tracker": "Modules Tracker", // Modules Tracker (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
+          "Modules Tracker": "Modules Tracker",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -6474,7 +6304,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -6503,9 +6332,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -6521,9 +6349,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
-      // Laboratory data
+
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -6557,7 +6384,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       if (
@@ -6587,7 +6413,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -6620,8 +6445,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -6640,7 +6463,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -6648,7 +6470,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -6674,7 +6495,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -6719,7 +6539,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -6768,7 +6587,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -6776,7 +6594,6 @@
         collectedData.Guardians = guardiansData;
       }
 
-      // Player data
       var playerTierResult = getBatchResult("Player Tier", "values");
       var playerStatResult = getBatchResult("Player Stat", "values");
       if (
@@ -6817,39 +6634,41 @@
     }
   },
 
+  /**
+   * Reads IDS_Collection data from a v1.3.5 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_3_5: function (oldSheetID) {
     try {
       console.log("Called: collection.version1_3_5");
 
-      // Define all the ranges for different sheet types in the IDS Collection
-      // Dictionary mapping descriptive keys to their actual sheet ranges, separated by type
       var rangeMap = {
         values: {
-          "Lab Levels": "EXPORT_Lab!B5:E", // Laboratory levels
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet) - for values
-          "Workshop Levels": "EXPORT_WS!B3:F", // Workshop levels
-          "Workshop Plus": "EXPORT_WS!H3:K", // Workshop plus levels
-          "Ultimate Weapon": "EXPORT_UW!C5:G", // Ultimate weapons data
-          "Themes & Songs": "Themes & Songs", // Themes & songs data (full sheet)
-          Bots: "EXPORT_Bots!C5:G", // Bots data
-          Relics: "Relics", // Relics data (full sheet)
-          "Vault Harmony": "Vault_Harmony", // Vault harmony data (full sheet)
-          "Vault Power": "Vault_Power", // Vault power data (full sheet)
-          "Card Preset": "Card Preset", // Cards preset data (full sheet)
-          "Card Tracker": "Card and Mastery Tracker", // Card tracker data (full sheet)
-          "Cards Levels": "EXPORT_Cards!B5:D", // Cards level data
-          "Cards Slots": "EXPORT_Cards!C2", // Cards slot data
-          "Modules Inventory": "Modules Inventory", // Modules inventory (full sheet)
-          "Modules Presets": "Modules Presets", // Modules presets (full sheet)
-          Guardians: "EXPORT_Guardian!B5:F", // Guardians data
+          "Lab Levels": "EXPORT_Lab!B5:E",
+          "Lab Planner": "Lab Planner",
+          "Workshop Levels": "EXPORT_WS!B3:F",
+          "Workshop Plus": "EXPORT_WS!H3:K",
+          "Ultimate Weapon": "EXPORT_UW!C5:G",
+          "Themes & Songs": "Themes & Songs",
+          Bots: "EXPORT_Bots!C5:G",
+          Relics: "Relics",
+          "Vault Harmony": "Vault_Harmony",
+          "Vault Power": "Vault_Power",
+          "Card Preset": "Card Preset",
+          "Card Tracker": "Card and Mastery Tracker",
+          "Cards Levels": "EXPORT_Cards!B5:D",
+          "Cards Slots": "EXPORT_Cards!C2",
+          "Modules Inventory": "Modules Inventory",
+          "Modules Presets": "Modules Presets",
+          Guardians: "EXPORT_Guardian!B5:F",
         },
         formulas: {
-          "Lab Planner": "Lab Planner", // Laboratory planner (full sheet)
-          "UW Cost Calculator": "UW Cost Calculator v3", // Ultimate Weapons Cost Calculator (full sheet)
+          "Lab Planner": "Lab Planner",
+          "UW Cost Calculator": "UW Cost Calculator v3",
         },
       };
 
-      // Create separate ranges arrays and index maps for values and formulas
       var valuesRanges = Object.keys(rangeMap.values).map(function (key) {
         return rangeMap.values[key];
       });
@@ -6858,7 +6677,6 @@
         return rangeMap.formulas[key];
       });
 
-      // Batch fetch all required data
       var batchValuesResults = [];
       var batchFormulasResults = [];
 
@@ -6887,9 +6705,8 @@
         }
       }
 
-      // Helper function to get batch result by key and type
       var getBatchResult = function (key, type) {
-        type = type || "values"; // Default to values if not specified
+        type = type || "values";
 
         if (type === "values") {
           var index = Object.keys(rangeMap.values).indexOf(key);
@@ -6905,10 +6722,8 @@
         return null;
       };
 
-      // Process the data using the individual modules' getVersionXXValues functions
       var collectedData = {};
 
-      // Laboratory data
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
       var labPlannerFormulasResult = getBatchResult("Lab Planner", "formulas");
@@ -6942,7 +6757,6 @@
         };
       }
 
-      // Workshop data
       var workshopLevelsResult = getBatchResult("Workshop Levels", "values");
       var workshopPlusResult = getBatchResult("Workshop Plus", "values");
       if (
@@ -6972,7 +6786,6 @@
         };
       }
 
-      // Ultimate Weapon data
       var ultimateResult = getBatchResult("Ultimate Weapon", "values");
       var ultimateCostCalculatorResult = getBatchResult(
         "UW Cost Calculator",
@@ -7005,8 +6818,6 @@
         };
       }
 
-      // Themes, Songs & Relics data - the IDS Collection keeps the two as
-      // separate sheets, but exports them under the one merged sheet type.
       var themesResult = getBatchResult("Themes & Songs", "values");
       var relicsResult = getBatchResult("Relics", "values");
       if (
@@ -7025,7 +6836,6 @@
         };
       }
 
-      // Bots data
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
@@ -7033,7 +6843,6 @@
         collectedData.Bots = botsData;
       }
 
-      // Vault data
       var harmonyResult = getBatchResult("Vault Harmony", "values");
       var powerResult = getBatchResult("Vault Power", "values");
       if (
@@ -7059,7 +6868,6 @@
         };
       }
 
-      // Cards data
       var cardsPresetResult = getBatchResult("Card Preset", "values");
       var cardsTrackerResult = getBatchResult("Card Tracker", "values");
       var cardsLevelsResult = getBatchResult("Cards Levels", "values");
@@ -7104,7 +6912,6 @@
         };
       }
 
-      // Modules data
       var modulesInventoryResult = getBatchResult(
         "Modules Inventory",
         "values",
@@ -7135,7 +6942,6 @@
         };
       }
 
-      // Guardians data
       var guardiansResult = getBatchResult("Guardians", "values");
       if (guardiansResult && guardiansResult.values) {
         var guardiansValues = guardiansResult.values;
@@ -7157,8 +6963,6 @@
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.3.5": this.version1_3_5.bind(this),
@@ -7179,8 +6983,11 @@
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -7199,5 +7006,5 @@
 
     return null;
   },
-  // #endregion
+
 };

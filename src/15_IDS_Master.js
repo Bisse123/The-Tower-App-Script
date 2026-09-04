@@ -1,5 +1,12 @@
 const master = {
-  // #region Export Functions
+
+  /**
+   * Reads IDS_Master data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: master.exportData");
@@ -32,8 +39,12 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported IDS_Master data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: master.importData");
@@ -41,7 +52,6 @@ const master = {
       var batchUpdate = [];
       var failedUpdates = [];
 
-      // Get IDS sheet data for finding import status range
       var requiredRanges = ["IDS", "Presets Presets"];
       var idsData = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!idsData || !idsData[0] || !idsData[0].values) {
@@ -55,7 +65,6 @@ const master = {
       var idsValues = idsData[0].values;
       var presetsValues = idsData[1].values;
 
-      // Update IDS sheet with exported data if available
       if (data.hasOwnProperty("oldIdsData")) {
         try {
           var idsUpdateResult = this.updateIDSData(data.oldIdsData, idsValues);
@@ -115,8 +124,6 @@ const master = {
         }
       }
 
-      // The new IDS Master owns the IDs from here on, so it points at itself and
-      // is marked imported without a follow-up updateIdsMaster call.
       var thisSheetInfo = shared.findSheetTypeID(
         newSheetID,
         "IDS",
@@ -130,7 +137,6 @@ const master = {
         });
       }
 
-      // Execute all updates
       if (batchUpdate.length > 0) {
         var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
         if (!updateResult) {
@@ -161,18 +167,20 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes IDSData into the new sheet.
+   * @param {Array<Array<*>>} oldIDSValues
+   * @param {Object} newIDSData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateIDSData: function (oldIDSValues, newIDSData) {
     try {
       console.log("Called: master.updateIDSData");
       var batchUpdate = [];
 
-      // Update each sheet reference from old IDS data
       Object.keys(oldIDSValues).forEach(function (sheetType) {
         var sheetID = oldIDSValues[sheetType];
 
-        // Find the sheet type in new IDS values
         var sheetInfo = shared.findSheetTypeID(
           null,
           "IDS",
@@ -181,7 +189,7 @@ const master = {
         );
 
         if (sheetInfo) {
-          // Update ID if provided
+
           if (sheetID && sheetInfo.cell && sheetInfo.cell.range) {
             batchUpdate.push({
               range: sheetInfo.cell.range,
@@ -205,6 +213,12 @@ const master = {
     }
   },
 
+  /**
+   * Builds the batch update that writes PresetsData into the new sheet.
+   * @param {Array<Array<*>>} oldPresetsValues
+   * @param {Object} newPresetsData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updatePresetsData: function (oldPresetsValues, newPresetsData) {
     try {
       console.log("Called: master.updatePresetsData");
@@ -240,7 +254,7 @@ const master = {
             range: `Presets Presets!${shared.columnToLetter(col)}${row - 1}`,
             values: [[presetName]],
           });
-          
+
           var oldPresetData = oldPresetsValues.data[presetName];
           for (
             var nextRow = row + 1;
@@ -292,13 +306,15 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads IDS_Master data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: master.version4_0");
 
-      // Get IDS sheet data
       var requiredRanges = ["IDS", "Presets Presets"];
       var idsResult = SheetsAPI.batchGetValues(oldSheetID, requiredRanges);
       if (!idsResult || !idsResult[0] || !idsResult[0].values) {
@@ -333,11 +349,15 @@ const master = {
     }
   },
 
+  /**
+   * Reads IDS_Master data from a v2.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_0: function (oldSheetID) {
     try {
       console.log("Called: master.version2_0");
 
-      // Get IDS sheet data
       var idsResult = SheetsAPI.batchGetValues(oldSheetID, ["IDS"]);
       if (!idsResult || !idsResult[0] || !idsResult[0].values) {
         console.log(`Could not read IDS data from old spreadsheet`);
@@ -358,13 +378,15 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Get IDS Data
+  /**
+   * Extracts IDSData from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} idsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0IDSData: function (idsValues) {
     try {
       console.log("Called: master.getVersion4_0IDSData");
 
-      // Extract all sheet references from the IDS sheet
       var sheetReferences = {};
       var sheetTypes = [
         "Laboratory",
@@ -406,11 +428,15 @@ const master = {
     }
   },
 
+  /**
+   * Extracts IDSData from a v2.0 sheet's values.
+   * @param {Array<Array<*>>} idsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_0IDSData: function (idsValues) {
     try {
       console.log("Called: master.getVersion2_0IDSData");
 
-      // Extract all sheet references from the IDS sheet
       var sheetReferences = {};
       var sheetTypes = [
         "Laboratory",
@@ -453,13 +479,15 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Get Presets Data
+  /**
+   * Extracts PresetsData from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} presetsValues
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0PresetsData: function (presetsValues) {
     try {
       console.log("Called: master.getVersion4_0PresetsData");
 
-      // Extract all preset data from the Presets Presets sheet
       const sliders = ["Range", "Shockwave Size"];
       var presetsData = {
         data: {},
@@ -526,8 +554,11 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses IDS_Master data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseMasterData: function (data) {
     try {
       const globalPresets = data.globalPresets || [];
@@ -552,7 +583,7 @@ const master = {
         data: {},
       };
       globalPresets.forEach((preset, index) => {
-        if (index == globalPresets.length - 1) return; // last index is a dummy entry, skip it
+        if (index == globalPresets.length - 1) return;
         const globalPresetName = preset.presetName;
         if (!globalPresetName) {
           return;
@@ -594,8 +625,6 @@ const master = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v2.0": this.version2_0.bind(this),
@@ -603,8 +632,11 @@ const master = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     console.log("Called: master.isCompatibleVersion");
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
@@ -624,5 +656,5 @@ const master = {
 
     return null;
   },
-  // #endregion
+
 };

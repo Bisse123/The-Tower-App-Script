@@ -43,6 +43,12 @@ const spreadsheets = (spreadsheetTypeName, sheetID) => {
 
 const ADDON_CONSENT_READY_SIGNAL_KEY = "ADDON_CONSENT_READY_SIGNAL";
 
+/**
+ * Web app entry point. Serves the save-file, Get Started or update page
+ * according to the query parameters.
+ * @param {{parameter?: Object}} e
+ * @returns {HtmlOutput}
+ */
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
 
@@ -134,18 +140,37 @@ function doGet(e) {
     .setTitle("Import Data");
 }
 
+/**
+ * Inlines another HTML file, for the <?!= include(...) ?> templating.
+ * @param {string} filename
+ * @returns {string}
+ */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+/**
+ * Simple trigger: builds the menu when a spreadsheet opens.
+ * @param {Object} e
+ * @returns {void}
+ */
 function onOpen(e) {
   createMenu();
 }
 
+/**
+ * Simple trigger: builds the menu when the add-on is installed.
+ * @param {Object} e
+ * @returns {void}
+ */
 function onInstall(e) {
   createMenu();
 }
 
+/**
+ * Adds the Import Data menu. Silently skipped where there is no UI.
+ * @returns {void}
+ */
 function createMenu() {
     try {
         var ui = SpreadsheetApp.getUi();
@@ -159,6 +184,10 @@ function createMenu() {
     }
 }
 
+/**
+ * Opens the Get Started modal dialog.
+ * @returns {void}
+ */
 function showGetStartedDialog() {
   try {
     var template = HtmlService.createTemplateFromFile("20_getStartedApp");
@@ -175,11 +204,15 @@ function showGetStartedDialog() {
       .addMetaTag("viewport", "width=device-width, initial-scale=1");
     SpreadsheetApp.getUi().showModalDialog(html, "Get Started");
   } catch (error) {
-    errors.reportFinal("showGetStartedDialog", error);
+    errors.report("showGetStartedDialog", error, null, errors.CODES.RECOVERED);
     SpreadsheetApp.getUi().alert("Error: " + error.message);
   }
 }
 
+/**
+ * Opens the update sidebar.
+ * @returns {void}
+ */
 function showUpdateDialog() {
   try {
     var template = HtmlService.createTemplateFromFile("20_WebApp");
@@ -202,7 +235,7 @@ function showUpdateDialog() {
       .setTitle("Import Data");
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
-    errors.reportFinal("showUpdateDialog", error);
+    errors.report("showUpdateDialog", error, null, errors.CODES.RECOVERED);
     var template = HtmlService.createTemplateFromFile("20_WebApp");
     template.newSheetID = "";
     template.oldSheetID = "";
@@ -224,6 +257,10 @@ function showUpdateDialog() {
   }
 }
 
+/**
+ * Opens the save-file import modal dialog.
+ * @returns {void}
+ */
 function openSaveFileDialog() {
   var template = HtmlService.createTemplateFromFile("20_SavedFileApp");
   template.API_KEY =
@@ -244,6 +281,11 @@ function openSaveFileDialog() {
   SpreadsheetApp.getUi().showModalDialog(html, "Load Data From Save File");
 }
 
+/**
+ * Finds the IDS Master sheet ID in an IDS tab.
+ * @param {Sheet} idsSheet
+ * @returns {string|null} The extracted ID, or null when not found.
+ */
 function findIdMasterIdInIdsTab(idsSheet) {
   var values = idsSheet.getDataRange().getValues();
   if (!values || values.length === 0) {
@@ -262,6 +304,11 @@ function findIdMasterIdInIdsTab(idsSheet) {
   return null;
 }
 
+/**
+ * Opens the additional-permissions dialog.
+ * @param {string} [authorizationUrl]
+ * @returns {void}
+ */
 function showAddonConsentDialog(authorizationUrl) {
   var userProperties = PropertiesService.getUserProperties();
   userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
@@ -278,6 +325,10 @@ function showAddonConsentDialog(authorizationUrl) {
   SpreadsheetApp.getUi().showModalDialog(html, "Additional Permissions Required");
 }
 
+/**
+ * Client-callable. Records that the user finished the consent dialog.
+ * @returns {boolean} Always true.
+ */
 function markAddonConsentReadySignal() {
   PropertiesService.getUserProperties().setProperty(
     ADDON_CONSENT_READY_SIGNAL_KEY,
@@ -286,6 +337,10 @@ function markAddonConsentReadySignal() {
   return true;
 }
 
+/**
+ * Reads and clears the consent-ready signal.
+ * @returns {boolean} Whether a signal was waiting.
+ */
 function consumeAddonConsentReadySignal() {
   var userProperties = PropertiesService.getUserProperties();
   var signal = userProperties.getProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
@@ -298,6 +353,10 @@ function consumeAddonConsentReadySignal() {
   return true;
 }
 
+/**
+ * Client-callable. The active spreadsheet's ID, if it holds Effective Paths.
+ * @returns {{success: boolean, sheetId: string}} A failure envelope on error.
+ */
 function getGetStartedParameters() {
   try {
     var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -334,6 +393,11 @@ function getGetStartedParameters() {
   }
 }
 
+/**
+ * Client-callable. The old sheet, IDS Master and sheet type for the update
+ * workflow, read from the active spreadsheet.
+ * @returns {Object} { success, oldSheetID, idMasterID, sheetType, ... }
+ */
 function getUpdateDialogParameters() {
   try {
     var oldSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -351,7 +415,7 @@ function getUpdateDialogParameters() {
     } else {
       sheetType = homePageSheet.getRange("B2").getValue();
     }
-    
+
     if (!sheetType) {
       throw new Error("Sheet type not found in the active spreadsheet.");
     }
@@ -410,6 +474,11 @@ function getUpdateDialogParameters() {
   }
 }
 
+/**
+ * Client-callable. The IDS Master ID and sheet type for the save-file
+ * workflow, read from the active spreadsheet.
+ * @returns {{success: boolean, idMasterID: string, sheetType: string}}
+ */
 function getSaveFileParameters() {
   try {
     var activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -497,6 +566,13 @@ function getSaveFileParameters() {
   }
 }
 
+/**
+ * Client-callable. Reads a sheet type's data out of the old spreadsheet.
+ * @param {string} oldSheetID
+ * @param {string} sheetType
+ * @param {string} versionDifference Which converter to use, e.g. "v6.4.3".
+ * @returns {Object} { success, data, sheetVisibility } or a failure envelope.
+ */
 function exportData(oldSheetID, sheetType, versionDifference) {
   try {
     if (!sheetType) {
@@ -579,6 +655,15 @@ function exportData(oldSheetID, sheetType, versionDifference) {
   }
 }
 
+/**
+ * Client-callable. Writes exported data into the new spreadsheet.
+ * @param {string} newSheetID
+ * @param {string} sheetType
+ * @param {Object} data What exportData returned.
+ * @param {Object} sheetVisibility Tab visibility to restore.
+ * @param {string} idMasterID
+ * @returns {Object} { success, message } or a failure envelope.
+ */
 function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
   try {
     if (!sheetType) {
@@ -650,8 +735,7 @@ function importData(newSheetID, sheetType, data, sheetVisibility, idMasterID) {
 
     var importResult = sheetTypeFunction.importData(data, newSheetID);
     if (!importResult || !importResult.success) {
-      // The module already recorded whatever went wrong; re-reporting it here
-      // would give Error Reporting a second group for one incident.
+
       return errors.propagate(
         "importData",
         importResult,

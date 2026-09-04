@@ -1,5 +1,12 @@
 const guardians = {
-  // #region Export Functions
+
+  /**
+   * Reads Guardians data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: guardians.exportData");
@@ -30,8 +37,12 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Guardians data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: guardians.importData");
@@ -149,8 +160,14 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes GuardianLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldGuardians
+   * @param {Object} masterSheetData
+   * @param {Object} dvtNamedRangesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateGuardianLevels: function (
     sheetName,
     oldGuardians,
@@ -383,8 +400,11 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Guardians data from a v3.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version3_1: function (oldSheetID) {
     try {
       console.log("Called: guardians.version3_1");
@@ -416,6 +436,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Reads Guardians data from a v2.2 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_2: function (oldSheetID) {
     try {
       console.log("Called: guardians.version2_2");
@@ -447,6 +472,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Reads Guardians data from a v2.1 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version2_1: function (oldSheetID) {
     try {
       console.log("Called: guardians.version2_1");
@@ -478,6 +508,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Reads Guardians data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: guardians.version1_0");
@@ -509,8 +544,11 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Get Guardians
+  /**
+   * Extracts Guardians from a v3.1 sheet's values.
+   * @param {Array<Array<*>>} oldGuardianLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion3_1Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion3_1Guardians");
@@ -533,9 +571,6 @@ const guardians = {
 
       var oldGuardiansHeaderRow = oldGuardianLevels[0] || [];
 
-      // That range is laid out as guardian name, unlocked, chip name, spacer,
-      // then one (equipped, level) pair per preset - so the presets always
-      // start at the fifth column no matter what they were renamed to.
       var firstPresetIndex = 4;
 
       if (oldGuardiansHeaderRow.length <= firstPresetIndex) {
@@ -613,17 +648,10 @@ const guardians = {
           if (!key) {
             continue;
           }
-          
-          // var defaultLevelColIndex = presetColumnMapping[0].levelColIndex;
-          // var defaultLevelValue = nextRowData[defaultLevelColIndex];
+
           presetColumnMapping.forEach(function (presetMap) {
             var levelValue = nextRowData[presetMap.levelColIndex];
-            // if (
-            //   presetMap.levelColIndex !== defaultLevelColIndex &&
-            //   levelValue === defaultLevelValue
-            // ) {
-            //   levelValue = null;
-            // }
+
             guardian.presets[presetMap.presetName].props[key] = levelValue;
           });
         }
@@ -643,6 +671,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Extracts Guardians from a v2.2 sheet's values.
+   * @param {Array<Array<*>>} oldGuardianLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_2Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion2_2Guardians");
@@ -706,6 +739,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Extracts Guardians from a v2.1 sheet's values.
+   * @param {Array<Array<*>>} oldGuardianLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion2_1Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion2_1Guardians");
@@ -769,6 +807,11 @@ const guardians = {
     }
   },
 
+  /**
+   * Extracts Guardians from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldGuardianLevelsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0Guardians: function (oldGuardianLevelsData) {
     try {
       console.log("Called: guardians.getVersion1_0Guardians");
@@ -833,13 +876,14 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Guardians data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseGuardiansData: function (data) {
     try {
-      // Keyed by the guardian's index in the save file's flat chip arrays. Slots
-      // the game ships but has never implemented simply have no entry here, so
-      // nothing downstream has to filter them back out.
+
       const targetGuardians = {
         0: { name: "Bounty", upgrades: ["Multiplier", "Cooldown", "Targets"] },
         2: { name: "Attack", upgrades: ["Percentage", "Cooldown", "Targets"], alwaysUnlocked: true },
@@ -883,7 +927,7 @@ const guardians = {
         presetNames.push(presetName);
 
         const chipLevel = preset.chipLevel || [];
-        // A slot list of one comes through as a bare value rather than an array.
+
         const chipSlot =
           preset.chipSlot == null ? [] : [].concat(preset.chipSlot);
 
@@ -941,8 +985,6 @@ const guardians = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
@@ -952,8 +994,11 @@ const guardians = {
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -972,6 +1017,5 @@ const guardians = {
 
     return null;
   },
-  
-  // #endregion
+
 };

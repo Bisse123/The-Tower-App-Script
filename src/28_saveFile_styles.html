@@ -1,4 +1,8 @@
 <style>
+  /* =====================================================================
+     Save-file section theme
+     ===================================================================== */
+
   .saveFileSection {
     background-color: #e8eefb;
     border-color: #2752b0;
@@ -34,6 +38,10 @@
     margin-bottom: 0;
   }
 
+  /* =====================================================================
+     Warnings and not-owned files
+     ===================================================================== */
+
   .saveFileWarning {
     margin: 14px 0;
     padding: 12px 14px;
@@ -64,6 +72,10 @@
     margin: 2px 0;
     word-break: break-word;
   }
+
+  /* =====================================================================
+     File source: picker, Drive button, held file name
+     ===================================================================== */
 
   .saveFileInputRow {
     display: flex;
@@ -214,12 +226,20 @@
     cursor: not-allowed;
   }
 
+  /* =====================================================================
+     Parsed results container
+     ===================================================================== */
+
   #saveFileResults {
     margin-top: 18px;
   }
   #saveFileResults:empty {
     display: none;
   }
+
+  /* =====================================================================
+     Category cards: header, chevron, body
+     ===================================================================== */
 
   .sfCategory {
     margin-bottom: 8px;
@@ -265,6 +285,10 @@
     background: #fff;
   }
   .sfCategory.open .sfCategoryBody { display: block; }
+
+  /* =====================================================================
+     Field rows and value formatting
+     ===================================================================== */
 
   .sfFieldRow {
     display: grid;
@@ -315,6 +339,10 @@
   }
 
   .sfNestedList,
+  /* =====================================================================
+     Nested objects and arrays
+     ===================================================================== */
+
   .sfNestedObject {
     display: flex;
     flex-direction: column;
@@ -367,6 +395,10 @@
     color: #aaa;
     font-style: italic;
   }
+
+  /* =====================================================================
+     Missing and failed-to-parse notices
+     ===================================================================== */
 
   .sfMissingSection {
     padding: 8px 12px;
@@ -433,6 +465,10 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
+
+  /* =====================================================================
+     Import controls and summary
+     ===================================================================== */
 
   .saveFileImportControls {
     display: inline-flex;
@@ -513,6 +549,10 @@
   .sfInlineKey { color: #666; }
   .sfInlineVal { color: #222; }
 
+  /* =====================================================================
+     Per-category layouts: vault, relics, lab
+     ===================================================================== */
+
   .sfVaultGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, 16%);
@@ -551,6 +591,10 @@
   }
   .sfPairKey { color: #555; word-break: break-word; }
   .sfPairVal { color: #222; flex-shrink: 0; }
+
+  /* =====================================================================
+     Themes and songs columns
+     ===================================================================== */
 
   .sfThemeColumns {
     display: flex;
@@ -612,6 +656,10 @@
   }
   .sfLevelName { color: #333; word-break: break-word; }
 
+  /* =====================================================================
+     Modules columns and substats
+     ===================================================================== */
+
   .sfModuleColumns {
     display: flex;
     flex-wrap: wrap;
@@ -649,6 +697,10 @@
   }
   .sfSubstatRarity { color: #2752b0; flex-shrink: 0; }
 
+  /* =====================================================================
+     Ultimate weapon columns
+     ===================================================================== */
+
   .sfUltimateColumns {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -675,6 +727,10 @@
   @media (max-width: 460px) {
     .sfUltimateColumns { grid-template-columns: minmax(0, 1fr); }
   }
+
+  /* =====================================================================
+     Cards columns and tiers
+     ===================================================================== */
 
   .sfCardColumns {
     display: flex;
@@ -737,6 +793,10 @@
     padding-bottom: 2px;
     margin-bottom: 3px;
   }
+
+  /* =====================================================================
+     Player wave-cap toggle switch
+     ===================================================================== */
 
   .sfPlayerWaveToggle {
     display: flex;
@@ -819,6 +879,10 @@
   .sfTierStatKey { color: #888; }
   .sfTierStatVal { color: #222; }
 
+  /* =====================================================================
+     Bots columns
+     ===================================================================== */
+
   .sfBotsColumns {
     display: flex;
     flex-wrap: wrap;
@@ -836,6 +900,10 @@
     padding-bottom: 2px;
     margin-bottom: 3px;
   }
+
+  /* =====================================================================
+     Presets and workshop
+     ===================================================================== */
 
   .sfPresetBox {
     display: flex;
@@ -876,6 +944,10 @@
     padding-bottom: 2px;
     margin-bottom: 3px;
   }
+
+  /* =====================================================================
+     Diff view: controls, legend, rows, chips
+     ===================================================================== */
 
   .sfViewControls {
     display: flex;

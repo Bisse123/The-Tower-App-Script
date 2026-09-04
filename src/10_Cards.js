@@ -1,5 +1,12 @@
 const cards = {
-  // #region Export Functions
+
+  /**
+   * Reads Cards data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: cards.exportData");
@@ -32,8 +39,12 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Cards data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: cards.importData");
@@ -60,7 +71,6 @@ const cards = {
 
       var batchUpdate = [];
 
-      // Only update cards levels if key exists
       if (
         data.hasOwnProperty("oldCardsLevel") &&
         data.hasOwnProperty("oldCardSlots")
@@ -80,7 +90,6 @@ const cards = {
         batchUpdate = batchUpdate.concat(levelsResult.batchUpdate || []);
       }
 
-      // Only update cards preset if key exists
       if (data.hasOwnProperty("oldCardsPreset")) {
         var oldCardsPreset = data.oldCardsPreset;
         var shouldRemoveUsedCards = data.hasOwnProperty("shouldRemoveUsedCards")
@@ -113,7 +122,6 @@ const cards = {
         batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         "Cards",
@@ -145,8 +153,14 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes CardsLevels into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldCardsLevel
+   * @param {Object} oldCardSlots
+   * @param {Object} masterSheetData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateCardsLevels: function (
     sheetName,
     oldCardsLevel,
@@ -225,6 +239,14 @@ const cards = {
     }
   },
 
+  /**
+   * Builds the batch update that writes CardsPreset into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldCardsPreset
+   * @param {*} shouldRemoveUsedCards
+   * @param {Object} cardPresetsData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateCardsPreset: function (
     sheetName,
     oldCardsPreset,
@@ -402,6 +424,13 @@ const cards = {
     }
   },
 
+  /**
+   * Builds the batch update that writes CardsTracker into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldCardsTracker
+   * @param {Object} cardTrackerData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateCardsTracker: function (sheetName, oldCardsTracker, cardTrackerData) {
     try {
       console.log("Called: cards.updateCardsTracker");
@@ -486,8 +515,11 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Convert Versions
+  /**
+   * Reads Cards data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version1_0: function (oldSheetID) {
     try {
       console.log("Called: cards.version1_0");
@@ -541,8 +573,11 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Get Cards Tracker
+  /**
+   * Extracts CardsTracker from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldCardsTrackerData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0CardsTracker: function (oldCardsTrackerData) {
     try {
       console.log("Called: cards.getVersion1_0CardsTracker");
@@ -607,17 +642,17 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Get Cards Preset
+  /**
+   * Extracts CardsPreset from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldCardsPresetData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0CardsPreset: function (oldCardsPresetData) {
     try {
       console.log("Called: cards.getVersion1_0CardsPreset");
       var shouldRemoveUsedCards;
       var oldCardsPreset = {};
 
-      // Every preset name may have been renamed, so the header row is located
-      // from the "Remove used cards from the pool" toggle above it, which the
-      // template always puts two rows higher.
       var headerRowIndex = -1;
       for (var rowIndex = 0; rowIndex < oldCardsPresetData.length; rowIndex++) {
         var colIndex = oldCardsPresetData[rowIndex].indexOf(
@@ -711,8 +746,12 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Get Cards Level
+  /**
+   * Extracts CardsLevel from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldCardsLevelData
+   * @param {Array<Array<*>>} oldCardSlotsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion1_0CardsLevel: function (oldCardsLevelData, oldCardSlotsData) {
     try {
       console.log("Called: cards.getVersion1_0CardsLevel");
@@ -752,8 +791,11 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Cards data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseCardsData: function (data) {
     try {
       const cardNamesByIndex = {
@@ -858,16 +900,17 @@ const cards = {
     }
   },
 
-  // #endregion
-  // #region Convert Version Functions Getter
   get convertVersionFunctions() {
     return {
       "v1.0": this.version1_0.bind(this),
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -887,5 +930,4 @@ const cards = {
     return null;
   },
 
-  // #endregion
 };

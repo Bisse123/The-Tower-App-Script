@@ -1,9 +1,14 @@
 const themesAndRelics = {
-  // #region Sheet References
+
   sheetType: "Themes, Songs & Relics",
 
-  // #endregion
-  // #region Export Functions
+  /**
+   * Reads Themes_Songs_Relics data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   exportData: function (versionDifference, oldSheetID) {
     try {
       console.log("Called: themesAndRelics.exportData");
@@ -36,15 +41,18 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // #region Import Functions
+  /**
+   * Writes exported Themes_Songs_Relics data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
   importData: function (data, newSheetID) {
     try {
       console.log("Called: themesAndRelics.importData");
       const themesSheetName = "Themes & Songs";
       const relicsSheetName = "Relics";
 
-      // Batch get required data for update function only
       var requiredRanges = [themesSheetName, relicsSheetName, "IDS"];
       var batchResults = SheetsAPI.batchGetValues(newSheetID, requiredRanges);
       if (!batchResults || batchResults.length < requiredRanges.length) {
@@ -61,7 +69,6 @@ const themesAndRelics = {
 
       var batchUpdate = [];
 
-      // Only update themes if key exists
       if (data.hasOwnProperty("oldThemesNames")) {
         var oldThemesNames = data.oldThemesNames;
         var themesResult = this.updateThemes(
@@ -76,7 +83,6 @@ const themesAndRelics = {
         batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
       }
 
-      // Only update relics if key exists
       if (data.hasOwnProperty("oldRelics")) {
         var oldRelics = data.oldRelics;
         var relicsResult = this.updateRelics(
@@ -91,7 +97,6 @@ const themesAndRelics = {
         batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
       }
 
-      // Always add ID updates
       shared.addIDUpdatesToBatch(
         batchUpdate,
         this.sheetType,
@@ -100,7 +105,6 @@ const themesAndRelics = {
         data.idMasterID,
       );
 
-      // Apply all updates (including ID setting and import status)
       var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
       if (!updateResult) {
         console.log(`Error applying batch updates to new spreadsheet`);
@@ -123,8 +127,13 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // #region Update Functions
+  /**
+   * Builds the batch update that writes Themes into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldThemesNames
+   * @param {Object} newThemesData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateThemes: function (sheetName, oldThemesNames, newThemesData) {
     try {
       console.log("Called: themes.updateThemes");
@@ -151,11 +160,9 @@ const themesAndRelics = {
         targetThemes.push("Milestone Skin");
       }
 
-      // For each header, store {col, startRow} for quick reference
       var headerLocations = {};
       var batchUpdate = [];
 
-      // Pre-scan to find header columns and their start rows
       for (var i = 0; i < newThemesData.length; i++) {
         for (var j = 0; j < newThemesData[i].length; j++) {
           var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
@@ -167,16 +174,15 @@ const themesAndRelics = {
             break;
           }
           if (targetThemes.indexOf(newThemeUnlocked) !== -1) {
-            // If not already recorded for this col, store its location
+
             if (!headerLocations[newThemeUnlocked]) {
               headerLocations[newThemeUnlocked] = [];
             }
-            headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 }); // +1 to start below header
+            headerLocations[newThemeUnlocked].push({ col: j, startRow: i + 1 });
           }
         }
       }
 
-      // For each header, possibly in multiple places
       for (var key in headerLocations) {
         headerLocations[key].forEach(function (loc) {
           var checkboxCol = loc.col;
@@ -229,6 +235,13 @@ const themesAndRelics = {
     }
   },
 
+  /**
+   * Builds the batch update that writes Relics into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldRelics
+   * @param {Object} newRelicsData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
   updateRelics: function (sheetName, oldRelics, newRelicsData) {
     try {
       console.log("Called: relics.updateRelics");
@@ -244,7 +257,6 @@ const themesAndRelics = {
       var newRelicNameCol = null;
       var newRelicUnlockedCol = null;
 
-      // Scan each row to find the header
       for (var row = 0; row < newRelicsData.length; row++) {
         var rowValues = newRelicsData[row];
         var relicNameIndex = rowValues.indexOf("Relic Name");
@@ -267,7 +279,6 @@ const themesAndRelics = {
 
       var startRow = newRelicHeaderRow + 1;
 
-      // Build unlocked status array directly by iterating through new relics data
       var newRelicsUnlocked = [];
       newRelicsData.slice(startRow - 1).forEach(function (row) {
         var relicName = (row[newRelicNameCol - 1] || "").trim();
@@ -311,8 +322,11 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // #region Convert Version
+  /**
+   * Reads Themes_Songs_Relics data from a v4.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   version4_0: function (oldSheetID) {
     try {
       console.log("Called: themesAndRelics.version4_0");
@@ -329,7 +343,7 @@ const themesAndRelics = {
 
       var oldThemesData = batchResults[0].values;
       var oldRelicsData = batchResults[1].values;
-      
+
       var themesResult = this.getVersion4_0Themes(oldThemesData);
       if (!themesResult || !themesResult.success) {
         console.log(`Error converting themes: ${themesResult.message}`);
@@ -347,7 +361,6 @@ const themesAndRelics = {
         oldThemesNames: themesResult.oldThemesNames,
         oldRelics: relicsResult.oldRelics,
       };
-      
 
     } catch (error) {
       var errorReport = errors.report("themesAndRelics.version4_0", error, {
@@ -357,8 +370,11 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // region getThemes
+  /**
+   * Extracts Themes from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldThemesData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0Themes: function (oldThemesData) {
     try {
       console.log("Called: themes.getVersion4_0Themes");
@@ -379,7 +395,7 @@ const themesAndRelics = {
       });
       var currentHeader = null;
       var headerCol = -1;
-      // Loop through each column first, then rows
+
       for (var col = 1; col < oldThemesData[1].length; col++) {
         for (var row = 0; row < oldThemesData.length; row++) {
           var oldThemeUnlocked = oldThemesData[row][col];
@@ -387,7 +403,7 @@ const themesAndRelics = {
             oldThemesNames["autoFill"] = oldThemesData[row + 1][col];
             continue;
           }
-          // If cell is a header
+
           if (
             targetThemes.indexOf(String(oldThemeUnlocked || "").trim()) !== -1
           ) {
@@ -418,8 +434,11 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // region getRelics
+  /**
+   * Extracts Relics from a v4.0 sheet's values.
+   * @param {Array<Array<*>>} oldRelicsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
   getVersion4_0Relics: function (oldRelicsData) {
     try {
       console.log("Called: relics.getVersion4_0Relics");
@@ -427,7 +446,6 @@ const themesAndRelics = {
       var relicNameIndex = -1;
       var relicUnlockedIndex = -1;
 
-      // Scan each row to find the header
       for (var row = 0; row < oldRelicsData.length; row++) {
         var rowValues = oldRelicsData[row];
         relicNameIndex = rowValues.indexOf("Relic Name");
@@ -478,8 +496,11 @@ const themesAndRelics = {
     }
   },
 
-  // #endregion
-  // #region Parse Saved File
+  /**
+   * Parses Themes_Songs_Relics data out of a decoded save file.
+   * @param {Object} data
+   * @returns {Object} The parsed data, or a failure envelope.
+   */
   parseThemesAndRelicsData: function (data) {
     try {
       var towerSkins = {
@@ -982,9 +1003,7 @@ const themesAndRelics = {
         302: "T: XXIV Cosmic",
         303: "Manta Ray",
         304: "Pearl Shell",
-        // No idea where these belong
-        // XXX: "Mythic Badge",
-        // XXX: "Mythic Tower",
+
       };
 
       const towerSkinsData = data.towerSkins || [];
@@ -1004,7 +1023,7 @@ const themesAndRelics = {
         Menu: [],
         Songs: [],
       };
-    
+
       var oldRelics = [];
 
       towerSkinsData.forEach(function (isUnlocked, index) {
@@ -1098,17 +1117,18 @@ const themesAndRelics = {
       return errors.fail(errorReport);
     }
   },
-  
-  // #endregion
-  // #region Convert Version Functions Getter
+
   get convertVersionFunctions() {
     return {
       "v4.0": this.version4_0.bind(this),
     };
   },
 
-  // #endregion
-  // #region Compatibility Check
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
@@ -1128,5 +1148,4 @@ const themesAndRelics = {
     return null;
   },
 
-  // #endregion
 };

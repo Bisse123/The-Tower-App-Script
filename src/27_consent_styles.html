@@ -1,4 +1,8 @@
 <style>
+  /* =====================================================================
+     Consent modal shell
+     ===================================================================== */
+
   .consentModalBackground {
     display: none;
     position: fixed;
@@ -54,6 +58,10 @@
     font-size: 17px;
     line-height: 1.45;
   }
+
+  /* =====================================================================
+     Actions: authorize link and recheck button
+     ===================================================================== */
 
   .consentModalActions {
     display: flex;
@@ -131,6 +139,10 @@
     display: none !important;
   }
 
+  /* =====================================================================
+     Modal entry animation
+     ===================================================================== */
+
   @keyframes consentModalEnter {
     from {
       opacity: 0;
@@ -141,6 +153,10 @@
       transform: translateY(0) scale(1);
     }
   }
+
+  /* =====================================================================
+     Narrow screens
+     ===================================================================== */
 
   @media (max-width: 768px) {
     .consentModalBackground {

@@ -111,11 +111,16 @@ const MasterHeaders = {
   guardianPresets: "guardianPresets",
 }
 
+/**
+ * Client-callable. Ungzips and decodes a playerInfo.dat, then parses every
+ * category independently so one failure does not cost the others.
+ * @param {number[]} byteArray The raw file bytes.
+ * @returns {{success: true, parsed: Object, order: string[], failedCategories: Array<Object>}}
+ *   A failure envelope when the file is not a readable save.
+ */
 function parseSaveFileBytes(byteArray) {
   const uint8 = Uint8Array.from(byteArray);
 
-  // Decompress the GZIP data. A failure here almost always means the user
-  // picked something other than playerInfo.dat - not a defect in the parser.
   var decompressedBlob;
   try {
     decompressedBlob = Utilities.ungzip(
@@ -127,18 +132,9 @@ function parseSaveFileBytes(byteArray) {
     }, errors.CODES.INVALID_FILE);
     return errors.fail(errorReport);
   }
-  // Convert the decompressed Blob to a Uint8Array
+
   const bytes = blobToUint8Array_(decompressedBlob);
 
-  // Parse the NRBF data
-  // .NET's BinaryFormatter uses a format called NRBF (Net Remote Binary Format) to serialize objects. This format is not natively supported in JavaScript, so we need to implement a parser for it.
-  // The parseNRBF function is responsible for parsing the NRBF data and returning a JavaScript object representation of the serialized data.
-  // It does both string length prefixing and UTF-8 decoding, which are necessary for correctly interpreting the serialized data.
-  // Unlike the ungzip step, a failure here means our own parser could not make
-  // sense of a file that WAS a valid gzip stream - closer to a bug in this
-  // parser (a save-file format change we have not caught up with yet) than to
-  // user error, so this one is left to classify as INTERNAL and keeps its
-  // reference.
   var data;
   try {
     data = parseNRBF(bytes);
@@ -149,12 +145,11 @@ function parseSaveFileBytes(byteArray) {
     return errors.fail(errorReport);
   }
 
-  // Object.keys(data).forEach((key) => {
-  //   if (key.toLowerCase().includes("workshop")) {
-  //     console.log(`Key: ${key}, Value: ${JSON.stringify(data[key], bigIntJsonReplacer_)}`);
-  //   }
-  // });
-
+  /**
+   * Pulls the save-file keys a sheet needs out of the decoded data.
+   * @param {Object} headers Sheet key to save-file key.
+   * @returns {Object} Sheet key to value, null where the key is absent.
+   */
   function extratctDataByHeaders(headers) {
     var values = {};
     for (const sheetKey of Object.keys(headers)) {
@@ -164,48 +159,37 @@ function parseSaveFileBytes(byteArray) {
     return values;
   }
 
-  // Extract lab data
   var labValues = extratctDataByHeaders(labHeaders);
   var laboratoryData = lab.parseLabData(labValues);
 
-  // Extract workshop data
   var workshopValues = extratctDataByHeaders(workshopHeaders);
   var workshopData = workshop.parseWorkshopData(workshopValues);
 
-  // Extract ultimate weapon data
   var ultimateWeaponValues = extratctDataByHeaders(ultimateWeaponHeaders);
   var ultimateWeaponData = ultimate.parseUltimateWeaponData(ultimateWeaponValues);
 
-  // Extract Themes, Songs & Relics data
   var themesAndRelicsValues = extratctDataByHeaders(themesAndRelicsHeaders);
   var themesAndRelicsData =
     themesAndRelics.parseThemesAndRelicsData(themesAndRelicsValues);
 
-  // Extract bot data
   var botValues = extratctDataByHeaders(botHeaders);
   var botData = bots.parseBotsData(botValues);
 
-  // Extract vault data
   var vaultValues = extratctDataByHeaders(vaultHeaders);
   var vaultData = vault.parseVaultData(vaultValues);
 
-  // Extract Cards data
   var cardsValues = extratctDataByHeaders(cardsHeaders);
   var cardsData = cards.parseCardsData(cardsValues);
 
-  //Extract Modules data
   var moduleValues = extratctDataByHeaders(moduleHeaders);
   var moduleData = modules.parseModulesData(moduleValues);
 
-  // Extract Guardian data
   var guardianValues = extratctDataByHeaders(guardianHeaders);
   var guardianData = guardians.parseGuardiansData(guardianValues);
 
-  // Extract Player & Stuff data
   var playerStuffValues = extratctDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
 
-  // Extract IDS Master data
   var masterValues = extratctDataByHeaders(MasterHeaders);
   var masterData = master.parseMasterData(masterValues);
 
@@ -223,14 +207,6 @@ function parseSaveFileBytes(byteArray) {
     "IDS Master": masterData,
   };
 
-  // Each leaf parser already reported its own failure in full - with a stack,
-  // the input that broke it, and how far it had gotten - so this only relays
-  // it, and does so per category rather than aborting the whole file: one
-  // save-file category breaking on an unexpected shape must not cost the user
-  // the other ten that parsed fine. `parsed` ends up holding only the
-  // categories that succeeded, so the existing renderer (which already skips
-  // a type with no data) needs no change to keep working; the failed ones are
-  // reported separately.
   var order = Object.keys(parsed);
   var successfulParsed = {};
   var failedCategories = [];
@@ -271,6 +247,10 @@ function parseSaveFileBytes(byteArray) {
 
 const SAVE_FILE_WAVE_CAP_PREF_KEY = "SAVE_FILE_PLAYER_WAVES_AT_CAP";
 
+/**
+ * Client-callable. Whether the user treats player waves as capped.
+ * @returns {boolean}
+ */
 function getSaveFilePlayerWaveCapPreference() {
   const pref = PropertiesService.getUserProperties().getProperty(
     SAVE_FILE_WAVE_CAP_PREF_KEY,
@@ -278,6 +258,11 @@ function getSaveFilePlayerWaveCapPreference() {
   return pref === null ? true : pref === "true";
 }
 
+/**
+ * Client-callable. Stores the wave-cap preference.
+ * @param {boolean} atCap
+ * @returns {void}
+ */
 function setSaveFilePlayerWaveCapPreference(atCap) {
   PropertiesService.getUserProperties().setProperty(
     SAVE_FILE_WAVE_CAP_PREF_KEY,
@@ -286,6 +271,11 @@ function setSaveFilePlayerWaveCapPreference(atCap) {
   return true;
 }
 
+/**
+ * Blob to unsigned bytes.
+ * @param {Blob} blob
+ * @returns {Uint8Array}
+ */
 function blobToUint8Array_(blob) {
   const signedBytes = blob.getBytes();
   const out = new Uint8Array(signedBytes.length);
@@ -295,6 +285,12 @@ function blobToUint8Array_(blob) {
   return out;
 }
 
+/**
+ * JSON.stringify replacer that renders BigInt as a string.
+ * @param {string} key
+ * @param {*} value
+ * @returns {*}
+ */
 function bigIntJsonReplacer_(key, value) {
   return typeof value === "bigint" ? value.toString() : value;
 }
@@ -791,6 +787,11 @@ class NRBFParser {
   }
 }
 
+/**
+ * Unwraps an NRBF collection object down to its underlying array or map.
+ * @param {*} obj
+ * @returns {*}
+ */
 function unwrapCollection(obj) {
   const keys = Object.keys(obj);
   if (
@@ -832,6 +833,11 @@ function unwrapCollection(obj) {
   return obj;
 }
 
+/**
+ * Decodes UTF-8 bytes to a string.
+ * @param {Uint8Array|number[]} bytes
+ * @returns {string}
+ */
 function utf8Decode(bytes) {
   if (typeof TextDecoder !== "undefined") {
     return new TextDecoder("utf-8").decode(bytes);
@@ -870,6 +876,11 @@ function utf8Decode(bytes) {
   return out;
 }
 
+/**
+ * .NET BinaryFormatter (NRBF) parser: decodes the save file's object graph.
+ * @param {Uint8Array} bytes
+ * @returns {Object} The deserialised top-level object.
+ */
 function parseNRBF(bytes) {
   return new NRBFParser(bytes).parse();
 }
