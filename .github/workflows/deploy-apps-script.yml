@@ -56,25 +56,3 @@ jobs:
 
       - name: Redeploy to production
         run: clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} --description "Public Link"
-
-      # Publishing main means the web app and the add-on are both on this
-      # release, so this is the moment LATEST_APP_VERSION becomes true. Older
-      # copies read it to learn they are behind.
-      #
-      # This runs after the deploy on purpose: a failure here leaves the
-      # release itself published and only the pointer stale, which is a red
-      # build to fix rather than a broken deploy. Needs the API-executable
-      # deployment described in documentation/07-deployment.md — `clasp deploy`
-      # and `clasp run` are different APIs and the second one needs it.
-      #
-      # Deliberately not --nondev. Dev mode runs the project's HEAD, which the
-      # step above just verified matches this commit, so the version it bakes
-      # in is this release. --nondev would instead run whatever version the
-      # API-executable deployment is pinned to — a deployment nothing here
-      # updates — and publish that older version as "latest".
-      - name: Record this release as the latest
-        run: |
-          if ! clasp run setLatestAppVersion; then
-            echo "::error::LATEST_APP_VERSION was not updated, so older copies will not learn they are behind. The deploy itself succeeded. Fix: finish the 'clasp run' setup in documentation/07-deployment.md, or set LATEST_APP_VERSION by hand under Project Settings ▸ Script Properties."
-            exit 1
-          fi

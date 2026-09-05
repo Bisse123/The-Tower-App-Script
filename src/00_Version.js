@@ -113,9 +113,8 @@ const appVersion = {
    * declares. Every older copy reads those properties to find out it is
    * behind, so nothing but a real release should call this.
    *
-   * Throws rather than returning a failure: `clasp run` reports the return
-   * value but exits 0 either way, so only an exception makes a bad release go
-   * red in the deploy workflow.
+   * Throws rather than returning a failure, so a build with nothing to
+   * publish is unmissable in the execution log rather than a quiet no-op.
    * @returns {{success: true, version: string, previous: string,
    *   minimum: string, previousMinimum: string}}
    * @throws {Error} When there is no baked version to publish.
@@ -163,8 +162,9 @@ function getAppVersionStatus() {
 }
 
 /**
- * Called by the deploy workflow after publishing main, via `clasp run`, which
- * likewise only reaches top-level functions.
+ * Run by hand from the Apps Script editor once a release has shipped: pick it
+ * from the function dropdown and press Run. Top-level so the dropdown can
+ * find it, and so the editor session supplies the scopes.
  * @returns {{success: true, version: string, previous: string,
  *   minimum: string, previousMinimum: string}}
  * @throws {Error} When there is no baked version to publish.
