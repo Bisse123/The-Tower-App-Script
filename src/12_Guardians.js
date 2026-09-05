@@ -901,7 +901,7 @@ const guardians = {
       const guardianUnlockedData = data.guardianChipUnlocked || [];
       const guardianPresetsData = data.guardianPresets || [];
 
-      const presets = guardianPresetsData.length
+      var presets = guardianPresetsData.length
         ? guardianPresetsData
         : [
             {
@@ -911,6 +911,36 @@ const guardians = {
             },
           ];
 
+      /**
+       * Overlays the live chip levels and slots onto the preset the player
+       * currently has selected, whose stored copy goes stale while they edit.
+       * @param {Array<Object>} presetList
+       * @param {number} presetIndex
+       * @param {Array<number>} liveLevels
+       * @param {Array<number>} liveSlots
+       * @returns {Array<Object>} A copy; the input is not modified.
+       */
+      function withLiveValues(presetList, presetIndex, liveLevels, liveSlots) {
+        var active = presetList[presetIndex];
+        if (!active) return presetList;
+        var merged = {};
+        Object.keys(active).forEach(function (key) {
+          merged[key] = active[key];
+        });
+        if (liveLevels && liveLevels.length) merged.chipLevel = liveLevels;
+        if (liveSlots && liveSlots.length) merged.chipSlot = liveSlots;
+        var copy = presetList.slice();
+        copy[presetIndex] = merged;
+        return copy;
+      }
+
+      presets = withLiveValues(
+        presets,
+        data.activePreset || 0,
+        data.guardianChipLevel || [],
+        data.guardianChipSlot || [],
+      );
+
       var presetNames = [];
       var oldGuardians = {
         presetNames: presetNames,
@@ -918,18 +948,17 @@ const guardians = {
       };
 
       presets.forEach(function (preset, index) {
-        const unlocked = preset.unlocked;
-        if (!unlocked && index) {
+        const chipLevel = preset.chipLevel || [];
+        if (!chipLevel.some(function (level) {
+          return level > 0;
+        })) {
           return;
         }
-        var presetName = unlocked ? preset.presetName : "Farming";
-
+      
+        var presetName = preset.presetName;
         presetNames.push(presetName);
 
-        const chipLevel = preset.chipLevel || [];
-
-        const chipSlot =
-          preset.chipSlot == null ? [] : [].concat(preset.chipSlot);
+        const chipSlot = preset.chipSlot || [];
 
         guardianIndices.forEach(function (guardianIndex) {
           const { name, upgrades, alwaysUnlocked } = targetGuardians[guardianIndex];
