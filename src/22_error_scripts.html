@@ -680,9 +680,9 @@
   function versionNotice(status) {
     const running = status.running;
     if (status.unsupported) {
-      return `This add-on is version ${running} and is no longer supported${
-        status.minimum ? ` — ${status.minimum} or newer is required` : ""
-      }. Update it before continuing, or things will not work correctly.`;
+      return `This add-on is version ${running} ${
+        status.minimum ? ` - newest version is ${status.minimum} ` : ""
+      }. Update it before continuing, or things may not work correctly.`;
     }
     return `You are running version ${running} of the add-on${
       status.latest ? ` and ${status.latest} is available` : ""
