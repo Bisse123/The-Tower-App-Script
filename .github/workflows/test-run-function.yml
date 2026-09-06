@@ -8,9 +8,6 @@ on:
         description: Top-level function to call
         default: getAppVersionStatus
         required: true
-  push:
-    branches:
-      - ci-test-run
 
 jobs:
   run:

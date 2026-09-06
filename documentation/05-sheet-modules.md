@@ -352,7 +352,7 @@ flowchart TB
     B --> C["3 · register 'v4.0' in<br/>convertVersionFunctions"]
     C --> D["4 · update importData / updateBotLevels<br/>for the new template layout"]
     D --> E["5 · mirror the change in<br/>14_IDS_Collection.js"]
-    E --> F["6 · if the template ID changed:<br/>GET_STARTED_TEMPLATE_CONFIG<br/>+ CONVERT_TO_TEMPLATES"]
+    E --> F["6 · if the template ID changed:<br/>SHEET_TEMPLATES"]
 ```
 
 Rules to keep in mind:
@@ -378,8 +378,7 @@ Rules to keep in mind:
    a type whose name is a substring of another must be looked up after it.
 4. Add it to the client type lists:
    - `showSelectImportSection()` in [24_selectImport_scripts.html](../src/24_selectImport_scripts.html)
-   - `CONVERT_TO_TEMPLATES` in [21_shared_scripts.html](../src/21_shared_scripts.html)
-   - `GET_STARTED_TEMPLATE_CONFIG` in [23_getStarted_scripts.html](../src/23_getStarted_scripts.html)
+   - `SHEET_TEMPLATES` in [21_templates_scripts.html](../src/21_templates_scripts.html)
    - the `sheetTypes` lists in [25_fileAccess_scripts.html](../src/25_fileAccess_scripts.html) and `getSaveFileImportTargets`
 5. For save-file support: add a header map and a `parse*Data` call in
    [02_SavedFile.js](../src/02_SavedFile.js), and a diff renderer in

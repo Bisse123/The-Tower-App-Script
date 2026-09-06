@@ -7,52 +7,102 @@ const SNAPSHOT_MAX_DEPTH = 6;
 const SNAPSHOT_MAX_NODES = 5000;
 const SNAPSHOT_MAX_CHARS = 100000;
 
-const errors = {
-  CODES: {
-    ACCESS_DENIED: "ACCESS_DENIED",
-    NOT_FOUND: "NOT_FOUND",
-    INVALID_INPUT: "INVALID_INPUT",
-    INVALID_LINK: "INVALID_LINK",
-    INVALID_FILE: "INVALID_FILE",
-    SHEET_STRUCTURE: "SHEET_STRUCTURE",
-    VERSION_OUTDATED: "VERSION_OUTDATED",
-    QUOTA: "QUOTA",
-    TIMEOUT: "TIMEOUT",
-    CLIENT: "CLIENT",
-    INTERNAL: "INTERNAL",
-    RECOVERED: "RECOVERED",
-  },
-
-  MESSAGES: {
-    ACCESS_DENIED:
+/**
+ * @enum {{expected: boolean, client: boolean, message: string}}
+ */
+const ERROR_DEFS = {
+  ACCESS_DENIED: {
+    expected: true,
+    client: true,
+    message:
       "The script does not have access to that file. Grant access and try again.",
-    NOT_FOUND: "That file could not be found. It may have been moved or deleted.",
-    INVALID_INPUT: "Something was missing from that request. Please reload and try again.",
-    INVALID_LINK:
+  },
+  NOT_FOUND: {
+    expected: true,
+    client: true,
+    message: "That file could not be found. It may have been moved or deleted.",
+  },
+  INVALID_INPUT: {
+    expected: false,
+    client: true,
+    message: "Something was missing from that request. Please reload and try again.",
+  },
+  INVALID_LINK: {
+    expected: true,
+    client: true,
+    message:
       "That does not look like a Google Sheets™ link or ID. Check it and try again.",
-    INVALID_FILE:
+  },
+  INVALID_FILE: {
+    expected: true,
+    client: true,
+    message:
       "That does not look like a playerInfo.dat save file. Check you picked the right file and try again.",
-    SHEET_STRUCTURE:
-      "The script could not find something it needs inside your sheet.",
-    VERSION_OUTDATED: "That sheet is not a version this step can work with.",
-    QUOTA:
+  },
+  SHEET_STRUCTURE: {
+    expected: false,
+    client: true,
+    message: "The script could not find something it needs inside your sheet.",
+  },
+  VERSION_OUTDATED: {
+    expected: true,
+    client: true,
+    message: "That sheet is not a version this step can work with.",
+  },
+  QUOTA: {
+    expected: true,
+    client: true,
+    message:
       "Google is rate-limiting this account right now. Wait a few minutes and try again.",
-    TIMEOUT: "That took too long to finish. Try again with fewer sheets at once.",
-    CLIENT: "Something went wrong in this page.",
-    INTERNAL: "Something went wrong on our side.",
-    RECOVERED: "Something did not work, but the script carried on without it.",
   },
+  TIMEOUT: {
+    expected: true,
+    client: true,
+    message: "That took too long to finish. Try again with fewer sheets at once.",
+  },
+  CLIENT: {
+    expected: false,
+    client: true,
+    message: "Something went wrong in this page.",
+  },
+  INTERNAL: {
+    expected: false,
+    client: true,
+    message: "Something went wrong on our side.",
+  },
+  RECOVERED: {
+    expected: true,
+    client: false,
+    message: "Something did not work, but the script carried on without it.",
+  },
+};
 
-  EXPECTED: {
-    ACCESS_DENIED: true,
-    INVALID_LINK: true,
-    INVALID_FILE: true,
-    NOT_FOUND: true,
-    QUOTA: true,
-    TIMEOUT: true,
-    VERSION_OUTDATED: true,
-    RECOVERED: true,
-  },
+/**
+ * Builds one derived table from ERROR_DEFS.
+ * @param {function(string, Object): *} pick What each code maps to; undefined
+ *   leaves the code out of the table.
+ * @returns {Object}
+ */
+function errorTable(pick) {
+  return Object.keys(ERROR_DEFS).reduce(function (table, code) {
+    var value = pick(code, ERROR_DEFS[code]);
+    if (value !== undefined) table[code] = value;
+    return table;
+  }, {});
+}
+
+const errors = {
+  CODES: errorTable(function (code) {
+    return code;
+  }),
+
+  MESSAGES: errorTable(function (code, def) {
+    return def.message;
+  }),
+
+  EXPECTED: errorTable(function (code, def) {
+    return def.expected ? true : undefined;
+  }),
 
   /**
    * Whether a code is an expected outcome rather than a defect.
@@ -61,6 +111,35 @@ const errors = {
    */
   isExpected: function (code) {
     return errors.EXPECTED[code] === true;
+  },
+
+  /**
+   * Maps anything that is not a known code onto INTERNAL.
+   * @param {string} code
+   * @returns {string} One of errors.CODES.
+   */
+  known: function (code) {
+    return ERROR_DEFS[code] ? code : errors.CODES.INTERNAL;
+  },
+
+  /**
+   * The codes and expected flags the browser is allowed to see, as JSON ready
+   * to be inlined into a page. Never throws.
+   * @returns {string} A JSON object literal.
+   */
+  contract: function () {
+    try {
+      return JSON.stringify({
+        CODES: errorTable(function (code, def) {
+          return def.client ? code : undefined;
+        }),
+        EXPECTED: errorTable(function (code, def) {
+          return def.client && def.expected ? true : undefined;
+        }),
+      });
+    } catch (ignored) {
+      return '{"CODES":{},"EXPECTED":{}}';
+    }
   },
 
   /**
@@ -380,6 +459,9 @@ const errors = {
    * @returns {Object} The report; reference is empty when expected.
    */
   record: function (source, code, detail, error, context) {
+    var unrecognised = code && !ERROR_DEFS[code] ? String(code) : "";
+    code = errors.known(code);
+
     var expected = errors.isExpected(code);
     var reference = expected ? "" : errors.reference();
 
@@ -395,6 +477,12 @@ const errors = {
         data = data || {};
         data[key] = errors.snapshot(context[key], 0, [], budget);
       });
+    }
+
+    if (unrecognised) {
+      note =
+        `Unknown error code "${unrecognised}", recorded as INTERNAL.` +
+        (note ? ` ${note}` : "");
     }
 
     var stack = error && error.stack ? String(error.stack) : "";
@@ -508,10 +596,8 @@ const errors = {
       (inner && inner.code) ||
       (fresh ? errors._lastCode : "") ||
       errors.CODES.INTERNAL;
-    // RECOVERED says the code caught something and carried on. It describes
-    // that earlier moment, not this failure, so it is never what a caller is
-    // reporting - its diagnostics below are still worth borrowing.
     if (code === errors.CODES.RECOVERED) code = errors.CODES.INTERNAL;
+    code = errors.known(code);
     var reference =
       (inner && inner.reference) || (fresh ? errors._lastReference : "");
 
@@ -577,7 +663,7 @@ const errors = {
 
     var envelope = {
       success: false,
-      code: code,
+      code: report.code,
       expected: report.expected,
       message: resolved,
       reference: report.reference,
@@ -743,4 +829,14 @@ function reportServerError(payload) {
     console.error(`reportServerError failed: ${error && error.message}`);
     return { success: false, reference: "" };
   }
+}
+
+/**
+ * Client-callable, and called from 22_error_scripts.html's scriptlet. The codes
+ * and expected flags the browser needs, as inlinable JSON.
+ * @returns {string} A JSON object literal, e.g. '{"CODES":{…},"EXPECTED":{…}}'.
+ */
+function errorContract() {
+  const contract = errors.contract();
+  return contract;
 }

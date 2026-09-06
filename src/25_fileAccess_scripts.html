@@ -2160,7 +2160,7 @@
    * @returns {Promise<void>}
    */
   async function convertToMaster() {
-    const templates = CONVERT_TO_TEMPLATES["master-and-subsheets"];
+    const templates = SHEET_TEMPLATES["master-and-subsheets"];
     const masterTemplate = templates.find(
       (template) => template.sheetType === "IDS Master",
     );
@@ -2216,7 +2216,7 @@
    * @returns {Promise<void>}
    */
   async function convertToCollection() {
-    const template = CONVERT_TO_TEMPLATES["ids-collection"][0];
+    const template = SHEET_TEMPLATES["ids-collection"][0];
 
     disableIDSMasterButtons();
     isConvertToMasterFlow = false;

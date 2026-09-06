@@ -56,3 +56,10 @@ jobs:
 
       - name: Redeploy to production
         run: clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} --description "Public Link"
+
+      - name: Publish the version
+        env:
+          CLIENT_ID: ${{ secrets.RUN_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.RUN_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.RUN_REFRESH_TOKEN }}
+        run: node .github/scripts/run-function.js setLatestAppVersion
