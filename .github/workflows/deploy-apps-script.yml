@@ -55,7 +55,24 @@ jobs:
         run: cp .clasp.prod.json .clasp.json
 
       - name: Redeploy to production
-        run: clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} --description "Public Link"
+        run: |
+          clasp deploy -i ${{ secrets.DEPLOYMENT_ID }} --description "Public Link" > deploy.log 2>&1 || { cat deploy.log; exit 1; }
+          cat deploy.log
+          version=$(grep -oE "@[0-9]+" deploy.log | tail -1 | tr -d "@")
+          echo "APPS_SCRIPT_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Report the add-on version
+        if: always()
+        run: |
+          if [ -n "$APPS_SCRIPT_VERSION" ]; then
+            echo "### Add-on version $APPS_SCRIPT_VERSION" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Set the Sheets add-on in Marketplace SDK ▸ App Configuration to version $APPS_SCRIPT_VERSION, then publish." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Add-on version unknown" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The deploy output carried no version number. Find it under Deployments in the Apps Script editor." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Publish the version
         env:

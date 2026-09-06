@@ -1,8 +1,8 @@
 # 03 — Update Sheets workflow
 
-The largest and most stateful part of the app. A new template version is
-released; this workflow copies it, migrates the user's data into the copy, and
-then puts the copy where the old sheet used to be.
+A new template version is released; this workflow copies it, migrates the
+user's data into the copy, and then puts the copy where the old sheet used to
+be.
 
 **Entry points**
 
@@ -15,10 +15,9 @@ then puts the copy where the old sheet used to be.
 
 ---
 
-## The core idea
+## The shape of an update
 
-Google Sheets templates cannot be updated in place — formulas, layout and named
-ranges all change. So an "update" is really:
+Google Sheets templates cannot be updated in place. An update is therefore:
 
 ```mermaid
 flowchart LR
@@ -30,9 +29,9 @@ flowchart LR
     A -->|"4 trashed"| E["🗑"]
 ```
 
-The user is deliberately given a pause between steps 3 and 4: the new sheet's
-link is shown, `Move Sheets` stays disabled until the import succeeds, and they
-are told to eyeball the data before committing.
+Between steps 3 and 4 the new sheet's link is shown, `Move Sheets` stays
+disabled until the import succeeds, and the user is asked to check the data
+before committing.
 
 ---
 
@@ -143,8 +142,7 @@ sequenceDiagram
 ```
 
 `sheetVisibility` is captured during export (which tabs were hidden) and
-re-applied to the new sheet before its data lands, so the user's hidden-tab
-preferences survive the migration.
+re-applied to the new sheet before its data lands.
 
 ---
 
@@ -190,13 +188,14 @@ sequenceDiagram
 ```
 
 The candidate sheet-type list in `getTemplateAndsheetIds`
-([02_Shared.js:1765](../src/02_Shared.js#L1765)) is ordered deliberately:
+([02_Shared.js:2093](../src/02_Shared.js#L2093)) puts `Themes, Songs & Relics`
+ahead of `Relics`, which also matches it by name:
 
 ```javascript
 ["Laboratory", "Workshop", "Ultimate Weapon",
- "Themes, Songs & Relics",   // looked up FIRST …
+ "Themes, Songs & Relics",
  "Themes & Songs", "Bots",
- "Relics",                    // … because "Relics" also matches it by name
+ "Relics",
  "Vault", "Cards", "Modules", "Guardians", "Player & Stuff"]
 ```
 
@@ -207,9 +206,9 @@ Once `Themes, Songs & Relics` is found, the two legacy types are skipped
 
 ### Flow C — Update master and subsheets
 
-The hardest case: the IDS Master itself is outdated, so a *new* master is created
-whose `IDS` tab must point at the *new* subsheets — none of which exist yet when
-the master is exported.
+The IDS Master itself is outdated, so a *new* master is created whose `IDS` tab
+must point at the *new* subsheets — none of which exist yet when the master is
+exported.
 
 ```mermaid
 sequenceDiagram
@@ -259,14 +258,11 @@ sequenceDiagram
     Note over C: sheets that were NOT replaced still need to learn the new master's ID
 ```
 
-Three subtleties worth remembering:
-
-- **The master exports in parallel with its subsheets**, not after them. Nothing
-  in its own export depends on them; only the ID remap does, and that waits for
-  `Promise.all`.
+- **The master exports in parallel with its subsheets**, not after them. The ID
+  remap waits for `Promise.all`.
 - **`remapMasterIdsToNewSheets` only repoints sheets that actually exported.**
-  A subsheet stuck in `copiedTemplateFiles` or a failure bucket never received
-  the user's data, so the master deliberately keeps pointing at the old one.
+  A subsheet stuck in `copiedTemplateFiles` or a failure bucket keeps its old
+  ID in the master.
 - **`cachedTemplatesWithSameVersion`** holds subsheets that were already current.
   They are not copied, but after the move they get `updateSheetID(...)` so their
   `IDS Master's` cell names the new master.
@@ -366,21 +362,15 @@ stateDiagram-v2
     movedFiles --> [*]
 ```
 
-`prepareImportData(idMasterID, copied, importFailed, exportFailed)` takes all
-three pending buckets so that pressing `Import` again retries exactly what did
-not land.
+An entry grows as it moves: the copy adds the new file, the export adds the old
+sheet and its data, the move adds the new name.
 
-| Bucket | Entry shape |
-| --- | --- |
-| `copiedTemplateFiles` | `{ success, sheetType, fileId, gid, version }` |
-| `exportedFilesSuccess` | `+ oldSheetID, oldSheetIDs, idMasterID, exportData, sheetVisibility` |
-| `exportedFilesFailed` | `+ error` |
-| `importedFilesSuccess` | same as exported, post-import |
-| `movedFiles` | `+ newName` |
+`prepareImportData` takes all three pending buckets, so pressing `Import` again
+retries exactly what did not land.
 
-Also cached to avoid repeat server calls: `cachedTemplateInfo`,
-`cachedSheetIds`, `cachedMasterTemplateInfo`, `cachedTemplatesWithSameVersion`,
-`versionDifference`, `masterVersionDifference`.
+The client also caches what it has already resolved from the server — template
+info, sheet IDs and the chosen converters — so a retry does not look any of it
+up twice.
 
 ---
 
@@ -429,7 +419,6 @@ every flag and cache and re-render the option screen after an aborted flow.
 4. If the sheet is reachable through an IDS Collection, mirror the change in
    [14_IDS_Collection.js](../src/14_IDS_Collection.js).
 5. If the template ID changed, update `SHEET_TEMPLATES`
-   ([21_templates_scripts.html](../src/21_templates_scripts.html)) — one edit,
-   which every flow reads.
+   ([21_templates_scripts.html](../src/21_templates_scripts.html)).
 
 See [05 — Sheet modules reference](05-sheet-modules.md) for the details.

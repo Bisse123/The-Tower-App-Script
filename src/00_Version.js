@@ -162,9 +162,9 @@ function getAppVersionStatus() {
 }
 
 /**
- * Run by hand from the Apps Script editor once a release has shipped: pick it
- * from the function dropdown and press Run. Top-level so the dropdown can
- * find it, and so the editor session supplies the scopes.
+ * Called by the deploy workflow through the Apps Script API once a release has
+ * been redeployed, and available from the function dropdown in the Apps Script
+ * editor. Top-level so both can reach it.
  * @returns {{success: true, version: string, previous: string,
  *   minimum: string, previousMinimum: string}}
  * @throws {Error} When there is no baked version to publish.

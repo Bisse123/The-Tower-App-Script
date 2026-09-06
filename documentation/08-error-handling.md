@@ -50,18 +50,15 @@ Every code is declared once, in `ERROR_DEFS`
 `errors.CODES`, `errors.MESSAGES` and `errors.EXPECTED` are derived from it, and so
 is the client's copy: `errorContract()` emits the codes and expected flags as JSON,
 and `22_error_scripts.html` — included with `includeTemplate` so its scriptlet runs —
-inlines them into `AppError.CODES` and `AppError.EXPECTED`. Nothing is transcribed by
-hand, so the two sides cannot drift.
+inlines them into `AppError.CODES` and `AppError.EXPECTED`.
 
-`client: false` keeps a code off the wire. `RECOVERED` is the only one: it describes
-something the server caught and carried on from, not a failure the browser has to
-show, which is why `propagate` converts it to `INTERNAL`.
+`client: false` keeps a code off the wire. `RECOVERED` is the only one;
+`propagate` converts it to `INTERNAL`.
 
-An unrecognised code is not silently trusted. `errors.record` runs every code through
-`errors.known`, which maps anything absent from `ERROR_DEFS` onto `INTERNAL` and adds
-`Unknown error code "…"` to the entry's note. Without it a typo failed quietly in the
-worst direction — `EXPECTED["ACESS_DENIED"]` is `undefined`, so a misspelt expected
-code became a defect, minted a reference number and showed the user the wrong message.
+`errors.record` runs every code through `errors.known`
+([00_Errors.js:121](../src/00_Errors.js#L121)), which maps anything absent from
+`ERROR_DEFS` onto `INTERNAL` and adds `Unknown error code "…"` to the entry's
+note.
 
 Every entry carries `jsonPayload.kind`, matching that split:
 
@@ -73,19 +70,14 @@ Every entry carries `jsonPayload.kind`, matching that split:
 ### `RECOVERED`
 
 An expected code for a `catch` that logs and then carries on — a cache that
-would not open, an optional cleanup step, a name update that did not take. The
-script took another route, so nothing is returned and nothing reaches the user;
-the `WARNING` exists only so we can look, if we ever need to.
+would not open, an optional cleanup step, a name update that did not take.
+Nothing is returned and nothing reaches the user; the entry is a `WARNING`.
 
-Pass it explicitly. Left to `errors.classify`, an exception it does not
-recognise lands on `INTERNAL`, which is a bug code — and a bug that is never
-returned is never written, because a bug's entry waits for a browser round trip
-that is not coming. The explicit code is what guarantees the entry.
+Pass it explicitly: an exception `errors.classify` does not recognise lands on
+`INTERNAL`, and a bug that is never returned is never written.
 
-`propagate` will borrow a recovered failure's `detail`, `trace`, `note` and
-`data` — that is how a later failure gets the full picture of what went wrong
-underneath it — but never its `code`. `RECOVERED` describes the moment the
-script carried on, not whatever failed afterwards.
+`propagate` borrows a recovered failure's `detail`, `trace`, `note` and `data`,
+but never its `code`.
 
 ---
 
@@ -120,10 +112,9 @@ runs through `errors.snapshot` first, so raw locals are safe to pass.
 | Strings | 300 characters |
 | Whole entry | 5000 values, 100 000 characters, shared across one `record` |
 
-Scalars are never refused — only containers — so a short value late in a large
-context still reaches the log. `note` is the one reserved key: what the code was
-doing, in words. Never pass a raw email; `errors.userKey()` already identifies
-the user as a truncated hash.
+Scalars are never refused — only containers. `note` is the one reserved key:
+what the code was doing, in words. Never pass a raw email; `errors.userKey()`
+already identifies the user as a truncated hash.
 
 ---
 
@@ -202,8 +193,7 @@ flowchart TB
     S --> RN["AppError._render → the panel"]
 ```
 
-A bug's entry is written on that round trip, not at the `catch`, because the
-`trace` is not complete until the failure stops moving. The cost: if the tab
+A bug's entry is written on that round trip, not at the `catch`. If the tab
 closes before `reportServerError` lands, there is no entry at all.
 
 ### A precondition the code checks itself
@@ -216,9 +206,8 @@ rides out to the browser like a caught exception.
 
 `errors.report(source, error, context, errors.CODES.RECOVERED)` →
 `errors.record` → `errors._write`. Written on the spot as a `WARNING`, with no
-reference and no envelope, because the script carried on. It stays in
-`errors._last*`, so if the request does fail later, `propagate` picks up its
-`detail` and `trace` and the eventual entry shows what went wrong underneath.
+reference and no envelope. It stays in `errors._last*`; if the request fails
+later, `propagate` picks up its `detail` and `trace`.
 
 ### A browser-side failure
 
@@ -229,8 +218,7 @@ logs under `serviceContext.service = "the-tower-app-script-client"`.
 
 `_throttleReference` collapses identical failures — same source, same detail —
 to one entry per user per 5 minutes, and hands later callers the reference of
-the entry that *was* written so the panel never shows an id with nothing behind
-it.
+the entry that *was* written.
 
 ---
 
@@ -246,8 +234,7 @@ it.
 
 The per-sheet lists these render are the record of what happened to each sheet
 and show no references. `surfaceBatch` puts the panel up for the first failure
-that is a bug and still logs the others — a failure it skipped would otherwise
-never be written, since a bug's entry depends on the browser handing it back.
+that is a bug and logs the others.
 
 Each failure entry must carry its `envelope`; without it there is no code and
 no reference to report.
@@ -271,10 +258,6 @@ no reference to report.
 | `CLIENT` | **bug** | Reported from the browser | Something went wrong in the page |
 | `INTERNAL` | **bug** | Anything unclassified | Something went wrong on our side |
 
-`INVALID_INPUT` and `SHEET_STRUCTURE` sit on the bug side because both are also
-how a regression in our own label scanning shows up, and only the log can tell
-that apart from a user editing their sheet.
-
 ### Classification
 
 `errors.classify` matches Google's wording. Sheets throws the same exception
@@ -287,9 +270,9 @@ class for a bad range and a quota, and the text is what separates them:
 | Per-user rate limit | 429 `User rate limit exceeded` | `QUOTA` |
 | Apps Script daily cap | `Service invoked too many times for one day` | `QUOTA` |
 
-`NOT_FOUND` matching is deliberately narrow — only Drive's and Sheets'
-file-level phrasings — because a bare "not found" also matches our own
-"IDS sheet not found" wording, and a missing tab is a defect.
+`NOT_FOUND` matching is narrow — only Drive's and Sheets' file-level phrasings.
+A bare "not found" also matches our own "IDS sheet not found" wording, and a
+missing tab is a defect.
 
 Pass the code explicitly where the `catch` is one of the answers the function
 was called to give. `checkSheetAccess`, `checkTemplateAccess` and
@@ -298,9 +281,8 @@ was called to give. `checkSheetAccess`, `checkTemplateAccess` and
 
 ### Never tell the user to update their sheet
 
-Updating sheets is what this app **is**. `MESSAGES.VERSION_OUTDATED` says only
-*"That sheet is not a version this step can work with"*, and every call site
-that knows more says it itself. The save-file workflow is the one place where
+`MESSAGES.VERSION_OUTDATED` says only *"That sheet is not a version this step
+can work with"*; every call site that knows more says it itself. The save-file workflow is the one place where
 "update it first" is genuine advice, and it gives that through
 `renderSaveFileOutdatedSheets` and `renderSaveFileCollectionOutdated` without
 raising anything.
@@ -343,9 +325,8 @@ Three things are load-bearing:
 2. **A stack trace in `message`, with a non-empty first line.** Events without
    one are dropped, and the first line is what Error Reporting names the group.
    `errors.text` and `errors.stack` both guard this — do not simplify either.
-3. **`serviceContext.version`**, the version constant baked into the
-   source by `npm version`, so a regression can be attributed to a release. It
-   falls back to `"unversioned"`. See
+3. **`serviceContext.version`**, the version constant baked into the source by
+   `npm run bump`. It falls back to `"unversioned"`. See
    [07 ▸ Versioning](07-deployment.md#versioning).
 
 ### One-time setup per project
@@ -362,9 +343,8 @@ Three things are load-bearing:
 ### Privacy
 
 - Never pass a raw email. `errors.userKey()` is an MD5 truncated to 12 hex
-  characters — enough to count affected users, not to identify one.
-- Don't reach for a password, token or payment detail because it happened to be
-  in scope. Nothing here holds any today; the rule outlives the code.
+  characters.
+- Never pass a password, token or payment detail.
 - Cloud Logging access is scoped by the GCP project's IAM. The access list on
   the project is the real privacy boundary.
 - For a **bug**, `note`, `data` and `detail` transit the browser on their way to
@@ -383,7 +363,7 @@ jsonPayload.reference="TWR-M4X2K9-A7F3"
 **By kind**
 
 ```
-jsonPayload.kind="expected"   the app working as designed — product signal, not a bug queue
+jsonPayload.kind="expected"   the app working as designed
 jsonPayload.kind="bug"        our defect, the user has the reference
 ```
 
@@ -424,7 +404,7 @@ and does not depend on the round trip.
 | A precondition you checked yourself | `errors.reject(source, code, message)` |
 | An inner call already failed | `errors.propagate(source, inner, message?)` — never `reject`, or one incident is recorded twice |
 | A `catch` that is one of the answers the function was called to give | Pass the code explicitly, e.g. `errors.CODES.ACCESS_DENIED` |
-| Something recovered on its own | `errors.report(source, error, context, errors.CODES.RECOVERED)` and carry on. The explicit code is what makes it a `WARNING` that is written immediately; without it an unrecognised exception classifies as `INTERNAL` and is never written at all. |
+| Something recovered on its own | `errors.report(source, error, context, errors.CODES.RECOVERED)` and carry on. The explicit code makes it a `WARNING` that is written immediately. |
 | A wrapper that reports and returns `null` for its caller to relay | `errors.report(...)` — the `null` is the handoff |
 | Deciding the code | Would *we* have to change something? Then it is a bug. Add new codes to `ERROR_DEFS` in [00_Errors.js](../src/00_Errors.js) — that one record is all of it, bar the display title in `AppError.TITLES`. |
 | Client: a failed envelope | `AppError.show(result, { source })` |
@@ -433,8 +413,8 @@ and does not depend on the round trip.
 | Client: a list of per-sheet failures | `AppError.surfaceBatch(entries, { source })` |
 
 `source` is `functionName` for a top-level function and `module.method` for a
-sheet-module method — 15 modules share those method names, and the qualifier is
-the only thing that tells the log which one failed.
+sheet-module method. 15 modules share those method names, so the qualifier is
+what tells the log which one failed.
 
 Do not write `console.log` for an error. It is INFO severity, it has no stack,
 and nothing will ever alert on it.

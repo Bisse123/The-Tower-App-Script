@@ -1,8 +1,11 @@
 # 01 — Architecture
 
-Everything server-side other than the sheet modules lives in
-[src/02_Shared.js](../src/02_Shared.js). This document covers what it does and
-the conventions the whole codebase relies on.
+The infrastructure every workflow shares. Everything server-side other than the
+sheet modules lives in [src/02_Shared.js](../src/02_Shared.js); the sheet
+modules themselves are [05](05-sheet-modules.md), and each workflow's own
+sequence is [02](02-workflow-get-started.md),
+[03](03-workflow-update-sheets.md) and
+[04](04-workflow-save-file-import.md).
 
 - [Layers](#layers)
 - [CacheManager](#cachemanager)
@@ -11,7 +14,6 @@ the conventions the whole codebase relies on.
 - [Version detection and comparison](#version-detection-and-comparison)
 - [File operations](#file-operations)
 - [Preset ordering](#preset-ordering)
-- [Server function catalogue](#server-function-catalogue)
 - [Error convention](#error-convention)
 
 ---
@@ -67,14 +69,15 @@ flowchart TB
 
 The client calls into **Layer 1 and Layer 2 directly** — there is no single
 façade. Any top-level `function` in a `.js` file is callable via
-`google.script.run`, and the frontend uses roughly 30 of them.
+`google.script.run`. Which ones each workflow uses is listed in that workflow's
+own document.
 
 ---
 
 ## CacheManager
 
 A per-user cache in front of every Sheets and Drive read.
-([02_Shared.js:1-486](../src/02_Shared.js#L1-L486))
+([02_Shared.js:1-498](../src/02_Shared.js#L1-L498))
 
 | Property | Value |
 | --- | --- |
@@ -99,8 +102,7 @@ which is how `spreadsheets(name)` can be called without an ID mid-flow.
 
 ### Chunking
 
-Apps Script's cache rejects values over ~100 KB, and spreadsheet metadata for a
-large IDS Collection easily exceeds that.
+Apps Script's cache rejects values over ~100 KB.
 
 ```mermaid
 flowchart TB
@@ -117,22 +119,17 @@ flowchart TB
     R4 -->|no| R6["return combined string"]
 ```
 
-Two details matter:
-
-- **Byte lengths are computed by hand** (`_byteLength`, `_chunkString`) rather
-  than via `TextEncoder`, and surrogate pairs are counted as 4 bytes and never
-  split across a chunk boundary. Emoji in sheet data would otherwise corrupt on
-  reassembly.
-- **A partial read is a miss.** If eviction takes one chunk, `_retrieveValue`
-  returns `null` and the caller refetches from the API. Silently returning a
-  truncated JSON string would be far worse than a cache miss.
+- Byte lengths are computed by hand (`_byteLength`, `_chunkString`). Surrogate
+  pairs count as 4 bytes and are never split across a chunk boundary.
+- A partial read is a miss: if eviction takes one chunk, `_retrieveValue`
+  returns `null` and the caller refetches from the API.
 
 ### Cache invalidation
 
 `RemoveSpreadsheet(typeName)` deletes the metadata entry *and* every
 `VALUE`/`FORMULA` entry for every sheet it lists, in all their chunked variants
-(`_entryKeys`). It reads through `_retrieveValue` — reading the raw key would
-make a chunked entry look absent and skip the invalidation entirely.
+(`_entryKeys`). It reads through `_retrieveValue`, so chunked entries are
+found.
 
 Called after `moveSheet`, `moveConvertedSheet` and `updateIdsMaster` — the three
 places where a file's identity or contents change underneath a cached copy.
@@ -141,12 +138,12 @@ places where a file's identity or contents change underneath a cached copy.
 
 ## SheetsAPI
 
-A thin, total-failure-tolerant wrapper over the Sheets v4 advanced service.
-([02_Shared.js:488-655](../src/02_Shared.js#L488-L655))
+A wrapper over the Sheets v4 advanced service.
+([02_Shared.js:500-745](../src/02_Shared.js#L500-L745))
 
 | Method | Notes |
 | --- | --- |
-| `fetchSpreadsheet(id)` | Fetches only `spreadsheetId,sheets(properties(sheetId,title,hidden))` — deliberately minimal. |
+| `fetchSpreadsheet(id)` | Fetches only `spreadsheetId,sheets(properties(sheetId,title,hidden))`. |
 | `getSheetByName(ss, name)` | Exact title match against cached metadata. |
 | `getSheetBySubstring(ss, sub)` | Case-insensitive substring match — used where tab names vary (`"Lab Planner"`). |
 | `batchGetValues(id, ranges, useCache=true)` | Values. Cached by default. |
@@ -167,24 +164,20 @@ batchUpdate = shared.addIDUpdatesToBatch(batchUpdate, "Laboratory", newSheetID, 
 SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
 ```
 
-Values and formulas are fetched with `batchGet` in one call per sheet, too. On a
-combined update the client runs 11 of these flows in parallel via
-`Promise.all` — which is only viable because each is a small, fixed number of
-API calls.
+Values and formulas are fetched with `batchGet` in one call per sheet. On a
+combined update the client runs 11 of these flows in parallel via `Promise.all`.
 
 ---
 
 ## Discovery by label scanning
 
 The app never hard-codes cell addresses in user sheets. It **scans for a text
-label and reads at a fixed offset from it**, so templates can be re-laid-out
-without breaking the tooling.
+label and reads at a fixed offset from it**.
 
 ### `shared.findSheetTypeID(id, sheetName, sheetType, values)`
 
 Finds a sheet's ID in an `IDS` tab. Matches a cell that contains the sheet type
-**and** a standalone `ID` token, and does *not* contain `"script"` (which would
-match instruction text about the script).
+**and** a standalone `ID` token, and does *not* contain `"script"`.
 
 ```
        j      j+1     j+2         j+3
@@ -214,15 +207,14 @@ tab. Matches on sheet type alone (no `ID` token), excluding cells containing
    └───────────┴───────────┴──────────────────────────────────────┘
 ```
 
-Returns `{ id, template: {row, col, range}, version: {…, value}, oldVersion: {…, value} }`
-where **`version` is the latest template version** and **`oldVersion` is the
-user's current sheet version**. The template URL itself is pulled from the
-*formula* grid at `[i+1][j]` and unwrapped with
+Returns the sheet's ID, the location of the template link, and both versions —
+the latest the template offers and the one the user is on. Mind which is which:
+the field named `version` is the latest, `oldVersion` is the user's. The
+template URL is pulled from the *formula* grid and unwrapped with
 `shared.extractUrlFromHyperlink`.
 
-> The naming is inverted from what you would guess. `version` = newest available;
-> `oldVersion` = what the user has. `copyMode === "update"` skips any sheet where
-> `compareVersions(oldVersion, version) !== "older"`.
+Under `copyMode: "update"` a sheet is skipped unless the user's version is older
+than the template's.
 
 ### `shared.findSheetTemplateID(sheetID, sheetName, sheetType)`
 
@@ -285,8 +277,7 @@ flowchart TB
     L --> N["exhausted → return null<br/>= too old to migrate"]
 ```
 
-The returned key is passed around the client as **`versionDifference`** — a
-misleading name for what is really "which converter to use". It is threaded
+The returned key is passed to the client as **`versionDifference`** and threaded
 through `checkExportCompatibility` → `exportData(…, versionDifference)`.
 
 ---
@@ -325,30 +316,20 @@ sequenceDiagram
     S-->>C: { success, newName }
 ```
 
-The new file **inherits the old file's name and folder**, so from the user's
-Drive the update looks like an in-place version bump.
+The new file **inherits the old file's name and folder**.
 
 `moveConvertedSheet` is the variant used by *Convert to IDS Master/Collection*:
-same rename-and-move, but it does **not** trash the source, because one source
-file is feeding many new files.
-
-### `getOrCreateGetStartedFolder()`
-
-Finds or creates a Drive folder named `The Tower`. On creation it also grants
-`{ role: "reader", type: "anyone" }` — i.e. **a newly created `The Tower` folder
-is link-readable by anyone**. Existing folders are used as-is and are not
-modified.
+same rename-and-move, but it does **not** trash the source.
 
 ---
 
 ## Preset ordering
 
-`shared.templatePresetNames = ["Farming", "Tourney"]` and
-`shared.resolvePresetOrder(presetNames, forcedNames)` exist because sheet
-templates give preset slots fixed meanings, while the game lets players name and
-order presets freely.
+Sheet templates give preset slots fixed meanings; the game lets players name and
+order presets freely. `shared.templatePresetNames = ["Farming", "Tourney"]`
+([02_Shared.js:1238](../src/02_Shared.js#L1238)) names the two fixed slots.
 
-`resolvePresetOrder` pulls any preset literally named `Farming` or `Tourney`
+`shared.resolvePresetOrder(presetNames, forcedNames)` pulls any preset literally named `Farming` or `Tourney`
 into slots 1 and 2 **wherever it appears in the save file**, then fills the
 remaining slots with the rest in their original relative order, defaulting empty
 slots to `"Preset N"`. It returns both the slot-ordered `order` and the
@@ -357,92 +338,20 @@ reordered identically.
 
 ---
 
-## Server function catalogue
-
-Every function below is callable from the client via `google.script.run`.
-
-### Context bootstrap (add-on sidebar/dialog only)
-
-| Function | Returns |
-| --- | --- |
-| `getUpdateDialogParameters()` | `{ oldSheetID, idMasterID, sheetType, accessRequired }` for the active spreadsheet. Detects `Effective Paths` by the presence of `eHP`/`eDamage`/`eEcon`; otherwise reads `Home Page!B2`. |
-| `getGetStartedParameters()` | `{ sheetId }` when the active sheet is an Effective Paths sheet. |
-| `getSaveFileParameters()` | `{ idMasterID, sheetType }` — resolves the import target from the active sheet's `IDS` tab. `sheetType` is only ever `"IDS Master"`, `"IDS Collection"` or `""`, and is filled in only when the active file *is* the target. A linked target's type cannot be read here (no access to it yet under `drive.file`), so the client resolves it with `getSaveFileSheetType` after the access check. |
-
-### Authorization
-
-`getOAuthToken` · `getScopeAuthorizationUrl` · `checkScopePermissions` ·
-`showAddonConsentDialog` · `markAddonConsentReadySignal` ·
-`consumeAddonConsentReadySignal`
-
-### Access checks
-
-`checkSheetAccess(id)` · `checkTemplateAccess(id)` ·
-`checkFileTemplateAccess(idMasterID, sheetType)` ·
-`checkNewSheetReference(newSheetID, sheetType)`
-
-### Discovery
-
-`findSheetIdAndType(sheetID, sheetType)` · `fetchIdsMasterData(idMasterID)` ·
-`getTemplateAndsheetIds(idMasterID, copyMode)` ·
-`getTemplateIdForSingleSheet(sheetID, sheetType)` ·
-`getSaveFileImportTargets(idMasterID, sheetTypes)` ·
-`getSaveFileSheetType(sheetID)` · `getIdsMasterGid(idMasterID)`
-
-### Versions
-
-`compareSheetVersions(sheetID, sheetType)` ·
-`checkExportCompatibility(oldSheetID, sheetType)`
-
-### Data movement
-
-`exportData` · `importData` · `prepareImportData` · `parseSaveFileBytes`
-
-### Files
-
-`copyFileTemplate` · `moveSheet` · `moveConvertedSheet` · `deleteOldSheet` ·
-`getOrCreateGetStartedFolder` · `moveGetStartedFileToFolder` ·
-`updateSheetID` · `updateIdsMaster` · `updateGetStartedSheetIdsAndReferences`
-
-### Preferences
-
-`getSaveFilePlayerWaveCapPreference` · `setSaveFilePlayerWaveCapPreference`
-(stored in `UserProperties`)
-
----
-
 ## Error convention
 
-No server function throws across the boundary. Every one returns:
+No server function throws across the `google.script.run` boundary. Every one
+returns a success flag and, on failure, an error code the client switches on.
+The envelope, the codes and what happens to each kind of failure are documented
+in [08 — Error handling](08-error-handling.md).
 
-```javascript
-{
-  success: false,
-  code: "ACCESS_DENIED",          // one of errors.CODES - the client switches on this
-  expected: true,                 // the app working as designed, not a defect
-  message: "The script does not have access to that file. Grant access and try again.",
-  reference: "",                  // bugs only; matches the Cloud Logging entry
-  detail: "Exception: You do not have permission to call …",
-}
-```
-
-`expected` splits the two kinds of failure: an expected one is logged at
-WARNING, stays out of Error Reporting and carries no reference, because there
-is nothing for the user to report. A bug is logged at ERROR with a stack and
-gets a reference. `message` is written for end users; `detail` carries the
-technical text and is shown only behind *Technical details* in the error panel.
-Both come from
-[00_Errors.js](../src/00_Errors.js) — see
-[08 — Error handling](08-error-handling.md) for how a failure travels from a
-catch block to Cloud Logging and back to the user. A few envelopes carry extra
-fields:
+A few envelopes carry extra fields:
 
 | Field | On | Meaning |
 | --- | --- | --- |
-| `failedUpdates: [{ sheetType, message, reference }]` | `importData` | Per-category failures inside a multi-category import (IDS Collection, IDS Master). |
+| `failedUpdates` | `importData` | Per-category failures inside a multi-category import (IDS Collection, IDS Master). |
 | `collection: true` | `getTemplateAndsheetIds` | The sheet has no `IDS` tab — it is an IDS Collection, not an IDS Master. |
 | `versionFiltered: true` | `getTemplateInfo` | Skipped because it is already up to date under `copyMode: "update"`. |
 
-You will see `™` scattered through the messages (`"New spreadsheet™ not found"`).
-That is deliberate — Google's branding guidelines require it for user-visible
-references to Google Sheets™.
+User-visible references to Google Sheets™ carry the `™` symbol
+(`"New spreadsheet™ not found"`).

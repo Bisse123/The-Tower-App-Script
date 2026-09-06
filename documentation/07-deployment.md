@@ -28,8 +28,7 @@ to make sure the code that ships is the code that was tested.
 
 Both configs share the same shape: `rootDir: "src"`, `.js`/`.gs` as script
 extensions, `.html` and `.json` passed through, and an empty `filePushOrder`
-(Apps Script concatenates all `.js` files, so declaration order does not matter
-for the `const` module objects).
+(Apps Script concatenates all `.js` files).
 
 `.clasp.json` — the file clasp actually reads — is **git-ignored and
 transient**. Every npm script copies the right config into place, runs clasp,
@@ -78,54 +77,33 @@ npm run bump minor min          … and raise the supported floor to it
 ```
 
 It gets the current version by *evaluating* `00_Version.js` and calling
-`appVersion.running()` — the same accessor the app uses — then increments it
-and writes it back along with the floor. **It edits files only**: nothing is
-committed, tagged or staged, and it does not care whether the working tree
-is clean. Commit the change along with the work it belongs to.
+`appVersion.running()`, then increments it and writes it back along with the
+floor. **It edits files only**: nothing is committed, tagged or staged, and it
+does not care whether the working tree is clean. Commit the change along with
+the work it belongs to.
 
-The write itself has to be textual. Apps Script source has no filesystem, so
-nothing inside `00_Version.js` can write itself; a `setVersion()` there could
-only change an object in memory. What the evaluation buys instead is a check
-on the way out: the file is re-evaluated afterwards to prove the edit
-produced valid JavaScript carrying the intended values, and is put back
-untouched if it did not.
+The write is textual, then verified: the file is re-evaluated afterwards to
+check the edit produced valid JavaScript carrying the intended values, and is
+put back untouched if it did not. A bump that cannot finish leaves the file
+unchanged rather than half-applied — whether the version is unreadable, the
+file will not evaluate, or the write reads back wrong.
 
-`appVersion.MINIMUM` is read as a member rather than through `minimum()`,
-which answers a different question — the floor that has been *published* to
-the script property, not the one this release declares.
+`appVersion.MINIMUM` is read as a member, not through `minimum()`, which
+returns the floor that has been *published* to the script property rather than
+the one this release declares.
 
-Keeping it out of git is deliberate: a release here is a push to `main`, not
-a tag, so a bump that insisted on a clean tree would force an artificial
-commit in the middle of ordinary work.
-
-`package.json` has **no `version` field**, deliberately. This is not an npm
-package and is never published, so a version there would only be a second
-copy of the same number with nothing keeping it honest — and a stale one is
-worse than none, because it reads like an answer. npm does not mind: `npm
-run` and `npm install` both work without it.
-
-A bump that cannot finish leaves the file untouched rather than
-half-applied — whether the version is unreadable, the file will not evaluate,
-or the write reads back wrong.
-
-**Why not a script property.** Script properties are project-scoped: one store
-shared by every version and every deployment. Setting the version there would
-report the newest release to everybody, including a user still running an older
-add-on — so error reports would name the wrong release, and no code could tell
-whether the user was up to date. A constant ships with the code that contains
-it, so it always names what is actually running.
+`package.json` has **no `version` field**. `npm run` and `npm install` both
+work without it.
 
 Three values work together:
 
 | | Where it lives | What it means | Who sets it |
 | --- | --- | --- | --- |
 | `appVersion.VERSION` | Baked into the source | The release **this** user is running | `npm run bump` |
-| `LATEST_APP_VERSION` | Script property | The newest release **anyone** is running | `setLatestAppVersion`, after the release ships |
+| `LATEST_APP_VERSION` | Script property | The newest release **anyone** is running | `setLatestAppVersion`, run by CI after the redeploy |
 | `MINIMUM_APP_VERSION` | Script property | The oldest release still supported | `npm run bump … min` declares it; the same run publishes it |
 
 ### The two thresholds
-
-They answer different questions, and behave differently on purpose.
 
 | Running version | What happens |
 | --- | --- |
@@ -133,10 +111,7 @@ They answer different questions, and behave differently on purpose.
 | Below `LATEST`, at or above `MINIMUM` | Nothing up front. If an error happens, the panel adds a line saying an update is available and may fix it. |
 | Below `MINIMUM` | A banner on page load, before the user does anything, telling them to update. |
 
-`LATEST` alone would only ever surface after something went wrong, which is no
-use for a bug a user reported and you fixed — the kind that misbehaves quietly
-rather than throwing. `MINIMUM` is how you say *this one you have to take*.
-Leave it where it is for releases an older copy can live without.
+Raise `MINIMUM` only for a release an older copy cannot live without.
 
 The status reaches the page two ways: `getAppVersionStatus()` on load for the
 banner, and an `outdated: { running, latest, minimum, unsupported }` field on
@@ -144,47 +119,39 @@ every failure envelope for the panel line. See [08](08-error-handling.md).
 
 ### Publishing the version
 
-Both properties are written by one function, run by hand once a release has
-shipped:
+Both properties are written by `setLatestAppVersion`, which the deploy workflow
+calls automatically once the redeploy has succeeded — see
+[The CI guard](#the-ci-guard).
 
-1. Open the **production** project in the Apps Script editor.
-2. Pick `setLatestAppVersion` from the function dropdown.
-3. Press **Run**.
-
-It takes `LATEST_APP_VERSION` from the version baked into the code that is
-running there, and `MINIMUM_APP_VERSION` from the floor that release declares
-— so it publishes what actually shipped, not a number typed from memory. The
-execution log shows both, and what they were before:
+It takes `LATEST_APP_VERSION` from the version baked into the code it is
+running as, and `MINIMUM_APP_VERSION` from the floor that release declares, so
+it publishes what actually shipped. The step logs both, and what they were
+before:
 
 ```
-{ success: true, version: '5.0.0', previous: '4.0.0',
-  minimum: '5.0.0', previousMinimum: '4.0.0' }
+setLatestAppVersion returned {"success":true,"version":"5.0.0",
+  "previous":"4.0.0","minimum":"5.0.0","previousMinimum":"4.0.0"}
 ```
 
-Setting the two properties by hand under *Project Settings ▸ Script
-Properties* does exactly the same thing, and is the fallback if the run is
-refused for any reason.
+It runs after the deployment, never before. `LATEST_APP_VERSION` is what tells
+every other copy it is behind, so writing it while the release is still only on
+HEAD would point users at something they cannot get yet.
 
-**Publish after the deployment, not before.** `LATEST_APP_VERSION` is what
-tells every other copy it is behind. Write it while the release is still only
-on HEAD and you will have told users to update to something they cannot get
-yet.
+To publish outside a deploy — after a failed step, for instance — there are
+three routes, in order of convenience:
 
-**Why it is not automated.** No script property can be written from outside
-the project: the Apps Script API has no properties endpoint, so the only way
-in is `scripts.run`, and that needs an *API executable* deployment plus a
-token carrying every scope `appsscript.json` declares — including the two
-add-on scopes, `spreadsheets.currentonly` and `script.container.ui`, which a
-plain `clasp login` never grants. All of that is project and account state
-rather than credentials, so no repository secret can supply it and a CI step
-could only ever fail at a distance. An editor session already holds every one
-of those scopes, which makes one click cheaper than the machinery around it.
+1. Re-run the failed job from the Actions tab.
+2. Run the **Test Apps Script run** workflow from the Actions tab with
+   `setLatestAppVersion` as the function input.
+3. Open the production project in the Apps Script editor, pick
+   `setLatestAppVersion` from the function dropdown and press **Run**.
 
-**Note on Apps Script's own version numbers.** `clasp version` assigns a number
-(229, 230, …) only *after* a push, so it cannot be baked in beforehand, and it
-differs between the dev and production projects. The semver in
-`00_Version.js` is the one label that is stable across both and known before
-the push.
+Setting the two properties by hand under *Project Settings ▸ Script Properties*
+does the same thing.
+
+**Apps Script's own version numbers.** `clasp version` assigns a number
+(229, 230, …) only *after* a push, and it differs between the dev and
+production projects. The semver in `00_Version.js` is stable across both.
 
 ---
 
@@ -202,9 +169,9 @@ the push.
 Windows they work as-is; on other platforms `pwsh` must be on `PATH`. `bump`
 is plain node and runs anywhere.
 
-> **`npm run dev` pushes to production.** The naming is inherited. It is safe —
-> pushing changes HEAD, not the published deployment — but it is not a sandbox.
-> For that, use `npm run sandbox`.
+> **`npm run dev` pushes to production.** Pushing changes HEAD, not the
+> published deployment, but it is not a sandbox. For that, use
+> `npm run sandbox`.
 
 ---
 
@@ -221,11 +188,13 @@ flowchart TB
     G -->|"no"| H["❌ build fails, nothing deploys"]
     G -->|"yes"| I["clasp deploy -i DEPLOYMENT_ID<br/>--description 'Public Link'"]
     I --> J["live for every user of the public link"]
+    I --> K["setLatestAppVersion<br/>publishes LATEST / MINIMUM"]
+    I --> L["version number in the job summary"]
+    L --> M["Marketplace SDK: set the version, publish"]
 ```
 
-The invariant: **`main` may only be merged with code that has already been
-pushed to production HEAD and tested there.** CI enforces it rather than
-trusting the process.
+The invariant CI enforces: **`main` may only be merged with code that has
+already been pushed to production HEAD and tested there.**
 
 ---
 
@@ -240,7 +209,7 @@ sequenceDiagram
     participant GH as GitHub Actions
     participant AS as Apps Script
 
-    GH->>GH: checkout · setup node 18 · npm i -g @google/clasp@2
+    GH->>GH: checkout · setup node 20 · npm i -g @google/clasp@2
     GH->>GH: write ~/.clasprc.json from repository secrets
     GH->>AS: clasp pull → remote_head/
     GH->>GH: node .github/scripts/compare-src.js src remote_head
@@ -249,6 +218,8 @@ sequenceDiagram
         Note over GH: nothing is deployed
     else identical
         GH->>AS: clasp deploy -i DEPLOYMENT_ID --description "Public Link"
+        GH->>GH: write the new version number to the job summary
+        GH->>AS: run-function.js setLatestAppVersion
     end
 ```
 
@@ -271,6 +242,36 @@ Branch source and project HEAD are NOT identical:
   - only on branch:       18_NewThing.js
 ```
 
+### `run-function.js`
+
+[run-function.js](../.github/scripts/run-function.js) calls a top-level
+function in the production project through the Apps Script API:
+
+```bash
+node .github/scripts/run-function.js [functionName]   # default setLatestAppVersion
+```
+
+It reads `CLIENT_ID`, `CLIENT_SECRET` and `REFRESH_TOKEN` from the
+environment, and the script id from `.clasp.prod.json` unless `SCRIPT_ID`
+overrides it. The call runs in `devMode`, so it executes HEAD — which
+`compare-src.js` has already proven equals the deployed commit.
+
+Three preconditions on the production project, all one-time:
+
+| Requirement | Where |
+| --- | --- |
+| `"executionApi": { "access": "MYSELF" }` | `src/appsscript.json` |
+| Apps Script API enabled | GCP project `1031925368251` |
+| Apps Script API enabled for the account | script.google.com/home/usersettings |
+
+### `test-run-function.yml`
+
+[test-run-function.yml](../.github/workflows/test-run-function.yml) runs the
+same script on demand. Trigger it from the Actions tab and give it a function
+name; it defaults to `getAppVersionStatus`, which writes nothing. Being
+`workflow_dispatch` only, it appears in the Actions tab once the file is on
+`main`.
+
 ### Required secrets
 
 | Secret | Purpose |
@@ -279,9 +280,25 @@ Branch source and project HEAD are NOT identical:
 | `CLASP_CLIENT_ID` | OAuth client ID |
 | `CLASP_CLIENT_SECRET` | OAuth client secret |
 | `DEPLOYMENT_ID` | The **existing** deployment to redeploy — the public link's ID |
+| `RUN_REFRESH_TOKEN` | Refresh token for `run-function.js` |
+| `RUN_CLIENT_ID` | OAuth client ID for `run-function.js` |
+| `RUN_CLIENT_SECRET` | OAuth client secret for `run-function.js` |
 
 Redeploying an existing ID rather than creating a new one is what keeps the
 public web-app URL stable across releases.
+
+The two credentials are not interchangeable. `CLASP_*` carries clasp's
+management scopes and pushes and deploys. `RUN_*` must come from an OAuth
+client created in GCP project `1031925368251` — the same project as the
+script — and carry every scope in `src/appsscript.json`. Mint it with:
+
+```bash
+clasp login --creds client_secret.json --use-project-scopes
+```
+
+then copy `client_id`, `client_secret` and `refresh_token` out of
+`~/.clasprc.json`. That login replaces the management credential in the same
+file, so run `clasp login` again afterwards to push or deploy locally.
 
 ---
 
@@ -289,25 +306,28 @@ public web-app URL stable across releases.
 
 The Sheets add-on is published through the Google Workspace Marketplace SDK,
 which pins a **version number**, not HEAD. So an add-on release is a separate,
-manual step:
+manual step taken after CI has deployed:
 
 ```mermaid
 flowchart LR
-    A["npm run draft"] --> B["clasp push to production HEAD"]
-    B --> C["clasp version 'add-on draft'<br/>→ prints version N"]
-    C --> D["Marketplace SDK ▸ App Configuration ▸<br/>set the DRAFT to version N"]
-    D --> E["Save draft, test the add-on"]
-    E --> F["Publish when satisfied"]
+    A["merge to main<br/>CI redeploys"] --> B["run summary prints<br/>'Add-on version N'"]
+    B --> C["Marketplace SDK ▸ App Configuration ▸<br/>set the Sheets add-on to version N"]
+    C --> D["Publish"]
 ```
 
-The script prints the reminder itself:
+`clasp deploy` creates a new version from HEAD on every run, and the workflow
+lifts that number out of the deploy output into the job summary:
 
-> *"Now set the add-on DRAFT config (Marketplace SDK) to the version number
-> above, save the draft, and test."*
+> ### Add-on version 231
+> Set the Sheets add-on in Marketplace SDK ▸ App Configuration to version 231,
+> then publish.
+
+If the summary says the version is unknown, the number is under *Deployments*
+in the Apps Script editor.
 
 The web app and the add-on can therefore be on different versions at the same
 time — the web app follows the deployment CI redeploys, the add-on follows
-whichever version the Marketplace draft/published config points at.
+whichever version the Marketplace config points at.
 
 ---
 
@@ -361,7 +381,8 @@ The `@head` pseudo-deployment is always skipped, and the currently published
     "https://www.googleapis.com/auth/spreadsheets.currentonly",
     "https://www.googleapis.com/auth/script.container.ui"
   ],
-  "webapp": { "executeAs": "USER_ACCESSING", "access": "ANYONE" }
+  "webapp": { "executeAs": "USER_ACCESSING", "access": "ANYONE" },
+  "executionApi": { "access": "MYSELF" }
 }
 ```
 
@@ -369,12 +390,12 @@ The `@head` pseudo-deployment is always skipped, and the currently published
 | --- | --- |
 | `executeAs: USER_ACCESSING` | The script runs as the visitor, using *their* Drive quota and permissions. It can never touch a file the visitor cannot. |
 | `access: ANYONE` | No sign-in wall on the web app, but every visitor still goes through the OAuth consent flow. |
+| `executionApi` | Makes the project callable through the Apps Script API, which is how CI runs `setLatestAppVersion`. |
 | `drive.file` | Per-file access only — the reason for the Picker cycle everywhere. |
 | Advanced services | `Drive` v3 and `Sheets` v4 must also be enabled in the GCP project, not just declared here. |
 
-Adding a scope invalidates every existing user's authorization — they will be
-re-prompted on next use. It is the single most disruptive change that can be
-made to this file.
+Adding a scope invalidates every existing user's authorization — they are
+re-prompted on next use.
 
 ---
 
@@ -389,6 +410,9 @@ made to this file.
 | `Drive is not defined` / `Sheets is not defined` | Advanced service not enabled in the GCP project | Enable Drive API v3 and Sheets API v4 |
 | `npm run *` fails on macOS/Linux | Scripts invoke `powershell` | Install `pwsh`, or run the clasp commands by hand |
 | Deployed but users see the old version | A new deployment was created instead of redeploying `DEPLOYMENT_ID` | Redeploy the existing ID; the public link is bound to it |
-| Add-on shows old behaviour after a deploy | The Marketplace config points at a pinned version | `npm run draft`, then repoint the SDK config |
+| Add-on shows old behaviour after a deploy | The Marketplace config points at a pinned version | Set App Configuration to the version in the run summary, then publish |
+| CI: *"Apps Script API has not been used in project …"* | The API is off, or was only just enabled | Enable it on the GCP project, wait a few minutes, re-run the job |
+| CI: *"Could not refresh the access token: invalid_grant"* | The `RUN_*` credential was revoked, or belongs to the wrong OAuth client | Re-mint it with `clasp login --creds … --use-project-scopes` and update the secrets |
+| CI: *"The API refused the call"* | `executionApi` is not on production HEAD | `npm run dev` with the manifest in place, then re-run the job |
 | A user reports a failure but you cannot find it | They did not quote the reference from the error panel | Ask for it, then query `jsonPayload.reference="…"` — see [08](08-error-handling.md) |
 | Error Reporting is empty although users hit errors | The Error Reporting API is not enabled on the GCP project | Enable it; the payloads are already in the right shape |
