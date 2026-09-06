@@ -25,5 +25,8 @@
   "webapp": {
     "executeAs": "USER_ACCESSING",
     "access": "ANYONE"
+  },
+  "executionApi": {
+    "access": "MYSELF"
   }
 }

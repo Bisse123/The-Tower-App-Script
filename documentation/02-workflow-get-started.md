@@ -32,11 +32,11 @@ hand.
 
 ## Template registry
 
-Template IDs are hard-coded on the **client**, in
-`GET_STARTED_TEMPLATE_CONFIG` ([23_getStarted_scripts.html:2-60](../src/23_getStarted_scripts.html#L2-L60)):
+Template IDs are hard-coded on the **client**, in `SHEET_TEMPLATES`
+([21_templates_scripts.html](../src/21_templates_scripts.html)):
 
 ```javascript
-GET_STARTED_TEMPLATE_CONFIG = {
+SHEET_TEMPLATES = {
   "effective-paths":      [ { sheetType: "Effective Paths",  templateID: "1YwZtKP6…" } ],
   "ids-collection":       [ { sheetType: "IDS Collection",   templateID: "1QwlXL4Y…" } ],
   "master-and-subsheets": [ { sheetType: "IDS Master",       templateID: "1osjoqKm…" },
@@ -46,9 +46,14 @@ GET_STARTED_TEMPLATE_CONFIG = {
 };
 ```
 
-A near-identical `CONVERT_TO_TEMPLATES` map lives in
-[21_shared_scripts.html](../src/21_shared_scripts.html#L40-L92) for the
-conversion flows. **New template releases require editing both maps.**
+This one table serves every flow. It was previously two — `GET_STARTED_TEMPLATE_CONFIG`
+here and a near-identical `CONVERT_TO_TEMPLATES` in `21_shared_scripts.html` — which
+meant a new template release had to be written into both. **A new template release is
+now a single edit.** The partial is included by all four pages, ahead of every consumer.
+
+The conversion flows only ever index `"ids-collection"` and `"master-and-subsheets"`
+by name, so their being able to see `"effective-paths"` too changes nothing; Get
+Started is the one flow that iterates the table, and it wants all three.
 
 ### The sidebar special case
 
@@ -194,10 +199,7 @@ stateDiagram-v2
 
 ## Gotchas
 
-- **Template IDs are duplicated** between `GET_STARTED_TEMPLATE_CONFIG` and
-  `CONVERT_TO_TEMPLATES`. Updating one and not the other means Get Started and
-  Convert-to-Master hand out different template generations.
-- **`templateVersion` is not set** in either client map, so copies are initially
+- **`templateVersion` is not set** in `SHEET_TEMPLATES`, so copies are initially
   named `Copy of <type>` with no version. The correct name is applied later, by
   the ID-update step, from the sheet's own `Home Page`.
 - **A new `The Tower` folder is shared with anyone who has the link.** Existing

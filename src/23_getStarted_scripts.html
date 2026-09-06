@@ -1,64 +1,4 @@
 <script>
-  let GET_STARTED_TEMPLATE_CONFIG = {
-    "effective-paths": [
-      {
-        sheetType: "Effective Paths",
-        templateID: "1YwZtKP6B4WYhRba5T6APJ1YxKNdfnIGQnprgnxmO7zc",
-      },
-    ],
-    "ids-collection": [
-      {
-        sheetType: "IDS Collection",
-        templateID: "1QwlXL4Y1QxvHHaZZLFMszSg5yEkPlt3dmtNukvH3rFk",
-      },
-    ],
-    "master-and-subsheets": [
-      {
-        sheetType: "IDS Master",
-        templateID: "1osjoqKmMwtOWs7Up3e21-3ofN1RHOjsgKV6y3dc6rgE",
-      },
-      {
-        sheetType: "Laboratory",
-        templateID: "165-JujisYPpKi3RWew9O5gptDJ6rgr-71BbyoQafoaU",
-      },
-      {
-        sheetType: "Workshop",
-        templateID: "1GRVlWERQmvfHgsWytiY6gJn8-7oDDnGbg1Bsb5x4TS8",
-      },
-      {
-        sheetType: "Ultimate Weapon",
-        templateID: "1T9_3YekZ2jbcebtu0MbuKU5IhI8zUFAR4UvlLklEajw",
-      },
-      {
-        sheetType: "Themes, Songs & Relics",
-        templateID: "13psLga5xkYIcUiupK9tHmlSsZapFD-IS96aCuUvfjP4",
-      },
-      {
-        sheetType: "Bots",
-        templateID: "1i35r-Tlfx5o1QIdtAYqgVkK2Hep9lH0PQ9Y7BtlyOBQ",
-      },
-      {
-        sheetType: "Vault",
-        templateID: "1fkPvE2s9rYjIqB5_uU4DS5Pc6N3eUx5-2imBmpdJvcY",
-      },
-      {
-        sheetType: "Cards",
-        templateID: "1wVLlvWfmcjHRkAnQJzAQu_YZo_eW1FXMVTfYYQnF7Xc",
-      },
-      {
-        sheetType: "Modules",
-        templateID: "1KCxnSAvhstAbFdBSYSO_3bKUPtCFX42Eb7Z13agPU9s",
-      },
-      {
-        sheetType: "Guardians",
-        templateID: "1Q8dhx05NIzgk1JNbZkdL-Y6cX07U09AiFkct4p1tZg4",
-      },
-      {
-        sheetType: "Player & Stuff",
-        templateID: "1kExWaxZpSizb0KPoFtZdGZI0iBOszTG0LwK-248Saak",
-      },
-    ],
-  };
   let accessToken = null;
   let getStartedPickerReady = false;
   let getStartedSelectedFolder = {
@@ -87,8 +27,8 @@
     var htmlParts = [];
     htmlParts.push("<ul>");
 
-    for (var category in GET_STARTED_TEMPLATE_CONFIG) {
-      var templates = GET_STARTED_TEMPLATE_CONFIG[category];
+    for (var category in SHEET_TEMPLATES) {
+      var templates = SHEET_TEMPLATES[category];
       if (templates && templates.length > 0) {
         templates.forEach((template) => {
           var safeName = template.sheetType || "Sheet";
@@ -1134,7 +1074,7 @@
     getStartedLastCopyMode = copyMode;
 
     var templates = [];
-    var effectivePaths = GET_STARTED_TEMPLATE_CONFIG["effective-paths"] || [];
+    var effectivePaths = SHEET_TEMPLATES["effective-paths"] || [];
 
     if (effectivePathsID) {
       templates.push({
@@ -1145,7 +1085,7 @@
       templates = templates.concat(effectivePaths);
     }
 
-    var selectedTemplates = GET_STARTED_TEMPLATE_CONFIG[copyMode] || [];
+    var selectedTemplates = SHEET_TEMPLATES[copyMode] || [];
     templates = templates.concat(selectedTemplates);
 
     if (!templates || templates.length === 0) {

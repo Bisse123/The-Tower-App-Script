@@ -146,12 +146,6 @@ function parseSaveFileBytes(byteArray) {
     return errors.fail(errorReport);
   }
 
-  // Object.keys(data).forEach(function (key) {
-  //   if (key.toLocaleLowerCase().includes("guardian")) {
-  //     console.log("key", key, "value", data[key]);
-  //   }
-  // });
-
   /**
    * Pulls the save-file keys a sheet needs out of the decoded data.
    * @param {Object} headers Sheet key to save-file key.

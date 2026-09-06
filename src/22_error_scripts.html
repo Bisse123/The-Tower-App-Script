@@ -1,18 +1,8 @@
 <script>
+  const ERROR_CONTRACT = JSON.parse('<?!= errorContract() ?>');
+
   const AppError = {
-    CODES: {
-      ACCESS_DENIED: "ACCESS_DENIED",
-      NOT_FOUND: "NOT_FOUND",
-      INVALID_INPUT: "INVALID_INPUT",
-      INVALID_LINK: "INVALID_LINK",
-      INVALID_FILE: "INVALID_FILE",
-      SHEET_STRUCTURE: "SHEET_STRUCTURE",
-      VERSION_OUTDATED: "VERSION_OUTDATED",
-      QUOTA: "QUOTA",
-      TIMEOUT: "TIMEOUT",
-      CLIENT: "CLIENT",
-      INTERNAL: "INTERNAL",
-    },
+    CODES: ERROR_CONTRACT.CODES,
 
     TITLES: {
       ACCESS_DENIED: "Access needed",
@@ -44,15 +34,7 @@
         : sheetType + ": " + text;
     },
 
-    EXPECTED: {
-      ACCESS_DENIED: true,
-      INVALID_LINK: true,
-      INVALID_FILE: true,
-      NOT_FOUND: true,
-      QUOTA: true,
-      TIMEOUT: true,
-      VERSION_OUTDATED: true,
-    },
+    EXPECTED: ERROR_CONTRACT.EXPECTED,
 
     last: null,
     _reported: {},
@@ -680,9 +662,10 @@
   function versionNotice(status) {
     const running = status.running;
     if (status.unsupported) {
-      return `This add-on is version ${running} ${
-        status.minimum ? ` - newest version is ${status.minimum} ` : ""
-      }. Update it before continuing, or things may not work correctly.`;
+      if (!status.minimum) {
+        return `You are running version ${running} of the add-on. A newer version exists, updating is recommended.`;
+      }
+      return `You are running version ${running} of the add-on. Version ${status.minimum} or later is recommended.`;
     }
     return `You are running version ${running} of the add-on${
       status.latest ? ` and ${status.latest} is available` : ""

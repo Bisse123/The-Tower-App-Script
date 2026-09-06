@@ -578,13 +578,12 @@
 
         var effectivePathsTemplateId = "";
         if (
-          typeof GET_STARTED_TEMPLATE_CONFIG !== "undefined" &&
-          GET_STARTED_TEMPLATE_CONFIG["effective-paths"] &&
-          GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0] &&
-          GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0].templateID
+          SHEET_TEMPLATES["effective-paths"] &&
+          SHEET_TEMPLATES["effective-paths"][0] &&
+          SHEET_TEMPLATES["effective-paths"][0].templateID
         ) {
           effectivePathsTemplateId =
-            GET_STARTED_TEMPLATE_CONFIG["effective-paths"][0].templateID;
+            SHEET_TEMPLATES["effective-paths"][0].templateID;
         }
 
         if (

@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Test Apps Script run
+
+on:
+  workflow_dispatch:
+    inputs:
+      function:
+        description: Top-level function to call
+        default: getAppVersionStatus
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Call the function
+        env:
+          CLIENT_ID: ${{ secrets.RUN_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.RUN_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.RUN_REFRESH_TOKEN }}
+          FUNCTION: ${{ inputs.function || 'getAppVersionStatus' }}
+        run: node .github/scripts/run-function.js "$FUNCTION"

@@ -45,8 +45,23 @@ The error **code** decides everything else. Nothing else is consulted.
 | Reference shown | No | Yes, with a copy button |
 | Panel | ⚠️ amber | ⛔ red |
 
-The expected codes live in one object, `errors.EXPECTED`, mirrored in
-`AppError.EXPECTED` on the client.
+Every code is declared once, in `ERROR_DEFS`
+([00_Errors.js](../src/00_Errors.js)), as a record of `{ expected, client, message }`.
+`errors.CODES`, `errors.MESSAGES` and `errors.EXPECTED` are derived from it, and so
+is the client's copy: `errorContract()` emits the codes and expected flags as JSON,
+and `22_error_scripts.html` — included with `includeTemplate` so its scriptlet runs —
+inlines them into `AppError.CODES` and `AppError.EXPECTED`. Nothing is transcribed by
+hand, so the two sides cannot drift.
+
+`client: false` keeps a code off the wire. `RECOVERED` is the only one: it describes
+something the server caught and carried on from, not a failure the browser has to
+show, which is why `propagate` converts it to `INTERNAL`.
+
+An unrecognised code is not silently trusted. `errors.record` runs every code through
+`errors.known`, which maps anything absent from `ERROR_DEFS` onto `INTERNAL` and adds
+`Unknown error code "…"` to the entry's note. Without it a typo failed quietly in the
+worst direction — `EXPECTED["ACESS_DENIED"]` is `undefined`, so a misspelt expected
+code became a defect, minted a reference number and showed the user the wrong message.
 
 Every entry carries `jsonPayload.kind`, matching that split:
 
@@ -411,7 +426,7 @@ and does not depend on the round trip.
 | A `catch` that is one of the answers the function was called to give | Pass the code explicitly, e.g. `errors.CODES.ACCESS_DENIED` |
 | Something recovered on its own | `errors.report(source, error, context, errors.CODES.RECOVERED)` and carry on. The explicit code is what makes it a `WARNING` that is written immediately; without it an unrecognised exception classifies as `INTERNAL` and is never written at all. |
 | A wrapper that reports and returns `null` for its caller to relay | `errors.report(...)` — the `null` is the handoff |
-| Deciding the code | Would *we* have to change something? Then it is a bug. Add new codes to `errors.EXPECTED` and the mirror in `22_error_scripts.html`. |
+| Deciding the code | Would *we* have to change something? Then it is a bug. Add new codes to `ERROR_DEFS` in [00_Errors.js](../src/00_Errors.js) — that one record is all of it, bar the display title in `AppError.TITLES`. |
 | Client: a failed envelope | `AppError.show(result, { source })` |
 | Client: a caught exception | `AppError.show(error, { source, message })` |
 | Client: a failure the user need not see | `AppError.log(error, source)` |

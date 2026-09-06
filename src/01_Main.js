@@ -150,6 +150,16 @@ function include(filename) {
 }
 
 /**
+ * Inlines another HTML file, evaluating its scriptlets first, for the
+ * <?!= includeTemplate(...) ?> templating.
+ * @param {string} filename
+ * @returns {string}
+ */
+function includeTemplate(filename) {
+  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
+}
+
+/**
  * Simple trigger: builds the menu when a spreadsheet opens.
  * @param {Object} e
  * @returns {void}

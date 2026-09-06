@@ -280,7 +280,7 @@ Three subtleties worth remembering:
 ```mermaid
 flowchart TB
     A["IDS Collection (one file)"] -->|"checkExportCompatibility<br/>+ exportData('IDS Collection')"| B["one export object keyed by category:<br/>{ Laboratory: {...}, Workshop: {...}, … }"]
-    C["CONVERT_TO_TEMPLATES['master-and-subsheets']<br/>hard-coded template IDs"] -->|"copyFileTemplate ×11"| D["new IDS Master + 10 new subsheets"]
+    C["SHEET_TEMPLATES['master-and-subsheets']<br/>hard-coded template IDs"] -->|"copyFileTemplate ×11"| D["new IDS Master + 10 new subsheets"]
     B -->|"fan out: collectionData[file.sheetType]"| E["importData per sheet"]
     D --> E
     E -->|"moveConvertedSheet"| F["renamed from the collection's name,<br/>placed in the collection's folder"]
@@ -290,7 +290,7 @@ Two differences from Flow C:
 
 | | Flow C | Flow D |
 | --- | --- | --- |
-| Templates | Read from the IDS Master's `IDS` tab | Hard-coded in `CONVERT_TO_TEMPLATES` |
+| Templates | Read from the IDS Master's `IDS` tab | Hard-coded in `SHEET_TEMPLATES` |
 | Export | One `exportData` per subsheet | **One** `exportData` on the collection, then fanned out |
 | Move | `moveSheet` (trashes the old sheet) | `moveConvertedSheet` (**keeps** the collection) |
 
@@ -428,7 +428,8 @@ every flag and cache and re-render the option screen after an aborted flow.
 3. Update `importData` (and the module's `update*` helpers) for the new layout.
 4. If the sheet is reachable through an IDS Collection, mirror the change in
    [14_IDS_Collection.js](../src/14_IDS_Collection.js).
-5. If the template ID changed, update **both** `GET_STARTED_TEMPLATE_CONFIG` and
-   `CONVERT_TO_TEMPLATES`.
+5. If the template ID changed, update `SHEET_TEMPLATES`
+   ([21_templates_scripts.html](../src/21_templates_scripts.html)) — one edit,
+   which every flow reads.
 
 See [05 — Sheet modules reference](05-sheet-modules.md) for the details.

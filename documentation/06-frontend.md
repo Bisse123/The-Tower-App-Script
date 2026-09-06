@@ -29,9 +29,24 @@ function include(filename) {
 }
 ```
 
+A fragment that needs to read something out of the server at render time is
+included with `includeTemplate()` instead, which evaluates its scriptlets first:
+
+```javascript
+function includeTemplate(filename) {
+  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
+}
+```
+
+It is deliberately a second function rather than a change to `include()`: `include()`
+inlines files verbatim, so a stray `<?` anywhere in the twenty-odd fragments it serves
+would become a parse error. Only `22_error_scripts` uses it today, to inline the error
+contract from `ERROR_DEFS` — see [08 — Error handling](08-error-handling.md).
+
 Fragments come in triples: `NN_name_section.html` (markup),
 `NN_name_styles.html` (a `<style>` block), `NN_name_scripts.html` (a `<script>`
-block).
+block). `21_templates_scripts.html` is the one script-only fragment, holding the
+`SHEET_TEMPLATES` registry every page needs.
 
 ```html
 <head>
