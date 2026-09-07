@@ -1,7 +1,7 @@
 # 04 — Save-file import workflow
 
 Reads the game's own save file, `playerInfo.dat`, and writes the values straight
-into the user's sheets — replacing hours of manual data entry.
+into the user's sheets.
 
 **Entry points**
 
@@ -11,7 +11,7 @@ into the user's sheets — replacing hours of manual data entry.
 | Web app | `?page=savefile` or `?saveFile=true` |
 | Page | [20_SavedFileApp.html](../src/20_SavedFileApp.html) |
 | Parser | [02_SavedFile.js](../src/02_SavedFile.js) |
-| Client | [28_saveFile_scripts.html](../src/28_saveFile_scripts.html) (~3 500 lines) |
+| Client | [28_saveFile_scripts.html](../src/28_saveFile_scripts.html) |
 | Guide | [28_saveGuide_section.html](../src/28_saveGuide_section.html) |
 
 ---
@@ -67,9 +67,9 @@ flowchart LR
 `ObjectNullMultiple256`, `ObjectNullMultiple`, `ArraySinglePrimitive`,
 `ArraySingleObject`, `ArraySingleString`, `BinaryLibrary`, `MessageEnd`.
 
-Notable implementation details:
+Implementation details:
 
-| Detail | Why |
+| Detail | Note |
 | --- | --- |
 | `lps()` — 7-bit varint length prefix, then UTF-8 | How .NET writes strings |
 | `Int64` / `UInt64` return **BigInt** | Total-coins-style counters exceed `Number.MAX_SAFE_INTEGER`; `bigIntJsonReplacer_` serialises them as strings |
@@ -77,9 +77,9 @@ Notable implementation details:
 | Two-pass design | Objects are collected by ID first, then `resolve()` follows `_ref` pointers |
 | `readArrayElements` handles null runs | `ObjectNullMultiple256`/`ObjectNullMultiple` compress long null spans in the stream |
 
-### `unwrapCollection()` — the friendly bit
+### `unwrapCollection()`
 
-Raw .NET generics are unusable as-is, so they are collapsed:
+Raw .NET generics are collapsed:
 
 | .NET class | Becomes |
 | --- | --- |
@@ -92,50 +92,18 @@ Raw .NET generics are unusable as-is, so they are collapsed:
 
 ## Header maps
 
-`parseSaveFileBytes` holds 11 maps translating **our** field names to the game's
-save-file keys ([02_SavedFile.js:1-108](../src/02_SavedFile.js#L1-L108)):
-
-```javascript
-const workshopHeaders = {
-  presetNames:            "workshopPresetName",
-  upgradeAttackLevels:    "upgradeWorkshopLevel",
-  enhancementAttackLevels:"enhancementLevel",
-  // …
-};
-```
-
-| Map | Category | Fields |
-| --- | --- | --- |
-| `labHeaders` | Laboratory | 1 |
-| `workshopHeaders` | Workshop | 18 |
-| `ultimateWeaponHeaders` | Ultimate Weapon | 4 |
-| `themesAndRelicsHeaders` | Themes, Songs & Relics | 7 |
-| `botHeaders` | Bots | 7 |
-| `vaultHeaders` | Vault | 1 |
-| `cardsHeaders` | Cards | 6 |
-| `moduleHeaders` | Modules | 6 |
-| `guardianHeaders` | Guardians | 4 |
-| `PlayerStuffHeaders` | Player & Stuff | 19 |
-| `MasterHeaders` | IDS Master | 6 (preset names + global presets) |
+`parseSaveFileBytes` holds one header map per category, translating **our**
+field names to the game's save-file keys. There is a map for each of
+Laboratory, Workshop, Ultimate Weapon, Themes Songs & Relics, Bots, Vault,
+Cards, Modules, Guardians, Player & Stuff and the IDS Master's preset names.
 
 `extractDataByHeaders` pulls each key out of the parsed object (`null` when
-absent) and hands the result to the category's `parse*Data`, which returns the
+absent) and hands the result to the category's `parseXxxData`, which returns the
 **same neutral object shape** that `importData` consumes in the sheet-migration
-workflow. That is the whole trick: one importer, two producers.
+workflow.
 
-```javascript
-var labValues = extratctDataByHeaders(labHeaders);
-var laboratoryData = lab.parseLabData(labValues);   // → { oldLabLevels, labOrder }
-```
-
-Result:
-
-```javascript
-{
-  parsed: { "Laboratory": {...}, "Workshop": {...}, …, "IDS Master": {...} },
-  order:  ["Laboratory", "Workshop", …, "IDS Master"]   // display order
-}
-```
+The result carries the parsed categories and the order they should be displayed
+in.
 
 ---
 
@@ -182,7 +150,7 @@ sequenceDiagram
     end
 ```
 
-`getSaveFileImportTargets` ([02_Shared.js:2290](../src/02_Shared.js#L2290))
+`getSaveFileImportTargets` ([02_Shared.js:2788](../src/02_Shared.js#L2788))
 returns, per category:
 
 ```javascript
@@ -201,8 +169,7 @@ version comes from its own `Home Page` via `compareSheetVersions`.
 ## Diff view
 
 When the target sheet is known, the client **exports the current sheet data
-through the normal export pipeline** and diffs it against the parsed save file —
-so the user sees exactly what will change before committing.
+through the normal export pipeline** and diffs it against the parsed save file.
 
 ```mermaid
 flowchart TB
@@ -221,11 +188,9 @@ flowchart TB
     I --> J["renderSaveFileDiffBody(type, parsed, sheet)"]
 ```
 
-Each category has a bespoke renderer — `renderLaboratoryDiff`,
+Each category has its own renderer — `renderLaboratoryDiff`,
 `renderWorkshopDiff`, `renderModulesInventoryDiff`, `renderGuardiansDiff`,
-`renderPlayerDiff`, … — because the shapes differ wildly (flat levels vs.
-per-preset grids vs. module inventories with substats). They share small
-primitives:
+`renderPlayerDiff`, … — over a shared set of primitives:
 
 | Helper | Role |
 | --- | --- |
@@ -253,10 +218,10 @@ stateDiagram-v2
     Outdated --> [*]: must update the sheet first
 ```
 
-The gate is hard. `runSaveFileImport` refuses the whole batch if any selected
-category is **not linked** in the IDS Master or **out of date**, and renders
+`runSaveFileImport` refuses the whole batch if any selected category is **not
+linked** in the IDS Master or **out of date**, and renders
 `renderSaveFileUpdateRequired` with the exact `current → latest` versions
-instead. Writing v3.1-shaped data into a v4.0 sheet would silently corrupt it.
+instead.
 
 An IDS Collection is checked as a single unit: if the collection is outdated,
 every card is badged.
@@ -283,8 +248,8 @@ runAppsScript("importData", targets[type], type, sfImportPayload(type, parsedSav
 runAppsScript("importData", idMasterID, "IDS Collection", filteredPayloads, {}, idMasterID)
 ```
 
-Note the empty `{}` for `sheetVisibility` — unlike the migration workflow there
-is no source sheet whose hidden tabs need copying.
+`sheetVisibility` is `{}` here: there is no source sheet whose hidden tabs are
+being copied.
 
 ### The wave-cap preference
 
@@ -298,8 +263,7 @@ is no source sheet whose hidden tabs need copying.
 
 The choice is persisted per user in `UserProperties` via
 `getSaveFilePlayerWaveCapPreference` / `setSaveFilePlayerWaveCapPreference`
-([02_SavedFile.js:198-215](../src/02_SavedFile.js#L198-L215)), so it survives
-across sessions.
+([02_SavedFile.js:255-278](../src/02_SavedFile.js#L255-L278)).
 
 ---
 

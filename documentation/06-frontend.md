@@ -1,8 +1,8 @@
 # 06 — Frontend
 
-The client is not a thin view. It owns flow control, retry state and every
-decision about *which* server call happens next — the backend is a set of
-stateless single-purpose functions.
+The client owns flow control, retry state and every decision about *which*
+server call happens next. The backend is a set of stateless single-purpose
+functions.
 
 - [The include system](#the-include-system)
 - [Page shells](#page-shells)
@@ -21,7 +21,7 @@ stateless single-purpose functions.
 
 Apps Script serves a single HTML file per page. To keep that manageable, every
 page is assembled from numbered fragments through `include()`
-([01_Main.js:131-133](../src/01_Main.js#L131-L133)):
+([01_Main.js:148-150](../src/01_Main.js#L148-L150)):
 
 ```javascript
 function include(filename) {
@@ -30,7 +30,9 @@ function include(filename) {
 ```
 
 A fragment that needs to read something out of the server at render time is
-included with `includeTemplate()` instead, which evaluates its scriptlets first:
+included with `includeTemplate()` instead
+([01_Main.js:158-160](../src/01_Main.js#L158-L160)), which evaluates its
+scriptlets first:
 
 ```javascript
 function includeTemplate(filename) {
@@ -38,10 +40,10 @@ function includeTemplate(filename) {
 }
 ```
 
-It is deliberately a second function rather than a change to `include()`: `include()`
-inlines files verbatim, so a stray `<?` anywhere in the twenty-odd fragments it serves
-would become a parse error. Only `22_error_scripts` uses it today, to inline the error
-contract from `ERROR_DEFS` — see [08 — Error handling](08-error-handling.md).
+`include()` inlines files verbatim; `includeTemplate()` evaluates scriptlets
+first, so a stray `<?` in an `include()`d fragment is a parse error. Only
+`22_error_scripts` uses `includeTemplate`, to inline the error contract from
+`ERROR_DEFS` — see [08 — Error handling](08-error-handling.md).
 
 Fragments come in triples: `NN_name_section.html` (markup),
 `NN_name_styles.html` (a `<style>` block), `NN_name_scripts.html` (a `<script>`
@@ -114,6 +116,7 @@ screen.
 | --- | :-: | :-: | :-: | --- |
 | `21_header` | ✓ | ✓ | ✓ | Branding, creator-code chips, shared click-to-copy |
 | `21_shared` | | ✓ | ✓ | Picker, access checks, template copying, combined update |
+| `21_templates` | | | ✓ | `SHEET_TEMPLATES` — the template-ID registry, included by all four pages |
 | `22_status` | ✓ | ✓ | ✓ | The one-line status bar; mobile detection |
 | `22_error` | ✓ | ✓ | ✓ | The error panel, `AppError`, and the shared `runAppsScript` |
 | `23_getStarted` | ✓ | ✓ | ✓ | Get Started explainer + quick setup |
@@ -199,23 +202,20 @@ const copyPromises = templates.map(t => new Promise(resolve => {
 await Promise.all(copyPromises);
 ```
 
-Two habits worth copying when adding flows:
+Three rules for new fan-outs:
 
-- **`resolve` on failure, never `reject`.** A single failed sheet must not take
-  down `Promise.all` for the other ten.
-- **Update the DOM inside the handler**, not after the `await`. The user watches
-  each sheet land in the summary as it completes.
-- **Report what you swallowed.** A resolved-on-failure item still has to reach
-  the log: `AppError.log(error, "copyTemplates")` records it without putting a
-  panel in front of someone whose other ten sheets copied fine.
+- **`resolve` on failure, never `reject`**, so one failed sheet does not take
+  down `Promise.all` for the rest.
+- **Update the DOM inside the handler**, not after the `await`.
+- **Report what you swallowed.** `AppError.log(error, "copyTemplates")` records
+  a resolved-on-failure item without showing the error panel.
 
 ---
 
 ## The consent flow
 
-`drive.file` and friends are not granted by simply opening the page. The flow
-differs between web app and add-on because a sidebar cannot host the
-cross-origin consent screen.
+Scopes are not granted by opening the page. The flow differs between web app and
+add-on: a sidebar cannot host the cross-origin consent screen.
 
 ```mermaid
 flowchart TB
@@ -244,12 +244,12 @@ exactly once.
 
 `27_consent_scripts.html` is shared by all three pages *and* by the dialog. The
 dialog overrides `authorizeAndContinue` and stubs `setStatusText` /
-`setStatusWithSpinner` onto the modal's own badge, which lets it reuse the whole
-recheck machinery without a status bar.
+`setStatusWithSpinner` onto the modal's own badge, so it reuses the recheck
+machinery without a status bar.
 
-`consentScopeCheckOutcome` (`"idle" | "granted" | "missing_scopes" | "error"`)
-distinguishes *"still not authorized"* — expected, keep the manual button hidden
-— from *"something actually broke"* — reveal `Recheck scope access`.
+`consentScopeCheckOutcome` is `"idle" | "granted" | "missing_scopes" | "error"`.
+`missing_scopes` keeps the manual button hidden; `error` reveals
+`Recheck scope access`.
 
 ---
 
@@ -313,58 +313,39 @@ One status line drives every page ([22_status_scripts.html](../src/22_status_scr
 | `setStatusText(msg)` | Terminal state |
 
 `detectMobile()` combines user-agent keywords, `ontouchstart`/`maxTouchPoints`
-and a `≤768 px` width check. Beyond swapping the instruction panel, mobile
-substitutes shorter status strings from a lookup table — the long desktop
-messages wrap badly in a narrow sidebar.
+and a `≤768 px` width check. On mobile it swaps the instruction panel and
+substitutes shorter status strings from a lookup table.
 
 `sanitizeGetStartedUrl(url)` allow-lists only
 `https://docs.google.com/spreadsheets/d/…` and
 `https://drive.google.com/drive/folders/…` before any URL is rendered into a
-link. Save-file rendering has its own `escSaveFileHtml` for the same reason —
-sheet and file names are user-controlled and end up inside `innerHTML`.
+link. Save-file rendering uses `escSaveFileHtml`: sheet and file names are
+user-controlled and end up inside `innerHTML`.
 
 ---
 
 ## Client state
 
-All page state is module-level `let`s in the fragment scripts. There is no
-framework and no store.
+All page state is module-level variables declared at the top of the fragment
+scripts. There is no framework and no store.
 
-### Update workflow ([21_shared_scripts.html](../src/21_shared_scripts.html#L1-L40))
+**Update workflow** ([21_shared_scripts.html](../src/21_shared_scripts.html)) —
+the OAuth token and picker readiness, the file-access buckets, the pipeline of
+files moving from copied to exported to imported to moved, what has already been
+resolved from the server, and the flags that select which of the five flows is
+running. See
+[Client state buckets](03-workflow-update-sheets.md#client-state-buckets) and
+[The five flows](03-workflow-update-sheets.md#the-five-flows).
 
-```
-accessToken · pickerInited · isMobile · parentFolderID
-selectedFiles
-accessibleFilesCache · inaccessibleFilesCache · notOwnedFilesCache · warningFilesCache
-templateAccessibleFilesCache · templateInaccessibleFilesCache
-copiedTemplateFiles → exportedFilesSuccess/Failed → importedFilesSuccess/Failed → movedFiles
-currentCopyMode · cachedTemplateInfo · cachedSheetIds
-cachedMasterTemplateInfo · cachedTemplatesWithSameVersion
-versionDifference · masterVersionDifference
-isUpdateSingleSheetFlow · isCombinedUpdate · isConvertToMasterFlow ·
-isConvertToCollectionFlow · hasSubsheetsToUpdate · hasMasterUpdate · masterIdsWritten
-```
+**Save-file workflow** ([28_saveFile_scripts.html](../src/28_saveFile_scripts.html))
+— the parsed save file, the resolved import targets and their access state, the
+exported sheet data it is diffed against, whether the page is showing everything
+or just the differences, which categories are ticked, and the wave-cap
+preference.
 
-See [Client state buckets](03-workflow-update-sheets.md#client-state-buckets).
-
-### Save-file workflow ([28_saveFile_scripts.html](../src/28_saveFile_scripts.html#L1-L26))
-
-```
-parsedSaveData · lastSaveFileResult · saveFilePendingDriveFile
-saveFileSheetType · saveFileImportTargets · saveFileCollectionOutdated
-saveFileViewMode ("all" | "diff") · sheetExportData · sheetExportFetched · sheetExportPromise
-saveFileSelectedTypes (Set | null — null means "default selection")
-saveFilePendingAccessIds · saveFileNotOwnedFiles · saveFileWarningFiles
-saveFilePlayerWavesAtCap
-```
-
-### Get Started ([23_getStarted_scripts.html](../src/23_getStarted_scripts.html#L61-L76))
-
-```
-getStartedSelectedFolder · getStartedPickerReady · getStartedLastCopyMode
-allCreatedFiles · allFailedCopyFiles · allFailedIDUpdateFiles
-lastFailedCopyTemplates · lastFailedIDUpdateFiles
-```
+**Get Started** ([23_getStarted_scripts.html](../src/23_getStarted_scripts.html))
+— the chosen Drive folder, the copy mode, and the created/failed lists that
+drive the retry model.
 
 ---
 
@@ -374,8 +355,7 @@ lastFailedCopyTemplates · lastFailedIDUpdateFiles
   `disabled`**, and are revealed by the flow. `showContinueSection()` and
   `renderIdMasterOptions()` are the two big visibility switchboards.
 - **`™` on user-visible Google product names** ("Google Sheet™",
-  "IDS Master Sheet™") — Google branding guidance. Some server messages carry it
-  too.
+  "IDS Master Sheet™"). Some server messages carry it too.
 - **Emoji as status vocabulary**: ✅ success · ❌ failure · ⚠️ partial ·
   🔐 access needed · ⛔ blocked · 📂 files · 🔄 update · 🎉 all done.
 - **Commented-out UI is left in place** (`copyButton`, `copyUpdateButton`,

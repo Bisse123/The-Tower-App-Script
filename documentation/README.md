@@ -25,5 +25,7 @@ Deep-dive documentation for **The Tower — App Script**. Start with the
 | Stale data after an import | [01](01-architecture.md) | *Cache invalidation* |
 | A picker keeps re-asking for access | [06](06-frontend.md) | *The access-grant cycle* |
 | The deploy workflow fails with "Production HEAD does not match" | [07](07-deployment.md) | *The CI guard* |
+| A release shipped but users are not told about it | [07](07-deployment.md) | *Publishing the version* |
+| The add-on still runs the old code after a deploy | [07](07-deployment.md) | *Add-on releases* |
 | A user quotes an error reference like `TWR-M4X2K9-A7F3` | [08](08-error-handling.md) | *Runbook* |
 | Cloud Logging / Error Reporting shows nothing | [08](08-error-handling.md) | *Google Cloud* |

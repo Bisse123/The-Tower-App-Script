@@ -33,27 +33,15 @@ hand.
 ## Template registry
 
 Template IDs are hard-coded on the **client**, in `SHEET_TEMPLATES`
-([21_templates_scripts.html](../src/21_templates_scripts.html)):
+([21_templates_scripts.html](../src/21_templates_scripts.html)). It groups the
+templates under the three copy modes — Effective Paths on its own, the IDS
+Collection on its own, and the IDS Master with its ten subsheets.
 
-```javascript
-SHEET_TEMPLATES = {
-  "effective-paths":      [ { sheetType: "Effective Paths",  templateID: "1YwZtKP6…" } ],
-  "ids-collection":       [ { sheetType: "IDS Collection",   templateID: "1QwlXL4Y…" } ],
-  "master-and-subsheets": [ { sheetType: "IDS Master",       templateID: "1osjoqKm…" },
-                            { sheetType: "Laboratory",       templateID: "165-Juji…" },
-                            /* Workshop, Ultimate Weapon, Themes Songs & Relics, Bots,
-                               Vault, Cards, Modules, Guardians, Player & Stuff */ ],
-};
-```
+One table serves every flow, so a new template release is a single edit. The
+partial is included by all four pages, ahead of every consumer.
 
-This one table serves every flow. It was previously two — `GET_STARTED_TEMPLATE_CONFIG`
-here and a near-identical `CONVERT_TO_TEMPLATES` in `21_shared_scripts.html` — which
-meant a new template release had to be written into both. **A new template release is
-now a single edit.** The partial is included by all four pages, ahead of every consumer.
-
-The conversion flows only ever index `"ids-collection"` and `"master-and-subsheets"`
-by name, so their being able to see `"effective-paths"` too changes nothing; Get
-Started is the one flow that iterates the table, and it wants all three.
+The conversion flows look up one copy mode by name. Get Started iterates the
+whole table.
 
 ### The sidebar special case
 
@@ -113,8 +101,7 @@ sequenceDiagram
 
 ## ID cross-linking
 
-This is the step that turns a pile of copies into a connected set.
-`applyGetStartedIDUpdates` decides, per file, which IDs it needs to know about:
+`applyGetStartedIDUpdates` decides, per file, which IDs it is given:
 
 ```mermaid
 flowchart TB
@@ -130,14 +117,13 @@ flowchart TB
     end
 ```
 
-Note that `Effective Paths` is excluded from `masterRelatedIDs` — the IDS Master
-does not track it. The relationship is one-directional: Effective Paths points at
-the master, not the reverse.
+`Effective Paths` is excluded from `masterRelatedIDs`. The relationship is
+one-directional: Effective Paths points at the master, not the reverse.
 
 ### Server side
 
 `updateGetStartedSheetIdsAndReferences(sheetID, sheetType, relatedSheetIDs)`
-([02_Shared.js:3042](../src/02_Shared.js#L3042)) has three branches:
+([02_Shared.js:3745](../src/02_Shared.js#L3745)) has three branches:
 
 | `sheetType` | Behaviour |
 | --- | --- |
@@ -153,22 +139,16 @@ fail the ID update.
 
 ## Retry model
 
-Failure is expected — Drive copy quotas, transient API errors, a user dismissing
-the picker. The client keeps five persistent arrays across retries:
-
-| Array | Holds |
-| --- | --- |
-| `allCreatedFiles` | Every file successfully copied, in any attempt |
-| `allFailedCopyFiles` | Templates that could not be copied |
-| `allFailedIDUpdateFiles` | Files copied but not linked |
-| `lastFailedCopyTemplates` | Copy retry queue |
-| `lastFailedIDUpdateFiles` | ID-update retry queue |
+Copies fail on Drive quotas, transient API errors, or a dismissed picker. The
+client keeps, across retries, everything it has created so far, everything that
+failed to copy, everything copied but not yet linked, and a retry queue for each
+of the two failing steps.
 
 `retryFailedCopies()` re-runs only the failed halves, and re-derives the
 relationships from `allCreatedFiles` so a subsheet copied on attempt 2 still gets
 linked to a master copied on attempt 1. In `master-and-subsheets` mode it
-deliberately re-includes the master in the retry batch whenever any subsheet is
-being retried — the master's `IDS` tab has to learn about the newcomer.
+re-includes the master in the retry batch whenever any subsheet is being
+retried, so the master's `IDS` tab learns about the newcomer.
 
 ```mermaid
 stateDiagram-v2
@@ -189,11 +169,11 @@ stateDiagram-v2
 
 | Function | Source | Purpose |
 | --- | --- | --- |
-| `getOrCreateGetStartedFolder()` | [02_Shared.js:2982](../src/02_Shared.js#L2982) | Find/create `The Tower`; makes new folders anyone-readable. |
-| `copyFileTemplate(...)` | [02_Shared.js:2425](../src/02_Shared.js#L2425) | Drive copy, returns file ID + landing `gid`. |
-| `moveGetStartedFileToFolder(fileId, folderID)` | [02_Shared.js:2503](../src/02_Shared.js#L2503) | Renames to `Effective Paths <version>` and relocates. Used when an existing Effective Paths sheet is adopted. |
-| `updateGetStartedSheetIdsAndReferences(...)` | [02_Shared.js:3042](../src/02_Shared.js#L3042) | The cross-linking step above. |
-| `checkTemplateAccess(templateID)` | [02_Shared.js:1993](../src/02_Shared.js#L1993) | `drive.file` reachability probe. |
+| `getOrCreateGetStartedFolder()` | [02_Shared.js:3680](../src/02_Shared.js#L3680) | Find/create `The Tower`; makes new folders anyone-readable. |
+| `copyFileTemplate(...)` | [02_Shared.js:2960](../src/02_Shared.js#L2960) | Drive copy, returns file ID + landing `gid` — see [01 ▸ File operations](01-architecture.md#file-operations). |
+| `moveGetStartedFileToFolder(fileId, folderID)` | [02_Shared.js:3050](../src/02_Shared.js#L3050) | Renames to `Effective Paths <version>` and relocates. Used when an existing Effective Paths sheet is adopted. |
+| `updateGetStartedSheetIdsAndReferences(...)` | [02_Shared.js:3745](../src/02_Shared.js#L3745) | The cross-linking step above. |
+| `checkTemplateAccess(templateID)` | [02_Shared.js:2400](../src/02_Shared.js#L2400) | `drive.file` reachability probe. |
 
 ---
 

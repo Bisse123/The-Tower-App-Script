@@ -151,7 +151,7 @@ function parseSaveFileBytes(byteArray) {
    * @param {Object} headers Sheet key to save-file key.
    * @returns {Object} Sheet key to value, null where the key is absent.
    */
-  function extratctDataByHeaders(headers) {
+  function extractDataByHeaders(headers) {
     var values = {};
     for (const sheetKey of Object.keys(headers)) {
       const saveKey = headers[sheetKey];
@@ -160,38 +160,38 @@ function parseSaveFileBytes(byteArray) {
     return values;
   }
 
-  var labValues = extratctDataByHeaders(labHeaders);
+  var labValues = extractDataByHeaders(labHeaders);
   var laboratoryData = lab.parseLabData(labValues);
 
-  var workshopValues = extratctDataByHeaders(workshopHeaders);
+  var workshopValues = extractDataByHeaders(workshopHeaders);
   var workshopData = workshop.parseWorkshopData(workshopValues);
 
-  var ultimateWeaponValues = extratctDataByHeaders(ultimateWeaponHeaders);
+  var ultimateWeaponValues = extractDataByHeaders(ultimateWeaponHeaders);
   var ultimateWeaponData = ultimate.parseUltimateWeaponData(ultimateWeaponValues);
 
-  var themesAndRelicsValues = extratctDataByHeaders(themesAndRelicsHeaders);
+  var themesAndRelicsValues = extractDataByHeaders(themesAndRelicsHeaders);
   var themesAndRelicsData =
     themesAndRelics.parseThemesAndRelicsData(themesAndRelicsValues);
 
-  var botValues = extratctDataByHeaders(botHeaders);
+  var botValues = extractDataByHeaders(botHeaders);
   var botData = bots.parseBotsData(botValues);
 
-  var vaultValues = extratctDataByHeaders(vaultHeaders);
+  var vaultValues = extractDataByHeaders(vaultHeaders);
   var vaultData = vault.parseVaultData(vaultValues);
 
-  var cardsValues = extratctDataByHeaders(cardsHeaders);
+  var cardsValues = extractDataByHeaders(cardsHeaders);
   var cardsData = cards.parseCardsData(cardsValues);
 
-  var moduleValues = extratctDataByHeaders(moduleHeaders);
+  var moduleValues = extractDataByHeaders(moduleHeaders);
   var moduleData = modules.parseModulesData(moduleValues);
 
-  var guardianValues = extratctDataByHeaders(guardianHeaders);
+  var guardianValues = extractDataByHeaders(guardianHeaders);
   var guardianData = guardians.parseGuardiansData(guardianValues);
 
-  var playerStuffValues = extratctDataByHeaders(PlayerStuffHeaders);
+  var playerStuffValues = extractDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
 
-  var masterValues = extratctDataByHeaders(MasterHeaders);
+  var masterValues = extractDataByHeaders(MasterHeaders);
   var masterData = master.parseMasterData(masterValues);
 
   const parsed = {
