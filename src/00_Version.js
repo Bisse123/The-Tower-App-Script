@@ -14,7 +14,7 @@ const appVersion = {
    * here rather than in package.json: clasp pushes only src/, so the running
    * script never sees package.json.
    */
-  VERSION: "5.1.1",
+  VERSION: "5.1.2",
   MINIMUM: "5.1.0",
 
   /**

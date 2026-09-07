@@ -33,7 +33,7 @@
         templates.forEach((template) => {
           var safeName = template.sheetType || "Sheet";
           htmlParts.push(
-            `<li><a href="https://docs.google.com/spreadsheets/d/${template.templateID}/copy" target="_blank">${safeName} Sheet™</a></li>`,
+            `<li><a href="${googleLink}/${template.templateID}/copy" target="_blank">${safeName} Sheet™</a></li>`,
           );
         });
       }
@@ -874,10 +874,7 @@
           `${response.sheetType}`;
         var createdFileUrl = response.result.fileUrl;
         if (!createdFileUrl && response.result.fileId) {
-          createdFileUrl =
-            "https://docs.google.com/spreadsheets/d/" +
-            response.result.fileId +
-            "/edit";
+          createdFileUrl = `${googleLink}/${response.result.fileId}/edit`;
         }
         createdFiles.push({
           sheetType: response.sheetType,
