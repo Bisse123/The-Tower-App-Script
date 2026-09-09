@@ -64,10 +64,20 @@ jobs:
       - name: Report the add-on version
         if: always()
         run: |
+          project=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('.clasp.prod.json','utf8')).projectId)")
+          sdk="https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=$project"
           if [ -n "$APPS_SCRIPT_VERSION" ]; then
-            echo "### Add-on version $APPS_SCRIPT_VERSION" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Set the Sheets add-on in Marketplace SDK ▸ App Configuration to version $APPS_SCRIPT_VERSION, then publish." >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "### Add-on version $APPS_SCRIPT_VERSION"
+              echo ""
+              echo "[Open Marketplace SDK ▸ App Configuration]($sdk) and set **Sheets add-on script version** to:"
+              echo ""
+              echo '```'
+              echo "$APPS_SCRIPT_VERSION"
+              echo '```'
+              echo ""
+              echo "then publish."
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### Add-on version unknown" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"

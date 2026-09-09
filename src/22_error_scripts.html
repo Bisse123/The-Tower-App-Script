@@ -6,6 +6,8 @@
 
     TITLES: {
       ACCESS_DENIED: "Access needed",
+      AUTH_UNAVAILABLE: "Sign-in problem",
+      NETWORK_BLOCKED: "Cannot reach Google",
       NOT_FOUND: "Sheet not found",
       INVALID_INPUT: "That request was incomplete",
       INVALID_LINK: "That link could not be read",
@@ -19,6 +21,54 @@
     },
 
     FALLBACK_MESSAGE: "Something went wrong. Please try again.",
+
+    FOREIGN_SOURCE:
+      /(?:chrome|moz|safari|safari-web|ms-browser)-extension:\/\/|webkit-masked-url:\/\//i,
+
+    RECOGNISED: [
+      {
+        code: "AUTH_UNAVAILABLE",
+        match:
+          /authoriz|authoris|not signed in|signed out|idpiframe|cookies are not enabled|third[- ]party cookie|popup_?blocked|login required|invalid_grant/i,
+      },
+      {
+        code: "NETWORK_BLOCKED",
+        match:
+          /failed to fetch|networkerror|err_blocked_by_client|err_internet_disconnected|err_name_not_resolved|load denied|net::/i,
+      },
+    ],
+
+    /**
+     * Whether a failure came from a browser extension rather than this page.
+     * @param {*} raw
+     * @param {string} [filename]
+     * @returns {boolean}
+     */
+    isForeign: function (raw, filename) {
+      const text = [
+        filename || "",
+        (raw && raw.stack) || "",
+        (raw && raw.message) || (typeof raw === "string" ? raw : ""),
+      ].join(" ");
+      return AppError.FOREIGN_SOURCE.test(text);
+    },
+
+    /**
+     * The code a known browser-side failure belongs to, by its wording.
+     * @param {string} text
+     * @returns {string} A code from RECOGNISED, or "" when nothing matches.
+     */
+    recognise: function (text) {
+      const subject = String(text || "");
+      if (!subject) return "";
+      for (let i = 0; i < AppError.RECOGNISED.length; i++) {
+        const known = AppError.RECOGNISED[i];
+        if (known.match.test(subject) && AppError.CODES[known.code]) {
+          return known.code;
+        }
+      }
+      return "";
+    },
 
     /**
      * Prefixes a message with the sheet type unless it already starts with it.
@@ -113,6 +163,18 @@
             : AppError.TITLES[code] || AppError.FALLBACK_MESSAGE;
       }
       if (options.message) message = options.message;
+
+      if (code === AppError.CODES.CLIENT) {
+        const recognised = AppError.recognise(
+          [detail, (raw && raw.stack) || ""].join(" "),
+        );
+        if (recognised) {
+          code = recognised;
+          message =
+            (ERROR_CONTRACT.MESSAGES && ERROR_CONTRACT.MESSAGES[recognised]) ||
+            message;
+        }
+      }
 
       if (source && trace[trace.length - 1] !== source) trace.push(source);
 
@@ -411,7 +473,7 @@
       }
 
       panel.hidden = false;
-      if (typeof setStatusText === "function") setStatusText(err.message);
+      if (typeof setStatusText === "function") setStatusText(err.title);
       if (panel.scrollIntoView) {
         panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
@@ -643,6 +705,10 @@
     if (!event.error && (!event.message || event.message === "Script error.")) {
       return;
     }
+    if (AppError.isForeign(event.error || event.message, event.filename)) {
+      console.warn("[AppError] ignored a browser extension failure:", event.message);
+      return;
+    }
     AppError.show(event.error || event.message, {
       source: `window.onerror:${event.filename || "page"}:${event.lineno || 0}`,
     });
@@ -650,6 +716,10 @@
 
   window.addEventListener("unhandledrejection", function (event) {
 
+    if (AppError.isForeign(event.reason)) {
+      console.warn("[AppError] ignored a browser extension rejection:", event.reason);
+      return;
+    }
     AppError.show(event.reason, { source: "unhandledrejection" });
   });
 

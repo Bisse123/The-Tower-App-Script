@@ -17,6 +17,18 @@ const ERROR_DEFS = {
     message:
       "The script does not have access to that file. Grant access and try again.",
   },
+  AUTH_UNAVAILABLE: {
+    expected: true,
+    client: true,
+    message:
+      "Google sign-in could not be reached. Check that you are signed in to the Google account that owns your sheets, allow cookies for this page, then reload.",
+  },
+  NETWORK_BLOCKED: {
+    expected: true,
+    client: true,
+    message:
+      "This page could not reach Google. A network, extension or firewall is blocking the connection. Turn off blockers for this page, or try another network, then reload.",
+  },
   NOT_FOUND: {
     expected: true,
     client: true,
@@ -123,8 +135,8 @@ const errors = {
   },
 
   /**
-   * The codes and expected flags the browser is allowed to see, as JSON ready
-   * to be inlined into a page. Never throws.
+   * The codes, messages and expected flags the browser is allowed to see, as
+   * JSON ready to be inlined into a page. Never throws.
    * @returns {string} A JSON object literal.
    */
   contract: function () {
@@ -133,12 +145,15 @@ const errors = {
         CODES: errorTable(function (code, def) {
           return def.client ? code : undefined;
         }),
+        MESSAGES: errorTable(function (code, def) {
+          return def.client ? def.message : undefined;
+        }),
         EXPECTED: errorTable(function (code, def) {
           return def.client && def.expected ? true : undefined;
         }),
       });
     } catch (ignored) {
-      return '{"CODES":{},"EXPECTED":{}}';
+      return '{"CODES":{},"MESSAGES":{},"EXPECTED":{}}';
     }
   },
 
@@ -834,7 +849,7 @@ function reportServerError(payload) {
 /**
  * Client-callable, and called from 22_error_scripts.html's scriptlet. The codes
  * and expected flags the browser needs, as inlinable JSON.
- * @returns {string} A JSON object literal, e.g. '{"CODES":{…},"EXPECTED":{…}}'.
+ * @returns {string} A JSON object literal, e.g. '{"CODES":{…},"MESSAGES":{…},"EXPECTED":{…}}'.
  */
 function errorContract() {
   const contract = errors.contract();

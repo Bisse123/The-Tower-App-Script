@@ -1696,6 +1696,16 @@
   }
 
   /**
+   * The link to the sheet a single-sheet update has just moved and renamed.
+   * @param {string} sheetTypeName
+   * @returns {string} Empty when there is no new sheet to link to.
+   */
+  function movedSheetLink(sheetTypeName) {
+    if (!newSheetID) return "";
+    return `<br><a href="${googleLink}/${newSheetID}/edit" target="_blank" style="margin-left: 2em">📋 Open your new ${sheetTypeName} sheet™</a><br>`;
+  }
+
+  /**
    * Continues once the move succeeded: updates IDs and cleans up.
    * @param {Object} result
    * @returns {Promise<void>}
@@ -1797,7 +1807,7 @@
           `✅ IDS Master updated successfully!`;
 
         let summaryHtml = `<strong>🎉 IDS Master updated successfully!</strong><br><strong>⚠️ Update your master ID in Effective Paths ⚠️</strong>`;
-        summaryHtml += `<br><a href="${googleLink}/${newSheetID}/edit" target="_blank" style="margin-left: 2em">📋 Open your new IDS Master sheet™</a><br>`;
+        summaryHtml += movedSheetLink(sheetType);
 
         if (
           cachedTemplatesWithSameVersion &&
@@ -1853,7 +1863,8 @@
         }
 
         document.getElementById("selectedFileSummary").innerHTML =
-          `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>⚠️ Update your collection ID in Effective Paths ⚠️</strong>`;
+          `<strong>🎉 IDS Collection updated successfully!</strong><br><strong>⚠️ Update your collection ID in Effective Paths ⚠️</strong>` +
+          movedSheetLink(sheetType);
       } else if (sheetType === "Effective Paths") {
 
         console.log("Effective Paths updated successfully - no cleanup needed");
@@ -1862,7 +1873,8 @@
           `✅ Effective Paths updated successfully!`;
 
         document.getElementById("selectedFileSummary").innerHTML =
-          `<strong>🎉 Effective Paths updated successfully!</strong><br><strong>Your Effective Paths data has been updated and imported.</strong>`;
+          `<strong>🎉 Effective Paths updated successfully!</strong><br><strong>Your Effective Paths data has been updated and imported.</strong>` +
+          movedSheetLink(sheetType);
       } else {
         const updateIdsMasterResult = await runAppsScript("updateIdsMaster", idMasterID, [
           {
@@ -1899,7 +1911,8 @@
         document.getElementById("fileAccessTitle").innerHTML =
           `🎉 IDS Master Updated Successfully!`;
         document.getElementById("selectedFileSummary").innerHTML =
-          `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>`;
+          `<strong>🔄 Please go to your IDS Master and grant the new sheet access.</strong><br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a>` +
+          movedSheetLink(sheetType);
       }
 
       document.getElementById("importButton").disabled = false;

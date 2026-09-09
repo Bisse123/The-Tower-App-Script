@@ -1024,6 +1024,7 @@ const playerStuff = {
         3: "Platinum",
         4: "Champions",
         5: "Legends",
+        6: "Mythic",
       };
 
       const tourneyName = data.tourneyID ? tourneyNames[data.tourneyID] : null;

@@ -312,6 +312,11 @@ One status line drives every page ([22_status_scripts.html](../src/22_status_scr
 | `setStatusWithSpinner(msg)` | Work in progress |
 | `setStatusText(msg)` | Terminal state |
 
+`AppError._render` drives it too: when the panel is on the page the status
+line takes the error's title and the panel carries the message, so the two do
+not repeat each other. On a page with no panel the status line takes the
+message instead, because nothing else shows it.
+
 `detectMobile()` combines user-agent keywords, `ontouchstart`/`maxTouchPoints`
 and a `≤768 px` width check. On mobile it swaps the instruction panel and
 substitutes shorter status strings from a lookup table.
