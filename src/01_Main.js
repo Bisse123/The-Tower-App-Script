@@ -86,9 +86,8 @@ function doGet(e) {
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     getStartedTemplate.APP_ID =
       PropertiesService.getScriptProperties().getProperty("APP_ID");
-    var effectivePathsID = RegExp("^[a-zA-Z0-9-_]{44}$").test(params.effectivePathsID || "")
-       ? params.effectivePathsID
-       : "";
+    var effectivePathsID =
+      shared.extractSheetId(params.effectivePathsID) || "";
     getStartedTemplate.effectivePathsID = effectivePathsID;
     getStartedTemplate.viewType = "webapp";
     return getStartedTemplate
@@ -98,12 +97,9 @@ function doGet(e) {
   }
 
   var template = HtmlService.createTemplateFromFile("20_WebApp");
-  if (params.newSheetID === "<Script loading...>") {
-    params.newSheetID = "";
-  }
-  var newSheetID = params.newSheetID || "";
-  var oldSheetID = params.oldSheetID || "";
-  var idMasterID = params.idMasterID || "";
+  var newSheetID = shared.extractSheetId(params.newSheetID) || "";
+  var oldSheetID = shared.extractSheetId(params.oldSheetID) || "";
+  var idMasterID = shared.extractSheetId(params.idMasterID) || "";
   var sheetType = params.sheetType || "";
 
   if (sheetType === "IDS Master") {
