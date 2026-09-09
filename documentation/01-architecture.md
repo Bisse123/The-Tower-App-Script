@@ -226,7 +226,8 @@ version read from the same tab.
 
 | Helper | Purpose |
 | --- | --- |
-| `extractSheetId(input)` | Accepts a bare ID or any `/spreadsheets/d/<id>` URL. |
+| `isSheetId(value)` | Whether a value is a sheet ID: 44 characters of `[A-Za-z0-9_-]`. Keeps a placeholder a formula left behind from being mistaken for one. |
+| `extractSheetId(input)` | Accepts a bare ID or any `/spreadsheets/d/<id>` URL. Null for anything else, including a non-string. |
 | `columnToLetter(n)` | 1-based column index → A1 letters. |
 | `getColumnOffsetFromRange("eHP!AJ1:AY50")` | 0-based column offset of a range's start — lets update functions work in range-relative coordinates. |
 | `extractUrlFromHyperlink(formula)` | First quoted argument of a `HYPERLINK(...)`. |

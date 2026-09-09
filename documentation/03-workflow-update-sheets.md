@@ -60,6 +60,11 @@ flowchart TB
     R -->|"all three IDs"| C5["full file-access check"]
 ```
 
+Every ID is run through `isSheetId` first, and one that is not shaped like a
+Drive file ID is treated as missing rather than looked up: a sheet whose link
+formula has not finished calculating hands over a placeholder, not an ID, and
+that belongs in the manual pickers rather than in a file-access check.
+
 `showContinueSection()` then decides which buttons appear:
 
 | Situation | UI |

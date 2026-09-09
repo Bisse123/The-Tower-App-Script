@@ -96,6 +96,27 @@
   }
 
   /**
+   * Whether a value is shaped like a Drive file ID, rather than something
+   * standing in for one such as a sheet formula that was still calculating.
+   * @param {*} value
+   * @returns {boolean}
+   */
+  function isSheetId(value) {
+    return (
+      typeof value === "string" && /^[a-zA-Z0-9_-]{44}$/.test(value.trim())
+    );
+  }
+
+  /**
+   * Drops a parameter that is not a usable sheet ID, so it counts as missing.
+   * @param {*} value
+   * @returns {string} "" when it is not one.
+   */
+  function usableSheetId(value) {
+    return isSheetId(value) ? value.trim() : "";
+  }
+
+  /**
    * Whether the page has the sheet parameters it needs to proceed.
    * @returns {boolean}
    */
@@ -108,8 +129,12 @@
       idMasterID,
       sheetType,
     });
+    newSheetID = usableSheetId(newSheetID);
+    oldSheetID = usableSheetId(oldSheetID);
+    idMasterID = usableSheetId(idMasterID);
+
     var fileIds = [newSheetID, oldSheetID, idMasterID].filter(
-      (id) => id != null && id !== "",
+      (id) => id !== "",
     );
     if (
       sheetType === "IDS Collection" &&

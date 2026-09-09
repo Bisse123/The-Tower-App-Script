@@ -1154,17 +1154,31 @@ const shared = {
   },
 
   /**
+   * Whether a value is shaped like a Drive file ID, rather than something
+   * standing in for one such as a sheet formula that was still calculating.
+   * @param {*} value
+   * @returns {boolean}
+   */
+  isSheetId: function (value) {
+    return (
+      typeof value === "string" && /^[a-zA-Z0-9_-]{44}$/.test(value.trim())
+    );
+  },
+
+  /**
    * Pulls a spreadsheet ID out of a URL or a bare ID.
    * @param {*} input
-   * @returns {string} "" when it is not a sheet link or ID.
+   * @returns {?string} Null when it is not a sheet link or ID.
    */
   extractSheetId: function (input) {
+    if (typeof input !== "string") {
+      return null;
+    }
     input = input.trim();
-    var idPattern = /^[a-zA-Z0-9_-]{20,}$/;
     var urlPattern =
-      /\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]{20,})(?:[\/?#]|$)/;
+      /\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]{44})(?:[\/?#]|$)/;
 
-    if (idPattern.test(input)) {
+    if (shared.isSheetId(input)) {
       return input;
     }
     var match = input.match(urlPattern);
