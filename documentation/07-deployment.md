@@ -74,13 +74,18 @@ npm run bump patch              1.4.1 -> 1.4.2
 npm run bump minor              1.4.1 -> 1.5.0
 npm run bump major              1.4.1 -> 2.0.0
 npm run bump minor min          … and raise the supported floor to it
+npm run bump patch no-push      … and leave the push to you
 ```
 
 It gets the current version by *evaluating* `00_Version.js` and calling
 `appVersion.running()`, then increments it and writes it back along with the
-floor. **It edits files only**: nothing is committed, tagged or staged, and it
-does not care whether the working tree is clean. Commit the change along with
-the work it belongs to.
+floor, then runs `npm run dev` so production HEAD carries the new version: a
+bump that is committed but not pushed leaves HEAD and the commit disagreeing,
+which is what the deploy workflow refuses to build on. `no-push` skips that.
+
+**It commits nothing**: nothing is tagged or staged, and it does not care
+whether the working tree is clean. Commit the change along with the work it
+belongs to.
 
 The write is textual, then verified: the file is re-evaluated afterwards to
 check the edit produced valid JavaScript carrying the intended values, and is
@@ -163,11 +168,11 @@ production projects. The semver in `00_Version.js` is stable across both.
 | `npm run dev` | Same, against **production**. Pushes to HEAD only — live users are unaffected until a deployment is cut. |
 | `npm run draft` | `npm run dev` + `clasp version "add-on draft"`, then prints a reminder to point the Marketplace SDK draft at the new version. |
 | `npm run archive <version> [dev\|prod]` | `archive-wrapper.js` → `archive-deployments.ps1`; archives every deployment at or below `<version>`. |
-| `npm run bump <major\|minor\|patch> [min]` | Bump the version in `src/00_Version.js`, optionally raising the supported floor. Edits files only — no commit, no tag. |
+| `npm run bump <major\|minor\|patch> [min] [no-push]` | Bump the version in `src/00_Version.js`, optionally raising the supported floor, then `npm run dev` so HEAD carries it. `no-push` skips the push. No commit, no tag. |
 
 `sandbox`, `dev`, `draft` and `archive` shell out to PowerShell, so on
 Windows they work as-is; on other platforms `pwsh` must be on `PATH`. `bump`
-is plain node and runs anywhere.
+is plain node, but calls `dev` unless you pass `no-push`.
 
 > **`npm run dev` pushes to production.** Pushing changes HEAD, not the
 > published deployment, but it is not a sandbox. For that, use

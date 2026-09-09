@@ -7,6 +7,7 @@
  *   npm run bump minor          1.4.1 -> 1.5.0
  *   npm run bump major          1.4.1 -> 2.0.0
  *   npm run bump minor min      … and make this release the supported floor
+ *   npm run bump patch no-push  … and leave the push to you
  *
  * src/00_Version.js holds the version, and holds it alone: it is the only copy
  * that ships, because clasp pushes just src/. package.json deliberately has no
@@ -19,13 +20,19 @@
  * is therefore re-evaluated afterwards to prove it produced valid JavaScript
  * carrying the intended values, and the file is put back if it did not.
  *
- * Only edits files. Nothing is committed, tagged or staged, and it does not
- * care whether the working tree is clean — the version change is left for your
- * own next commit, alongside whatever else it belongs with.
+ * Runs `npm run dev` afterwards, because the version that ships is the one on
+ * production HEAD: a bump that is committed but not pushed leaves HEAD and the
+ * commit disagreeing, which is what the deploy workflow refuses to build on.
+ * `no-push` skips it.
+ *
+ * Commits nothing. Nothing is tagged or staged, and it does not care whether
+ * the working tree is clean — the version change is left for your own next
+ * commit, alongside whatever else it belongs with.
  */
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { spawnSync } = require("child_process");
 
 const target = path.join(__dirname, "src", "00_Version.js");
 const TYPES = ["major", "minor", "patch"];
@@ -33,6 +40,7 @@ const TYPES = ["major", "minor", "patch"];
 const args = process.argv.slice(2);
 const type = args.find((a) => TYPES.includes(a.toLowerCase()));
 const raiseMinimum = args.some((a) => /^(--?min(imum)?|min)$/i.test(a));
+const skipPush = args.some((a) => /^(--?)?no-?push$/i.test(a));
 
 if (!type) {
   console.error("Usage: npm run bump <major|minor|patch> [min]");
@@ -41,8 +49,10 @@ if (!type) {
   console.error("  npm run bump minor min    bump the minor version and raise");
   console.error("                            the supported floor to it, so");
   console.error("                            older copies are told to update");
+  console.error("  npm run bump patch no-push");
+  console.error("                            bump without pushing to HEAD");
   console.error("");
-  console.error("Edits files only — nothing is committed, tagged or staged.");
+  console.error("Pushes to production HEAD when it is done, and commits nothing.");
   process.exit(1);
 }
 
@@ -160,10 +170,29 @@ try {
   }
 
   console.log(
-    `${from} -> ${version}` +
-      (minimum ? `, minimum supported ${minimum}` : ", no minimum set") +
-      (raiseMinimum ? "  (floor raised)" : ""),
+    `Version: ${from} -> ${version}` +
+      (minimum ? `\nMinimum: ${minimum}` : "\nNo minimum set") +
+      (raiseMinimum ? " (floor raised)" : ""),
   );
+
+  if (skipPush) {
+    console.log(
+      "Not pushed. Run `npm run dev` before committing, or production HEAD " +
+        "will not carry this version.",
+    );
+  } else {
+    const push = spawnSync("npm", ["run", "dev"], {
+      stdio: "inherit",
+      shell: true,
+    });
+    if (push.status !== 0) {
+      throw new Error(
+        `The bump to ${version} was written, but the push failed, so ` +
+          "production HEAD still carries the old version. Run npm run dev " +
+          "before committing.",
+      );
+    }
+  }
 } catch (error) {
   console.error(error.message);
   process.exit(1);
