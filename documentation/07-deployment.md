@@ -316,11 +316,19 @@ flowchart LR
 ```
 
 `clasp deploy` creates a new version from HEAD on every run, and the workflow
-lifts that number out of the deploy output into the job summary:
+lifts that number out of the deploy output into the job summary, alongside a
+link to the Marketplace SDK App Configuration page for the project:
 
 > ### Add-on version 231
-> Set the Sheets add-on in Marketplace SDK ▸ App Configuration to version 231,
+> [Open Marketplace SDK ▸ App Configuration](…) and set **Sheets add-on script
+> version** to:
+> ```
+> 231
+> ```
 > then publish.
+
+The page has no way to take the number from a URL, so it still has to be
+pasted into the field by hand.
 
 If the summary says the version is unknown, the number is under *Deployments*
 in the Apps Script editor.
