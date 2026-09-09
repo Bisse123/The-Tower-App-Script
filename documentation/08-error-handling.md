@@ -48,9 +48,10 @@ The error **code** decides everything else. Nothing else is consulted.
 Every code is declared once, in `ERROR_DEFS`
 ([00_Errors.js](../src/00_Errors.js)), as a record of `{ expected, client, message }`.
 `errors.CODES`, `errors.MESSAGES` and `errors.EXPECTED` are derived from it, and so
-is the client's copy: `errorContract()` emits the codes and expected flags as JSON,
-and `22_error_scripts.html` — included with `includeTemplate` so its scriptlet runs —
-inlines them into `AppError.CODES` and `AppError.EXPECTED`.
+is the client's copy: `errorContract()` emits the codes, messages and expected
+flags as JSON, and `22_error_scripts.html` — included with `includeTemplate` so
+its scriptlet runs — inlines them into `AppError.CODES`,
+`ERROR_CONTRACT.MESSAGES` and `AppError.EXPECTED`.
 
 `client: false` keeps a code off the wire. `RECOVERED` is the only one;
 `propagate` converts it to `INTERNAL`.
@@ -59,6 +60,30 @@ inlines them into `AppError.CODES` and `AppError.EXPECTED`.
 ([00_Errors.js:121](../src/00_Errors.js#L121)), which maps anything absent from
 `ERROR_DEFS` onto `INTERNAL` and adds `Unknown error code "…"` to the entry's
 note.
+
+### Browser-side failures the page classifies itself
+
+A failure raised in the browser arrives as `CLIENT`. `AppError.recognise`
+matches its text against `AppError.RECOGNISED` and, when it matches, swaps in
+the code it belongs to and that code's message from the contract. Two codes are
+recognised this way:
+
+| Code | Raised by |
+| --- | --- |
+| `AUTH_UNAVAILABLE` | Sign-in that cannot complete: no Google session, blocked cookies, a refused authorization popup |
+| `NETWORK_BLOCKED` | A request that never reached Google: an extension, firewall or offline network |
+
+Both are expected, so they show amber with no reference and stay out of Error
+Reporting. The recognised message wins over a `message` the call site passed,
+because it names the cause and a generic override does not.
+
+### Failures from browser extensions
+
+`AppError.isForeign` matches extension URL schemes against a failure's
+filename, stack and message. The `error` and `unhandledrejection` listeners
+drop anything it matches, with a `console.warn` and nothing sent to
+`reportClientError`: an extension injected into the page raises failures of its
+own, and none of this app's frames carry those schemes.
 
 Every entry carries `jsonPayload.kind`, matching that split:
 
