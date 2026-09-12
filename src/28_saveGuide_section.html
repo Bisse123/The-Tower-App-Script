@@ -335,50 +335,12 @@
             from Google and turn on USB debugging (Settings → About phone → tap
             "Build number" 7 times → Developer options → USB debugging).
           </p>
-          <ol>
-            <li>
-              Close The Tower first so your latest progress is written to the
-              file, then leave the emulator running / plug the phone in.
-            </li>
-            <li>
-              Find your <code>adb</code>:
-              <ul>
-                <li>
-                  LDPlayer: its install folder, e.g.
-                  <code>C:\Program Files\LDPlayer\LDPlayer9</code> - the file is called "adb" or "adb.exe".
-                </li>
-                <li>
-                  BlueStacks: its install folder, e.g.
-                  <code>C:\Program Files\BlueStacks_nxt\</code> - the file is called "HD-adb.exe".
-                </li>
-                <li>
-                  Real phone: <code>adb.exe</code> from the SDK Platform Tools
-                  folder you downloaded.
-                </li>
-              </ul>
-            </li>
-            <li>
-              Open PowerShell in that folder: Shift + right click in the folder →
-              "Open PowerShell window here".
-            </li>
-            <li>
-              Check the device is seen (on a phone, accept the "Allow USB
-              debugging" prompt):
-              <div class="sgCode">./adb.exe devices</div>
-            </li>
-            <li>
-              Pull the save into that same folder:
-              <div class="sgCode">
-                ./adb.exe pull
-                /sdcard/Android/data/com.TechTreeGames.TheTower/files/playerInfo.dat
-                .
-              </div>
-            </li>
-            <li>
-              <code>playerInfo.dat</code> is now in that folder - load it below
-              with "From your computer".
-            </li>
-          </ol>
+          <p>
+            Real phone or don't see your emulator below? Use the same steps as
+            LDPlayer, but with <code>adb.exe</code> from the SDK Platform Tools
+            folder you downloaded, and the plain <code>adb pull</code> command
+            (no <code>su</code> step needed).
+          </p>
 
           <div class="sgCard sgSubCard">
             <button
@@ -389,26 +351,71 @@
             >
               <span class="sgCardHead">
                 <span class="sgCardText">
-                  <span class="sgCardTitle">
-                    Turn it into a one-click .bat script
-                  </span>
+                  <span class="sgCardTitle">LDPlayer</span>
                 </span>
               </span>
               <span class="sgChevron" aria-hidden="true">▸</span>
             </button>
             <div class="sgCardBody">
-              <p>
-                If you do this often, save the lines below as e.g.
-                <code>getSave.bat</code> and just double-click it. This example
-                is for BlueStacks and drops the save on your Desktop - change
-                the <code>ADB</code> path to your own emulator (or SDK Platform
-                Tools) and <code>SAVE</code> to wherever you want the file.
-              </p>
+              <ol>
+                <li>
+                  Close The Tower first so your latest progress is written to
+                  the file, then leave LDPlayer running.
+                </li>
+                <li>
+                  Find <code>adb.exe</code> in LDPlayer's install folder, e.g.
+                  <code>C:\Program Files\LDPlayer\LDPlayer9</code>.
+                </li>
+                <li>
+                  Open PowerShell in that folder: Shift + right click in the
+                  folder → "Open PowerShell window here".
+                </li>
+                <li>
+                  Check the device is seen:
+                  <div class="sgCode">./adb.exe devices</div>
+                </li>
+                <li>
+                  Pull the save into that same folder:
+                  <div class="sgCode">
+                    ./adb.exe pull
+                    /sdcard/Android/data/com.TechTreeGames.TheTower/files/playerInfo.dat
+                    .
+                  </div>
+                </li>
+                <li>
+                  <code>playerInfo.dat</code> is now in that folder - load it
+                  below with "From your computer".
+                </li>
+              </ol>
+
+              <div class="sgCard sgSubCard">
+                <button
+                  type="button"
+                  class="sgCardToggle"
+                  onclick="toggleSaveGuideCard(this)"
+                  aria-expanded="false"
+                >
+                  <span class="sgCardHead">
+                    <span class="sgCardText">
+                      <span class="sgCardTitle">
+                        Turn it into a one-click .bat script
+                      </span>
+                    </span>
+                  </span>
+                  <span class="sgChevron" aria-hidden="true">▸</span>
+                </button>
+                <div class="sgCardBody">
+                  <p>
+                    If you do this often, save the lines below as e.g.
+                    <code>getSave.bat</code> and just double-click it. Change
+                    the <code>ADB</code> path to your own LDPlayer install and
+                    <code>SAVE</code> to wherever you want the file.
+                  </p>
 <pre class="sgCode sgCodeBlock">@echo off
-set ADB="C:\Program Files\BlueStacks_nxt\HD-adb.exe"
+set ADB="C:\Program Files\LDPlayer\LDPlayer9\adb.exe"
 set SAVE="%USERPROFILE%\Desktop\playerInfo.dat"
 
-echo Connecting to BlueStacks...
+echo Connecting to LDPlayer...
 %ADB% devices
 
 echo.
@@ -418,6 +425,110 @@ echo Saving The Tower...
 echo.
 echo Done!
 pause</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sgCard sgSubCard">
+            <button
+              type="button"
+              class="sgCardToggle"
+              onclick="toggleSaveGuideCard(this)"
+              aria-expanded="false"
+            >
+              <span class="sgCardHead">
+                <span class="sgCardText">
+                  <span class="sgCardTitle">BlueStacks</span>
+                </span>
+              </span>
+              <span class="sgChevron" aria-hidden="true">▸</span>
+            </button>
+            <div class="sgCardBody">
+              <ol>
+                <li>
+                  Close The Tower first so your latest progress is written to
+                  the file, then leave BlueStacks running.
+                </li>
+                <li>
+                  Find <code>HD-adb.exe</code> in BlueStacks' install folder,
+                  e.g. <code>C:\Program Files\BlueStacks_nxt\</code>.
+                </li>
+                <li>
+                  BlueStacks locks <code>/sdcard/Android/data</code> the same
+                  way a real Android 13+ phone does, so a plain
+                  <code>adb pull</code> from there fails with "failed to stat
+                  remote object". Root access gets around it, but it's off by
+                  default: in BlueStacks, go to Settings (gear icon) →
+                  Advanced → enable "Android Debug Bridge" / "Root access",
+                  then restart the instance. (If <code>su</code> below fails
+                  with "error: closed", this step was skipped.)
+                </li>
+                <li>
+                  Open PowerShell in that folder: Shift + right click in the
+                  folder → "Open PowerShell window here".
+                </li>
+                <li>
+                  Check the device is seen:
+                  <div class="sgCode">./HD-adb.exe devices</div>
+                </li>
+                <li>
+                  Pull the save into that same folder:
+                  <div class="sgCode">
+                    ./HD-adb.exe shell "su 0 cp
+                    /data/data/com.TechTreeGames.TheTower/files/playerInfo.dat
+                    /sdcard/playerInfo.dat"
+                  </div>
+                  <div class="sgCode">
+                    ./HD-adb.exe pull /sdcard/playerInfo.dat .
+                  </div>
+                </li>
+                <li>
+                  <code>playerInfo.dat</code> is now in that folder - load it
+                  below with "From your computer".
+                </li>
+              </ol>
+
+              <div class="sgCard sgSubCard">
+                <button
+                  type="button"
+                  class="sgCardToggle"
+                  onclick="toggleSaveGuideCard(this)"
+                  aria-expanded="false"
+                >
+                  <span class="sgCardHead">
+                    <span class="sgCardText">
+                      <span class="sgCardTitle">
+                        Turn it into a one-click .bat script
+                      </span>
+                    </span>
+                  </span>
+                  <span class="sgChevron" aria-hidden="true">▸</span>
+                </button>
+                <div class="sgCardBody">
+                  <p>
+                    If you do this often, save the lines below as e.g.
+                    <code>getSave.bat</code> and just double-click it. Change
+                    the <code>ADB</code> path to your own BlueStacks install
+                    and <code>SAVE</code> to wherever you want the file.
+                  </p>
+<pre class="sgCode sgCodeBlock">@echo off
+set ADB="C:\Program Files\BlueStacks_nxt\HD-adb.exe"
+set SAVE="%USERPROFILE%\Desktop\playerInfo.dat"
+
+echo Connecting to BlueStacks...
+%ADB% devices
+
+echo.
+echo Saving The Tower...
+%ADB% shell "su 0 cp /data/data/com.TechTreeGames.TheTower/files/playerInfo.dat /sdcard/playerInfo.dat"
+%ADB% pull /sdcard/playerInfo.dat %SAVE%
+
+echo.
+echo Done!
+pause</pre>
+                </div>
+              </div>
             </div>
           </div>
         </div>
