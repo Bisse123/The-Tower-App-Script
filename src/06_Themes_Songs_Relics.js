@@ -561,6 +561,8 @@ const themesAndRelics = {
         76: "Meteorite",
         77: "Seahorse",
         81: "Baby Dino",
+        82: "Fairy",
+        83: "Automation",
       };
       var milestoneSkins = {
         9: "Shuriken",
@@ -645,6 +647,8 @@ const themesAndRelics = {
         54: "Meteor Shower",
         55: "Coral Reef",
         56: "Jurassic Forest",
+        57: "Fairy Forest",
+        58: "Steampunk",
       };
       var guardianSkins = {
         1: "Butter",
@@ -666,6 +670,8 @@ const themesAndRelics = {
         18: "Disco",
         19: "Hermie",
         20: "Waddles",
+        21: "Dewdrop",
+        22: "Pal",
       };
       var profileBanners = {
         1: "Arcade Banner",
@@ -679,6 +685,7 @@ const themesAndRelics = {
         9: "Claw Machine",
         10: "Magician",
         11: "Coral Reef",
+        12: "Fairy Forest",
       };
       var menuThemes = {
         1: "Dark Being",
@@ -691,6 +698,7 @@ const themesAndRelics = {
         8: "Claw Machine",
         9: "Magician",
         10: "Coral Reef",
+        11: "Fairy Forest",
       };
       var songs = {
         6: "Krisu - Oceans Sings",
@@ -1003,7 +1011,12 @@ const themesAndRelics = {
         302: "T: XXIV Cosmic",
         303: "Manta Ray",
         304: "Pearl Shell",
-
+        305: "Magic Elixir",
+        306: "Elder Staff",
+        370: "Automated Pen",
+        371: "Gear Heart",
+        372: "Gadget Glasses",
+        373: "Fantasy Zeppelin",
       };
 
       const towerSkinsData = data.towerSkins || [];
