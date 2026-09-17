@@ -562,7 +562,7 @@ const themesAndRelics = {
         77: "Seahorse",
         81: "Baby Dino",
         82: "Fairy",
-        83: "Automation",
+        83: "Automaton",
       };
       var milestoneSkins = {
         9: "Shuriken",
