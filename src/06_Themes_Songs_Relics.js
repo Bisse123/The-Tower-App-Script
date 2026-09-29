@@ -706,6 +706,10 @@ const themesAndRelics = {
         6: "Krisu - Oceans Sings",
       };
       var relics = {
+        316: "Ritual Lines",
+        315: "Spectral Lines",
+        314: "Spiral Ghosts",
+        313: "Scary Forest",
         312: "Fantasy Zeppelin",
         311: "Gadget Glasses",
         310: "Gear Heart",
