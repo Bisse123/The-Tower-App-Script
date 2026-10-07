@@ -81,7 +81,7 @@ const relics = {
         batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Relics",
         newSheetID,
@@ -168,9 +168,9 @@ const relics = {
       });
       if (newRelicsUnlocked.length > 0) {
         var endRow = startRow + newRelicsUnlocked.length - 1;
-        var unlockedRange = `${sheetName}!${shared.columnToLetter(
+        var unlockedRange = `${sheetName}!${sheetRefs.columnToLetter(
           newRelicUnlockedCol,
-        )}${startRow}:${shared.columnToLetter(newRelicUnlockedCol)}${endRow}`;
+        )}${startRow}:${sheetRefs.columnToLetter(newRelicUnlockedCol)}${endRow}`;
 
         var batchUpdate = [
           {
@@ -310,12 +310,12 @@ const relics = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

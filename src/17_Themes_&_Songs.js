@@ -78,7 +78,7 @@ const themes = {
         batchUpdate = batchUpdate.concat(themesResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Themes & Songs",
         newSheetID,
@@ -149,7 +149,7 @@ const themes = {
           var newThemeUnlocked = String(newThemesData[i][j] || "").trim();
           if (newThemeUnlocked === "Auto-fill from Player and Stuff") {
             batchUpdate.push({
-              range: `${sheetName}!${shared.columnToLetter(j + 1) + (i + 2)}`,
+              range: `${sheetName}!${sheetRefs.columnToLetter(j + 1) + (i + 2)}`,
               values: [[autoFill]],
             });
             break;
@@ -186,9 +186,9 @@ const themes = {
 
           if (checkboxArr.length > 0) {
             var startCell =
-              shared.columnToLetter(checkboxCol + 1) + (startRow + 1);
+              sheetRefs.columnToLetter(checkboxCol + 1) + (startRow + 1);
             var endCell =
-              shared.columnToLetter(checkboxCol + 1) +
+              sheetRefs.columnToLetter(checkboxCol + 1) +
               (startRow + checkboxArr.length);
             batchUpdate.push({
               range: `${sheetName}!${startCell}:${endCell}`,
@@ -425,12 +425,12 @@ const themes = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

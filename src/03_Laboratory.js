@@ -115,7 +115,7 @@ const lab = {
         batchUpdate = batchUpdate.concat(labPlannerResult.batchUpdate || []);
       }
 
-      batchUpdate = shared.addIDUpdatesToBatch(
+      batchUpdate = labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Laboratory",
         newSheetID,
@@ -206,8 +206,8 @@ const lab = {
           }
         }
         if (newLabLevels.length > 0) {
-          var startCol = shared.columnToLetter(col + 1);
-          var endCol = shared.columnToLetter(col + 2);
+          var startCol = sheetRefs.columnToLetter(col + 1);
+          var endCol = sheetRefs.columnToLetter(col + 2);
           var range = `${sheetName}!${startCol}2:${endCol}${
             newLabLevels.length + 1
           }`;
@@ -310,7 +310,7 @@ const lab = {
           if (colIndex !== -1) {
             var firstColIndex = colIndex + row[colIndex].split(",").length;
             var oldBoost = oldLabPlanner[labHeader]["Boost"];
-            var boostRange = `${sheetName}!${shared.columnToLetter(
+            var boostRange = `${sheetName}!${sheetRefs.columnToLetter(
               firstColIndex + 3,
             )}${rowIndex + 1}`;
             batchUpdate.push({
@@ -320,8 +320,8 @@ const lab = {
 
             var oldLabData = oldLabPlanner[labHeader]["Labs"];
             if (oldLabData && oldLabData.length !== 0) {
-              var startCol = shared.columnToLetter(firstColIndex);
-              var endCol = shared.columnToLetter(firstColIndex + 2);
+              var startCol = sheetRefs.columnToLetter(firstColIndex);
+              var endCol = sheetRefs.columnToLetter(firstColIndex + 2);
               var startRow = rowIndex + 4;
               var endRow = startRow + oldLabData.length - 1;
               var labRange = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
@@ -348,8 +348,8 @@ const lab = {
           if (colIndex !== -1) {
             var oldReminderData = oldLabPlanner[reminderHeader];
             if (oldReminderData && oldReminderData.length !== 0) {
-              var startCol = shared.columnToLetter(colIndex + 3);
-              var endCol = shared.columnToLetter(colIndex + 4);
+              var startCol = sheetRefs.columnToLetter(colIndex + 3);
+              var endCol = sheetRefs.columnToLetter(colIndex + 4);
               var startRow = rowIndex + 1;
               var endRow = startRow + oldReminderData.length - 1;
               var range = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
@@ -426,7 +426,7 @@ const lab = {
                   }
                 }
               }
-              var col = shared.columnToLetter(miscColIndex + 1);
+              var col = sheetRefs.columnToLetter(miscColIndex + 1);
               var startCell = `${col}${rowIndex + 2}`;
               var endCell = `${col}${rowIndex + 6}`;
               var range = `${sheetName}!${startCell}:${endCell}`;
@@ -444,8 +444,8 @@ const lab = {
                 (labPlannerData[rowIndex + 1][plannerType] !== "" ? 1 : 2) * 4;
               var showLabColIndex = miscColIndex + 4 * plannerType - 2;
               var optionColIndex = miscColIndex + 5 * plannerType - 2;
-              var showLabCol = shared.columnToLetter(showLabColIndex + 1);
-              var optionCol = shared.columnToLetter(optionColIndex + 1);
+              var showLabCol = sheetRefs.columnToLetter(showLabColIndex + 1);
+              var optionCol = sheetRefs.columnToLetter(optionColIndex + 1);
               var startCell = `${showLabCol}${rowIndex + 1}`;
               var endCell = `${optionCol}${rowIndex + plannerRows}`;
               var range = `${sheetName}!${startCell}:${endCell}`;
@@ -1182,12 +1182,12 @@ const lab = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

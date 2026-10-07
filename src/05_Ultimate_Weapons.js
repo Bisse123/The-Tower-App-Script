@@ -179,7 +179,7 @@ const ultimate = {
         );
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Ultimate Weapon",
         newSheetID,
@@ -308,7 +308,7 @@ const ultimate = {
               newWeaponAttribute &&
               oldWeapon.levels.hasOwnProperty(newWeaponAttribute)
             ) {
-              var dvtLevelValue = shared.getDVTValue(
+              var dvtLevelValue = dropdownUtils.getDVTValue(
                 oldWeapon.levels[newWeaponAttribute],
                 dvtNamedRangesData[weaponName][newWeaponAttribute],
               );
@@ -322,7 +322,7 @@ const ultimate = {
               newWeaponAttribute &&
               oldWeapon.targets.hasOwnProperty(newWeaponAttribute)
             ) {
-              var dvtTargetValue = shared.getDVTValue(
+              var dvtTargetValue = dropdownUtils.getDVTValue(
                 oldWeapon.targets[newWeaponAttribute],
                 dvtNamedRangesData[weaponName][newWeaponAttribute],
               );
@@ -344,7 +344,7 @@ const ultimate = {
       var batchUpdate = [];
 
       if (newUltimateUnlocked.length > 0) {
-        var unlockedCol = shared.columnToLetter(ultimateCol + 1);
+        var unlockedCol = sheetRefs.columnToLetter(ultimateCol + 1);
         var unlockedRange = `${sheetName}!${unlockedCol}2:${unlockedCol}${
           newUltimateUnlocked.length + 1
         }`;
@@ -355,8 +355,8 @@ const ultimate = {
       }
 
       if (newUltimateLevel.length > 0) {
-        var levelCol = shared.columnToLetter(ultimateCol + 5);
-        var targetCol = shared.columnToLetter(ultimateCol + 6);
+        var levelCol = sheetRefs.columnToLetter(ultimateCol + 5);
+        var targetCol = sheetRefs.columnToLetter(ultimateCol + 6);
         var levelRange = `${sheetName}!${levelCol}2:${targetCol}${
           newUltimateLevel.length + 1
         }`;
@@ -444,7 +444,7 @@ const ultimate = {
           oldUltimateCostCalculator["# Of UWs Wanted"]
         ) {
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(uwsWantedIndex + 3)}${
+            range: `${sheetName}!${sheetRefs.columnToLetter(uwsWantedIndex + 3)}${
               row + 1
             }`,
             values: [[oldUltimateCostCalculator["# Of UWs Wanted"]]],
@@ -455,7 +455,7 @@ const ultimate = {
           oldUltimateCostCalculator["# Of UW+ Wanted"]
         ) {
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(
+            range: `${sheetName}!${sheetRefs.columnToLetter(
               uwPlusWantedIndex + 3,
             )}${row + 1}`,
             values: [[oldUltimateCostCalculator["# Of UW+ Wanted"]]],
@@ -477,7 +477,7 @@ const ultimate = {
             var oldWeaponData = oldUltimateCostCalculator[weapon];
 
             if (oldWeaponData.hasOwnProperty("unlocked")) {
-              var unlockedCol = shared.columnToLetter(weaponColIndex + 4);
+              var unlockedCol = sheetRefs.columnToLetter(weaponColIndex + 4);
               var unlockedRange = `${sheetName}!${unlockedCol}${row + 1}`;
               batchUpdate.push({
                 range: unlockedRange,
@@ -522,7 +522,7 @@ const ultimate = {
                     var subValues = oldWeaponData.values[subName];
 
                     if (subValues.hasOwnProperty("currentValue")) {
-                      var currentCol = shared.columnToLetter(
+                      var currentCol = sheetRefs.columnToLetter(
                         currentValueIndex + 1,
                       );
                       var currentRange = `${sheetName}!${currentCol}${
@@ -535,7 +535,7 @@ const ultimate = {
                     }
 
                     if (subValues.hasOwnProperty("targetValue")) {
-                      var targetCol = shared.columnToLetter(
+                      var targetCol = sheetRefs.columnToLetter(
                         targetValueIndex + 1,
                       );
                       var targetRange = `${sheetName}!${targetCol}${
@@ -548,7 +548,7 @@ const ultimate = {
                     }
 
                     if (subValues.hasOwnProperty("modSub")) {
-                      var modCol = shared.columnToLetter(modSubIndex + 1);
+                      var modCol = sheetRefs.columnToLetter(modSubIndex + 1);
                       var modRange = `${sheetName}!${modCol}${subRow + 1}`;
                       batchUpdate.push({
                         range: modRange,
@@ -1275,12 +1275,12 @@ const ultimate = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

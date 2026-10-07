@@ -66,7 +66,7 @@ function doGet(e) {
       PropertiesService.getScriptProperties().getProperty("APP_ID");
     saveFileTemplate.viewType = "webapp";
     saveFileTemplate.idMasterID = params.idMasterID
-      ? shared.extractSheetId(params.idMasterID) || ""
+      ? sheetRefs.extractSheetId(params.idMasterID) || ""
       : "";
     saveFileTemplate.sheetType = sheetType;
     return saveFileTemplate
@@ -87,7 +87,7 @@ function doGet(e) {
     getStartedTemplate.APP_ID =
       PropertiesService.getScriptProperties().getProperty("APP_ID");
     var effectivePathsID =
-      shared.extractSheetId(params.effectivePathsID) || "";
+      sheetRefs.extractSheetId(params.effectivePathsID) || "";
     getStartedTemplate.effectivePathsID = effectivePathsID;
     getStartedTemplate.viewType = "webapp";
     return getStartedTemplate
@@ -97,9 +97,9 @@ function doGet(e) {
   }
 
   var template = HtmlService.createTemplateFromFile("20_WebApp");
-  var newSheetID = shared.extractSheetId(params.newSheetID) || "";
-  var oldSheetID = shared.extractSheetId(params.oldSheetID) || "";
-  var idMasterID = shared.extractSheetId(params.idMasterID) || "";
+  var newSheetID = sheetRefs.extractSheetId(params.newSheetID) || "";
+  var oldSheetID = sheetRefs.extractSheetId(params.oldSheetID) || "";
+  var idMasterID = sheetRefs.extractSheetId(params.idMasterID) || "";
   var sheetType = params.sheetType || "";
 
   if (sheetType === "IDS Master") {
@@ -300,9 +300,9 @@ function findIdMasterIdInIdsTab(idsSheet) {
 
   for (var row = 0; row < values.length; row++) {
     for (var col = 0; col < values[row].length; col++) {
-      if (shared.isSheetTypeCell(values[row][col], "IDS Master")) {
+      if (labelUtils.isSheetTypeCell(values[row][col], "IDS Master")) {
         var idMasterURL = values[row][col + 2];
-        return idMasterURL ? shared.extractSheetId(idMasterURL) || null : null;
+        return idMasterURL ? sheetRefs.extractSheetId(idMasterURL) || null : null;
       }
     }
   }

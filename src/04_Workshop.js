@@ -121,7 +121,7 @@ const workshop = {
         batchUpdate = batchUpdate.concat(ratioResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Workshop",
         newSheetID,
@@ -259,7 +259,7 @@ const workshop = {
       var batchUpdate = [];
       var startRow = 3;
       if (upgradeCol > 1 && workshopUnlocked.length > 0) {
-        var unlockedCol = shared.columnToLetter(upgradeCol - 1);
+        var unlockedCol = sheetRefs.columnToLetter(upgradeCol - 1);
         var unlockedRange = `${sheetName}!${unlockedCol}${startRow}:${unlockedCol}${
           workshopUnlocked.length + startRow - 1
         }`;
@@ -274,8 +274,8 @@ const workshop = {
         oldWorkshopLevels.presetNames.forEach(function (presetName) {
           upgradeHeaders.push(presetName, "");
         });
-        var levelsStartCol = shared.columnToLetter(workshopLevelsStartCol);
-        var levelsEndCol = shared.columnToLetter(workshopLevelsEndCol);
+        var levelsStartCol = sheetRefs.columnToLetter(workshopLevelsStartCol);
+        var levelsEndCol = sheetRefs.columnToLetter(workshopLevelsEndCol);
         var levelsRange = `${sheetName}!${levelsStartCol}${startRow}:${levelsEndCol}${
           workshopLevels.length + startRow - 1
         }`;
@@ -297,8 +297,8 @@ const workshop = {
         oldWorkshopPlusLevels.presetNames.forEach(function (presetName) {
           plusHeaders.push(presetName);
         });
-        var plusStartCol = shared.columnToLetter(workshopPlusLevelsStartCol);
-        var plusEndCol = shared.columnToLetter(workshopPlusLevelsEndCol);
+        var plusStartCol = sheetRefs.columnToLetter(workshopPlusLevelsStartCol);
+        var plusEndCol = sheetRefs.columnToLetter(workshopPlusLevelsEndCol);
         var plusRange = `${sheetName}!${plusStartCol}${startRow}:${plusEndCol}${
           workshopPlusLevels.length + startRow - 1
         }`;
@@ -380,7 +380,7 @@ const workshop = {
         var workshopPresetIndex = row.indexOf("Workshop preset");
         if (workshopPresetIndex !== -1) {
           var presetValue = oldWorkshopPlusRatios["Workshop preset"] || null;
-          var presetCol = shared.columnToLetter(workshopPresetIndex + 2);
+          var presetCol = sheetRefs.columnToLetter(workshopPresetIndex + 2);
           var presetRange = `${sheetName}!${presetCol}${i + 1}`;
           batchUpdate.push({
             range: presetRange,
@@ -412,8 +412,8 @@ const workshop = {
       }
       if (ratiosToUpdate.length > 0) {
         var startRow = 2;
-        var startCol = shared.columnToLetter(workshopEnhancementNameCol + 2);
-        var endCol = shared.columnToLetter(workshopEnhancementNameCol + 11);
+        var startCol = sheetRefs.columnToLetter(workshopEnhancementNameCol + 2);
+        var endCol = sheetRefs.columnToLetter(workshopEnhancementNameCol + 11);
         var ratiosRange = `${sheetName}!${startCol}${startRow}:${endCol}${
           startRow + ratiosToUpdate.length - 1
         }`;
@@ -748,11 +748,11 @@ const workshop = {
         }
       });
 
-      var presetOrder = shared.resolvePresetOrder(
+      var presetOrder = presetUtils.resolvePresetOrder(
         presetColumns.map(function (column) {
           return column.presetName;
         }),
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
         return presetColumns[sourceIndex];
@@ -854,11 +854,11 @@ const workshop = {
         }
       });
 
-      var presetOrder = shared.resolvePresetOrder(
+      var presetOrder = presetUtils.resolvePresetOrder(
         presetColumns.map(function (column) {
           return column.presetName;
         }),
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       var orderedColumns = presetOrder.indices.map(function (sourceIndex) {
         return presetColumns[sourceIndex];
@@ -1207,9 +1207,9 @@ const workshop = {
       const defenseUpgradeUnlockedIndices = namesByIndexToArray(defenseUpgradeUnlockedNamesByIndex);
       const utilityUpgradeUnlockedIndices = namesByIndexToArray(utilityUpgradeUnlockedNamesByIndex);
 
-      const presetOrder = shared.resolvePresetOrder(
+      const presetOrder = presetUtils.resolvePresetOrder(
         data.presetNames || [],
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       var presetNames = presetOrder.order;
       const presetIndices = presetOrder.indices;
@@ -1408,12 +1408,12 @@ const workshop = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

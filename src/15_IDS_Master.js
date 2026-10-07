@@ -125,7 +125,7 @@ const master = {
         }
       }
 
-      var thisSheetInfo = shared.findSheetTypeID(
+      var thisSheetInfo = labelUtils.findSheetTypeID(
         newSheetID,
         "IDS",
         "This Sheet ID",
@@ -182,7 +182,7 @@ const master = {
       Object.keys(oldIDSValues).forEach(function (sheetType) {
         var sheetID = oldIDSValues[sheetType];
 
-        var sheetInfo = shared.findSheetTypeID(
+        var sheetInfo = labelUtils.findSheetTypeID(
           null,
           "IDS",
           sheetType,
@@ -253,7 +253,7 @@ const master = {
           }
 
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(col)}${row - 1}`,
+            range: `${sheetName}!${sheetRefs.columnToLetter(col)}${row - 1}`,
             values: [[presetName]],
           });
 
@@ -283,7 +283,7 @@ const master = {
             var oldLevelValue = oldPresetData[key];
             if (oldLevelValue !== levelValue && oldLevelValue !== presetName) {
               batchUpdate.push({
-                range: `${sheetName}!${shared.columnToLetter(
+                range: `${sheetName}!${sheetRefs.columnToLetter(
                   colIndex + 1,
                 )}${nextRow + 1}`,
                 values: [[oldLevelValue]],
@@ -405,14 +405,14 @@ const master = {
 
       for (var i = 0; i < sheetTypes.length; i++) {
         var sheetType = sheetTypes[i];
-        var sheetInfo = shared.findSheetTypeID(
+        var sheetInfo = labelUtils.findSheetTypeID(
           null,
           "IDS",
           sheetType,
           idsValues,
         );
         if (sheetInfo && sheetInfo.id) {
-          var sheetID = shared.extractSheetId(sheetInfo.id);
+          var sheetID = sheetRefs.extractSheetId(sheetInfo.id);
           sheetReferences[sheetType] = sheetID;
         }
       }
@@ -456,14 +456,14 @@ const master = {
 
       for (var i = 0; i < sheetTypes.length; i++) {
         var sheetType = sheetTypes[i];
-        var sheetInfo = shared.findSheetTypeID(
+        var sheetInfo = labelUtils.findSheetTypeID(
           null,
           "IDS",
           sheetType,
           idsValues,
         );
         if (sheetInfo && sheetInfo.id) {
-          var sheetID = shared.extractSheetId(sheetInfo.id);
+          var sheetID = sheetRefs.extractSheetId(sheetInfo.id);
           sheetReferences[sheetType] = sheetID;
         }
       }
@@ -538,9 +538,9 @@ const master = {
         row = finalRow;
       }
 
-      presetsData.presetNames = shared.resolvePresetOrder(
+      presetsData.presetNames = presetUtils.resolvePresetOrder(
         Object.keys(presetsData.data),
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       ).order;
 
       return {
@@ -606,9 +606,9 @@ const master = {
         });
       });
 
-      oldPresetsData.presetNames = shared.resolvePresetOrder(
+      oldPresetsData.presetNames = presetUtils.resolvePresetOrder(
           oldPresetNames,
-          shared.templatePresetNames,
+          presetUtils.templatePresetNames,
         ).order;
 
       const presetTypesOrder = presetInfo.map((info) => info.type);
@@ -644,12 +644,12 @@ const master = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

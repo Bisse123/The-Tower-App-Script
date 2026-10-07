@@ -150,7 +150,7 @@ const modules = {
         batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Modules",
         newSheetID,
@@ -278,7 +278,7 @@ const modules = {
             currentName !== String(presetName).trim() &&
             moduleType === "cannon"
           ) {
-            var presetNameRange = `${sheetName}!${shared.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
+            var presetNameRange = `${sheetName}!${sheetRefs.columnToLetter(presetCol + 1)}${rowIdx + 1}`;
             var presetNameValues = [[presetName]];
             batchUpdate.push({
               range: presetNameRange,
@@ -286,9 +286,9 @@ const modules = {
             });
           }
 
-          var presetModuleRange = `${sheetName}!${shared.columnToLetter(
+          var presetModuleRange = `${sheetName}!${sheetRefs.columnToLetter(
             presetCol + 2,
-          )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 2)}${rowIdx + 4}`;
+          )}${rowIdx + 3}:${sheetRefs.columnToLetter(presetCol + 2)}${rowIdx + 4}`;
           var presetModuleValues = [
             [presetData.primary || ""],
             [presetData.secondary || ""],
@@ -319,23 +319,23 @@ const modules = {
         if (presetCol === -1) {
           return;
         }
-        var lockedRange = `${sheetName}!${shared.columnToLetter(
+        var lockedRange = `${sheetName}!${sheetRefs.columnToLetter(
           presetCol + 3,
-        )}${rowIdx + 1}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 1}`;
+        )}${rowIdx + 1}:${sheetRefs.columnToLetter(presetCol + 3)}${rowIdx + 1}`;
         var lockedValues = [[presetData.locked || false]];
-        var rarityRange = `${sheetName}!${shared.columnToLetter(
+        var rarityRange = `${sheetName}!${sheetRefs.columnToLetter(
           presetCol + 2,
-        )}${rowIdx + 2}:${shared.columnToLetter(presetCol + 2)}${rowIdx + 2}`;
+        )}${rowIdx + 2}:${sheetRefs.columnToLetter(presetCol + 2)}${rowIdx + 2}`;
         var rarityValues = [[presetData.rarity || null]];
-        var multiSubRange = `${sheetName}!${shared.columnToLetter(
+        var multiSubRange = `${sheetName}!${sheetRefs.columnToLetter(
           presetCol + 3,
-        )}${rowIdx + 3}:${shared.columnToLetter(presetCol + 3)}${rowIdx + 4}`;
+        )}${rowIdx + 3}:${sheetRefs.columnToLetter(presetCol + 3)}${rowIdx + 4}`;
 
-        var dvtMultiplier = shared.getDVTValue(
+        var dvtMultiplier = dropdownUtils.getDVTValue(
           presetData.multiplier || null,
           dvtNamedRangesData["Main Efficiency"],
         );
-        var dvtSubstat = shared.getDVTValue(
+        var dvtSubstat = dropdownUtils.getDVTValue(
           presetData.substat || null,
           dvtNamedRangesData["Substat Efficiency"],
         );
@@ -419,7 +419,7 @@ const modules = {
               for (var spare in oldModulesInventory[moduleType]) {
                 if (spare.includes("Spare") && !usedSpares[spare]) {
                   batchUpdate.push({
-                    range: `${sheetName}!${shared.columnToLetter(col + 1)}${
+                    range: `${sheetName}!${sheetRefs.columnToLetter(col + 1)}${
                       rowIdx + 1
                     }`,
                     values: [[spare]],
@@ -437,7 +437,7 @@ const modules = {
               cellValue.trim() !== "" &&
               oldModulesInventory[moduleType].hasOwnProperty(cellValue)
             ) {
-              var rarityCell = shared.columnToLetter(col + 1) + (rowIdx + 3);
+              var rarityCell = sheetRefs.columnToLetter(col + 1) + (rowIdx + 3);
               batchUpdate.push({
                 range: `${sheetName}!${rarityCell}`,
                 values: [[oldModulesInventory[moduleType][cellValue].rarity]],
@@ -447,9 +447,9 @@ const modules = {
               if (substats && substats.length > 0) {
                 var numRows = substats.length;
                 var numCols = substats[0].length;
-                var startCell = shared.columnToLetter(col + 1) + (rowIdx + 5);
+                var startCell = sheetRefs.columnToLetter(col + 1) + (rowIdx + 5);
                 var endCell =
-                  shared.columnToLetter(col + numCols) +
+                  sheetRefs.columnToLetter(col + numCols) +
                   (rowIdx + 5 + numRows - 1);
                 batchUpdate.push({
                   range: `${sheetName}!${startCell}:${endCell}`,
@@ -463,7 +463,7 @@ const modules = {
             if (highestLevelCol !== -1) {
               var maxLevel = oldModulesInventory[moduleType]["Highest Level"] || null;
               var highestLevelCell =
-                shared.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
+                sheetRefs.columnToLetter(highestLevelCol + 1) + (rowIdx + 3);
               batchUpdate.push({
                 range: `${sheetName}!${highestLevelCell}`,
                 values: [[maxLevel]],
@@ -475,7 +475,7 @@ const modules = {
             if (assistLevelCol !== -1) {
               var assistLevel = oldModulesInventory[moduleType]["Assist Level"] || null;
               var assistLevelCell =
-                shared.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
+                sheetRefs.columnToLetter(assistLevelCol + 1) + (rowIdx + 6);
               batchUpdate.push({
                 range: `${sheetName}!${assistLevelCell}`,
                 values: [[assistLevel]],
@@ -544,7 +544,7 @@ const modules = {
             }
           }
           if (inputValues.length > 0) {
-            var inputColLetter = shared.columnToLetter(inputColIdx + 5);
+            var inputColLetter = sheetRefs.columnToLetter(inputColIdx + 5);
             var inputRowStart = row + 3;
             var inputRowEnd = inputRowStart + inputValues.length - 1;
             var inputRange = `${sheetName}!${inputColLetter}${inputRowStart}:${inputColLetter}${inputRowEnd}`;
@@ -583,7 +583,7 @@ const modules = {
                   if (summaryData.hasOwnProperty(summaryModuleName)) {
                     var summaryModuleCount = summaryData[summaryModuleName];
                     batchUpdate.push({
-                      range: `${sheetName}!${shared.columnToLetter(idx + 2)}${rowIdx + 1}`,
+                      range: `${sheetName}!${sheetRefs.columnToLetter(idx + 2)}${rowIdx + 1}`,
                       values: [[summaryModuleCount]],
                     });
                   }
@@ -622,9 +622,9 @@ const modules = {
             }
             var endRow =
               startRow + oldModulesTracker[targetModule][moduleName].length - 1;
-            var range = `${sheetName}!${shared.columnToLetter(
+            var range = `${sheetName}!${sheetRefs.columnToLetter(
               rangeCol,
-            )}${startRow}:${shared.columnToLetter(rangeCol)}${endRow}`;
+            )}${startRow}:${sheetRefs.columnToLetter(rangeCol)}${endRow}`;
             var values = oldModulesTracker[targetModule][moduleName].map(
               function (copy) {
                 return [copy || null];
@@ -641,7 +641,7 @@ const modules = {
             ) {
               var shatteredRow = startRow + 5;
               var shatteredCol = col + 3;
-              var shatteredRange = `${sheetName}!${shared.columnToLetter(shatteredCol)}${shatteredRow}`;
+              var shatteredRange = `${sheetName}!${sheetRefs.columnToLetter(shatteredCol)}${shatteredRow}`;
               var shatteredValue = [
                 [
                   oldModulesTracker[targetModule][moduleName + " Shattered"] ||
@@ -1400,9 +1400,9 @@ const modules = {
           };
         }
       });
-      oldModulesPresets.presetNames = shared.resolvePresetOrder(
+      oldModulesPresets.presetNames = presetUtils.resolvePresetOrder(
         presetNames,
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       ).order;
 
       return {
@@ -2195,9 +2195,9 @@ const modules = {
           writeModuleEntry(bestCopy, moduleInfo.name);
         }
       });
-      oldModulesPresets.presetNames = shared.resolvePresetOrder(
+      oldModulesPresets.presetNames = presetUtils.resolvePresetOrder(
         presetNames,
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       ).order;
 
       const moduleOrder = Object.keys(moduleNames)
@@ -2243,12 +2243,12 @@ const modules = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

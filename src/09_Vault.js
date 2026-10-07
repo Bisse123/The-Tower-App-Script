@@ -81,7 +81,7 @@ const vault = {
         batchUpdate = batchUpdate.concat(updateResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Vault",
         newSheetID,
@@ -199,7 +199,7 @@ const vault = {
           }
 
           if (sectionName && unlockedGroups.indexOf(sectionName) !== -1) {
-            const uLetter = shared.columnToLetter(UIdx + 1);
+            const uLetter = sheetRefs.columnToLetter(UIdx + 1);
             batchUpdate.push({
               range: `${sheetName}!${uLetter}${r + 2}`,
               values: [[true]],
@@ -223,7 +223,7 @@ const vault = {
 
       Object.keys(newVault).forEach(function (colKey) {
         var colIdx = parseInt(colKey, 10);
-        var colLetter = shared.columnToLetter(colIdx + 1);
+        var colLetter = sheetRefs.columnToLetter(colIdx + 1);
         var values = newVault[colKey];
         var startRow = headerRowIndex + 2;
         var lastRow = startRow + values.length - 1;
@@ -1006,12 +1006,12 @@ const vault = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

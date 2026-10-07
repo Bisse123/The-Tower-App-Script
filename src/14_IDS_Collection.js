@@ -1154,7 +1154,7 @@
       });
 
       var homePageData = getRangeData("Home Page", "values");
-      var yourIdInfo = shared.findSheetTypeID(
+      var yourIdInfo = labelUtils.findSheetTypeID(
         newSheetID,
         "Home Page",
         "Your ID:",
@@ -7076,12 +7076,12 @@
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

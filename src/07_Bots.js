@@ -137,7 +137,7 @@ const bots = {
         batchUpdate = batchUpdate.concat(botsResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Bots",
         newSheetID,
@@ -255,7 +255,7 @@ const bots = {
         });
         if (presetSlot.header !== presetName) {
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
+            range: `${sheetName}!${sheetRefs.columnToLetter(colIndex + 1)}1`,
             values: [[presetName]],
           });
         }
@@ -356,7 +356,7 @@ const bots = {
               continue;
             }
             var oldPropValue = presetData.props[newBotProp];
-            var dvtPropValue = shared.getDVTValue(
+            var dvtPropValue = dropdownUtils.getDVTValue(
               oldPropValue,
               dvtNamedRangesData[botName][newBotProp],
             );
@@ -371,7 +371,7 @@ const bots = {
             return map.presetName === presetName;
           });
           if (presetMap) {
-            var levelColLetter = shared.columnToLetter(
+            var levelColLetter = sheetRefs.columnToLetter(
               presetMap.levelColIndex + 1,
             );
             batchUpdate.push({
@@ -388,7 +388,7 @@ const bots = {
             return map.presetName === presetName;
           });
           if (presetMap) {
-            var toggleColLetter = shared.columnToLetter(
+            var toggleColLetter = sheetRefs.columnToLetter(
               presetMap.toggleColIndex + 1,
             );
             batchUpdate.push({
@@ -621,9 +621,9 @@ const bots = {
       }
 
       var oldBots = {
-        presetNames: shared.resolvePresetOrder(
+        presetNames: presetUtils.resolvePresetOrder(
           oldBotsPresetNames,
-          shared.templatePresetNames,
+          presetUtils.templatePresetNames,
         ).order,
         data: {},
       };
@@ -736,9 +736,9 @@ const bots = {
       }
 
       var oldBots = {
-        presetNames: shared.resolvePresetOrder(
+        presetNames: presetUtils.resolvePresetOrder(
           oldBotsPresetNames,
-          shared.templatePresetNames,
+          presetUtils.templatePresetNames,
         ).order,
         data: {},
       };
@@ -984,9 +984,9 @@ const bots = {
         },
       };
 
-      const presetOrder = shared.resolvePresetOrder(
+      const presetOrder = presetUtils.resolvePresetOrder(
         data.presetNames || [],
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       const presetNames = presetOrder.order;
       const presetIndices = presetOrder.indices;
@@ -1081,12 +1081,12 @@ const bots = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

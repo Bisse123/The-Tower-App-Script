@@ -78,9 +78,9 @@ const ePaths = {
         eDiscountLabRange,
       ];
 
-      var eHPColumnOffset = shared.getColumnOffsetFromRange(eHPRange);
-      var eDamageColumnOffset = shared.getColumnOffsetFromRange(eDamageRange);
-      var eEconColumnOffset = shared.getColumnOffsetFromRange(eEconRange);
+      var eHPColumnOffset = sheetRefs.getColumnOffsetFromRange(eHPRange);
+      var eDamageColumnOffset = sheetRefs.getColumnOffsetFromRange(eDamageRange);
+      var eEconColumnOffset = sheetRefs.getColumnOffsetFromRange(eEconRange);
 
       var batchGetResult = SheetsAPI.batchGetFormulas(newSheetID, ranges);
       if (!batchGetResult || batchGetResult.length === 0) {
@@ -166,7 +166,7 @@ const ePaths = {
         batchUpdate = batchUpdate.concat(eEconResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Effective Paths",
         newSheetID,
@@ -278,7 +278,7 @@ const ePaths = {
               if (!customName) break;
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(
+                var cellCol = sheetRefs.columnToLetter(
                   columnOffset + (column - 1) + 1,
                 );
                 var cellAddress = `${cellCol}${nextRow + 1}`;
@@ -304,7 +304,7 @@ const ePaths = {
                 oldData.UserGuess.hasOwnProperty(guessName)
               ) {
                 var guessValue = oldData.UserGuess[guessName];
-                var guessCol = shared.columnToLetter(columnOffset + column + 6);
+                var guessCol = sheetRefs.columnToLetter(columnOffset + column + 6);
                 var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 batchUpdate.push({
                   range: `${sheetName}!${guessCellAddress}`,
@@ -314,7 +314,7 @@ const ePaths = {
             }
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
-            var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+            var moduleCol = sheetRefs.columnToLetter(columnOffset + column + 2);
             var moduleCellAddress = `${moduleCol}${row + 1}`;
             batchUpdate.push({
               range: `${sheetName}!${moduleCellAddress}`,
@@ -323,7 +323,7 @@ const ePaths = {
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCol = sheetRefs.columnToLetter(columnOffset + column + 1);
               var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
@@ -421,7 +421,7 @@ const ePaths = {
               if (!customName) break;
               if (oldData.Custom && oldData.Custom.hasOwnProperty(customName)) {
                 var newValue = oldData.Custom[customName];
-                var cellCol = shared.columnToLetter(
+                var cellCol = sheetRefs.columnToLetter(
                   columnOffset + (column - 1) + 1,
                 );
                 var cellAddress = `${cellCol}${nextRow + 1}`;
@@ -455,7 +455,7 @@ const ePaths = {
                 if (["Run Type", "Simulated Tier"].includes(guessName)) {
                   guessValueIndex -= 1;
                 }
-                var guessCol = shared.columnToLetter(
+                var guessCol = sheetRefs.columnToLetter(
                   columnOffset + column + guessValueIndex,
                 );
                 var guessCellAddress = `${guessCol}${nextRow + 1}`;
@@ -467,7 +467,7 @@ const ePaths = {
             }
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
-            var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+            var moduleCol = sheetRefs.columnToLetter(columnOffset + column + 2);
             var moduleCellAddress = `${moduleCol}${row + 1}`;
             batchUpdate.push({
               range: `${sheetName}!${moduleCellAddress}`,
@@ -476,7 +476,7 @@ const ePaths = {
           } else if (cell === "Rows Calculated") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCol = sheetRefs.columnToLetter(columnOffset + column + 1);
               var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
@@ -487,7 +487,7 @@ const ePaths = {
           } else if (cell === "PS Beta Testing") {
             if (oldData.hasOwnProperty("PSBeta")) {
               var psBetaValue = oldData.PSBeta;
-              var psBetaCol = shared.columnToLetter(columnOffset + column + 1);
+              var psBetaCol = sheetRefs.columnToLetter(columnOffset + column + 1);
               var psBetaCellAddress = `${psBetaCol}${row}`;
               batchUpdate.push({
                 range: `${sheetName}!${psBetaCellAddress}`,
@@ -638,10 +638,10 @@ const ePaths = {
                 oldData.UserGuess.hasOwnProperty(guessName)
               ) {
                 var guessValue = oldData.UserGuess[guessName];
-                var guessCol = shared.columnToLetter(columnOffset + column + 6);
+                var guessCol = sheetRefs.columnToLetter(columnOffset + column + 6);
                 var guessCellAddress = `${guessCol}${nextRow + 1}`;
                 if (guessName === "GB Sync Desired Ratio:") {
-                  var gbFirstCol = shared.columnToLetter(
+                  var gbFirstCol = sheetRefs.columnToLetter(
                     columnOffset + column + 4,
                   );
                   guessCellAddress = `${gbFirstCol}${nextRow + 1}:${guessCol}${nextRow + 1}`;
@@ -665,7 +665,7 @@ const ePaths = {
           } else if (oldData.Modules && oldData.Modules.hasOwnProperty(cell)) {
             var moduleValue = oldData.Modules[cell];
             if (moduleValue.main !== undefined) {
-              var moduleCol = shared.columnToLetter(columnOffset + column + 2);
+              var moduleCol = sheetRefs.columnToLetter(columnOffset + column + 2);
               var moduleCellAddress = `${moduleCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${moduleCellAddress}`,
@@ -673,7 +673,7 @@ const ePaths = {
               });
             }
             if (moduleValue.assist !== undefined) {
-              var assistCol = shared.columnToLetter(columnOffset + column + 6);
+              var assistCol = sheetRefs.columnToLetter(columnOffset + column + 6);
               var assistCellAddress = `${assistCol}${row + 1}`;
               batchUpdate.push({
                 range: `${sheetName}!${assistCellAddress}`,
@@ -683,7 +683,7 @@ const ePaths = {
           } else if (cell === "Calculation Rows") {
             if (oldData.hasOwnProperty("rowsCalculated")) {
               var rowsCalculatedValue = oldData.rowsCalculated;
-              var rowsCol = shared.columnToLetter(columnOffset + column + 1);
+              var rowsCol = sheetRefs.columnToLetter(columnOffset + column + 1);
               var rowsCalculatedCellAddress = `${rowsCol}${row + 2}`;
               batchUpdate.push({
                 range: `${sheetName}!${rowsCalculatedCellAddress}`,
@@ -693,7 +693,7 @@ const ePaths = {
           } else if (cell === "Coins Spent") {
             if (oldData.hasOwnProperty("enhancementDiscount")) {
               var enhancementDiscountValue = oldData.enhancementDiscount;
-              var enhancementDiscountCol = shared.columnToLetter(
+              var enhancementDiscountCol = sheetRefs.columnToLetter(
                 columnOffset + column,
               );
               var enhancementDiscountCellAddress = `${enhancementDiscountCol}${row + 1}`;
@@ -4087,11 +4087,11 @@ const ePaths = {
   isCompatibleVersion: function (oldVersion) {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
     for (var key = 0; key < sortedThresholds.length; key++) {
       var threshold = sortedThresholds[key];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
       }

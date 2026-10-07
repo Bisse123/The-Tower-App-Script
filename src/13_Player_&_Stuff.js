@@ -107,7 +107,7 @@ const playerStuff = {
         batchUpdate = batchUpdate.concat(playerPerksResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Player & Stuff",
         newSheetID,
@@ -278,9 +278,9 @@ const playerStuff = {
         }
       }
 
-      var statColLetter = shared.columnToLetter(statCol + 2);
-      var tierColLetter = shared.columnToLetter(tierCol + 2);
-      var passColLetter = shared.columnToLetter(passCol + 1);
+      var statColLetter = sheetRefs.columnToLetter(statCol + 2);
+      var tierColLetter = sheetRefs.columnToLetter(tierCol + 2);
+      var passColLetter = sheetRefs.columnToLetter(passCol + 1);
       var batchUpdate = [];
       var ranges = {
         Stat: `${sheetName}!${statColLetter}${firstRow}:${statColLetter}${
@@ -308,7 +308,7 @@ const playerStuff = {
         var dissHeaderName = dissHeaders[i];
         var dissValues = dissValuesByName[dissHeaderName];
         if (dissValues && dissValues.length > 0) {
-          var dissColLetter = shared.columnToLetter(
+          var dissColLetter = sheetRefs.columnToLetter(
             dissColsByName[dissHeaderName],
           );
           batchUpdate.push({
@@ -388,7 +388,7 @@ const playerStuff = {
           range:
             sheetName +
             "!" +
-            shared.columnToLetter(removeUsedPerksIndex) +
+            sheetRefs.columnToLetter(removeUsedPerksIndex) +
             (row + 1),
           values: [[shouldRemoveUsedPerks]],
         });
@@ -437,7 +437,7 @@ const playerStuff = {
         var colIndex = headerColIndices[orderIndex];
 
         var headerCell =
-          shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+          sheetRefs.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
         batchUpdate.push({
           range: sheetName + "!" + headerCell,
           values: [[presetName]],
@@ -447,7 +447,7 @@ const playerStuff = {
 
         if (presetData.bannedAmount && presetData.bannedAmount > 0) {
           var bannedAmountCell =
-            shared.columnToLetter(colIndex + 3) + (headerRowIndex + 2);
+            sheetRefs.columnToLetter(colIndex + 3) + (headerRowIndex + 2);
           batchUpdate.push({
             range: sheetName + "!" + bannedAmountCell,
             values: [[presetData.bannedAmount]],
@@ -460,9 +460,9 @@ const playerStuff = {
           });
 
           var startCell =
-            shared.columnToLetter(colIndex + 2) + (perksStartRow + 1);
+            sheetRefs.columnToLetter(colIndex + 2) + (perksStartRow + 1);
           var endCell =
-            shared.columnToLetter(colIndex + 2) +
+            sheetRefs.columnToLetter(colIndex + 2) +
             (perksStartRow + perksData.length);
 
           batchUpdate.push({
@@ -950,11 +950,11 @@ const playerStuff = {
           return idx !== -1;
         });
 
-      var presetOrder = shared.resolvePresetOrder(
+      var presetOrder = presetUtils.resolvePresetOrder(
         oldPerkPresetNameIdxs.map(function (colIdx) {
           return row[colIdx];
         }),
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       var orderBySourceIndex = {};
       presetOrder.indices.forEach(function (sourceIndex, slot) {
@@ -1203,12 +1203,12 @@ const playerStuff = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

@@ -122,7 +122,7 @@ const cards = {
         batchUpdate = batchUpdate.concat(trackerResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Cards",
         newSheetID,
@@ -208,8 +208,8 @@ const cards = {
 
       var batchUpdate = [];
       if (newCards.length > 0) {
-        var startCol = shared.columnToLetter(newCardNameCol + 2);
-        var endCol = shared.columnToLetter(newCardNameCol + 3);
+        var startCol = sheetRefs.columnToLetter(newCardNameCol + 2);
+        var endCol = sheetRefs.columnToLetter(newCardNameCol + 3);
         var range =
           sheetName + "!" + startCol + "2:" + endCol + (1 + newCards.length);
         batchUpdate.push({
@@ -285,7 +285,7 @@ const cards = {
           range:
             sheetName +
             "!" +
-            shared.columnToLetter(removeUsedCardsIndex) +
+            sheetRefs.columnToLetter(removeUsedCardsIndex) +
             (row + 1),
           values: [[shouldRemoveUsedCards]],
         });
@@ -334,7 +334,7 @@ const cards = {
         var colIndex = headerColIndices[orderIndex];
 
         var headerCell =
-          shared.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
+          sheetRefs.columnToLetter(colIndex + 1) + (headerRowIndex + 1);
         batchUpdate.push({
           range: sheetName + "!" + headerCell,
           values: [[presetName]],
@@ -368,9 +368,9 @@ const cards = {
           });
 
           var startCell =
-            shared.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
+            sheetRefs.columnToLetter(colIndex + 2) + (cardsStartRow + 1);
           var endCell =
-            shared.columnToLetter(colIndex + 2) +
+            sheetRefs.columnToLetter(colIndex + 2) +
             (cardsStartRow + cardsData.length);
 
           batchUpdate.push({
@@ -389,9 +389,9 @@ const cards = {
           });
 
           var startCell =
-            shared.columnToLetter(colIndex + 2) + (removeStartRow + 1);
+            sheetRefs.columnToLetter(colIndex + 2) + (removeStartRow + 1);
           var endCell =
-            shared.columnToLetter(colIndex + 2) +
+            sheetRefs.columnToLetter(colIndex + 2) +
             (removeStartRow + removeData.length);
 
           batchUpdate.push({
@@ -473,7 +473,7 @@ const cards = {
                   range:
                     sheetName +
                     "!" +
-                    shared.columnToLetter(progressColIndex + 1) +
+                    sheetRefs.columnToLetter(progressColIndex + 1) +
                     (rowIdx + 1),
                   values: [[oldData.progress]],
                 });
@@ -483,7 +483,7 @@ const cards = {
                   range:
                     sheetName +
                     "!" +
-                    shared.columnToLetter(priorityColIndex + 1) +
+                    sheetRefs.columnToLetter(priorityColIndex + 1) +
                     (rowIdx + 1),
                   values: [[oldData.priority]],
                 });
@@ -687,11 +687,11 @@ const cards = {
           return idx !== -1;
         });
 
-      var presetOrder = shared.resolvePresetOrder(
+      var presetOrder = presetUtils.resolvePresetOrder(
         oldCardPresetNameIdxs.map(function (colIdx) {
           return row[colIdx];
         }),
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       var orderBySourceIndex = {};
       presetOrder.indices.forEach(function (sourceIndex, slot) {
@@ -839,9 +839,9 @@ const cards = {
       const cardLevel = data.cardLevel || [];
       const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
 
-      const presetOrder = shared.resolvePresetOrder(
+      const presetOrder = presetUtils.resolvePresetOrder(
         data.presetNames || [],
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       );
       const presetNames = presetOrder.order;
       const presetIndices = presetOrder.indices;
@@ -915,12 +915,12 @@ const cards = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;

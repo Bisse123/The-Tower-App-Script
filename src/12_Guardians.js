@@ -130,7 +130,7 @@ const guardians = {
         batchUpdate = batchUpdate.concat(guardiansResult.batchUpdate || []);
       }
 
-      shared.addIDUpdatesToBatch(
+      labelUtils.addIDUpdatesToBatch(
         batchUpdate,
         "Guardians",
         newSheetID,
@@ -233,7 +233,7 @@ const guardians = {
         });
         if (presetSlot.header !== presetName) {
           batchUpdate.push({
-            range: `${sheetName}!${shared.columnToLetter(colIndex + 1)}1`,
+            range: `${sheetName}!${sheetRefs.columnToLetter(colIndex + 1)}1`,
             values: [[presetName]],
           });
         }
@@ -329,7 +329,7 @@ const guardians = {
             return;
           }
 
-          var dvtPropValue = shared.getDVTValue(
+          var dvtPropValue = dropdownUtils.getDVTValue(
             presetData.props[newGuardianProp],
             dvtGuardianRanges[newGuardianProp]
           );
@@ -338,7 +338,7 @@ const guardians = {
       }
 
       if (newGuardianUnlocked.length > 0) {
-        var unlockedCol = shared.columnToLetter(guardianCol + 1);
+        var unlockedCol = sheetRefs.columnToLetter(guardianCol + 1);
         batchUpdate.push({
           range: `${sheetName}!${unlockedCol}2:${unlockedCol}${
             newGuardianUnlocked.length + 1
@@ -352,7 +352,7 @@ const guardians = {
         if (!levels || levels.length === 0) {
           return;
         }
-        var levelCol = shared.columnToLetter(presetMap.levelColIndex + 1);
+        var levelCol = sheetRefs.columnToLetter(presetMap.levelColIndex + 1);
         batchUpdate.push({
           range: `${sheetName}!${levelCol}2:${levelCol}${levels.length + 1}`,
           values: levels,
@@ -369,7 +369,7 @@ const guardians = {
         ) {
           return;
         }
-        var equippedCol = shared.columnToLetter(presetMap.equippedColIndex + 1);
+        var equippedCol = sheetRefs.columnToLetter(presetMap.equippedColIndex + 1);
         batchUpdate.push({
           range: `${sheetName}!${equippedCol}2:${equippedCol}${
             equipped.length + 1
@@ -603,9 +603,9 @@ const guardians = {
       }
 
       var oldGuardians = {
-        presetNames: shared.resolvePresetOrder(
+        presetNames: presetUtils.resolvePresetOrder(
           oldGuardiansPresetNames,
-          shared.templatePresetNames,
+          presetUtils.templatePresetNames,
         ).order,
         data: {},
       };
@@ -984,9 +984,9 @@ const guardians = {
         });
       });
 
-      oldGuardians.presetNames = shared.resolvePresetOrder(
+      oldGuardians.presetNames = presetUtils.resolvePresetOrder(
         presetNames,
-        shared.templatePresetNames,
+        presetUtils.templatePresetNames,
       ).order;
 
       var targetGuardiansByName = {};
@@ -1032,12 +1032,12 @@ const guardians = {
     var versionCompatibility = Object.keys(this.convertVersionFunctions);
 
     var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
-      return shared.compareVersions(b, a) === "newer" ? 1 : -1;
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
     });
 
     for (var i = 0; i < sortedThresholds.length; i++) {
       var threshold = sortedThresholds[i];
-      var compareResult = shared.compareVersions(oldVersion, threshold);
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
 
       if (compareResult === "same" || compareResult === "newer") {
         return threshold;
