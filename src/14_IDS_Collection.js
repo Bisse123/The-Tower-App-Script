@@ -5838,10 +5838,8 @@
           cardsLevelValues,
           cardsSlotsValues,
         );
-        var cardsTrackerData = cards.getVersion2_0CardsTracker(
-          cardsTrackerValues,
-          cardsPresetData.oldCardsPreset,
-        );
+        var cardsTrackerData =
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -6231,10 +6229,8 @@
           cardsLevelValues,
           cardsSlotsValues,
         );
-        var cardsTrackerData = cards.getVersion2_0CardsTracker(
-          cardsTrackerValues,
-          cardsPresetData.oldCardsPreset,
-        );
+        var cardsTrackerData =
+          cards.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
