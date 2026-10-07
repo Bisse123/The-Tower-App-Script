@@ -50,14 +50,6 @@ const moduleHeaders = {
   modulePresets: "modulePresets",
 }
 
-const guardianHeaders = {
-  activePreset: "currentGuardianPreset",
-  guardianChipSlot: "guardianChipSlot",
-  guardianChipUnlocked: "guardianChipUnlocked",
-  guardianChipLevel: "guardianChipLevel",
-  guardianPresets: "guardianPresets",
-}
-
 const PlayerStuffHeaders = {
   playerID: "playfabID",
   currentTier: "currentTier",
@@ -163,7 +155,7 @@ function parseSaveFileBytes(byteArray) {
   var moduleData = modules.parseModulesData(moduleValues);
 
   var guardianValues = extractDataByHeaders(guardianHeaders);
-  var guardianData = guardians.parseGuardiansData(guardianValues);
+  var guardianData = guardiansSaveFile.parseGuardiansData(guardianValues);
 
   var playerStuffValues = extractDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
