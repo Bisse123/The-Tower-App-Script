@@ -5,7 +5,7 @@
     <?!= include('client/common/header_styles'); ?>
     <?!= include('client/common/status_styles'); ?>
     <?!= include('client/common/error_styles'); ?>
-    <?!= include('23_getStarted_styles'); ?>
+    <?!= include('client/get_started/styles'); ?>
     <?!= include('client/common/consent_styles'); ?>
 
     <title>The Tower Import Data</title>
@@ -19,7 +19,7 @@
     <?!= include('client/common/header_section'); ?>
     <?!= include('client/common/status_section'); ?>
     <?!= include('client/common/error_section'); ?>
-    <?!= include('23_getStarted_section'); ?>
+    <?!= include('client/get_started/section'); ?>
     <?!= include('client/common/consent_section'); ?>
 
     <script>
@@ -39,8 +39,13 @@
     <?!= include('client/common/status_scripts'); ?>
     <?!= includeTemplate('client/common/error_scripts'); ?>
     <?!= include('client/common/version_banner_scripts'); ?>
-    <?!= include('23_getStarted_scripts'); ?>
+    <?!= include('client/get_started/state_scripts'); ?>
+    <?!= include('client/get_started/folder_scripts'); ?>
+    <?!= include('client/get_started/copy_scripts'); ?>
+    <?!= include('client/get_started/id_links_scripts'); ?>
+    <?!= include('client/get_started/results_scripts'); ?>
     <?!= include('client/common/consent_scripts'); ?>
+    <?!= include('client/get_started/authorize_scripts'); ?>
     <script
       src="https://apis.google.com/js/api.js"
       onload="getStartedGapiLoaded()"

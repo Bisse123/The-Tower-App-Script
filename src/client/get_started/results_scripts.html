@@ -1,0 +1,389 @@
+<script>
+  /**
+   * Renders created, failed and retryable sheets, and raises the panel for
+   * the first failure that is a defect.
+   * @param {Object} result
+   * @returns {void}
+   */
+  function renderGetStartedCopyResult(result) {
+    var resultElement = document.getElementById("getStartedCopyResult");
+    if (!resultElement) return;
+
+    var createdFiles = (result && result.createdFiles) || [];
+    var failedCopies = (result && (result.failedCopies)) || [];
+    var failedIDUpdates = (result && result.failedIDUpdates) || [];
+    var successfulIDUpdates = (result && result.successfulIDUpdates) || [];
+
+    createdFiles.forEach(function (newFile) {
+      if (!newFile || !newFile.fileId) {
+        return;
+      }
+
+      var existingCreated = allCreatedFiles.find(function (file) {
+        return file.fileId === newFile.fileId;
+      });
+
+      if (existingCreated) {
+        if (newFile.fileName) existingCreated.fileName = newFile.fileName;
+        if (newFile.fileUrl) existingCreated.fileUrl = newFile.fileUrl;
+        if (newFile.sheetType) existingCreated.sheetType = newFile.sheetType;
+      } else {
+        allCreatedFiles.push(newFile);
+      }
+    });
+
+    failedCopies.forEach(function (newFail) {
+      if (!newFail || !newFail.templateID) {
+        return;
+      }
+
+      if (
+        allCreatedFiles.some(function (file) {
+          return file.sheetType === newFail.sheetType;
+        })
+      ) {
+        return;
+      }
+
+      var existingCopyFailure = allFailedCopyFiles.find(function (file) {
+        return (
+          file.sheetType === newFail.sheetType &&
+          file.templateID === newFail.templateID
+        );
+      });
+
+      if (existingCopyFailure) {
+        if (newFail.error) existingCopyFailure.error = newFail.error;
+        if (newFail.copyUrl) existingCopyFailure.copyUrl = newFail.copyUrl;
+        if (newFail.templateVersion) {
+          existingCopyFailure.templateVersion = newFail.templateVersion;
+        }
+      } else {
+        allFailedCopyFiles.push(newFail);
+      }
+    });
+
+    allFailedCopyFiles = allFailedCopyFiles.filter(function (fail) {
+      return !allCreatedFiles.some(function (created) {
+        return created.sheetType === fail.sheetType;
+      });
+    });
+
+    failedIDUpdates.forEach(function (newFail) {
+      if (!newFail || !newFail.fileId) {
+        return;
+      }
+
+      if (
+        !allCreatedFiles.some(function (created) {
+          return created.fileId === newFail.fileId;
+        })
+      ) {
+        return;
+      }
+
+      var existingIDFailure = allFailedIDUpdateFiles.find(function (file) {
+        return file.fileId === newFail.fileId;
+      });
+
+      if (existingIDFailure) {
+        if (newFail.error) existingIDFailure.error = newFail.error;
+        if (newFail.fileName) existingIDFailure.fileName = newFail.fileName;
+        if (newFail.fileUrl) existingIDFailure.fileUrl = newFail.fileUrl;
+        if (newFail.sheetType) existingIDFailure.sheetType = newFail.sheetType;
+      } else {
+        allFailedIDUpdateFiles.push(newFail);
+      }
+    });
+
+    allFailedIDUpdateFiles = allFailedIDUpdateFiles.filter(function (fail) {
+      var stillCreated = allCreatedFiles.some(function (created) {
+        return created.fileId === fail.fileId;
+      });
+
+      if (!stillCreated) {
+        return false;
+      }
+
+      return !successfulIDUpdates.some(function (success) {
+        return success.fileId === fail.fileId;
+      });
+    });
+
+    lastFailedCopyTemplates = allFailedCopyFiles.map(function (file) {
+      return {
+        sheetType: file.sheetType,
+        templateID: file.templateID,
+        templateVersion: file.templateVersion || "",
+      };
+    });
+
+    lastFailedIDUpdateFiles = allFailedIDUpdateFiles.map(function (file) {
+      return {
+        sheetType: file.sheetType,
+        fileId: file.fileId,
+        fileName: file.fileName,
+        fileUrl: file.fileUrl,
+        error: file.error,
+      };
+    });
+
+    var htmlParts = [];
+    if (allCreatedFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultSuccess">');
+      htmlParts.push(`<strong>Created files (${allCreatedFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allCreatedFiles.forEach(function (created) {
+        var createdName = created.fileName || `${created.sheetType} copy`;
+        var createdType = created.sheetType || "Sheet";
+        var createdUrl = sanitizeGetStartedUrl(created.fileUrl);
+        if (createdUrl) {
+          htmlParts.push(`<li><a href="${createdUrl}" target="_blank">${createdName}</a> (${createdType})</li>`);
+        } else {
+          htmlParts.push(`<li>${createdName} (${createdType})</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (allFailedCopyFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultFailure">');
+      htmlParts.push(`<strong>Could not create automatically (${allFailedCopyFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allFailedCopyFiles.forEach(function (failed) {
+        var failedType = failed.sheetType || "Sheet";
+        var failedError = failed.error || "Unknown error";
+        var manualUrl = sanitizeGetStartedUrl(failed.copyUrl);
+        if (manualUrl) {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}<br><a href="${manualUrl}" target="_blank">Open ${failedType} copy link</a></li>`);
+        } else {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (allFailedIDUpdateFiles.length > 0) {
+      htmlParts.push('<div class="copyResultBlock copyResultFailure">');
+      htmlParts.push(`<strong>Copied but failed ID setup (${allFailedIDUpdateFiles.length}):</strong>`);
+      htmlParts.push("<ul>");
+      allFailedIDUpdateFiles.forEach(function (failed) {
+        var failedType = failed.sheetType || "Sheet";
+        var failedError = failed.error || "Unknown error";
+        var failedUrl = sanitizeGetStartedUrl(failed.fileUrl);
+        if (failedUrl) {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}<br><a href="${failedUrl}" target="_blank">Open copied file</a></li>`);
+        } else {
+          htmlParts.push(`<li><strong>${failedType}</strong>: ${failedError}</li>`);
+        }
+      });
+      htmlParts.push("</ul>");
+      htmlParts.push("</div>");
+    }
+
+    if (htmlParts.length === 0) {
+      htmlParts.push("No files were created.");
+    }
+    resultElement.innerHTML = htmlParts.join("");
+
+    AppError.surfaceBatch(allFailedCopyFiles.concat(allFailedIDUpdateFiles), {
+      source: "getStartedCopy",
+    });
+
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var modeSelectLabel = document.getElementById("getStartedCopyModeLabel");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+    if (copyButton) copyButton.style.display = "none";
+    if (modeSelect) modeSelect.style.display = "none";
+    if (modeSelectLabel) modeSelectLabel.style.display = "none";
+    if (retryBtn) {
+      retryBtn.style.display =
+        allFailedCopyFiles.length > 0 || allFailedIDUpdateFiles.length > 0
+          ? "inline-block"
+          : "none";
+    }
+  }
+
+  /**
+   * Retries the templates that failed on the previous attempt.
+   * @returns {Promise<void>}
+   */
+  async function retryFailedCopies() {
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+    var pendingCopyRetries = lastFailedCopyTemplates.length;
+    var pendingIDUpdateRetries = lastFailedIDUpdateFiles.length;
+
+    if (pendingCopyRetries === 0 && pendingIDUpdateRetries === 0) {
+      setStatusText("There are no failed steps to retry.");
+      return;
+    }
+
+    var copyMode =
+      modeSelect && modeSelect.value ? modeSelect.value : getStartedLastCopyMode;
+    getStartedLastCopyMode = copyMode;
+
+    if (retryBtn) retryBtn.disabled = true;
+
+    var retryTargets = [];
+    if (pendingCopyRetries > 0) {
+      retryTargets.push(`${pendingCopyRetries} copy operation(s)`);
+    }
+    if (pendingIDUpdateRetries > 0) {
+      retryTargets.push(`${pendingIDUpdateRetries} ID update(s)`);
+    }
+
+    setStatusWithSpinner(`Retrying ${retryTargets.join(" and ")}...`);
+
+    try {
+      var parentFolderID = getStartedSelectedFolder.id;
+      if (!parentFolderID) {
+        await getOrCreateGetStartedFolder();
+        parentFolderID = getStartedSelectedFolder.id;
+      }
+
+      var retryResult = {
+        createdFiles: [],
+        failedCopies: [],
+        failedIDUpdates: [],
+        successfulIDUpdates: [],
+      };
+
+      var newCreatedFiles = [];
+      if (pendingCopyRetries > 0) {
+        var copyResponses = await Promise.all(
+          lastFailedCopyTemplates.map(function (template) {
+            return copyGetStartedTemplateAsync(template, parentFolderID);
+          }),
+        );
+
+        var copyResult = processGetStartedCopyResults(copyResponses);
+        retryResult.createdFiles = copyResult.createdFiles;
+        retryResult.failedCopies = copyResult.failedCopies;
+        newCreatedFiles = copyResult.createdFiles;
+      }
+
+      var idUpdateTargets = [];
+      if (pendingIDUpdateRetries > 0) {
+        idUpdateTargets = idUpdateTargets.concat(lastFailedIDUpdateFiles);
+      }
+      if (newCreatedFiles.length > 0) {
+        idUpdateTargets = idUpdateTargets.concat(newCreatedFiles);
+      }
+
+      var uniqueIDUpdateTargets = [];
+      idUpdateTargets.forEach(function (file) {
+        if (!file || !file.fileId) {
+          return;
+        }
+
+        var exists = uniqueIDUpdateTargets.some(function (existing) {
+          return existing.fileId === file.fileId;
+        });
+
+        if (!exists) {
+          uniqueIDUpdateTargets.push(file);
+        }
+      });
+
+      if (copyMode === "master-and-subsheets") {
+        var masterCreatedFile =
+          allCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          }) ||
+          newCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          });
+
+        var hasSubsheetTarget = uniqueIDUpdateTargets.some(function (file) {
+          return (
+            file.sheetType !== "IDS Master" &&
+            file.sheetType !== "Effective Paths"
+          );
+        });
+
+        if (masterCreatedFile && hasSubsheetTarget) {
+          var hasMasterTarget = uniqueIDUpdateTargets.some(function (file) {
+            return file.fileId === masterCreatedFile.fileId;
+          });
+
+          if (!hasMasterTarget) {
+            uniqueIDUpdateTargets.push(masterCreatedFile);
+          }
+        }
+      }
+
+      if (uniqueIDUpdateTargets.length > 0) {
+        setStatusWithSpinner(
+          `Retrying ID setup for ${uniqueIDUpdateTargets.length} file(s)...`,
+        );
+
+        var idUpdateResult = await applyGetStartedIDUpdates(
+          uniqueIDUpdateTargets,
+          copyMode,
+        );
+        var idUpdateSummary = processGetStartedIDUpdateResults(
+          uniqueIDUpdateTargets,
+          idUpdateResult,
+        );
+        retryResult.successfulIDUpdates = idUpdateSummary.successfulIDUpdates;
+        retryResult.failedIDUpdates = idUpdateSummary.failedIDUpdates;
+      }
+
+      var statusParts = [];
+      if (retryResult.createdFiles.length > 0) {
+        statusParts.push(`Created ${retryResult.createdFiles.length} file(s)`);
+      }
+      if (retryResult.failedCopies.length > 0) {
+        statusParts.push(
+          `${retryResult.failedCopies.length} file(s) still failed to copy`,
+        );
+      }
+      if (retryResult.successfulIDUpdates.length > 0) {
+        statusParts.push(
+          `Updated IDs for ${retryResult.successfulIDUpdates.length} file(s)`,
+        );
+      }
+      if (retryResult.failedIDUpdates.length > 0) {
+        statusParts.push(
+          `${retryResult.failedIDUpdates.length} file(s) still failed ID setup`,
+        );
+      }
+
+      retryResult.message =
+        statusParts.length > 0
+          ? statusParts.join(", ") + "."
+          : "Nothing changed during retry.";
+
+      setStatusText(retryResult.message);
+      renderGetStartedCopyResult(retryResult);
+    } catch (error) {
+      AppError.show(error, {
+        source: "retryFailedCopies",
+        message: "The retry did not finish.",
+      });
+    } finally {
+      if (retryBtn) retryBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Passes through only Google Sheets and Drive folder URLs.
+   * @param {*} url
+   * @returns {string} The URL, or "" if it is not one we allow.
+   */
+  function sanitizeGetStartedUrl(url) {
+    if (typeof url === "string") {
+      if (
+        url.indexOf("https://docs.google.com/spreadsheets/d/") === 0 ||
+        url.indexOf("https://drive.google.com/drive/folders/") === 0
+      ) {
+        return url;
+      }
+    }
+    return "";
+  }
+</script>

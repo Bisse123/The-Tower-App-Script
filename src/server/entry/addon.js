@@ -41,7 +41,7 @@ function createMenu() {
  */
 function showGetStartedDialog() {
   try {
-    var template = HtmlService.createTemplateFromFile("20_getStartedApp");
+    var template = HtmlService.createTemplateFromFile("client/pages/get_started");
     template.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     template.APP_ID =

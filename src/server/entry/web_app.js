@@ -36,7 +36,7 @@ function doGet(e) {
     params.getStarted === "true";
 
   if (openGetStarted) {
-    var getStartedTemplate = HtmlService.createTemplateFromFile("20_getStartedApp");
+    var getStartedTemplate = HtmlService.createTemplateFromFile("client/pages/get_started");
     getStartedTemplate.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     getStartedTemplate.APP_ID =
