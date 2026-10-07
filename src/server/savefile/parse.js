@@ -52,10 +52,6 @@ const botHeaders = {
   synchronicityPresets: "synchronicityPresets",
 }
 
-const vaultHeaders = {
-  vault: "vault",
-}
-
 const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
@@ -168,7 +164,7 @@ function parseSaveFileBytes(byteArray) {
   var botData = bots.parseBotsData(botValues);
 
   var vaultValues = extractDataByHeaders(vaultHeaders);
-  var vaultData = vault.parseVaultData(vaultValues);
+  var vaultData = vaultSaveFile.parseVaultData(vaultValues);
 
   var cardsValues = extractDataByHeaders(cardsHeaders);
   var cardsData = cardsSaveFile.parseCardsData(cardsValues);

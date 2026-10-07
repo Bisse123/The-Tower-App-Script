@@ -765,7 +765,7 @@
           var vaultResult;
 
           if (vaultData.hasOwnProperty("oldVault") && vaultMasterSheetData) {
-            vaultResult = vault.updateVault(
+            vaultResult = vaultWriter.updateVault(
               sheetRequiredRanges.values["Vault_MS"].sheetName,
               vaultData.oldVault,
               vaultMasterSheetData,
@@ -1455,7 +1455,7 @@
       var vaultResult = getBatchResult("Vault", "values");
       if (vaultResult && vaultResult.values) {
         var vaultValues = vaultResult.values;
-        var vaultData = vault.getVersion4_0Vault(vaultValues);
+        var vaultData = vaultReader.getVersion4_0Vault(vaultValues);
         collectedData.Vault = vaultData;
       }
 
@@ -1860,7 +1860,7 @@
       var vaultResult = getBatchResult("Vault", "values");
       if (vaultResult && vaultResult.values) {
         var vaultValues = vaultResult.values;
-        var vaultData = vault.getVersion4_0Vault(vaultValues);
+        var vaultData = vaultReader.getVersion4_0Vault(vaultValues);
         collectedData.Vault = vaultData;
       }
 
@@ -2273,8 +2273,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion3_1Vault(harmonyValues);
-        var powerVaultData = vault.getVersion3_1Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion3_1Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion3_1Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -2673,8 +2673,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion3_1Vault(harmonyValues);
-        var powerVaultData = vault.getVersion3_1Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion3_1Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion3_1Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3072,8 +3072,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion3_1Vault(harmonyValues);
-        var powerVaultData = vault.getVersion3_1Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion3_1Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion3_1Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3460,8 +3460,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -3848,8 +3848,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -4236,8 +4236,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -4627,8 +4627,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -5018,8 +5018,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -5409,8 +5409,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -5800,8 +5800,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -6191,8 +6191,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -6565,8 +6565,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
@@ -6938,8 +6938,8 @@
         var harmonyValues = harmonyResult.values;
         var powerValues = powerResult.values;
 
-        var harmonyVaultData = vault.getVersion1_0Vault(harmonyValues);
-        var powerVaultData = vault.getVersion1_0Vault(powerValues);
+        var harmonyVaultData = vaultReader.getVersion1_0Vault(harmonyValues);
+        var powerVaultData = vaultReader.getVersion1_0Vault(powerValues);
 
         var vaultSuccess = harmonyVaultData.success && powerVaultData.success;
         collectedData.Vault = {
