@@ -51,7 +51,7 @@ function doGet(e) {
       .setTitle("Get Started");
   }
 
-  var template = HtmlService.createTemplateFromFile("20_WebApp");
+  var template = HtmlService.createTemplateFromFile("client/pages/update");
   var newSheetID = sheetRefs.extractSheetId(params.newSheetID) || "";
   var oldSheetID = sheetRefs.extractSheetId(params.oldSheetID) || "";
   var idMasterID = sheetRefs.extractSheetId(params.idMasterID) || "";

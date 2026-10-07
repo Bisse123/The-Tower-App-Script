@@ -424,65 +424,6 @@
   }
 
   /**
-   * Asks the server for the update dialog's starting parameters.
-   * @returns {Promise<Object>}
-   */
-  function requestUpdateDialogParametersFromServer() {
-    return new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(reject)
-        .getUpdateDialogParameters();
-    });
-  }
-
-  /**
-   * Loads the sidebar's sheet context, prompting for scopes if needed.
-   * @returns {Promise<Object|null>} Null when consent is still outstanding.
-   */
-  async function getSideBarUpdateContext() {
-    if (!isAddonSidebarView()) {
-      return true;
-    }
-
-    setStatusWithSpinner("Loading update details from your active sheet...");
-    try {
-      const recovery = await requestUpdateDialogParametersFromServer();
-      console.log("Sidebar update context response:", recovery);
-
-      if (!recovery || !recovery.success) {
-        setStatusText(
-          `Unable to load update details: ${(recovery && recovery.message) || "Unknown error"}`,
-        );
-        return false;
-      }
-
-      newSheetID = recovery.newSheetID || "";
-      oldSheetID = recovery.oldSheetID || "";
-      idMasterID = recovery.idMasterID || "";
-      sheetType = recovery.sheetType || "";
-
-      const recoveredContextIsValid = Boolean(
-        sheetType && (newSheetID || oldSheetID || idMasterID),
-      );
-      if (!recoveredContextIsValid) {
-        setStatusText(
-          "Update details are incomplete. Please close and click Update Sheet again.",
-        );
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      AppError.show(error, {
-        source: "getSideBarUpdateContext",
-        message: "The update details could not be loaded.",
-      });
-      return false;
-    }
-  }
-
-  /**
    * An OAuth token, prompting for missing scopes first.
    * @returns {Promise<string>} "" when consent is still outstanding.
    */
@@ -517,37 +458,6 @@
       });
       return false;
     }
-  }
-
-  /**
-   * Ensures scopes are granted, then continues the update workflow.
-   * @param {boolean} [forceTokenRefresh]
-   * @returns {Promise<boolean>} Whether the workflow may continue.
-   */
-  async function authorizeAndContinue(forceTokenRefresh = false) {
-    setStatusWithSpinner("Checking scope access permissions...");
-
-    if (!accessToken || forceTokenRefresh) {
-      const authSuccess = await getOAuthToken();
-      if (!authSuccess) {
-        return false;
-      }
-    }
-
-    hideConsentModal();
-
-    if (accessRequired && newSheetID) {
-      console.log("Access required for new sheet:", newSheetID);
-      await findAndGrantNewSheet(newSheetID);
-    }
-
-    const isContextReady = await getSideBarUpdateContext();
-    if (!isContextReady) {
-      return false;
-    }
-
-    checkValidParameters();
-    return true;
   }
 
   /**

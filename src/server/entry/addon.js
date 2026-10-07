@@ -66,7 +66,7 @@ function showGetStartedDialog() {
  */
 function showUpdateDialog() {
   try {
-    var template = HtmlService.createTemplateFromFile("20_WebApp");
+    var template = HtmlService.createTemplateFromFile("client/pages/update");
     template.newSheetID = "";
     template.oldSheetID = "";
     template.idMasterID = "";
@@ -87,7 +87,7 @@ function showUpdateDialog() {
     SpreadsheetApp.getUi().showSidebar(html);
   } catch (error) {
     errors.report("showUpdateDialog", error, null, errors.CODES.RECOVERED);
-    var template = HtmlService.createTemplateFromFile("20_WebApp");
+    var template = HtmlService.createTemplateFromFile("client/pages/update");
     template.newSheetID = "";
     template.oldSheetID = "";
     template.idMasterID = "";

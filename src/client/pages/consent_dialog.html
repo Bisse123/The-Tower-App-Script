@@ -101,7 +101,12 @@
           .markAddonConsentReadySignal();
       }
 
-      authorizeAndContinue = async function () {
+      /**
+       * Checks scopes for the consent dialog: records consent and closes the
+       * dialog once every scope is granted, otherwise shows the consent modal.
+       * @returns {Promise<boolean>} Whether every scope is granted.
+       */
+      async function authorizeAndContinue() {
         try {
           const hasAllScopes = await requestScopePermissionsFromServer();
 
@@ -124,7 +129,7 @@
           setStatusText("Authorization error: " + (error.message || error));
           return false;
         }
-      };
+      }
 
       /**
        * Shows the consent modal, or the recheck path when no URL is available.

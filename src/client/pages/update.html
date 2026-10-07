@@ -5,9 +5,9 @@
     <?!= include('client/common/header_styles'); ?>
     <?!= include('client/common/status_styles'); ?>
     <?!= include('client/common/error_styles'); ?>
-    <?!= include('24_selectImport_styles'); ?>
-    <?!= include('25_fileAccess_styles'); ?>
-    <?!= include('26_instructions_styles'); ?>
+    <?!= include('client/update/select_import_styles'); ?>
+    <?!= include('client/update/styles'); ?>
+    <?!= include('client/update/instructions_styles'); ?>
     <?!= include('client/common/consent_styles'); ?>
     <title>The Tower Import Data</title>
     <meta charset="utf-8" />
@@ -20,9 +20,9 @@
     <?!= include('client/common/header_section'); ?>
     <?!= include('client/common/status_section'); ?>
     <?!= include('client/common/error_section'); ?>
-    <?!= include('24_selectImport_section'); ?>
-    <?!= include('25_fileAccess_section'); ?>
-    <?!= include('26_instructions_section'); ?>
+    <?!= include('client/update/select_import_section'); ?>
+    <?!= include('client/update/section'); ?>
+    <?!= include('client/update/instructions_section'); ?>
     <?!= include('client/common/consent_section'); ?>
 
     <script>
@@ -50,14 +50,22 @@
 </script>
 
     <?!= include('client/common/templates_scripts'); ?>
-    <?!= include('21_shared_scripts'); ?>
+    <?!= include('client/update/state_scripts'); ?>
+    <?!= include('client/update/picker_scripts'); ?>
+    <?!= include('client/update/access_scripts'); ?>
+    <?!= include('client/update/copy_scripts'); ?>
     <?!= include('client/common/header_scripts'); ?>
     <?!= include('client/common/status_scripts'); ?>
     <?!= includeTemplate('client/common/error_scripts'); ?>
     <?!= include('client/common/version_banner_scripts'); ?>
-    <?!= include('24_selectImport_scripts'); ?>
-    <?!= include('25_fileAccess_scripts'); ?>
+    <?!= include('client/update/select_import_scripts'); ?>
+    <?!= include('client/update/legacy_themes_scripts'); ?>
+    <?!= include('client/update/transfer_scripts'); ?>
+    <?!= include('client/update/move_scripts'); ?>
+    <?!= include('client/update/results_scripts'); ?>
+    <?!= include('client/update/flows_scripts'); ?>
     <?!= include('client/common/consent_scripts'); ?>
+    <?!= include('client/update/authorize_scripts'); ?>
 
     <script
       src="https://apis.google.com/js/api.js"
