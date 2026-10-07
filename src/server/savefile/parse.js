@@ -1,26 +1,3 @@
-const workshopHeaders = {
-  activePreset: "currentWorkshopPreset",
-  presetNames: "workshopPresetName",
-  upgradeAttackLevels: "upgradeWorkshopLevel",
-  upgradeDefenseLevels: "upgradeWorkshopDefenseLevel",
-  upgradeUtilityLevels: "upgradeWorkshopUtilityLevel",
-  presetUpgradeAttackLevels: "presetUpgradeWorkshopLevel",
-  presetUpgradeDefenseLevels: "presetUpgradeWorkshopDefenseLevel",
-  presetUpgradeUtilityLevels: "presetUpgradeWorkshopUtilityLevel",
-  enhancementAttackLevels: "enhancementLevel",
-  enhancementDefenseLevels: "enhancementDefenseLevel",
-  enhancementUtilityLevels: "enhancementUtilityLevel",
-  presetEnhancementAttackLevels: "presetEnhancementLevel",
-  presetEnhancementDefenseLevels: "presetEnhancementDefenseLevel",
-  presetEnhancementUtilityLevels: "presetEnhancementUtilityLevel",
-  upgradeAttackUnlocked: "upgradeTierUnlocked",
-  upgradeDefenseUnlocked: "upgradeDefenseTierUnlocked",
-  upgradeUtilityUnlocked: "upgradeUtilityTierUnlocked",
-  presetUpgradeAttackUnlocked: "presetUpgradeTierUnlocked",
-  presetUpgradeDefenseUnlocked: "presetUpgradeDefenseTierUnlocked",
-  presetUpgradeUtilityUnlocked: "presetUpgradeUtilityTierUnlocked",
-}
-
 const themesAndRelicsHeaders = {
   towerSkins: "towerUnlocked",
   backgroundSkins: "backgroundUnlocked",
@@ -122,7 +99,7 @@ function parseSaveFileBytes(byteArray) {
   var laboratoryData = labSaveFile.parseLabData(labValues);
 
   var workshopValues = extractDataByHeaders(workshopHeaders);
-  var workshopData = workshop.parseWorkshopData(workshopValues);
+  var workshopData = workshopSaveFile.parseWorkshopData(workshopValues);
 
   var ultimateWeaponValues = extractDataByHeaders(ultimateWeaponHeaders);
   var ultimateWeaponData = ultimateSaveFile.parseUltimateWeaponData(ultimateWeaponValues);

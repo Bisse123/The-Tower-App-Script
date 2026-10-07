@@ -493,7 +493,7 @@
             workshopMasterSheetData
           ) {
             var hasPresets = workshopData.hasOwnProperty("hasPresets") ? workshopData.hasPresets : true;
-            workshopResult = workshop.updateWorkshopLevels(
+            workshopResult = workshopWriter.updateWorkshopLevels(
               sheetRequiredRanges.formulas["Workshop_MS"].sheetName,
               workshopData.oldWorkshopLevels,
               workshopData.oldWorkshopPlusLevels,
@@ -517,7 +517,7 @@
             workshopData.hasOwnProperty("oldWorkshopPlusRatios") &&
             workshopPlusRatioData
           ) {
-            workshopPlusRatioResult = workshop.updateWorkshopPlusRatios(
+            workshopPlusRatioResult = workshopWriter.updateWorkshopPlusRatios(
               sheetRequiredRanges.values["Workshop Ratio"].sheetName,
               workshopData.oldWorkshopPlusRatios,
               workshopPlusRatioData,
@@ -1372,11 +1372,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -1777,11 +1777,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2182,11 +2182,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2582,11 +2582,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -2981,11 +2981,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -3369,11 +3369,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -3757,11 +3757,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -4145,11 +4145,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_2_8WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_2_8WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -4536,11 +4536,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -4927,11 +4927,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -5318,11 +5318,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -5709,11 +5709,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -6100,11 +6100,11 @@
         var workshopPlusRatioValues = workshopPlusRatioResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion2_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion2_0WorkshopPlusLevels(
+          workshopReader.getVersion2_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion2_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
-        var workshopPlusRatiosData = workshop.getVersion2_1WorkshopPlusRatios(
+        var workshopPlusRatiosData = workshopReader.getVersion2_1WorkshopPlusRatios(
           workshopPlusLevelsData.oldWorkshopPlusLevels.presetNames,
           workshopPlusRatioValues,
         );
@@ -6480,8 +6480,8 @@
         var workshopPlusLevelsValues = workshopPlusResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion1_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion1_0WorkshopPlusLevels(
+          workshopReader.getVersion1_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion1_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
 
@@ -6853,8 +6853,8 @@
         var workshopPlusLevelsValues = workshopPlusResult.values;
 
         var workshopLevelsData =
-          workshop.getVersion1_0WorkshopLevels(workshopLevelsValues);
-        var workshopPlusLevelsData = workshop.getVersion1_0WorkshopPlusLevels(
+          workshopReader.getVersion1_0WorkshopLevels(workshopLevelsValues);
+        var workshopPlusLevelsData = workshopReader.getVersion1_0WorkshopPlusLevels(
           workshopPlusLevelsValues,
         );
 
