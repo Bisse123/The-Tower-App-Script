@@ -652,7 +652,7 @@
             themesAndRelicsData.hasOwnProperty("oldThemesNames") &&
             themesMasterSheetData
           ) {
-            themesResult = themesAndRelics.updateThemes(
+            themesResult = themesAndRelicsWriter.updateThemes(
               sheetRequiredRanges.values["Themes & Songs"].sheetName,
               themesAndRelicsData.oldThemesNames,
               themesMasterSheetData,
@@ -670,7 +670,7 @@
             themesAndRelicsData.hasOwnProperty("oldRelics") &&
             relicsMasterSheetData
           ) {
-            relicsResult = themesAndRelics.updateRelics(
+            relicsResult = themesAndRelicsWriter.updateRelics(
               sheetRequiredRanges.values["Relics"].sheetName,
               themesAndRelicsData.oldRelics,
               relicsMasterSheetData,
@@ -1435,8 +1435,8 @@
         relicsResult &&
         relicsResult.values
       ) {
-        var themesData = themesAndRelics.getVersion4_0Themes(themesResult.values);
-        var relicsData = themesAndRelics.getVersion4_0Relics(relicsResult.values);
+        var themesData = themesAndRelicsReader.getVersion4_0Themes(themesResult.values);
+        var relicsData = themesAndRelicsReader.getVersion4_0Relics(relicsResult.values);
         collectedData["Themes, Songs & Relics"] = {
           success: themesData.success && relicsData.success,
           message: themesData.message || relicsData.message,
@@ -1840,8 +1840,8 @@
         relicsResult &&
         relicsResult.values
       ) {
-        var themesData = themesAndRelics.getVersion4_0Themes(themesResult.values);
-        var relicsData = themesAndRelics.getVersion4_0Relics(relicsResult.values);
+        var themesData = themesAndRelicsReader.getVersion4_0Themes(themesResult.values);
+        var relicsData = themesAndRelicsReader.getVersion4_0Relics(relicsResult.values);
         collectedData["Themes, Songs & Relics"] = {
           success: themesData.success && relicsData.success,
           message: themesData.message || relicsData.message,
@@ -2245,8 +2245,8 @@
         relicsResult &&
         relicsResult.values
       ) {
-        var themesData = themesAndRelics.getVersion4_0Themes(themesResult.values);
-        var relicsData = themesAndRelics.getVersion4_0Relics(relicsResult.values);
+        var themesData = themesAndRelicsReader.getVersion4_0Themes(themesResult.values);
+        var relicsData = themesAndRelicsReader.getVersion4_0Relics(relicsResult.values);
         collectedData["Themes, Songs & Relics"] = {
           success: themesData.success && relicsData.success,
           message: themesData.message || relicsData.message,

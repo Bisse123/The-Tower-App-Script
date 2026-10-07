@@ -1,13 +1,3 @@
-const themesAndRelicsHeaders = {
-  towerSkins: "towerUnlocked",
-  backgroundSkins: "backgroundUnlocked",
-  menuSkins: "menuUnlocked",
-  guardianSkins: "guardianSkinUnlocked",
-  profileBanners: "profileBannerUnlocked",
-  songs: "trackAvailable",
-  relicsUnlocked: "relicsUnlocked",
-}
-
 const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
@@ -84,7 +74,7 @@ function parseSaveFileBytes(byteArray) {
 
   var themesAndRelicsValues = extractDataByHeaders(themesAndRelicsHeaders);
   var themesAndRelicsData =
-    themesAndRelics.parseThemesAndRelicsData(themesAndRelicsValues);
+    themesAndRelicsSaveFile.parseThemesAndRelicsData(themesAndRelicsValues);
 
   var botValues = extractDataByHeaders(botHeaders);
   var botData = botsSaveFile.parseBotsData(botValues);
