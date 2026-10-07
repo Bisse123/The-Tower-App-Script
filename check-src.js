@@ -28,8 +28,9 @@
  *      symbols while Apps Script loads it and push order never matters.
  *
  * --compare <git-ref> also loads src/ as it was at that ref and requires every
- * page to be unchanged apart from where its code sits: the same lines, the
- * same globals and the same outcome when its scripts run. Use it after moving
+ * page to be unchanged apart from where its code sits: the same lines, its
+ * style rules in the same order, the same globals and the same outcome when
+ * its scripts run. Use it after moving
  * client code, with the commit before the move as the ref. --page old=new
  * pairs a page that was renamed.
  *
@@ -654,9 +655,12 @@ function checkServerLoad(tree) {
   });
 }
 
+const WRAPPER_LINES = new Set(["<script>", "</script>", "<style>", "</style>"]);
+
 /**
  * The text lines of an expanded page, leaving out include lines and the bare
- * <script> and </script> lines that splitting a fragment adds.
+ * <script>, </script>, <style> and </style> lines that splitting a fragment
+ * adds.
  * @param {Array<{source: string, text: string}>} pieces
  * @returns {string[]} Trimmed, non-blank lines, sorted.
  */
@@ -664,8 +668,24 @@ function pageLines(pieces) {
   return pieces
     .flatMap((piece) => piece.text.split("\n"))
     .map((line) => line.trim())
-    .filter((line) => line !== "" && line !== "<script>" && line !== "</script>")
+    .filter((line) => line !== "" && !WRAPPER_LINES.has(line))
     .sort();
+}
+
+/**
+ * Every style rule of an expanded page, in cascade order.
+ * @param {Array<{source: string, text: string}>} pieces
+ * @returns {string} The CSS of every <style> block, joined and with blank
+ *   lines removed.
+ */
+function pageStyles(pieces) {
+  return pieces
+    .flatMap((piece) => [...piece.text.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]))
+    .join("\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
 /**
@@ -705,6 +725,10 @@ function comparePages(before, after, renames) {
     listDifferences(pageLines(oldPieces), pageLines(newPieces))
       .slice(0, 20)
       .forEach((line) => failures.push(`COMPARE ${page}: line ${line}`));
+
+    if (pageStyles(oldPieces) !== pageStyles(newPieces)) {
+      failures.push(`COMPARE ${page}: its style rules no longer appear in the same order`);
+    }
 
     const oldScripts = pageScripts(oldPieces, before);
     const newScripts = pageScripts(newPieces, after);
