@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <?!= include('21_shared_styles'); ?>
-    <?!= include('21_header_styles'); ?>
-    <?!= include('22_status_styles'); ?>
-    <?!= include('22_error_styles'); ?>
+    <?!= include('client/common/base_styles'); ?>
+    <?!= include('client/common/header_styles'); ?>
+    <?!= include('client/common/status_styles'); ?>
+    <?!= include('client/common/error_styles'); ?>
     <?!= include('23_getStarted_styles'); ?>
-    <?!= include('27_consent_styles'); ?>
+    <?!= include('client/common/consent_styles'); ?>
 
     <title>The Tower Import Data</title>
     <meta charset="utf-8" />
@@ -16,11 +16,11 @@
     />
   </head>
   <body>
-    <?!= include('21_header_section'); ?>
-    <?!= include('22_status_section'); ?>
-    <?!= include('22_error_section'); ?>
+    <?!= include('client/common/header_section'); ?>
+    <?!= include('client/common/status_section'); ?>
+    <?!= include('client/common/error_section'); ?>
     <?!= include('23_getStarted_section'); ?>
-    <?!= include('27_consent_section'); ?>
+    <?!= include('client/common/consent_section'); ?>
 
     <script>
       const API_KEY = "<?= API_KEY ?>";
@@ -34,10 +34,10 @@
       let effectivePathsID = "<?= effectivePathsID ? effectivePathsID : '' ?>";
 </script>
     
-    <?!= include('21_templates_scripts'); ?>
-    <?!= include('21_header_scripts'); ?>
-    <?!= include('22_status_scripts'); ?>
-    <?!= includeTemplate('22_error_scripts'); ?>
+    <?!= include('client/common/templates_scripts'); ?>
+    <?!= include('client/common/header_scripts'); ?>
+    <?!= include('client/common/status_scripts'); ?>
+    <?!= includeTemplate('client/common/error_scripts'); ?>
     <?!= include('23_getStarted_scripts'); ?>
     <?!= include('client/common/consent_scripts'); ?>
     <script

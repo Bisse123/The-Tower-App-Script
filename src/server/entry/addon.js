@@ -164,7 +164,7 @@ function showAddonConsentDialog(authorizationUrl) {
   var userProperties = PropertiesService.getUserProperties();
   userProperties.deleteProperty(ADDON_CONSENT_READY_SIGNAL_KEY);
 
-  var template = HtmlService.createTemplateFromFile("29_addon_consent_dialog");
+  var template = HtmlService.createTemplateFromFile("client/pages/consent_dialog");
   template.authorizationUrl = authorizationUrl || "";
 
   var html = template

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <?!= include('27_consent_styles'); ?>
-    <?!= include('22_error_styles'); ?>
+    <?!= include('client/common/consent_styles'); ?>
+    <?!= include('client/common/error_styles'); ?>
     <style>
       body {
         margin: 0;
@@ -32,8 +32,8 @@
   </head>
   <body>
     
-    <?!= include('22_error_section'); ?>
-    <?!= include('27_consent_section'); ?>
+    <?!= include('client/common/error_section'); ?>
+    <?!= include('client/common/consent_section'); ?>
 
     <script>
       const viewType = "addon-consent-dialog";
@@ -79,8 +79,8 @@
       }
 </script>
 
-    <?!= include('21_templates_scripts'); ?>
-    <?!= includeTemplate('22_error_scripts'); ?>
+    <?!= include('client/common/templates_scripts'); ?>
+    <?!= includeTemplate('client/common/error_scripts'); ?>
     <?!= include('client/common/consent_scripts'); ?>
 
     <script>
