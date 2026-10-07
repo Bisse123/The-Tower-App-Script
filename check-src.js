@@ -655,7 +655,8 @@ function checkServerLoad(tree) {
 }
 
 /**
- * The text lines of an expanded page, include lines left out.
+ * The text lines of an expanded page, leaving out include lines and the bare
+ * <script> and </script> lines that splitting a fragment adds.
  * @param {Array<{source: string, text: string}>} pieces
  * @returns {string[]} Trimmed, non-blank lines, sorted.
  */
@@ -663,7 +664,7 @@ function pageLines(pieces) {
   return pieces
     .flatMap((piece) => piece.text.split("\n"))
     .map((line) => line.trim())
-    .filter((line) => line !== "")
+    .filter((line) => line !== "" && line !== "<script>" && line !== "</script>")
     .sort();
 }
 
