@@ -28,7 +28,7 @@ const modulesCatalog = {
     46: { name: "Orbital Augment", category: "Armor" },
     47: { name: "Restorative Bonus", category: "Generator" },
     48: { name: "Primordial Collapse", category: "Core" },
-    49: { name: "New Generator", category: "Generator" },
+    49: { name: "Infinity Threshold", category: "Generator" },
     50: { name: "Sentry Protocol", category: "Armor" },
     51: { name: "Gilded Sniper", category: "Cannon" },
     52: { name: "Tactical Barrage", category: "Core" },
