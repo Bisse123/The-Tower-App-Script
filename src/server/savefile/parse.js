@@ -1,11 +1,3 @@
-const moduleHeaders = {
-  moduleEquipped: "moduleEquipped",
-  inventory: "inventory",
-  assistModuleSlots: "assistModuleSlots",
-  moduleLevels: "slotLevels",
-  modulePresets: "modulePresets",
-}
-
 /**
  * Client-callable. Ungzips and decodes a playerInfo.dat, then parses every
  * category independently so one failure does not cost the others.
@@ -77,7 +69,7 @@ function parseSaveFileBytes(byteArray) {
   var cardsData = cardsSaveFile.parseCardsData(cardsValues);
 
   var moduleValues = extractDataByHeaders(moduleHeaders);
-  var moduleData = modules.parseModulesData(moduleValues);
+  var moduleData = modulesSaveFile.parseModulesData(moduleValues);
 
   var guardianValues = extractDataByHeaders(guardianHeaders);
   var guardianData = guardiansSaveFile.parseGuardiansData(guardianValues);

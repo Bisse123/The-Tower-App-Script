@@ -919,7 +919,7 @@
             modulesData.hasOwnProperty("oldModulesInventory") &&
             modulesInventoryData
           ) {
-            inventoryResult = modules.updateModulesInventory(
+            inventoryResult = modulesWriter.updateModulesInventory(
               sheetRequiredRanges.values["Modules Inventory"].sheetName,
               modulesData.oldModulesInventory,
               modulesInventoryData,
@@ -940,7 +940,7 @@
             modulesData.hasOwnProperty("oldModulesPresets") &&
             modulesPresetsData
           ) {
-            presetsResult = modules.updateModulesPresets(
+            presetsResult = modulesWriter.updateModulesPresets(
               sheetRequiredRanges.values["Modules Presets"].sheetName,
               modulesData.oldModulesPresets,
               modulesPresetsData,
@@ -960,7 +960,7 @@
             modulesData.hasOwnProperty("oldModulesPlanner") &&
             modulesPlannerData
           ) {
-            var plannerResult = modules.updateModulesInventory(
+            var plannerResult = modulesWriter.updateModulesInventory(
               sheetRequiredRanges.values["Modules Planner"].sheetName,
               modulesData.oldModulesPlanner,
               modulesPlannerData,
@@ -979,7 +979,7 @@
             modulesData.hasOwnProperty("oldModulesTracker") &&
             modulesTrackerData
           ) {
-            var trackerResult = modules.updateModulesTracker(
+            var trackerResult = modulesWriter.updateModulesTracker(
               sheetRequiredRanges.values["Modules Tracker"].sheetName,
               modulesData.oldModulesTracker,
               modulesTrackerData,
@@ -1531,17 +1531,17 @@
         var modulesPlannerValues = modulesPlannerResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
-        var modulesPresetsData = modules.getVersion5_0ModulesPresets(
+        var modulesPresetsData = modulesPresetsReader.getVersion5_0ModulesPresets(
           modulesPresetsValues,
         );
-        var modulesPlannerData = modules.getVersion6_4_3ModulesPlanner(
+        var modulesPlannerData = modulesPlannerReader.getVersion6_4_3ModulesPlanner(
           modulesPlannerValues,
           modulesInventoryData.oldModulesInventory,
         );
-        var modulesTrackerData = modules.getVersion6_4_3ModulesTracker(
+        var modulesTrackerData = modulesTrackerReader.getVersion6_4_3ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -1936,17 +1936,17 @@
         var modulesPlannerValues = modulesPlannerResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
-        var modulesPresetsData = modules.getVersion5_0ModulesPresets(
+        var modulesPresetsData = modulesPresetsReader.getVersion5_0ModulesPresets(
           modulesPresetsValues,
         );
-        var modulesPlannerData = modules.getVersion6_4_3ModulesPlanner(
+        var modulesPlannerData = modulesPlannerReader.getVersion6_4_3ModulesPlanner(
           modulesPlannerValues,
           modulesInventoryData.oldModulesInventory,
         );
-        var modulesTrackerData = modules.getVersion6_4_3ModulesTracker(
+        var modulesTrackerData = modulesTrackerReader.getVersion6_4_3ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -2355,12 +2355,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -2755,12 +2755,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3154,12 +3154,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3542,12 +3542,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -3930,12 +3930,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -4318,12 +4318,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -4709,12 +4709,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -5100,12 +5100,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -5491,12 +5491,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -5882,12 +5882,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -6270,12 +6270,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion5_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion5_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion5_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion5_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -6647,12 +6647,12 @@
         var modulesPresetsValues = modulesPresetsResult.values;
         var modulesTrackerValues = modulesTrackerResult.values;
         var modulesTrackerFormulas = modulesTrackerFormulasResult.values;
-        var modulesInventoryData = modules.getVersion4_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion4_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion4_0ModulesPresets(modulesPresetsValues);
-        var modulesTrackerData = modules.getVersion4_7ModulesTracker(
+          modulesPresetsReader.getVersion4_0ModulesPresets(modulesPresetsValues);
+        var modulesTrackerData = modulesTrackerReader.getVersion4_7ModulesTracker(
           modulesTrackerValues,
           modulesTrackerFormulas,
         );
@@ -7009,11 +7009,11 @@
       ) {
         var modulesInventoryValues = modulesInventoryResult.values;
         var modulesPresetsValues = modulesPresetsResult.values;
-        var modulesInventoryData = modules.getVersion4_0ModulesInventory(
+        var modulesInventoryData = modulesInventoryReader.getVersion4_0ModulesInventory(
           modulesInventoryValues,
         );
         var modulesPresetsData =
-          modules.getVersion4_0ModulesPresets(modulesPresetsValues);
+          modulesPresetsReader.getVersion4_0ModulesPresets(modulesPresetsValues);
         var modulesSuccess =
           modulesInventoryData.success && modulesPresetsData.success;
         collectedData.Modules = {
