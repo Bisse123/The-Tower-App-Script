@@ -25,7 +25,7 @@ docs/            save-format reference JSON (git-ignored, local only)
 ```bash
 npm run sandbox    # push src/ to the dev script project
 npm run dev        # push src/ to PRODUCTION HEAD — this is how a change gets tested
-npm run bump patch # rewrite the version in src/00_Version.js, then push to production HEAD
+npm run bump patch # rewrite the version in src/server/core/app_version.js, then push to production HEAD
 npm run check      # the only local verification — run after editing src/
 ```
 

@@ -9,7 +9,7 @@
  *   npm run bump minor min      … and make this release the supported floor
  *   npm run bump patch no-push  … and leave the push to you
  *
- * src/00_Version.js holds the version, and holds it alone: it is the only copy
+ * src/server/core/app_version.js holds the version, and holds it alone: it is the only copy
  * that ships, because clasp pushes just src/. package.json deliberately has no
  * `version` field — this is not an npm package and is never published.
  *
@@ -34,7 +34,7 @@ const path = require("path");
 const vm = require("vm");
 const { spawnSync } = require("child_process");
 
-const target = path.join(__dirname, "src", "00_Version.js");
+const target = path.join(__dirname, "src", "server", "core", "app_version.js");
 const TYPES = ["major", "minor", "patch"];
 
 const args = process.argv.slice(2);
@@ -57,7 +57,7 @@ if (!type) {
 }
 
 /**
- * Evaluate src/00_Version.js and hand back its appVersion object.
+ * Evaluate src/server/core/app_version.js and hand back its appVersion object.
  *
  * Needs no Apps Script stubs: the file only declares things at load time, and
  * running() reads a plain member. minimum() and latest() would need
@@ -73,9 +73,9 @@ function loadAppVersion(source) {
   const sandbox = {};
   vm.createContext(sandbox);
   try {
-    vm.runInContext(source, sandbox, { filename: "00_Version.js" });
+    vm.runInContext(source, sandbox, { filename: "app_version.js" });
   } catch (error) {
-    throw new Error(`src/00_Version.js will not evaluate: ${error.message}`);
+    throw new Error(`src/server/core/app_version.js will not evaluate: ${error.message}`);
   }
   let appVersion;
   try {
@@ -85,7 +85,7 @@ function loadAppVersion(source) {
   }
   if (!appVersion || typeof appVersion.running !== "function") {
     throw new Error(
-      "src/00_Version.js does not declare an appVersion object with a " +
+      "src/server/core/app_version.js does not declare an appVersion object with a " +
         "running() method. It is source, not a build artefact — restore it " +
         "from git.",
     );
@@ -104,7 +104,7 @@ function loadAppVersion(source) {
 function writeMember(source, name, value) {
   const pattern = new RegExp(`^  ${name}: ".*",$`, "m");
   if (!pattern.test(source)) {
-    throw new Error(`Could not find "  ${name}: …," in src/00_Version.js.`);
+    throw new Error(`Could not find "  ${name}: …," in src/server/core/app_version.js.`);
   }
   return source.replace(pattern, `  ${name}: ${JSON.stringify(value)},`);
 }
@@ -164,7 +164,7 @@ try {
   } catch (error) {
     fs.writeFileSync(target, before);
     throw new Error(
-      `The bump was rolled back: ${error.message}. src/00_Version.js is ` +
+      `The bump was rolled back: ${error.message}. src/server/core/app_version.js is ` +
         "unchanged.",
     );
   }
