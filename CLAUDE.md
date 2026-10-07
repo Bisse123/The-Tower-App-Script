@@ -8,16 +8,20 @@ From Game**. Deployed with clasp 2.x. No build step, no test suite, no linter.
 ## Structure
 
 ```
-src/             everything clasp pushes; a FLAT namespace — see Quirks
-  00_*.js        errors, versioning
-  01–02_*.js     entry points, shared infrastructure, save-file parser
-  03–17_*.js     one module per sheet type, all to the same contract
-  20_*.html      one page shell per workflow
-  21–29_*.html   UI fragments in triples: _section / _styles / _scripts
-documentation/   the human-facing docs, one per area
-.claude/         maps and checklists for working in this repo
-docs/            save-format reference JSON (git-ignored, local only)
-.github/         deploy workflow and its guard scripts
+src/                 everything clasp pushes; a FLAT namespace — see Quirks
+  server/core/       errors, app version, cache, Sheets API wrapper
+  server/helpers/    versions, label discovery, sheet refs, presets, dropdown values
+  server/entry/      sheet-type registry, web-app router, add-on menu, export/import endpoints
+  server/workflows/  the client-callable functions, one file per workflow step
+  02_SavedFile.js    save-file parser
+  03–17_*.js         one module per sheet type, all to the same contract
+  20_*.html          one page shell per workflow
+  21–29_*.html       UI fragments in triples: _section / _styles / _scripts
+  client/common/     UI fragments every page loads (the consent scripts)
+documentation/       the human-facing docs, one per area
+.claude/             maps and checklists for working in this repo
+docs/                save-format reference JSON (git-ignored, local only)
+.github/             deploy workflow and its guard scripts
 ```
 
 ## Commands
