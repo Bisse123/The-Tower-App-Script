@@ -1,7 +1,3 @@
-const labHeaders = {
-  researchLevel: "researchLevel",
-}
-
 const workshopHeaders = {
   activePreset: "currentWorkshopPreset",
   presetNames: "workshopPresetName",
@@ -123,7 +119,7 @@ function parseSaveFileBytes(byteArray) {
   }
 
   var labValues = extractDataByHeaders(labHeaders);
-  var laboratoryData = lab.parseLabData(labValues);
+  var laboratoryData = labSaveFile.parseLabData(labValues);
 
   var workshopValues = extractDataByHeaders(workshopHeaders);
   var workshopData = workshop.parseWorkshopData(workshopValues);

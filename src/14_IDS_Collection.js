@@ -425,7 +425,7 @@
           var labMessages = [];
           var labResult, labPlannerResult;
           if (labData.hasOwnProperty("oldLabLevels") && labMasterSheetData) {
-            labResult = lab.updateLabLevels(
+            labResult = labWriter.updateLabLevels(
               sheetRequiredRanges.values["Lab_MS"].sheetName,
               labData.oldLabLevels,
               labMasterSheetData,
@@ -440,7 +440,7 @@
             }
           }
           if (labData.hasOwnProperty("oldLabPlanner") && labPlannerData) {
-            labPlannerResult = lab.updateLabPlanner(
+            labPlannerResult = labWriter.updateLabPlanner(
               sheetRequiredRanges.formulas["Lab Planner"].sheetName,
               labData.oldLabPlanner,
               labPlannerData,
@@ -1337,8 +1337,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -1742,8 +1742,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2147,8 +2147,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2547,8 +2547,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -2946,8 +2946,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -3334,8 +3334,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -3722,8 +3722,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4110,8 +4110,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4498,8 +4498,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -4889,8 +4889,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -5280,8 +5280,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -5671,8 +5671,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -6062,8 +6062,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -6449,8 +6449,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
@@ -6822,8 +6822,8 @@
             ? labPlannerFormulasResult.values
             : null;
 
-        var labLevelsData = lab.getVersion1_0LabLevels(labLevelsValues);
-        var labPlannerData = lab.getVersion1_0LabPlanner(
+        var labLevelsData = labReader.getVersion1_0LabLevels(labLevelsValues);
+        var labPlannerData = labReader.getVersion1_0LabPlanner(
           labPlannerValues,
           labPlannerFormulas,
           labLevelsData.oldLabLevels,
