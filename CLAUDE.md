@@ -26,28 +26,14 @@ docs/            save-format reference JSON (git-ignored, local only)
 npm run sandbox    # push src/ to the dev script project
 npm run dev        # push src/ to PRODUCTION HEAD — this is how a change gets tested
 npm run bump patch # rewrite the version in src/00_Version.js, then push to production HEAD
+npm run check      # the only local verification — run after editing src/
 ```
 
-Nothing runs locally. There is no compiler, so these two syntax checks are the only verification
-available — run both after editing `src/`:
+Nothing runs locally and there is no compiler. `npm run check` parses every `.js` file and every
+`<script>` block, confirms every `object.member` on a server object is declared, confirms every
+`include()` names an existing file, and flags a global declared twice on one page.
 
-```bash
-find src -name '*.js' | while read -r f; do node --check "$f" || echo "FAILED: $f"; done
-```
-
-```bash
-node -e '
-const fs=require("fs");
-for(const f of fs.readdirSync("src",{recursive:true}).filter(f=>f.endsWith(".html"))){
-  for(const b of (fs.readFileSync("src/"+f,"utf8").match(/<script>([\s\S]*?)<\/script>/g)||[])){
-    const code=b.replace(/^<script>/,"").replace(/<\/script>$/,"");
-    if(code.includes("<?")) continue;
-    try{ new Function(code); }catch(e){ console.log("SYNTAX "+f+": "+e.message); }
-  }
-}'
-```
-
-Neither catches a wrong cell offset or a missing neutral key. Behaviour is only observable after
+It does not catch a wrong cell offset or a missing neutral key. Behaviour is only observable after
 `npm run sandbox`, which the user runs — so state plainly what was verified and what was not.
 
 ## Conventions
