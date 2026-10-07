@@ -6,8 +6,10 @@
     <?!= include('client/common/status_styles'); ?>
     <?!= include('client/common/error_styles'); ?>
     <?!= include('client/common/consent_styles'); ?>
-    <?!= include('28_saveGuide_styles'); ?>
-    <?!= include('28_saveFile_styles'); ?>
+    <?!= include('client/save_file/guide_styles'); ?>
+    <?!= include('client/save_file/layout_styles'); ?>
+    <?!= include('client/save_file/body_styles'); ?>
+    <?!= include('client/save_file/diff_styles'); ?>
 
     <title>Import Data From Game</title>
     <meta charset="utf-8" />
@@ -20,8 +22,8 @@
     <?!= include('client/common/header_section'); ?>
     <?!= include('client/common/status_section'); ?>
     <?!= include('client/common/error_section'); ?>
-    <?!= include('28_saveGuide_section'); ?>
-    <?!= include('28_saveFile_section'); ?>
+    <?!= include('client/save_file/guide_section'); ?>
+    <?!= include('client/save_file/section'); ?>
     <?!= include('client/common/consent_section'); ?>
 
     <script>
@@ -57,7 +59,16 @@
     <?!= includeTemplate('client/common/error_scripts'); ?>
     <?!= include('client/common/version_banner_scripts'); ?>
     <?!= include('client/common/consent_scripts'); ?>
-    <?!= include('28_saveFile_scripts'); ?>
+    <?!= include('client/save_file/state_scripts'); ?>
+    <?!= include('client/save_file/parse_scripts'); ?>
+    <?!= include('client/save_file/view_scripts'); ?>
+    <?!= include('client/save_file/access_scripts'); ?>
+    <?!= include('client/save_file/diff_primitives_scripts'); ?>
+    <?!= include('client/save_file/diff_scripts'); ?>
+    <?!= include('client/save_file/body_scripts'); ?>
+    <?!= include('client/save_file/wave_cap_scripts'); ?>
+    <?!= include('client/save_file/import_scripts'); ?>
+    <?!= include('client/save_file/authorize_scripts'); ?>
 
     <script
       src="https://apis.google.com/js/api.js"

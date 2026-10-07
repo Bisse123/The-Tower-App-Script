@@ -1,0 +1,333 @@
+<script>
+  /**
+   * Disables or restores the controls while work is running.
+   * @param {boolean} busy
+   * @returns {void}
+   */
+  function setSaveFileBusy(busy) {
+    document.getElementById("saveFileInput").disabled = busy;
+    const driveBtn = document.getElementById("saveFileDriveBtn");
+    if (driveBtn) driveBtn.disabled = busy;
+    const viewBtn = document.getElementById("saveFileViewToggleBtn");
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        cb.disabled = busy || cb.getAttribute("data-outdated") === "1";
+      });
+    document
+      .querySelectorAll("#saveFileResults .sfPlayerWaveCheckbox")
+      .forEach(function (cb) {
+        cb.disabled = busy;
+      });
+    if (busy) {
+      document.getElementById("saveFileParseBtn").disabled = true;
+      document.getElementById("saveFileImportBtn").disabled = true;
+      if (viewBtn) viewBtn.disabled = true;
+    } else {
+      document.getElementById("saveFileParseBtn").disabled =
+        !document.getElementById("saveFileInput").files[0] &&
+        !saveFilePendingDriveFile;
+      if (viewBtn) viewBtn.disabled = false;
+      updateImportButtonState();
+    }
+  }
+
+  /**
+   * Starts the import for the current selection.
+   * @returns {void}
+   */
+  function startSaveFileImport() {
+    if (!parsedSaveData) {
+      setStatusText("Parse a save file first.");
+      return;
+    }
+    if (!idMasterID) {
+      setStatusText(
+        `Could not determine your ${saveFileTargetLabel()} automatically.` +
+          (saveFileSetupError ? ` ${saveFileSetupError}` : ""),
+      );
+      return;
+    }
+    if (saveFileCollectionOutdated) {
+      setStatusText(
+        "Update your IDS Collection to the latest version before importing.",
+      );
+      return;
+    }
+    if (getSelectedSheetTypes().length === 0) {
+      setStatusText("Select at least one category to import.");
+      return;
+    }
+    runSaveFileImport();
+  }
+
+  /**
+   * Imports the selected categories into an IDS Master's subsheets.
+   * @returns {Promise<void>}
+   */
+  async function runSaveFileImport() {
+    const selected = getSelectedSheetTypes();
+    if (!idMasterID || selected.length === 0) return;
+
+    setSaveFileBusy(true);
+
+    if (saveFileSheetType === "IDS Collection") {
+      await runSaveFileCollectionImport(selected);
+      setSaveFileBusy(false);
+      return;
+    }
+
+    if (!saveFileImportTargets || !saveFileImportTargets.success) {
+      setStatusText(
+        (saveFileImportTargets && saveFileImportTargets.message) ||
+          "Could not read IDS Master. Please reload and try again.",
+      );
+      setSaveFileBusy(false);
+      return;
+    }
+
+    const resolvedIdMasterID = saveFileImportTargets.idMasterID;
+    const targets = saveFileImportTargets.targets || {};
+    const versions = saveFileImportTargets.versions || {};
+
+    const notLinked = selected.filter(function (type) {
+      return !targets[type];
+    });
+    const outdated = selected
+      .filter(function (type) {
+        return targets[type] && !(versions[type] && versions[type].upToDate);
+      })
+      .map(function (type) {
+        return {
+          type: type,
+          currentVersion: versions[type] ? versions[type].currentVersion : "",
+          latestVersion: versions[type] ? versions[type].latestVersion : "",
+        };
+      });
+
+    if (notLinked.length > 0 || outdated.length > 0) {
+      renderSaveFileUpdateRequired(notLinked, outdated);
+      setStatusText(
+        "Update your IDS Master sheets before importing the save file.",
+      );
+      setSaveFileBusy(false);
+      return;
+    }
+
+    const tasks = selected.map(function (type) {
+      return { type: type, targetID: targets[type] };
+    });
+
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    setStatusWithSpinner(`Importing data into ${tasks.length} sheets...`);
+
+    const results = await Promise.all(
+      tasks.map(function (task) {
+        return runAppsScript(
+          "importData",
+          task.targetID,
+          task.type,
+          sfImportPayload(task.type, parsedSaveData[task.type]),
+          {},
+          resolvedIdMasterID,
+        )
+          .then(function (r) {
+            completedCount++;
+            if (r && r.success) {
+              successCount++;
+            } else {
+              failedCount++;
+            }
+            setStatusWithSpinner(
+              `Import progress: ${completedCount}/${tasks.length} completed (${successCount} successful, ${failedCount} failed)`,
+            );
+            return { type: task.type, result: r };
+          })
+          .catch(function (e) {
+            completedCount++;
+            failedCount++;
+            setStatusWithSpinner(
+              `Import progress: ${completedCount}/${tasks.length} completed (${successCount} successful, ${failedCount} failed)`,
+            );
+            return {
+              type: task.type,
+              result: Object.assign({ success: false }, e),
+            };
+          });
+      }),
+    );
+
+    const okCount = results.filter(function (r) {
+      return r.result && r.result.success;
+    }).length;
+    const failCount = results.length - okCount;
+
+    renderSaveFileImportResults(results, []);
+
+    let msg;
+    if (failedCount === 0) {
+      msg = `🎉 All ${successCount}/${tasks.length} sheet imports completed successfully!`;
+    } else if (successCount === 0) {
+      msg = `❌ All ${tasks.length} imports failed.`;
+    } else {
+      msg = `⚠️️ Imports completed: ${successCount}/${tasks.length} successful, ${failedCount} failed.`;
+    }
+
+    setStatusText(msg);
+
+    setSaveFileBusy(false);
+  }
+
+  /**
+   * Imports the selected categories into an IDS Collection.
+   * @param {string[]} selected
+   * @returns {Promise<void>}
+   */
+  async function runSaveFileCollectionImport(selected) {
+    const filtered = {};
+    selected.forEach(function (type) {
+      if (parsedSaveData && parsedSaveData[type] !== undefined) {
+        filtered[type] = sfImportPayload(type, parsedSaveData[type]);
+      }
+    });
+
+    setStatusWithSpinner(
+      `Importing ${selected.length} categories into your IDS Collection...`,
+    );
+
+    let result;
+    try {
+      result = await runAppsScript(
+        "importData",
+        idMasterID,
+        "IDS Collection",
+        filtered,
+        {},
+        idMasterID,
+      );
+    } catch (err) {
+      result = Object.assign({ success: false }, err);
+    }
+
+    const failedMap = {};
+    ((result && result.failedUpdates) || []).forEach(function (f) {
+      if (f && f.sheetType) {
+        failedMap[f.sheetType] = f.message || "Update failed";
+      }
+    });
+    const overallFail = !(result && result.success);
+    const hadFailedUpdates = Object.keys(failedMap).length > 0;
+
+    const results = selected.map(function (type) {
+      if (failedMap.hasOwnProperty(type)) {
+        return {
+          type: type,
+          result: { success: false, message: failedMap[type] },
+        };
+      }
+      if (overallFail && !hadFailedUpdates) {
+        return {
+          type: type,
+          result: {
+            success: false,
+            message: (result && result.message) || "Import failed",
+          },
+        };
+      }
+      return { type: type, result: { success: true } };
+    });
+
+    renderSaveFileImportResults(results, []);
+
+    const okCount = results.filter(function (r) {
+      return r.result && r.result.success;
+    }).length;
+    const failCount = results.length - okCount;
+
+    let msg;
+    if (failCount === 0) {
+      msg = `🎉 All ${okCount}/${selected.length} categories imported into your IDS Collection!`;
+    } else if (okCount === 0) {
+      msg = `❌ Import into your IDS Collection failed.`;
+    } else {
+      msg = `⚠️️ IDS Collection import: ${okCount}/${selected.length} succeeded, ${failCount} failed.`;
+    }
+    setStatusText(msg);
+  }
+
+  /**
+   * Renders which categories imported, and which were skipped.
+   * @param {Array<Object>} results
+   * @param {Array<Object>} skipped
+   * @returns {void}
+   */
+  function renderSaveFileImportResults(results, skipped) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+
+    const ok = results.filter(function (r) {
+      return r.result && r.result.success;
+    });
+    const fail = results.filter(function (r) {
+      return !(r.result && r.result.success);
+    });
+
+    let html = "";
+
+    if (ok.length) {
+      html += '<div class="sfImportGroup"><strong>✅ Imported:</strong>';
+      ok.forEach(function (r) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(r.type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    if (fail.length) {
+      html += '<div class="sfImportGroup"><strong>❌ Failed:</strong>';
+      fail.forEach(function (r) {
+        html +=
+          "&nbsp;&nbsp;• " +
+          escSaveFileHtml(r.type) +
+          " - " +
+          escSaveFileHtml((r.result && r.result.message) || "Unknown error") +
+          "<br>";
+      });
+      html += "</div>";
+    }
+
+    if (skipped && skipped.length) {
+      html += `<div class="sfImportGroup"><strong>⚠️️ Not found in ${saveFileSheetType || "this sheet"}:</strong><br>`;
+      skipped.forEach(function (type) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    el.innerHTML = html;
+
+    const bug = fail.find(function (r) {
+      return !AppError.normalize(r.result, { source: "importData" }).expected;
+    });
+    if (bug) {
+      AppError.show(bug.result, {
+        source: "importData",
+        message: AppError.labelled(
+          bug.type,
+          (bug.result && bug.result.message) || "Import failed",
+        ),
+      });
+    }
+  }
+
+  /**
+   * The payload for one category, ready to send to the server.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {Object}
+   */
+  function sfImportPayload(type, data) {
+    return type === "Player & Stuff" ? sfPlayerWaveData(data) : data;
+  }
+</script>

@@ -1,0 +1,127 @@
+<style>
+  /* =====================================================================
+     Diff view: controls, legend, rows, chips
+     ===================================================================== */
+
+  .sfViewControls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .sfDiffLegend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+  }
+
+  .sfCategoryCheck {
+    color: #1e7e34;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .sfDiffOld { color: #c41010; font-weight: 600; }
+  .sfDiffNew { color: #2752b0; font-weight: 600; }
+  .sfDiffArrow { color: #888; flex-shrink: 0; }
+
+  .sfDiffGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    margin: 2px 0;
+  }
+  .sfDiffGrid.sfDiffStack {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sfDiffStack .sfDiffRow { flex-wrap: wrap; }
+  .sfDiffStack .sfDiffName { min-width: 0; white-space: normal; }
+  .sfDiffRow {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 0.95em;
+    background: #eef1f8;
+    border: 1px solid #d3ddf0;
+    border-radius: 4px;
+  }
+  .sfDiffName { color: #333; }
+
+  .sfDiffModuleColumns .sfModuleColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .sfDiffModuleColumns .sfModuleEntry {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .sfDiffFitColumns {
+    flex-wrap: nowrap;
+  }
+  .sfDiffFitColumns .sfModuleColumn {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: visible;
+  }
+  .sfDiffFitColumns .sfDiffRow {
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .sfDiffStackName .sfDiffName {
+    order: -1;
+    width: 100%;
+  }
+
+  .sfDiffChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 2px 0;
+  }
+  .sfDiffAddItem { background: #e6f4ea; color: #1e7e34; border-color: #1e7e34; }
+  .sfDiffRemItem { background: #fdecea; color: #c41010; border-color: #c41010; }
+
+  .sfDiffNone {
+    color: #1e7e34;
+    font-size: 0.95em;
+    padding: 4px 0;
+  }
+  .sfDiffUnavailable {
+    color: #7a4a00;
+    background: #fff8f0;
+    border: 1px solid #f5c885;
+    border-left: 5px solid #b36b00;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.95em;
+  }
+
+  /* =====================================================================
+     Action row under 768px
+     ===================================================================== */
+
+  @media (max-width: 768px) {
+    .saveFileActionRow > * {
+      width: 100%;
+    }
+    .saveFileActionRow button {
+      margin-top: 0;
+    }
+    .sfViewControls {
+      margin-top: 0;
+    }
+  }
+</style>

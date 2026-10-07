@@ -14,7 +14,7 @@ function doGet(e) {
     if (sheetType === "IDS Collection - all IDS-Sheets on one file") {
       sheetType = "IDS Collection";
     }
-    var saveFileTemplate = HtmlService.createTemplateFromFile("20_SavedFileApp");
+    var saveFileTemplate = HtmlService.createTemplateFromFile("client/pages/save_file");
     saveFileTemplate.API_KEY =
       PropertiesService.getScriptProperties().getProperty("API_KEY");
     saveFileTemplate.APP_ID =

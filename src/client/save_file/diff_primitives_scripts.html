@@ -1,0 +1,189 @@
+<script>
+  /**
+   * Markup for a category whose values already match the sheet.
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffNoneHtml() {
+    return '<div class="sfDiffNone">✓ Save file matches your sheet — no differences.</div>';
+  }
+
+  /**
+   * Trims a level value to its bare number.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfTrimLevel(v) {
+    if (v === null || v === undefined) return null;
+    let s = String(v);
+    if (s.indexOf("|") !== -1) s = s.split("|")[0];
+    return s.trim();
+  }
+
+  /**
+   * Normalises a level for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfNormLevel(v) {
+    const t = sfTrimLevel(v);
+    if (t === null || t === "") return "0";
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t.toLowerCase();
+  }
+
+  /**
+   * Normalises any value for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfNormGeneric(v) {
+    if (v === true || v === "true" || v === "TRUE") return "true";
+    if (v === false || v === "false" || v === "FALSE") return "false";
+    if (v === null || v === undefined || v === "" || v === "-") return "";
+    const t = sfTrimLevel(v);
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t.toLowerCase();
+  }
+
+  /**
+   * Normalises a boolean-ish value for comparison.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfNormBool(v) {
+    return v === true || v === "true" || v === "TRUE" || v === 1 || v === "1";
+  }
+
+  /**
+   * Formats a level for display.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfDisplayLevel(v) {
+    const t = sfTrimLevel(v);
+    if (t === null || t === "") return "0";
+    if (/^-?\d+(\.\d+)?$/.test(t)) return String(parseFloat(t));
+    return t;
+  }
+
+  /**
+   * Formats any value for display.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfDisplayValue(v) {
+    if (v === true || v === "true" || v === "TRUE") return "✓";
+    if (v === false || v === "false" || v === "FALSE") return "✗";
+    if (v === null || v === undefined || v === "") return "-";
+    return sfTrimLevel(v);
+  }
+
+  /**
+   * Formats a boolean-ish value for display.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfDisplayBool(v) {
+    return sfNormBool(v) ? "✓" : "✗";
+  }
+
+  /**
+   * One difference row, or "" when the two sides match.
+   * @param {string} oldDisp
+   * @param {string} newDisp
+   * @param {string} name
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffRow(oldDisp, newDisp, name) {
+    return (
+      '<div class="sfDiffRow">' +
+      '<span class="sfDiffOld">' +
+      escSaveFileHtml(oldDisp) +
+      "</span>" +
+      '<span class="sfDiffArrow">→</span>' +
+      '<span class="sfDiffNew">' +
+      escSaveFileHtml(newDisp) +
+      "</span>" +
+      (name
+        ? '<span class="sfDiffName">' + escSaveFileHtml(name) + "</span>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  /**
+   * A row marking something the save file adds.
+   * @param {string} label
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffAddItem(label) {
+    return (
+      '<span class="sfArrayItem sfDiffAddItem">+ ' +
+      escSaveFileHtml(label) +
+      "</span>"
+    );
+  }
+
+  /**
+   * A row marking something the save file removes.
+   * @param {string} label
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffRemItem(label) {
+    return (
+      '<span class="sfArrayItem sfDiffRemItem">− ' +
+      escSaveFileHtml(label) +
+      "</span>"
+    );
+  }
+
+  /**
+   * Wraps difference rows in a grid.
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffGrid(rows) {
+    return '<div class="sfDiffGrid">' + rows + "</div>";
+  }
+
+  /**
+   * Wraps difference rows in a stacked grid, for narrow content.
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffGridStacked(rows) {
+    return '<div class="sfDiffGrid sfDiffStack">' + rows + "</div>";
+  }
+
+  /**
+   * A titled block of differences, or "" when there are none.
+   * @param {string} title
+   * @param {string} inner
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffBlock(title, inner) {
+    return (
+      '<div class="sfBlock"><div class="sfBlockHeader">' +
+      escSaveFileHtml(title) +
+      "</div>" +
+      inner +
+      "</div>"
+    );
+  }
+
+  /**
+   * A titled sub-block of differences, or "" when there are none.
+   * @param {string} title
+   * @param {string} inner
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffSub(title, inner) {
+    return (
+      '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+      escSaveFileHtml(title) +
+      "</div>" +
+      inner +
+      "</div>"
+    );
+  }
+</script>

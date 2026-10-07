@@ -113,7 +113,7 @@ function showUpdateDialog() {
  * @returns {void}
  */
 function openSaveFileDialog() {
-  var template = HtmlService.createTemplateFromFile("20_SavedFileApp");
+  var template = HtmlService.createTemplateFromFile("client/pages/save_file");
   template.API_KEY =
     PropertiesService.getScriptProperties().getProperty("API_KEY");
   template.APP_ID =

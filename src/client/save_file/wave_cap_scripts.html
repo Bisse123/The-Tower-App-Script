@@ -1,0 +1,107 @@
+<script>
+  /**
+   * Caps a wave value at the sheet's maximum.
+   * @param {*} value
+   * @param {*} cap
+   * @returns {*}
+   */
+  function sfCapWave(value, cap) {
+    const num = typeof value === "number" ? value : parseFloat(value);
+    if (!isFinite(num)) return value;
+    return num > cap ? cap : value;
+  }
+
+  /**
+   * The player's per-tier wave values, capped as the user prefers.
+   * @param {Object} data
+   * @returns {Object}
+   */
+  function sfPlayerWaveData(data) {
+    if (!saveFilePlayerWavesAtCap || !data || !data.oldPlayerStuffTierData) {
+      return data;
+    }
+    const tiers = data.oldPlayerStuffTierData;
+    const cappedTiers = {};
+    Object.keys(tiers).forEach(function (tierKey) {
+      const tier = tiers[tierKey] || {};
+      const diss = tier.diss;
+      let cappedDiss = diss;
+      if (diss) {
+        cappedDiss = {};
+        Object.keys(diss).forEach(function (key) {
+          cappedDiss[key] = sfCapWave(diss[key], SF_PLAYER_DISS_CAP);
+        });
+      }
+      cappedTiers[tierKey] = Object.assign({}, tier, {
+        wave: sfCapWave(tier.wave, SF_PLAYER_WAVE_CAP),
+        diss: cappedDiss,
+      });
+    });
+    return Object.assign({}, data, { oldPlayerStuffTierData: cappedTiers });
+  }
+
+  /**
+   * The wave-cap toggle switch markup.
+   * @returns {string} Markup for the block.
+   */
+  function sfPlayerWaveToggle() {
+    const capped = saveFilePlayerWavesAtCap;
+    return (
+      '<div class="sfPlayerWaveToggle">' +
+      '<span class="sfPlayerWaveOption' +
+      (capped ? " is-active" : "") +
+      '" onclick="setSaveFilePlayerWaveMode(true)">Capped waves</span>' +
+      '<label class="sfPlayerWaveSwitch" title="Capped: ' +
+      SF_PLAYER_WAVE_CAP +
+      " tier / " +
+      SF_PLAYER_DISS_CAP +
+      ' dissonant">' +
+      '<input type="checkbox" class="sfPlayerWaveCheckbox"' +
+      (capped ? "" : " checked") +
+      ' aria-label="Use max waves instead of capped waves"' +
+      ' onchange="setSaveFilePlayerWaveMode(!this.checked)">' +
+      '<span class="sfPlayerWaveSlider"></span>' +
+      "</label>" +
+      '<span class="sfPlayerWaveOption' +
+      (capped ? "" : " is-active") +
+      '" onclick="setSaveFilePlayerWaveMode(false)">Max waves</span>' +
+      "</div>"
+    );
+  }
+
+  /**
+   * Loads the stored wave-cap preference once.
+   * @returns {Promise<boolean>}
+   */
+  function ensureSaveFilePlayerWaveCapPreference() {
+    if (!saveFilePlayerWaveCapPrefPromise) {
+      saveFilePlayerWaveCapPrefPromise = runAppsScript(
+        "getSaveFilePlayerWaveCapPreference",
+      )
+        .then(function (atCap) {
+          saveFilePlayerWavesAtCap = !!atCap;
+        })
+        .catch(function () {});
+    }
+    return saveFilePlayerWaveCapPrefPromise;
+  }
+
+  /**
+   * Sets the wave-cap preference and re-renders.
+   * @param {boolean} atCap
+   * @returns {void}
+   */
+  function setSaveFilePlayerWaveMode(atCap) {
+    const input = document.querySelector(
+      "#saveFileResults .sfPlayerWaveCheckbox",
+    );
+    if (input && input.disabled) return;
+    if (saveFilePlayerWavesAtCap === !!atCap) return;
+    saveFilePlayerWavesAtCap = !!atCap;
+    renderSaveFileResults(lastSaveFileResult);
+    runAppsScript(
+      "setSaveFilePlayerWaveCapPreference",
+      saveFilePlayerWavesAtCap,
+    ).catch(function () {});
+  }
+</script>

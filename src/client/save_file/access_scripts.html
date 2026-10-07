@@ -1,0 +1,665 @@
+<script>
+  /**
+   * Moves from setup into the import workflow once access is settled.
+   * @returns {Promise<void>}
+   */
+  async function continueSaveFile() {
+    const ready = await evaluateSaveFileAccess();
+    const guide = document.getElementById("saveGuideSection");
+    if (guide) guide.style.display = "block";
+    document.getElementById("saveFileSection").style.display = "block";
+    if (ready) {
+      showSaveFileWorkflow();
+    } else if (saveFileNotOwnedFiles.length > 0) {
+      showSaveFileNotOwned();
+    } else {
+      showSaveFileAccessPrompt();
+    }
+  }
+
+  /**
+   * Checks access to every sheet the import will touch.
+   * @returns {Promise<boolean>} Whether everything is reachable.
+   */
+  async function evaluateSaveFileAccess() {
+    saveFilePendingAccessIds = [];
+    saveFileNotOwnedFiles = [];
+    saveFileWarningFiles = [];
+    if (!idMasterID) return true;
+
+    setStatusWithSpinner("Checking sheet access...");
+    const primaryAccess = await checkSaveFileSheetAccess([idMasterID]);
+    if ((primaryAccess.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = primaryAccess.notOwnedFiles;
+      return false;
+    }
+    if ((primaryAccess.inaccessibleFiles || []).length > 0) {
+      saveFilePendingAccessIds = [idMasterID];
+      return false;
+    }
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      primaryAccess.warningFiles,
+    );
+
+    return await resolveSaveFileSubsheetAccess();
+  }
+
+  /**
+   * Resolves the IDS Master's subsheets and checks access to them.
+   * @returns {Promise<boolean>} Whether everything is reachable.
+   */
+  async function resolveSaveFileSubsheetAccess() {
+    saveFileNotOwnedFiles = [];
+    if (
+      !saveFileSheetType &&
+      (sheetType === SF_MASTER_TYPE || sheetType === SF_COLLECTION_TYPE)
+    ) {
+      saveFileSheetType = sheetType;
+    }
+    if (
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
+    ) {
+      await resolveSaveFileSheetType();
+    }
+
+    if (
+      saveFileSheetType !== SF_MASTER_TYPE &&
+      saveFileSheetType !== SF_COLLECTION_TYPE
+    ) {
+      idMasterID = "";
+      saveFileSheetType = "";
+      saveFilePendingAccessIds = [];
+      saveFileWarningFiles = [];
+      return true;
+    }
+
+    if (saveFileSheetType === SF_COLLECTION_TYPE) {
+      await ensureSaveFileCollectionVersion();
+    }
+    if (saveFileSheetType !== SF_MASTER_TYPE) {
+      saveFilePendingAccessIds = [];
+      return true;
+    }
+
+    if (!saveFileImportTargets) {
+      setStatusWithSpinner("Resolving your IDS Master sheets...");
+      try {
+        const result = await runAppsScript(
+          "getSaveFileImportTargets",
+          idMasterID,
+        );
+        if (result && result.success) saveFileImportTargets = result;
+      } catch (err) {
+        AppError.log(err, "resolveSaveFileSubsheetAccess: Could not resolve IDS Master sheets");
+      }
+    }
+
+    const targets =
+      (saveFileImportTargets && saveFileImportTargets.targets) || {};
+    const targetIds = Object.keys(targets).map(function (type) {
+      return targets[type];
+    });
+    if (targetIds.length === 0) {
+      saveFilePendingAccessIds = [];
+      return true;
+    }
+
+    setStatusWithSpinner("Checking access to your IDS Master sheets...");
+    const subAccess = await checkSaveFileSheetAccess(targetIds);
+    if ((subAccess.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = subAccess.notOwnedFiles;
+      saveFilePendingAccessIds = [];
+      return false;
+    }
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      subAccess.warningFiles,
+    );
+    saveFilePendingAccessIds = (subAccess.inaccessibleFiles || []).map(
+      function (f) {
+        return f.id;
+      },
+    );
+    return saveFilePendingAccessIds.length === 0;
+  }
+
+  /**
+   * Works out whether the linked file is an IDS Master or a Collection.
+   * @returns {Promise<void>}
+   */
+  async function resolveSaveFileSheetType() {
+    if (!idMasterID) return;
+    saveFileCollectionOutdated = null;
+    try {
+      setStatusWithSpinner("Determining sheet type...");
+      const result = await runAppsScript("getSaveFileSheetType", idMasterID);
+      if (result && result.success && result.sheetType) {
+        saveFileSheetType = result.sheetType;
+        setSaveFileSetupError("");
+        if (saveFileSheetType === SF_COLLECTION_TYPE) {
+          saveFileCollectionVersionChecked = true;
+          if (result.outdated) {
+            saveFileCollectionOutdated = {
+              currentVersion: result.currentVersion,
+              latestVersion: result.latestVersion,
+            };
+          }
+        }
+      } else {
+        setSaveFileSetupError(
+          (result && result.message) ||
+            "Could not tell whether the linked file is an IDS Master or an IDS Collection.",
+        );
+      }
+    } catch (err) {
+      AppError.log(err, "resolveSaveFileSheetType: Could not determine sheet type");
+      setSaveFileSetupError(
+        `Could not read the linked file: ${err.message || err}`,
+      );
+    }
+  }
+
+  /**
+   * Checks an IDS Collection's version once, recording if it is outdated.
+   * @returns {Promise<void>}
+   */
+  async function ensureSaveFileCollectionVersion() {
+    if (saveFileCollectionVersionChecked || !idMasterID) return;
+    saveFileCollectionVersionChecked = true;
+    try {
+      setStatusWithSpinner("Checking your IDS Collection version...");
+      const result = await runAppsScript("getSaveFileSheetType", idMasterID);
+      if (
+        result &&
+        result.success &&
+        result.sheetType === SF_COLLECTION_TYPE &&
+        result.outdated
+      ) {
+        saveFileCollectionOutdated = {
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion,
+        };
+      }
+    } catch (err) {
+      AppError.log(err, "ensureSaveFileCollectionVersion: Could not check IDS Collection version");
+    }
+  }
+
+  /**
+   * Renders the blocked-import notice for an outdated IDS Collection.
+   * @param {Object} info
+   * @returns {void}
+   */
+  function renderSaveFileCollectionOutdated(info) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    el.innerHTML =
+      '<div class="sfImportGroup"><strong>⛔ Update required.</strong>' +
+      "<br>Your IDS Collection is out of date (" +
+      escSaveFileHtml((info && info.currentVersion) || "?") +
+      " → " +
+      escSaveFileHtml((info && info.latestVersion) || "?") +
+      "). Please update it to the latest version before importing a save file." +
+      "</div>";
+  }
+
+  /**
+   * Renders the blocked-import notice for outdated subsheets.
+   * @param {Array<Object>} outdated
+   * @returns {void}
+   */
+  function renderSaveFileOutdatedSheets(outdated) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    let html =
+      '<div class="sfImportGroup"><strong>⚠️ Some sheets are out of date and cannot be imported.</strong>' +
+      "<br>Update the sheets listed below in your " +
+      escSaveFileHtml(saveFileSheetType || "sheet") +
+      " to the latest version to import them. You can still import the up-to-date sheets in the meantime.</div>";
+    html += '<div class="sfImportGroup"><strong>Out of date:</strong>';
+    outdated.forEach(function (o) {
+      html +=
+        "&nbsp;&nbsp;• " +
+        escSaveFileHtml(o.type) +
+        " (" +
+        escSaveFileHtml(o.currentVersion || "?") +
+        " → " +
+        escSaveFileHtml(o.latestVersion || "?") +
+        ")<br>";
+    });
+    html += "</div>";
+    el.innerHTML = html;
+  }
+
+  /**
+   * Asks the user to grant the sheets the import needs.
+   * @returns {void}
+   */
+  function showSaveFileAccessPrompt() {
+    hideSaveFileNotOwned();
+    clearSaveFileWarning();
+    document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileActionRow").style.display = "none";
+    document.getElementById("saveFileImportSummary").style.display = "none";
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileAccessControls").style.display = "block";
+    document.getElementById("saveFileAccessBtn").disabled = false;
+    const summaryEl = document.getElementById("saveFileAccessSummary");
+    if (summaryEl) {
+      summaryEl.textContent =
+        "The script needs access to your sheet(s) before you can import data.";
+    }
+    setStatusText("File access required. Please grant access...");
+  }
+
+  /**
+   * Hides the not-owned warning.
+   * @returns {void}
+   */
+  function hideSaveFileNotOwned() {
+    const controls = document.getElementById("saveFileNotOwnedControls");
+    if (controls) controls.style.display = "none";
+  }
+
+  /**
+   * Clears the access warning list.
+   * @returns {void}
+   */
+  function clearSaveFileWarning() {
+    const warn = document.getElementById("saveFileWarning");
+    if (warn) warn.innerHTML = "";
+  }
+
+  /**
+   * Shows the warning for sheets the user does not own.
+   * @returns {void}
+   */
+  function showSaveFileNotOwned() {
+    clearSaveFileWarning();
+    document.getElementById("saveFileInputRow").style.display = "none";
+    document.getElementById("saveFileActionRow").style.display = "none";
+    document.getElementById("saveFileImportSummary").style.display = "none";
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileAccessControls").style.display = "none";
+
+    const controls = document.getElementById("saveFileNotOwnedControls");
+    if (controls) controls.style.display = "block";
+
+    const files = saveFileNotOwnedFiles || [];
+    const multiple = files.length > 1;
+
+    const summaryEl = document.getElementById("saveFileNotOwnedSummary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `⛔ <strong>${files.length} ${multiple ? "files" : "file"} not owned or editable by you </strong><br>`;
+    }
+
+    const listEl = document.getElementById("saveFileNotOwnedList");
+    if (listEl) {
+      listEl.innerHTML =
+        '<div class="sfImportGroup"><strong>📂 You must be the owner or an editor of the following files to continue </strong>' +
+        files
+          .map((file) => `&nbsp;&nbsp;• ${file.name || file.id}`)
+          .join("<br>") +
+        `</div>`;
+    }
+
+    setStatusText(
+      multiple
+        ? "You are not the owner or an editor of some of these sheets. Sign in with an account that can edit them."
+        : "You are not the owner or an editor of this sheet. Sign in with an account that can edit it.",
+    );
+  }
+
+  /**
+   * Reveals the import workflow once setup is complete.
+   * @returns {void}
+   */
+  function showSaveFileWorkflow() {
+    hideSaveFileNotOwned();
+    document.getElementById("saveFileAccessControls").style.display = "none";
+    document.getElementById("saveFileInputRow").style.display = "";
+    document.getElementById("saveFileActionRow").style.display = "";
+    document.getElementById("saveFileImportSummary").style.display = "";
+    document.getElementById("saveFileResults").style.display = "";
+    document.getElementById("saveFileInput").disabled = false;
+    const driveBtn = document.getElementById("saveFileDriveBtn");
+    if (driveBtn) driveBtn.disabled = false;
+    renderSaveFileWarning(saveFileWarningFiles);
+    refreshSaveFileImportSummary();
+    if (saveFileCollectionOutdated) {
+      setStatusText(
+        "Update your IDS Collection to the latest version before importing.",
+      );
+    } else if (getSaveFileOutdatedTargets().length > 0) {
+      setStatusText(
+        "Some of your sheets are out of date and can't be imported. Choose saved file...",
+      );
+    } else if (saveFileWarningFiles && saveFileWarningFiles.length > 0) {
+      setStatusText(
+        "You have edit access (but do not own some sheets). You can continue. Choose saved file...",
+      );
+    } else {
+      setStatusText("Choose saved file...");
+    }
+    startSaveFileSheetPrefetch();
+  }
+
+  /**
+   * Renders the warning list for files needing attention.
+   * @param {Array<Object>} files
+   * @returns {void}
+   */
+  function renderSaveFileWarning(files) {
+    const el = document.getElementById("saveFileWarning");
+    if (!el) return;
+    if (!files || files.length === 0) {
+      el.innerHTML = "";
+      return;
+    }
+    const items = files
+      .map((file) => `<li>${escSaveFileHtml(file.name || file.id)}</li>`)
+      .join("");
+    el.innerHTML =
+      '<div class="saveFileWarningTitle">⚠️ You are not the owner of the following sheet(s), but you have edit access so you can continue:</div>' +
+      `<ul class="saveFileWarningList">${items}</ul>`;
+  }
+
+  /**
+   * Opens the picker so the user can grant the missing sheets.
+   * @returns {Promise<void>}
+   */
+  async function grantSaveFileAccess() {
+    document.getElementById("saveFileAccessBtn").disabled = true;
+
+    const wasPrimaryPending =
+      saveFilePendingAccessIds.indexOf(idMasterID) !== -1;
+
+    const grantedAll = await ensureSaveFileAccess(
+      saveFilePendingAccessIds.length > 1 ? "your sheets" : "your sheet",
+    );
+
+    if (!grantedAll) {
+      if (saveFileNotOwnedFiles.length > 0) {
+        showSaveFileNotOwned();
+      } else {
+        document.getElementById("saveFileAccessBtn").disabled = false;
+      }
+      return;
+    }
+
+    let ready = true;
+    if (wasPrimaryPending) {
+      ready = await resolveSaveFileSubsheetAccess();
+    }
+
+    if (ready) {
+      showSaveFileWorkflow();
+    } else if (saveFileNotOwnedFiles.length > 0) {
+      showSaveFileNotOwned();
+    } else {
+      showSaveFileAccessPrompt();
+    }
+  }
+
+  /**
+   * Renders the notice telling the user to update their sheets first.
+   * @param {Array<Object>} needsAttention
+   * @param {Array<Object>} outdated
+   * @returns {void}
+   */
+  function renderSaveFileUpdateRequired(needsAttention, outdated) {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+
+    let html = `<div class="sfImportGroup"><strong>⛔ Import blocked - update your sheets first.</strong>
+        <br>All selected subsheets must be linked in your ${saveFileSheetType || "sheet"} and on the 
+        latest version before importing a save file.</div>`;
+
+    if (outdated && outdated.length) {
+      html += '<div class="sfImportGroup"><strong>Out of date:</strong>';
+      outdated.forEach(function (o) {
+        html +=
+          "&nbsp;&nbsp;• " +
+          escSaveFileHtml(o.type) +
+          " (" +
+          escSaveFileHtml(o.currentVersion || "?") +
+          " → " +
+          escSaveFileHtml(o.latestVersion || "?") +
+          ")<br>";
+      });
+      html += "</div>";
+    }
+
+    if (needsAttention && needsAttention.length) {
+      html +=
+        '<div class="sfImportGroup"><strong>Not linked or version unknown:</strong>';
+      needsAttention.forEach(function (type) {
+        html += "&nbsp;&nbsp;• " + escSaveFileHtml(type) + "<br>";
+      });
+      html += "</div>";
+    }
+
+    el.innerHTML = html;
+  }
+
+  /**
+   * Merges two warning lists, without duplicating files.
+   * @param {Array<Object>} existing
+   * @param {Array<Object>} additions
+   * @returns {Array<Object>}
+   */
+  function mergeSaveFileWarnings(existing, additions) {
+    const merged = (existing || []).slice();
+    (additions || []).forEach(function (file) {
+      if (!merged.some(function (f) { return f.id === file.id; })) {
+        merged.push(file);
+      }
+    });
+    return merged;
+  }
+
+  /**
+   * Checks access to several sheets at once.
+   * @param {string[]} fileIds
+   * @returns {Promise<Object>} Accessible, inaccessible and not-owned files.
+   */
+  async function checkSaveFileSheetAccess(fileIds) {
+    const ids = (fileIds || []).filter(function (id) {
+      return typeof id === "string" && id.length > 0;
+    });
+    if (ids.length === 0) {
+      return { accessibleFiles: [], inaccessibleFiles: [], notOwnedFiles: [], warningFiles: [] };
+    }
+
+    const results = await Promise.all(
+      ids.map(function (id) {
+        return runAppsScript("checkSheetAccess", id)
+          .then(function (result) {
+            return { id: id, result: result };
+          })
+          .catch(function (error) {
+            console.error("Sheet access check failed for", id, ":", error);
+            return { id: id, result: { accessible: false } };
+          });
+      }),
+    );
+
+    const accessibleFiles = [];
+    const inaccessibleFiles = [];
+    const notOwnedFiles = [];
+    const warningFiles = [];
+    results.forEach(function (entry) {
+      if (!entry.result || !entry.result.accessible) {
+        inaccessibleFiles.push({ id: entry.id });
+        return;
+      }
+
+      if (entry.result.owned || entry.result.canEdit) {
+        accessibleFiles.push({ id: entry.id, name: entry.result.name });
+        if (!entry.result.owned) {
+          warningFiles.push({ id: entry.id, name: entry.result.name });
+        }
+      } else {
+        notOwnedFiles.push({ id: entry.id, name: entry.result.name });
+      }
+    });
+
+    return {
+      accessibleFiles: accessibleFiles,
+      inaccessibleFiles: inaccessibleFiles,
+      notOwnedFiles: notOwnedFiles,
+      warningFiles: warningFiles,
+    };
+  }
+  /**
+   * Opens the picker so the user can grant specific sheets.
+   * @param {string[]} fileIds
+   * @returns {Promise<boolean>} Whether access was granted.
+   */
+  function openSaveFileAccessPicker(fileIds) {
+    return new Promise(function (resolve, reject) {
+      try {
+        const ids = (fileIds || []).filter(function (id) {
+          return typeof id === "string" && id.length > 0;
+        });
+        if (ids.length === 0) {
+          resolve([]);
+          return;
+        }
+
+        const view = new google.picker.DocsView(
+          google.picker.ViewId.SPREADSHEET,
+        )
+          .setFileIds(ids.join(","))
+          .setIncludeFolders(false)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+        const pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        const picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const docs = data.docs || [];
+              resolve(
+                docs.map(function (d) {
+                  return d.id;
+                }),
+              );
+            } else if (data.action === google.picker.Action.CANCEL) {
+              resolve([]);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (isMobile) {
+          picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+        }
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        picker.build().setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Ensures every sheet the import needs is reachable, prompting if not.
+   * @param {string} label
+   * @returns {Promise<boolean>}
+   */
+  async function ensureSaveFileAccess(label) {
+    if (saveFilePendingAccessIds.length === 0) return true;
+
+    if (
+      !saveFilePickerReady ||
+      typeof google === "undefined" ||
+      !google.picker
+    ) {
+      setStatusText(
+        `The script needs access to ${label}, but the file picker is not ready. ` +
+          "Please reload the page and try again.",
+      );
+      return false;
+    }
+
+    setStatusWithSpinner(
+      `Opening file picker to grant access to ${saveFilePendingAccessIds.length} sheet(s) (${label})...`,
+    );
+
+    let pickedIds;
+    try {
+      pickedIds = await openSaveFileAccessPicker(saveFilePendingAccessIds);
+    } catch (error) {
+      AppError.show(error, {
+        source: "ensureSaveFileAccess",
+        message: "The file picker could not be opened.",
+      });
+      return false;
+    }
+
+    if (!pickedIds || pickedIds.length === 0) {
+      setStatusText("File access was not granted.");
+      return false;
+    }
+
+    setStatusWithSpinner("Verifying access to the selected sheet(s)...");
+    let recheck;
+    try {
+      recheck = await checkSaveFileSheetAccess(pickedIds);
+    } catch (error) {
+      AppError.show(error, {
+        source: "ensureSaveFileAccess",
+        message: "The script could not verify access to the selected sheets.",
+      });
+      return false;
+    }
+
+    if ((recheck.notOwnedFiles || []).length > 0) {
+      saveFileNotOwnedFiles = recheck.notOwnedFiles;
+      return false;
+    }
+
+    saveFileWarningFiles = mergeSaveFileWarnings(
+      saveFileWarningFiles,
+      recheck.warningFiles,
+    );
+
+    const nowAccessibleIds = (recheck.accessibleFiles || []).map(function (f) {
+      return f.id;
+    });
+    saveFilePendingAccessIds = saveFilePendingAccessIds.filter(function (id) {
+      return nowAccessibleIds.indexOf(id) === -1;
+    });
+
+    if (saveFilePendingAccessIds.length > 0) {
+      setStatusText(
+        `Still missing access to ${saveFilePendingAccessIds.length} sheet(s). ` +
+          "Please grant access to the remaining sheets.",
+      );
+      return false;
+    }
+    return true;
+  }
+</script>
