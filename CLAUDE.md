@@ -20,9 +20,9 @@ src/                   everything clasp pushes; a FLAT namespace — see Quirks
   client/common/       fragments every page loads: header, status, error panel, consent
   client/<workflow>/   update, get_started, save_file: _section / _styles / *_scripts
 documentation/         the human-facing docs, one per area
-.claude/             maps and checklists for working in this repo
-docs/                save-format reference JSON (git-ignored, local only)
-.github/             deploy workflow and its guard scripts
+.claude/               maps and checklists for working in this repo
+docs/                  save-format reference JSON (git-ignored, local only)
+.github/               deploy workflow and its guard scripts
 ```
 
 ## Commands
