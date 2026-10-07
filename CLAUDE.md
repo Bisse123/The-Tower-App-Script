@@ -8,17 +8,18 @@ From Game**. Deployed with clasp 2.x. No build step, no test suite, no linter.
 ## Structure
 
 ```
-src/                 everything clasp pushes; a FLAT namespace — see Quirks
-  server/core/       errors, app version, cache, Sheets API wrapper
-  server/helpers/    versions, label discovery, sheet refs, presets, dropdown values
-  server/entry/      sheet-type registry, web-app router, add-on menu, export/import endpoints
-  server/workflows/  the client-callable functions, one file per workflow step
-  02_SavedFile.js    save-file parser
-  03–17_*.js         one module per sheet type, all to the same contract
-  20_*.html          one page shell per workflow
-  21–29_*.html       UI fragments in triples: _section / _styles / _scripts
-  client/common/     UI fragments every page loads (the consent scripts)
-documentation/       the human-facing docs, one per area
+src/                   everything clasp pushes; a FLAT namespace — see Quirks
+  server/core/         errors, app version, cache, Sheets API wrapper
+  server/helpers/      versions, label discovery, sheet refs, presets, dropdown values
+  server/entry/        sheet-type registry, web-app router, add-on menu, export/import endpoints
+  server/workflows/    the client-callable functions, one file per workflow step
+  server/savefile/     save-file parser: binary reader, parse orchestration, preferences
+  server/sheets/<type>/  one folder per sheet type, files by role: <type>.js (contract),
+                       _write, _read, _savefile, _catalog (game ID-to-name tables)
+  client/pages/        one page shell per workflow, plus the consent dialog
+  client/common/       fragments every page loads: header, status, error panel, consent
+  client/<workflow>/   update, get_started, save_file: _section / _styles / *_scripts
+documentation/         the human-facing docs, one per area
 .claude/             maps and checklists for working in this repo
 docs/                save-format reference JSON (git-ignored, local only)
 .github/             deploy workflow and its guard scripts
@@ -68,7 +69,7 @@ a matching file is read, so they cost nothing on a task that never touches `src/
 - **A literal `//` inside a fragment's `<script>` is stripped as a comment and kills the block.**
   Build URLs from the `googleLink` constant in the page shell instead.
 - **A new template version is two edits, not one** — the sheet module's converter *and* the
-  matching branch in `14_IDS_Collection.js`. Only the second one is easy to miss, and it breaks
+  matching converter in `server/sheets/ids_collection/`. Only the second one is easy to miss, and it breaks
   single-file users silently.
 - **Server functions return failures, they never throw** across the `google.script.run` boundary.
   Return an `errors.fail(...)` envelope; the client switches on its code.
