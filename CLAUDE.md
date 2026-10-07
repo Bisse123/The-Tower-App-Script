@@ -31,11 +31,16 @@ npm run sandbox    # push src/ to the dev script project
 npm run dev        # push src/ to PRODUCTION HEAD — this is how a change gets tested
 npm run bump patch # rewrite the version in src/server/core/app_version.js, then push to production HEAD
 npm run check      # the only local verification — run after editing src/
+npm run check -- --compare <ref>   # also: every page holds the same code as at <ref>
 ```
 
 Nothing runs locally and there is no compiler. `npm run check` parses every `.js` file and every
-`<script>` block, confirms every `object.member` on a server object is declared, confirms every
-`include()` names an existing file, and flags a global declared twice on one page.
+`<script>` block; confirms every `object.member` on a server object is declared, every `include()`
+and page name resolves, every server function the client calls exists, and every inline handler
+calls a global on its page; flags a global declared twice on one page; loads each page's scripts in
+order in a stand-in browser; and loads each server file on its own. After moving client code, run it
+with `--compare` against the commit before the move: each page must keep the same lines, globals and
+load outcome. `--page old=new` pairs a renamed page.
 
 It does not catch a wrong cell offset or a missing neutral key. Behaviour is only observable after
 `npm run sandbox`, which the user runs — so state plainly what was verified and what was not.
