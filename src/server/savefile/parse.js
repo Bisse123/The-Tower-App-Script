@@ -42,16 +42,6 @@ const themesAndRelicsHeaders = {
   relicsUnlocked: "relicsUnlocked",
 }
 
-const botHeaders = {
-  presetNames: "botPresetName",
-  flameBotPresets: "flameBotPresets",
-  thunderBotPresets: "thunderBotPresets",
-  goldenBotPresets: "goldenBotPresets",
-  amplifyBotPresets: "amplifyBotPresets",
-  botBotPresets: "botBotPresets",
-  synchronicityPresets: "synchronicityPresets",
-}
-
 const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
@@ -161,7 +151,7 @@ function parseSaveFileBytes(byteArray) {
     themesAndRelics.parseThemesAndRelicsData(themesAndRelicsValues);
 
   var botValues = extractDataByHeaders(botHeaders);
-  var botData = bots.parseBotsData(botValues);
+  var botData = botsSaveFile.parseBotsData(botValues);
 
   var vaultValues = extractDataByHeaders(vaultHeaders);
   var vaultData = vaultSaveFile.parseVaultData(vaultValues);

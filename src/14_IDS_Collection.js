@@ -720,7 +720,7 @@
             botsMasterSheetData &&
             botsDVTData
           ) {
-            botsResult = bots.updateBotLevels(
+            botsResult = botsWriter.updateBotLevels(
               sheetRequiredRanges.values["Bots_MS"].sheetName,
               botsData.oldBots,
               botsMasterSheetData,
@@ -1448,7 +1448,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_2Bots(botsValues);
+        var botsData = botsReader.getVersion3_2Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -1853,7 +1853,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_2Bots(botsValues);
+        var botsData = botsReader.getVersion3_2Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -2258,7 +2258,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_2Bots(botsValues);
+        var botsData = botsReader.getVersion3_2Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -2658,7 +2658,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_0Bots(botsValues);
+        var botsData = botsReader.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -3057,7 +3057,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_0Bots(botsValues);
+        var botsData = botsReader.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -3445,7 +3445,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion3_0Bots(botsValues);
+        var botsData = botsReader.getVersion3_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -3833,7 +3833,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -4221,7 +4221,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -4612,7 +4612,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -5003,7 +5003,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -5394,7 +5394,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -5785,7 +5785,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -6176,7 +6176,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion2_0Bots(botsValues);
+        var botsData = botsReader.getVersion2_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -6550,7 +6550,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion1_0Bots(botsValues);
+        var botsData = botsReader.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
@@ -6923,7 +6923,7 @@
       var botsResult = getBatchResult("Bots", "values");
       if (botsResult && botsResult.values) {
         var botsValues = botsResult.values;
-        var botsData = bots.getVersion1_0Bots(botsValues);
+        var botsData = botsReader.getVersion1_0Bots(botsValues);
         collectedData.Bots = botsData;
       }
 
