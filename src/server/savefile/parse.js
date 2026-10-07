@@ -6,15 +6,6 @@ const moduleHeaders = {
   modulePresets: "modulePresets",
 }
 
-const MasterHeaders = {
-  globalPresets: "globalPresets",
-  workshopPresetNames: "workshopPresetName",
-  cardPresetNames: "presetName",
-  botPresetNames: "botPresetName",
-  modulePresets: "modulePresets",
-  guardianPresets: "guardianPresets",
-}
-
 /**
  * Client-callable. Ungzips and decodes a playerInfo.dat, then parses every
  * category independently so one failure does not cost the others.
@@ -95,7 +86,7 @@ function parseSaveFileBytes(byteArray) {
   var playerStuffdata = playerStuffSaveFile.parsePlayerStuffData(playerStuffValues);
 
   var masterValues = extractDataByHeaders(MasterHeaders);
-  var masterData = master.parseMasterData(masterValues);
+  var masterData = masterSaveFile.parseMasterData(masterValues);
 
   const parsed = {
     "Laboratory": laboratoryData,

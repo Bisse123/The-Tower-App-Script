@@ -376,7 +376,7 @@
           var masterMessages = [];
           var masterPresetsResult;
           if (masterData.hasOwnProperty("oldPresetsData") && masterPresetsData) {
-            masterPresetsResult = master.updatePresetsData(
+            masterPresetsResult = masterWriter.updatePresetsData(
               sheetRequiredRanges.values["Presets Presets"].sheetName,
               masterData.oldPresetsData,
               masterPresetsData,
@@ -1315,7 +1315,7 @@
       var presetsResult = getBatchResult("Presets Presets", "values");
       if (presetsResult && presetsResult.values) {
         var presetsValues = presetsResult.values;
-        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        var presetsData = masterReader.getVersion4_0PresetsData(presetsValues);
         collectedData["IDS Master"] = {
           success: presetsData.success,
           message: presetsData.message,
@@ -1720,7 +1720,7 @@
       var presetsResult = getBatchResult("Presets Presets", "values");
       if (presetsResult && presetsResult.values) {
         var presetsValues = presetsResult.values;
-        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        var presetsData = masterReader.getVersion4_0PresetsData(presetsValues);
         collectedData["IDS Master"] = {
           success: presetsData.success,
           message: presetsData.message,
@@ -2125,7 +2125,7 @@
       var presetsResult = getBatchResult("Presets Presets", "values");
       if (presetsResult && presetsResult.values) {
         var presetsValues = presetsResult.values;
-        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        var presetsData = masterReader.getVersion4_0PresetsData(presetsValues);
         collectedData["IDS Master"] = {
           success: presetsData.success,
           message: presetsData.message,
