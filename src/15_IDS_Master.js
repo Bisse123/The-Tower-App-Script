@@ -96,6 +96,7 @@ const master = {
       if (data.hasOwnProperty("oldPresetsData")) {
         try {
           var presetsUpdateResult = this.updatePresetsData(
+            "Presets Presets",
             data.oldPresetsData,
             presetsValues,
           );
@@ -215,11 +216,12 @@ const master = {
 
   /**
    * Builds the batch update that writes PresetsData into the new sheet.
+   * @param {string} sheetName The tab the ranges are written to.
    * @param {Array<Array<*>>} oldPresetsValues
    * @param {Object} newPresetsData
    * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
    */
-  updatePresetsData: function (oldPresetsValues, newPresetsData) {
+  updatePresetsData: function (sheetName, oldPresetsValues, newPresetsData) {
     try {
       console.log("Called: master.updatePresetsData");
 
@@ -251,7 +253,7 @@ const master = {
           }
 
           batchUpdate.push({
-            range: `Presets Presets!${shared.columnToLetter(col)}${row - 1}`,
+            range: `${sheetName}!${shared.columnToLetter(col)}${row - 1}`,
             values: [[presetName]],
           });
 
@@ -281,7 +283,7 @@ const master = {
             var oldLevelValue = oldPresetData[key];
             if (oldLevelValue !== levelValue && oldLevelValue !== presetName) {
               batchUpdate.push({
-                range: `Presets Presets!${shared.columnToLetter(
+                range: `${sheetName}!${shared.columnToLetter(
                   colIndex + 1,
                 )}${nextRow + 1}`,
                 values: [[oldLevelValue]],

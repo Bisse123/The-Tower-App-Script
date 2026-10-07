@@ -185,6 +185,10 @@
       var sheetRequiredRanges = {
         values: {
           "Home Page": { sheetName: "Home Page", range: "Home Page" },
+          "Presets Presets": {
+            sheetName: "Presets Presets",
+            range: "Presets Presets",
+          },
           Lab_MS: { sheetName: "Lab_MS", range: "Lab_MS" },
           "Workshop Ratio": {
             sheetName: "Desired Ratios",
@@ -363,6 +367,54 @@
         });
         return dvtNamedRangesData;
       };
+
+      if (data["IDS Master"]) {
+        try {
+          var masterData = data["IDS Master"];
+          var masterPresetsData = getRangeData("Presets Presets", "values");
+          var masterSuccess = true;
+          var masterMessages = [];
+          var masterPresetsResult;
+          if (masterData.hasOwnProperty("oldPresetsData") && masterPresetsData) {
+            masterPresetsResult = master.updatePresetsData(
+              sheetRequiredRanges.values["Presets Presets"].sheetName,
+              masterData.oldPresetsData,
+              masterPresetsData,
+            );
+            if (masterPresetsResult && masterPresetsResult.success) {
+              batchUpdate = batchUpdate.concat(
+                masterPresetsResult.batchUpdate || [],
+              );
+            } else {
+              masterSuccess = false;
+              masterMessages.push(
+                masterPresetsResult
+                  ? masterPresetsResult.message
+                  : "Unknown error in Presets",
+              );
+            }
+          }
+          updateResults.push({
+            sheetType: "IDS Master",
+            success: masterSuccess,
+            message: masterSuccess
+              ? "IDS Master updated successfully"
+              : "IDS Master update failed: " + masterMessages.join(", "),
+          });
+        } catch (error) {
+          var errorReport = errors.report("collection.importData", error, {
+            note: `Error in IDS Master update`,
+            data: data,
+            newSheetID: newSheetID,
+          });
+          updateResults.push({
+            sheetType: "IDS Master",
+            success: false,
+            message: errorReport.message,
+            reference: errorReport.reference,
+          });
+        }
+      }
 
       if (data.Laboratory) {
         try {
@@ -1174,6 +1226,7 @@
 
       var rangeMap = {
         values: {
+          "Presets Presets": "Presets Presets",
           "Lab Levels": "EXPORT_Lab!B5:E",
           "Lab Planner": "Lab Planner",
           "Workshop Levels": "EXPORT_WS!B2:M",
@@ -1258,6 +1311,17 @@
       };
 
       var collectedData = {};
+
+      var presetsResult = getBatchResult("Presets Presets", "values");
+      if (presetsResult && presetsResult.values) {
+        var presetsValues = presetsResult.values;
+        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        collectedData["IDS Master"] = {
+          success: presetsData.success,
+          message: presetsData.message,
+          oldPresetsData: presetsData.oldPresetsData,
+        };
+      }
 
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
@@ -1567,6 +1631,7 @@
 
       var rangeMap = {
         values: {
+          "Presets Presets": "Presets Presets",
           "Lab Levels": "EXPORT_Lab!B5:E",
           "Lab Planner": "Lab Planner",
           "Workshop Levels": "EXPORT_WS!B2:M",
@@ -1651,6 +1716,17 @@
       };
 
       var collectedData = {};
+
+      var presetsResult = getBatchResult("Presets Presets", "values");
+      if (presetsResult && presetsResult.values) {
+        var presetsValues = presetsResult.values;
+        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        collectedData["IDS Master"] = {
+          success: presetsData.success,
+          message: presetsData.message,
+          oldPresetsData: presetsData.oldPresetsData,
+        };
+      }
 
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");
@@ -1960,6 +2036,7 @@
 
       var rangeMap = {
         values: {
+          "Presets Presets": "Presets Presets",
           "Lab Levels": "EXPORT_Lab!B5:E",
           "Lab Planner": "Lab Planner",
           "Workshop Levels": "EXPORT_WS!B2:M",
@@ -2044,6 +2121,17 @@
       };
 
       var collectedData = {};
+
+      var presetsResult = getBatchResult("Presets Presets", "values");
+      if (presetsResult && presetsResult.values) {
+        var presetsValues = presetsResult.values;
+        var presetsData = master.getVersion4_0PresetsData(presetsValues);
+        collectedData["IDS Master"] = {
+          success: presetsData.success,
+          message: presetsData.message,
+          oldPresetsData: presetsData.oldPresetsData,
+        };
+      }
 
       var labLevelsResult = getBatchResult("Lab Levels", "values");
       var labPlannerValuesResult = getBatchResult("Lab Planner", "values");

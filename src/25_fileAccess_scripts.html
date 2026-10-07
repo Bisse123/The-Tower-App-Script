@@ -204,22 +204,40 @@
         exportedFilesFailed = [];
         exportedFilesSuccess = [];
 
-        allTemplateFiles.forEach((file) => {
-          const exportData = collectionData[file.sheetType];
+        allTemplateFiles
+          .filter((file) => file.sheetType !== "IDS Master")
+          .forEach((file) => {
+            const exportData = collectionData[file.sheetType];
 
-          if (exportData !== undefined) {
-            exportedFilesSuccess.push({
-              ...file,
-              exportData: exportData,
-              sheetVisibility: exportResult.sheetVisibility,
-            });
-          } else {
-            exportedFilesFailed.push({
-              ...file,
-              error: `No IDS Collection export data for ${file.sheetType}`,
-            });
-          }
-        });
+            if (exportData !== undefined) {
+              exportedFilesSuccess.push({
+                ...file,
+                exportData: exportData,
+                sheetVisibility: exportResult.sheetVisibility,
+              });
+            } else {
+              exportedFilesFailed.push({
+                ...file,
+                error: `No IDS Collection export data for ${file.sheetType}`,
+              });
+            }
+          });
+
+        if (collectionData["IDS Master"] !== undefined) {
+          importedFilesSuccess = (importedFilesSuccess || []).filter(
+            (file) => file.sheetType !== "IDS Master",
+          );
+          exportedFilesSuccess.push({
+            sheetType: "IDS Master",
+            fileId: newSheetID,
+            oldSheetID: oldSheetID,
+            version: cachedMasterTemplateInfo
+              ? cachedMasterTemplateInfo.version
+              : "",
+            exportData: remapMasterIdsToNewSheets(collectionData["IDS Master"]),
+            sheetVisibility: exportResult.sheetVisibility,
+          });
+        }
 
         if (exportedFilesSuccess.length === 0) {
           document.getElementById("importButton").disabled = false;
@@ -239,6 +257,10 @@
           `Importing data into ${importTasks.length} sheets...`,
         );
         await importAllData(importTasks);
+
+        masterIdsWritten = importedFilesSuccess.some(
+          (file) => file.sheetType === "IDS Master",
+        );
         return;
       }
 
@@ -321,8 +343,10 @@
               ? ` (${rejected.length} cannot be imported)`
               : ""),
         );
-        const exportResults = await exportAllData(exportTasks);
-
+        const [exportResults] = await Promise.all([
+          exportAllData(exportTasks),
+          stageMasterExport(),
+        ]);
         console.log("Export results:", exportResults);
 
         if (exportResults.failedCount > 0) {
