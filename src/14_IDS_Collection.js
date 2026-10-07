@@ -815,7 +815,7 @@
             cardsData.hasOwnProperty("oldCardSlots") &&
             cardsMasterSheetData
           ) {
-            cardsLevelsResult = cards.updateCardsLevels(
+            cardsLevelsResult = cardsWriter.updateCardsLevels(
               sheetRequiredRanges.values["Cards_MS"].sheetName,
               cardsData.oldCardsLevel,
               cardsData.oldCardSlots,
@@ -839,7 +839,7 @@
             var shouldRemoveUsedCards = cardsData.hasOwnProperty("shouldRemoveUsedCards")
               ? cardsData.shouldRemoveUsedCards
               : true;
-            cardsPresetResult = cards.updateCardsPreset(
+            cardsPresetResult = cardsWriter.updateCardsPreset(
               sheetRequiredRanges.values["Card Preset"].sheetName,
               cardsData.oldCardsPreset,
               shouldRemoveUsedCards,
@@ -860,7 +860,7 @@
             }
           }
           if (cardsData.hasOwnProperty("oldCardsTracker") && cardsTrackerData) {
-            var cardsTrackerResult = cards.updateCardsTracker(
+            var cardsTrackerResult = cardsWriter.updateCardsTracker(
               sheetRequiredRanges.values["Cards_Tracker"].sheetName,
               cardsData.oldCardsTracker,
               cardsTrackerData,
@@ -1478,13 +1478,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -1883,13 +1883,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -2306,13 +2306,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -2706,13 +2706,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -3105,13 +3105,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -3493,13 +3493,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -3881,13 +3881,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -4269,13 +4269,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -4660,13 +4660,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -5051,13 +5051,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -5442,13 +5442,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -5833,13 +5833,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -6224,13 +6224,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess = cardsPresetData.success && cardsLevelData.success;
         collectedData.Cards = {
@@ -6598,13 +6598,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&
@@ -6971,13 +6971,13 @@
         var cardsLevelValues = cardsLevelsResult.values;
         var cardsSlotsValues = cardsSlotsResult.values;
 
-        var cardsPresetData = cards.getVersion1_0CardsPreset(cardsPresetValues);
-        var cardsLevelData = cards.getVersion1_0CardsLevel(
+        var cardsPresetData = cardsReader.getVersion1_0CardsPreset(cardsPresetValues);
+        var cardsLevelData = cardsReader.getVersion1_0CardsLevel(
           cardsLevelValues,
           cardsSlotsValues,
         );
         var cardsTrackerData =
-          cards.getVersion1_0CardsTracker(cardsTrackerValues);
+          cardsReader.getVersion1_0CardsTracker(cardsTrackerValues);
 
         var cardsSuccess =
           cardsPresetData.success &&

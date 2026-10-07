@@ -56,15 +56,6 @@ const vaultHeaders = {
   vault: "vault",
 }
 
-const cardsHeaders = {
-  cardLevel: "cardLevel",
-  cardMasteryUnlocked: "cardMasteryUnlocked",
-  presetNames: "presetName",
-  presetSlots: "slotPresetCardAssignedBool",
-  presetCards: "slotPresetCardInt",
-  slotsUnlocked: "slotsUnlocked",
-}
-
 const moduleHeaders = {
   moduleEquipped: "moduleEquipped",
   inventory: "inventory",
@@ -180,7 +171,7 @@ function parseSaveFileBytes(byteArray) {
   var vaultData = vault.parseVaultData(vaultValues);
 
   var cardsValues = extractDataByHeaders(cardsHeaders);
-  var cardsData = cards.parseCardsData(cardsValues);
+  var cardsData = cardsSaveFile.parseCardsData(cardsValues);
 
   var moduleValues = extractDataByHeaders(moduleHeaders);
   var moduleData = modules.parseModulesData(moduleValues);
