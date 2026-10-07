@@ -25,13 +25,6 @@ const workshopHeaders = {
   presetUpgradeUtilityUnlocked: "presetUpgradeUtilityTierUnlocked",
 }
 
-const ultimateWeaponHeaders = {
-  ultimateWeaponLevel: "ultimateWeaponLevel",
-  ultimateWeaponUnlocked: "ultimateWeaponUnlocked",
-  ultimateWeaponPlusLevel: "ultimateWeaponPlusLevel",
-  ultimateWeaponPlusUnlocked: "ultimateWeaponPlusUnlocked",
-}
-
 const themesAndRelicsHeaders = {
   towerSkins: "towerUnlocked",
   backgroundSkins: "backgroundUnlocked",
@@ -136,7 +129,7 @@ function parseSaveFileBytes(byteArray) {
   var workshopData = workshop.parseWorkshopData(workshopValues);
 
   var ultimateWeaponValues = extractDataByHeaders(ultimateWeaponHeaders);
-  var ultimateWeaponData = ultimate.parseUltimateWeaponData(ultimateWeaponValues);
+  var ultimateWeaponData = ultimateSaveFile.parseUltimateWeaponData(ultimateWeaponValues);
 
   var themesAndRelicsValues = extractDataByHeaders(themesAndRelicsHeaders);
   var themesAndRelicsData =

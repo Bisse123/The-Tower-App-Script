@@ -573,7 +573,7 @@
             ultimateMasterSheetData &&
             ultimateDVTData
           ) {
-            ultimateResult = ultimate.updateUltimateLevels(
+            ultimateResult = ultimateWriter.updateUltimateLevels(
               sheetRequiredRanges.values["UW_MS"].sheetName,
               ultimateData.oldUltimate,
               ultimateMasterSheetData,
@@ -597,7 +597,7 @@
             ultimateCostCalculatorData
           ) {
             ultimateCostCalculatorResult =
-              ultimate.updateUltimateCostCalculator(
+              ultimateWriter.updateUltimateCostCalculator(
                 sheetRequiredRanges.formulas["UW Cost Calculator"].sheetName,
                 ultimateData.oldUltimateCostCalculator,
                 ultimateCostCalculatorData,
@@ -1410,8 +1410,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion3_1_1UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -1815,8 +1815,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion3_1_1UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -2220,8 +2220,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion3_1_1UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -2620,8 +2620,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion3_1_1UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -3019,8 +3019,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion3_1_1UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion3_1_1UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -3407,8 +3407,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -3795,8 +3795,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4183,8 +4183,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4574,8 +4574,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -4965,8 +4965,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -5356,8 +5356,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -5747,8 +5747,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -6138,8 +6138,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion2_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion2_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -6512,8 +6512,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion1_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion1_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
@@ -6885,8 +6885,8 @@
         var ultimateCostCalculatorValues = ultimateCostCalculatorResult.values;
 
         var ultimateWeaponsData =
-          ultimate.getVersion1_0UltimateWeapons(ultimateValues);
-        var costCalculatorData = ultimate.getVersion1_0CostCalculator(
+          ultimateReader.getVersion1_0UltimateWeapons(ultimateValues);
+        var costCalculatorData = ultimateReader.getVersion1_0CostCalculator(
           ultimateCostCalculatorValues,
         );
 
