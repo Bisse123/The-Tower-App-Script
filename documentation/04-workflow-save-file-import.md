@@ -1,311 +1,74 @@
-# 04 — Save-file import workflow
+# 04 — Save-file import
 
-Reads the game's own save file, `playerInfo.dat`, and writes the values straight
-into the user's sheets.
-
-**Entry points**
+Reads the game's save file, `playerInfo.dat`, and writes its values into the user's sheets.
 
 | | |
 | --- | --- |
 | Add-on | `Import Data ▸ Import Data From Game (playerInfo.dat)` → `openSaveFileDialog()` |
-| Web app | `?page=savefile` or `?saveFile=true` |
-| Page | [20_SavedFileApp.html](../src/20_SavedFileApp.html) |
-| Parser | [02_SavedFile.js](../src/02_SavedFile.js) |
-| Client | [28_saveFile_scripts.html](../src/28_saveFile_scripts.html) |
-| Guide | [28_saveGuide_section.html](../src/28_saveGuide_section.html) |
+| Web app | `?page=savefile` |
+| Page | `client/pages/save_file.html`, scripts in `client/save_file/` |
+| Server | `server/savefile/`, each sheet type's `_savefile.js`, `server/workflows/save_file_targets.js` |
 
----
-
-## End-to-end
+## Flow
 
 ```mermaid
 flowchart TB
-    A["playerInfo.dat<br/>(Android / emulator / Mac)"] --> B{"source"}
-    B -->|"local file"| C["FileReader → Uint8Array → number[]"]
-    B -->|"Google Drive"| D["Picker → fetch ?alt=media<br/>with the OAuth token → number[]"]
-    C --> E["google.script.run.parseSaveFileBytes(byteArray)"]
-    D --> E
-    E --> F["Utilities.ungzip()"]
-    F --> G["parseNRBF() — .NET BinaryFormatter reader"]
-    G --> H["flat object keyed by the game's own field names"]
-    H --> I["11 header maps pick out the fields we care about"]
-    I --> J["module.parse*Data() per category"]
-    J --> K["{ parsed: {category: neutralObject}, order: [...] }"]
-    K --> L["render 11 collapsible category cards"]
-    L --> M{"IDS Master/Collection known?"}
-    M -->|"yes"| N["background-export the current sheet data<br/>and switch to DIFF view"]
-    M -->|"no"| O["ALL view — everything the save file contains"]
-    N --> P["user ticks categories → Import selected data"]
-    O --> P
-    P --> Q["importData() per category — the SAME server function<br/>the sheet-migration workflow uses"]
+    A["playerInfo.dat — local file or Google Drive"] --> B["parseSaveFileBytes"]
+    B --> C["ungzip → NRBF reader → the game's own fields"]
+    C --> D["each sheet type's field map and parse*Data → neutral data"]
+    D --> E["one card per category"]
+    E --> F{"target sheet known?"}
+    F -->|yes| G["export the sheet's current data and show the differences"]
+    F -->|no| H["show everything the save file holds"]
+    G --> I["the user ticks categories → importData"]
+    H --> I
 ```
 
----
+`importData` is the same importer the Update Sheet workflow uses.
 
-## The binary parser
+## The parser
 
-`playerInfo.dat` is a **GZIP-compressed .NET `BinaryFormatter` stream** (NRBF —
-.NET Remoting Binary Format). There is no native support for it in Apps Script,
-so [02_SavedFile.js](../src/02_SavedFile.js) implements a reader.
+`playerInfo.dat` is a gzip-compressed .NET BinaryFormatter (NRBF) stream.
+`server/savefile/nrbf_reader.js` reads its records, follows object references, and turns .NET
+lists, dictionaries and enums into plain JavaScript values; 64-bit counters come back as BigInt.
+Each sheet type's field map picks the fields it needs and its `parse*Data` returns the neutral shape
+`importData` takes. A category that fails to parse is reported without stopping the others.
 
-```mermaid
-flowchart LR
-    A["gzip bytes"] -->|"Utilities.ungzip"| B["NRBF byte stream"]
-    B --> C["NRBFParser.parse()"]
-    C --> D["record loop"]
-    D --> E["objects: Map&lt;objId, value&gt;<br/>classDefs: Map&lt;objId, layout&gt;"]
-    E --> F["resolve(root)"]
-    F --> G["unwrapCollection()"]
-    G --> H["plain JS object"]
-```
+## Targets and access
 
-### Record types handled
+The target is an IDS Master or an IDS Collection, from the add-on's open sheet or a link the user
+gives. For a Master, `getSaveFileImportTargets` finds every subsheet and its versions from the
+`IDS` tab, and each one goes through the access cycle. A Collection is one file.
 
-`SerializationHeader`, `ClassWithId`, `SystemClassWithMembersAndTypes`,
-`ClassWithMembersAndTypes`, `BinaryObjectString`, `BinaryArray`,
-`MemberPrimitiveTyped`, `MemberReference`, `ObjectNull`,
-`ObjectNullMultiple256`, `ObjectNullMultiple`, `ArraySinglePrimitive`,
-`ArraySingleObject`, `ArraySingleString`, `BinaryLibrary`, `MessageEnd`.
-
-Implementation details:
-
-| Detail | Note |
-| --- | --- |
-| `lps()` — 7-bit varint length prefix, then UTF-8 | How .NET writes strings |
-| `Int64` / `UInt64` return **BigInt** | Total-coins-style counters exceed `Number.MAX_SAFE_INTEGER`; `bigIntJsonReplacer_` serialises them as strings |
-| `blobToUint8Array_` masks `& 0xff` | Apps Script `Blob.getBytes()` returns *signed* bytes |
-| Two-pass design | Objects are collected by ID first, then `resolve()` follows `_ref` pointers |
-| `readArrayElements` handles null runs | `ObjectNullMultiple256`/`ObjectNullMultiple` compress long null spans in the stream |
-
-### `unwrapCollection()`
-
-Raw .NET generics are collapsed:
-
-| .NET class | Becomes |
-| --- | --- |
-| `List<T>` | `_items.slice(0, _size)` — a plain array |
-| `Dictionary<K,V>` | plain object built from `KeyValuePairs` |
-| `KeyValuePair<K,V>` | `{ key, value }` |
-| enum (`{ value__, _class }`) | the numeric `value__` |
-
----
-
-## Header maps
-
-`parseSaveFileBytes` holds one header map per category, translating **our**
-field names to the game's save-file keys. There is a map for each of
-Laboratory, Workshop, Ultimate Weapon, Themes Songs & Relics, Bots, Vault,
-Cards, Modules, Guardians, Player & Stuff and the IDS Master's preset names.
-
-`extractDataByHeaders` pulls each key out of the parsed object (`null` when
-absent) and hands the result to the category's `parseXxxData`, which returns the
-**same neutral object shape** that `importData` consumes in the sheet-migration
-workflow.
-
-The result carries the parsed categories and the order they should be displayed
-in.
-
----
-
-## Access and target resolution
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as Client
-    participant S as Apps Script
-
-    C->>S: getOAuthToken() (+ consent flow if needed)
-    opt sidebar
-        C->>S: getSaveFileParameters()
-        S-->>C: { idMasterID, sheetType }
-    end
-
-    C->>S: checkSheetAccess(idMasterID)
-    alt not owned / not editable
-        C->>C: hard stop
-    else inaccessible
-        C->>C: picker → grant → re-check
-    end
-
-    alt sheetType is not IDS Master / IDS Collection
-        C->>S: getSaveFileSheetType(idMasterID)
-        S->>S: Home Page!B2 (+ version check if IDS Collection)
-        S-->>C: { success, sheetType, outdated?, currentVersion, latestVersion }
-        opt not readable, or not one of the two types
-            C->>C: drop idMasterID → parse-only,<br/>reason shown in the import summary
-        end
-    end
-
-    alt IDS Master
-        C->>S: getSaveFileImportTargets(idMasterID)
-        S->>S: findSheetTypeURL per category → id + versions
-        S-->>C: { targets{}, versions{}, missing[] }
-        C->>S: checkSheetAccess(every target)
-        opt any inaccessible
-            C->>C: picker seeded with them
-        end
-    else IDS Collection
-        Note over C: one file — the access check above is sufficient
-    end
-```
-
-`getSaveFileImportTargets` ([02_Shared.js:2788](../src/02_Shared.js#L2788))
-returns, per category:
-
-```javascript
-versions[sheetType] = {
-  currentVersion,           // the user's sheet
-  latestVersion,            // the newest template
-  upToDate: compareVersions(current, latest) !== "older",
-};
-```
-
-The IDS Master is special-cased: it is not a row in its own `IDS` tab, so its
-version comes from its own `Home Page` via `compareSheetVersions`.
-
----
+A category whose sheet is not linked or is older than its template cannot be imported: its card is
+badged and disabled until the sheet is updated. For a Collection, an outdated file blocks every
+card.
 
 ## Diff view
 
-When the target sheet is known, the client **exports the current sheet data
-through the normal export pipeline** and diffs it against the parsed save file.
-
-```mermaid
-flowchart TB
-    A["parse finished"] --> B["startSaveFileSheetPrefetch()<br/>(fire-and-forget)"]
-    B --> C{"sheet type"}
-
-    C -->|"IDS Collection"| D["checkExportCompatibility + exportData<br/>once → object keyed by category"]
-
-    C -->|"IDS Master"| E["export the MASTER first"]
-    E --> F["masterExport.oldIdsData carries every<br/>subsheet ID — reuse it instead of a<br/>separate lookup"]
-    F --> G["Promise.all: per-category<br/>checkExportCompatibility + exportData"]
-
-    D --> H["sheetExportData"]
-    G --> H
-    H --> I["saveFileViewMode = 'diff'"]
-    I --> J["renderSaveFileDiffBody(type, parsed, sheet)"]
-```
-
-Each category has its own renderer — `renderLaboratoryDiff`,
-`renderWorkshopDiff`, `renderModulesInventoryDiff`, `renderGuardiansDiff`,
-`renderPlayerDiff`, … — over a shared set of primitives:
-
-| Helper | Role |
-| --- | --- |
-| `sfNormLevel` / `sfNormGeneric` / `sfNormBool` | Normalise before comparing — a `"12 \| Something"` DVT string compares as `12` |
-| `sfDiffRow(old, new, name)` | One `old → new` row |
-| `sfDiffAddItem` / `sfDiffRemItem` | Added / removed entries |
-| `sfDiffBlock` / `sfDiffSub` / `sfDiffGrid` | Layout |
-| `sfDiffNoneHtml()` | Emits `sfDiffNone`, which the card renderer detects to mark a category "✓ no differences" and untick it |
-
-A per-category export failure lands as `{ __error: "…" }` and renders as
-"Could not load your sheet data for this category" rather than failing the page.
-
----
-
-## Category cards and import gating
-
-```mermaid
-stateDiagram-v2
-    [*] --> Unchecked: no data in save file → card not rendered
-    [*] --> Checked: has data, sheet up to date, has differences
-    [*] --> NoDiff: identical to the sheet → "✓", unticked
-    [*] --> Outdated: sheet older than the template → badge, checkbox DISABLED
-    Checked --> Importing: Import selected data
-    NoDiff --> Checked: user re-ticks manually
-    Outdated --> [*]: must update the sheet first
-```
-
-`runSaveFileImport` refuses the whole batch if any selected category is **not
-linked** in the IDS Master or **out of date**, and renders
-`renderSaveFileUpdateRequired` with the exact `current → latest` versions
+When the target is known, the client exports the sheet's current data in the background through
+the normal export and compares it with the save file, category by category. Identical categories
+are marked "no differences" and unticked. A category whose sheet could not be read shows a notice
 instead.
-
-An IDS Collection is checked as a single unit: if the collection is outdated,
-every card is badged.
-
----
 
 ## Import
 
-```mermaid
-flowchart TB
-    A{"sheet type"} -->|"IDS Master"| B["one importData per selected category,<br/>in parallel, each into its own subsheet"]
-    A -->|"IDS Collection"| C["ONE importData with every selected<br/>category merged into a single payload"]
-    B --> D["per-category success/failure"]
-    C --> E["result.failedUpdates[] maps back<br/>to per-category rows"]
-    D --> F["render ✅ / ❌ summary"]
-    E --> F
-```
+- **IDS Master:** one `importData` per ticked category, in parallel, into its own subsheet.
+- **IDS Collection:** one `importData` with every ticked category; failures come back per
+  category.
 
-```javascript
-// IDS Master path
-runAppsScript("importData", targets[type], type, sfImportPayload(type, parsedSaveData[type]), {}, idMasterID)
+**Player & Stuff** waves are capped before import (tier waves and dissonance waves each have their
+own cap) unless the user picks **Max waves**. The choice is saved per user.
 
-// IDS Collection path
-runAppsScript("importData", idMasterID, "IDS Collection", filteredPayloads, {}, idMasterID)
-```
+## The guide
 
-`sheetVisibility` is `{}` here: there is no source sheet whose hidden tabs are
-being copied.
+`client/save_file/guide_section.html` explains how to get `playerInfo.dat` off Android (old and new
+versions), emulators and macOS, with copyable commands.
 
-### The wave-cap preference
+## A new save-file field
 
-`Player & Stuff` is the one category whose payload is transformed before import
-(`sfImportPayload` → `sfPlayerWaveData`):
-
-| Mode | Effect |
-| --- | --- |
-| **Capped waves** (default) | Per-tier `wave` clamped to **4500**, dissonance waves clamped to **5000** |
-| **Max waves** | Raw values written as-is |
-
-The choice is persisted per user in `UserProperties` via
-`getSaveFilePlayerWaveCapPreference` / `setSaveFilePlayerWaveCapPreference`
-([02_SavedFile.js:255-278](../src/02_SavedFile.js#L255-L278)).
-
----
-
-## The save-file guide
-
-[28_saveGuide_section.html](../src/28_saveGuide_section.html) is a collapsible,
-step-by-step guide for getting `playerInfo.dat` off a device — Android 12 and
-older (file manager access to `/Android/data`), Android 13+ (ADB / Shizuku
-routes), emulators, and macOS. It is pure markup; the only behaviour is
-`toggleSaveFileGuide()` / `toggleSaveGuideCard()` plus the shared click-to-copy
-helpers in [21_header_scripts.html](../src/21_header_scripts.html), which are
-used for the shell snippets.
-
----
-
-## Save-format reference
-
-`docs/*.json` (git-ignored, local only) documents how each category is encoded in
-the save file: field names, enum values, indexing rules and the value
-transformations the parsers apply. One file per category:
-
-`bot_`, `cards_`, `guardian_`, `lab_`, `module_`, `player_`, `relics_`,
-`themes_`, `ultimate_weapon_`, `vault_`, `workshop_` + `_save_format.json`.
-
-`module_save_format.json` is the most detailed — it carries the complete substat
-`effectID` encoding table.
-
----
-
-## Adding a new save-file field
-
-1. Confirm the game's key name (compare against `docs/<category>_save_format.json`).
-2. Add `ourName: "gameKey"` to the category's header map in
-   [02_SavedFile.js](../src/02_SavedFile.js).
-3. Read `data.ourName` inside the module's `parse*Data` and emit it under the key
-   `importData` already expects.
-4. If `importData` does not yet write it, extend the module's `update*` function
-   and the corresponding branch in
-   [14_IDS_Collection.js](../src/14_IDS_Collection.js).
-5. Add a diff renderer branch in
-   [28_saveFile_scripts.html](../src/28_saveFile_scripts.html) so the change is
-   visible before import.
-
-Every `parse*Data` guards with `data.hasOwnProperty(...)` / null checks — an
-older save file missing a field must parse cleanly, just without that value.
+1. Find the game's key in `docs/<category>_save_format.json` (local only).
+2. Add it to the type's field map in `_savefile.js` and read it in `parse*Data`; it must tolerate
+   the field being absent.
+3. If `importData` does not write it yet, extend `_write.js` and the IDS Collection's import.
+4. Show it in the diff and body renderers in `client/save_file/`.

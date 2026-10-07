@@ -1,445 +1,97 @@
-# 08 — Error handling & reporting
+# 08 — Error handling
 
-One path from a thrown exception to a line in Cloud Logging and a message the
-user can act on. Every backend `catch` and every precondition the code checks
-goes through it, and every page renders the result the same way.
-
-**Files**
+One path from a failure to a Cloud Logging entry and a message the user can act on.
 
 | | |
 | --- | --- |
-| Backend | [00_Errors.js](../src/00_Errors.js) — the `errors` object, plus the two client-callable intake functions |
-| Frontend logic | [22_error_scripts.html](../src/22_error_scripts.html) — `AppError` and `runAppsScript` |
-| Panel markup | [22_error_section.html](../src/22_error_section.html) |
-| Panel styles | [22_error_styles.html](../src/22_error_styles.html) |
-
-The three frontend files are included by every page:
-[20_WebApp.html](../src/20_WebApp.html),
-[20_getStartedApp.html](../src/20_getStartedApp.html),
-[20_SavedFileApp.html](../src/20_SavedFileApp.html) and
-[29_addon_consent_dialog.html](../src/29_addon_consent_dialog.html).
-
-- [Two kinds of failure](#two-kinds-of-failure)
-- [Backend API](#backend-api)
-- [The envelope](#the-envelope)
-- [Frontend API](#frontend-api)
-- [How a failure travels](#how-a-failure-travels)
-- [Where each workflow reports](#where-each-workflow-reports)
-- [Codes](#codes)
-- [Google Cloud](#google-cloud)
-- [Runbook](#runbook)
-- [Conventions](#conventions)
-
----
+| Server | `server/core/errors.js` (`errors`, `ERROR_DEFS`), `server/core/error_endpoints.js` |
+| Client | `client/common/error_*` (`AppError`, `runAppsScript`, the panel) — on every page |
 
 ## Two kinds of failure
 
-The error **code** decides everything else. Nothing else is consulted.
+The code decides everything.
 
-| | EXPECTED | BUG |
+| | Expected | Bug |
 | --- | --- | --- |
-| What it is | The app working as designed on input it cannot accept | Something we got wrong |
-| Examples | Sheet too old to convert · file never granted · Google rate-limiting the account · a mistyped link | A range that should have been there · an unclassified exception · a browser crash |
-| Severity | `WARNING` | `ERROR` |
-| Error Reporting | No | Yes, with a stack |
-| Reference shown | No | Yes, with a copy button |
-| Panel | ⚠️ amber | ⛔ red |
+| Means | The app working as designed on input it cannot accept | Something we got wrong |
+| Severity | `WARNING` | `ERROR`, sent to Error Reporting |
+| Panel | amber, no reference | red, with a `TWR-…` reference to copy |
 
-Every code is declared once, in `ERROR_DEFS`
-([00_Errors.js](../src/00_Errors.js)), as a record of `{ expected, client, message }`.
-`errors.CODES`, `errors.MESSAGES` and `errors.EXPECTED` are derived from it, and so
-is the client's copy: `errorContract()` emits the codes, messages and expected
-flags as JSON, and `22_error_scripts.html` — included with `includeTemplate` so
-its scriptlet runs — inlines them into `AppError.CODES`,
-`ERROR_CONTRACT.MESSAGES` and `AppError.EXPECTED`.
+| Code | Kind | When |
+| --- | --- | --- |
+| `ACCESS_DENIED` | expected | Drive or Sheets refused, or a file was never granted |
+| `NOT_FOUND` | expected | The file is gone or was never shared |
+| `INVALID_LINK` | expected | The input is not a sheet link or ID |
+| `INVALID_FILE` | expected | The picked file is not a valid `playerInfo.dat` |
+| `QUOTA` | expected | Google is rate-limiting the account |
+| `TIMEOUT` | expected | Execution time ran out |
+| `VERSION_OUTDATED` | expected | The sheet is too old for this step |
+| `AUTH_UNAVAILABLE` | expected | Sign-in cannot complete in the browser |
+| `NETWORK_BLOCKED` | expected | A request never reached Google |
+| `RECOVERED` | expected | Logged, and the script carried on — never shown |
+| `INVALID_INPUT` | bug | A required parameter never arrived |
+| `SHEET_STRUCTURE` | bug | A tab or label the code looks for is missing |
+| `CLIENT` | bug | A failure in the page |
+| `INTERNAL` | bug | Anything unclassified |
 
-`client: false` keeps a code off the wire. `RECOVERED` is the only one;
-`propagate` converts it to `INTERNAL`.
-
-`errors.record` runs every code through `errors.known`
-([00_Errors.js:121](../src/00_Errors.js#L121)), which maps anything absent from
-`ERROR_DEFS` onto `INTERNAL` and adds `Unknown error code "…"` to the entry's
-note.
-
-### Browser-side failures the page classifies itself
-
-A failure raised in the browser arrives as `CLIENT`. `AppError.recognise`
-matches its text against `AppError.RECOGNISED` and, when it matches, swaps in
-the code it belongs to and that code's message from the contract. Two codes are
-recognised this way:
-
-| Code | Raised by |
-| --- | --- |
-| `AUTH_UNAVAILABLE` | Sign-in that cannot complete: no Google session, blocked cookies, a refused authorization popup |
-| `NETWORK_BLOCKED` | A request that never reached Google: an extension, firewall or offline network |
-
-Both are expected, so they show amber with no reference and stay out of Error
-Reporting. The recognised message wins over a `message` the call site passed,
-because it names the cause and a generic override does not.
-
-### Failures from browser extensions
-
-`AppError.isForeign` matches extension URL schemes against a failure's
-filename, stack and message. The `error` and `unhandledrejection` listeners
-drop anything it matches, with a `console.warn` and nothing sent to
-`reportClientError`: an extension injected into the page raises failures of its
-own, and none of this app's frames carry those schemes.
-
-Every entry carries `jsonPayload.kind`, matching that split:
-
-| `kind` | Severity | Reference | Error Reporting | Written by |
-| --- | --- | --- | --- | --- |
-| `expected` | `WARNING` | none | no | `errors.record`, immediately |
-| `bug` | `ERROR` | `TWR-…` | yes | `reportServerError`, on the browser's round trip |
-
-### `RECOVERED`
-
-An expected code for a `catch` that logs and then carries on — a cache that
-would not open, an optional cleanup step, a name update that did not take.
-Nothing is returned and nothing reaches the user; the entry is a `WARNING`.
-
-Pass it explicitly: an exception `errors.classify` does not recognise lands on
-`INTERNAL`, and a bug that is never returned is never written.
-
-`propagate` borrows a recovered failure's `detail`, `trace`, `note` and `data`,
-but never its `code`.
-
----
-
-## Backend API
-
-`errors` in [00_Errors.js](../src/00_Errors.js).
-
-| Call | Use when |
-| --- | --- |
-| `errors.report(source, error, context?, code?)` | Any `catch`. Classifies the exception and records it. |
-| `errors.fail(report, message?, extra?)` | Turn what `report` returned into the client envelope. |
-| `errors.reject(source, code, message, extra?, context?)` | A precondition **you** checked — no exception behind it. |
-| `errors.propagate(source, inner, message?, extra?)` | An inner call already failed and you are passing it on. |
-| `errors.report(source, error, context, errors.CODES.RECOVERED)` | A `catch` that logs and carries on, returning no envelope. |
-| `errors.snapshot(value, …)` | Rarely called directly; `report` and `reject` run it over `context`. |
-
-Supporting members: `classify`, `text`, `stack`, `record`, `_event`, `_write`,
-`reference`, `userKey`, `version`, `budget`, `isExpected`.
-
-Two client-callable intake functions sit outside the object:
-`reportClientError(payload)` and `reportServerError(payload)`.
-
-### What `context` may hold
-
-Anything: the function's own parameters, whatever it had computed. Every value
-runs through `errors.snapshot` first, so raw locals are safe to pass.
-
-| Cap | Value |
-| --- | --- |
-| Depth | 6 levels of containers |
-| Breadth | 10 array items, 25 object keys |
-| Strings | 300 characters |
-| Whole entry | 5000 values, 100 000 characters, shared across one `record` |
-
-Scalars are never refused — only containers. `note` is the one reserved key:
-what the code was doing, in words. Never pass a raw email; `errors.userKey()`
-already identifies the user as a truncated hash.
-
----
+Every code is declared once in `ERROR_DEFS`; the page receives the same table. `errors.classify`
+sorts exceptions by Google's wording (a bad range is `SHEET_STRUCTURE`, a 429 is `QUOTA`). The page
+recognises sign-in and network failures by their text, and ignores failures raised by browser
+extensions.
 
 ## The envelope
 
-Every server function returns this on failure. No server function throws across
-the boundary.
+Server functions return this on failure and never throw:
 
 ```javascript
-{
-  success: false,
-  code: "SHEET_STRUCTURE",
-  expected: false,
-  message: "Cards: Could not read required data from spreadsheet",
-  reference: "TWR-M4X2K9-A7F3",   // "" when expected
-  detail: "API call to sheets.spreadsheets.values.batchGet failed with error: …",
-  trace: ["SheetsAPI.batchGetValues", "importData"],
-  outdated: { running, latest, minimum, unsupported },  // only when behind
-  // bugs only, carried so the browser can hand them back for logging:
-  note: "…", data: { … }, stack: "…",
-}
+{ success: false, code, expected, message, reference, detail, trace, outdated? }
 ```
 
-`detail` and `trace` belong to the layer that actually failed, not to whichever
-layer wrote the message. `propagate` carries both outward untouched and appends
-its own frame. `message` is for the person in the sidebar; `detail` shows only
-behind *Technical details*.
-
-Callers add fields with `extra` — `collection: true`, `accessible: false`, and
-similar.
-
----
-
-## Frontend API
-
-`AppError` in [22_error_scripts.html](../src/22_error_scripts.html).
-
-| Call | Use when |
-| --- | --- |
-| `AppError.show(raw, { source, message?, actions? })` | A failed envelope, an `Error`, or a string. |
-| `AppError.showAll(rawList, { source, message?, label? })` | Several failures at once, each with its own row and reference. |
-| `AppError.surfaceBatch(entries, { source })` | A per-sheet failure list: panel for the first bug, an entry for every bug. |
-| `AppError.check(result, source)` | Show if failed; returns `true` when it did. |
-| `AppError.log(raw, source)` | Record it, do not interrupt the user. |
-| `AppError.clear()` | Retire the panel. `setStatusWithSpinner` calls this. |
-| `runAppsScript(method, …args)` | The one way to call the server. Rejects with a normalised error. |
-
-`AppError.normalize` turns any of those inputs into one shape and is
-idempotent — normalising an already-normalised error extends its trace instead
-of reclassifying it.
-
-`window.onerror` and `unhandledrejection` are wired in. Cross-origin
-`"Script error."` is ignored, since it carries nothing to report.
-
----
+`message` is for the user; `detail` and `trace` belong to the layer that failed and show only under
+*Technical details*. `outdated` appears when the running version is behind (see
+[07](07-deployment.md#versioning)).
 
 ## How a failure travels
 
-### A caught exception in a sheet module
+- **Caught exception:** `errors.report` classifies it; `errors.fail` builds the envelope; each layer
+  above uses `errors.propagate`, which extends `trace`. An expected failure is logged immediately;
+  a bug is logged when the page shows it and calls `reportServerError` — so a bug in a tab that
+  closes first is never logged.
+- **Precondition the code checked:** `errors.reject`, same split.
+- **Recovered:** `errors.report(…, RECOVERED)` logs a warning and returns nothing.
+- **Browser failure:** `AppError` sends it to `reportClientError`, logged as
+  `the-tower-app-script-client`.
+- Identical failures from one user within 5 minutes become one entry; later ones reuse its
+  reference.
 
-```mermaid
-flowchart TB
-    C["catch in lab.exportData"] --> R["errors.report(source, error, context)"]
-    R --> CL["errors.classify → code"]
-    CL --> RE["errors.record"]
-    RE --> Q{"expected?"}
-    Q -->|yes| W["errors._write → console.warn<br/>WARNING, kind expected. Done."]
-    Q -->|no| N["nothing written yet"]
-    N --> F["errors.fail → envelope"]
-    F --> P["errors.propagate at each layer above<br/>(extends trace, records nothing)"]
-    P --> RET["returned to the browser"]
-    RET --> S["AppError.show → normalize"]
-    S --> D["AppError._dispatch"]
-    D --> FIN["AppError.finalize → reportServerError"]
-    FIN --> EV["errors._event → errors._write<br/>ERROR, kind bug, full trace"]
-    S --> RN["AppError._render → the panel"]
-```
-
-A bug's entry is written on that round trip, not at the `catch`. If the tab
-closes before `reportServerError` lands, there is no entry at all.
-
-### A precondition the code checks itself
-
-`errors.reject` → `errors.record` → same split as above. An expected reject is
-written immediately and its `note` and `data` stay server-side; a bug reject
-rides out to the browser like a caught exception.
-
-### A failure the script recovers from
-
-`errors.report(source, error, context, errors.CODES.RECOVERED)` →
-`errors.record` → `errors._write`. Written on the spot as a `WARNING`, with no
-reference and no envelope. It stays in `errors._last*`; if the request fails
-later, `propagate` picks up its `detail` and `trace`.
-
-### A browser-side failure
-
-`AppError.show` → `_dispatch` → `AppError.report` → `reportClientError`, which
-logs under `serviceContext.service = "the-tower-app-script-client"`.
-
-### Throttling
-
-`_throttleReference` collapses identical failures — same source, same detail —
-to one entry per user per 5 minutes, and hands later callers the reference of
-the entry that *was* written.
-
----
-
-## Where each workflow reports
-
-| Workflow | File | Function | Raises |
-| --- | --- | --- | --- |
-| Update sheets — import/export | [25_fileAccess_scripts.html](../src/25_fileAccess_scripts.html) | `surfaceFailureIfBug` | `AppError.surfaceBatch` |
-| Update sheets — template copy | [21_shared_scripts.html](../src/21_shared_scripts.html) | `proceedWithTemplateCopying` | `AppError.surfaceBatch` |
-| Update sheets — master + subsheets | [21_shared_scripts.html](../src/21_shared_scripts.html) | `proceedWithCombinedUpdate` | `AppError.surfaceBatch` |
-| Get Started | [23_getStarted_scripts.html](../src/23_getStarted_scripts.html) | `renderGetStartedCopyResult` | `AppError.surfaceBatch` |
-| Save-file parse | [28_saveFile_scripts.html](../src/28_saveFile_scripts.html) | `renderSaveFileParseFailures` | `AppError.showAll` |
-
-The per-sheet lists these render are the record of what happened to each sheet
-and show no references. `surfaceBatch` puts the panel up for the first failure
-that is a bug and logs the others.
-
-Each failure entry must carry its `envelope`; without it there is no code and
-no reference to report.
-
----
-
-## Codes
-
-| Code | Kind | Raised when | What the user is told |
-| --- | :-: | --- | --- |
-| `ACCESS_DENIED` | expected | Drive/Sheets refused, or a file was never granted | Grant access and try again |
-| `NOT_FOUND` | expected | The file is gone, or was never shared | The sheet could not be opened |
-| `INVALID_LINK` | expected | What the user typed is not a sheet link or ID | Check the link and try again |
-| `INVALID_FILE` | expected | The picked file is not a valid `playerInfo.dat` | Check you picked the right file |
-| `QUOTA` | expected | Google is rate-limiting the account | Wait and retry |
-| `TIMEOUT` | expected | Execution time exceeded | Try fewer sheets at once |
-| `VERSION_OUTDATED` | expected | The sheet is too old for this template | What the call site says |
-| `RECOVERED` | expected | A `catch` logged it and the script carried on | Nothing — it never reaches the user |
-| `INVALID_INPUT` | **bug** | A required parameter never arrived | Reload and try again |
-| `SHEET_STRUCTURE` | **bug** | A tab or label the code scans for is not there | Could not find something it needs |
-| `CLIENT` | **bug** | Reported from the browser | Something went wrong in the page |
-| `INTERNAL` | **bug** | Anything unclassified | Something went wrong on our side |
-
-### Classification
-
-`errors.classify` matches Google's wording. Sheets throws the same exception
-class for a bad range and a quota, and the text is what separates them:
-
-| Failure | What comes back | Code |
-| --- | --- | --- |
-| Range/tab does not exist | 400 `Unable to parse range: …` | `SHEET_STRUCTURE` |
-| Read quota | 429 `Quota exceeded for quota metric …` | `QUOTA` |
-| Per-user rate limit | 429 `User rate limit exceeded` | `QUOTA` |
-| Apps Script daily cap | `Service invoked too many times for one day` | `QUOTA` |
-
-`NOT_FOUND` matching is narrow — only Drive's and Sheets' file-level phrasings.
-A bare "not found" also matches our own "IDS sheet not found" wording, and a
-missing tab is a defect.
-
-Pass the code explicitly where the `catch` is one of the answers the function
-was called to give. `checkSheetAccess`, `checkTemplateAccess` and
-`checkScopePermissions` pass `ACCESS_DENIED`; `deleteOldSheet` passes
-`NOT_FOUND`.
-
-### Never tell the user to update their sheet
-
-`MESSAGES.VERSION_OUTDATED` says only *"That sheet is not a version this step
-can work with"*; every call site that knows more says it itself. The save-file workflow is the one place where
-"update it first" is genuine advice, and it gives that through
-`renderSaveFileOutdatedSheets` and `renderSaveFileCollectionOutdated` without
-raising anything.
-
----
+Client calls: `AppError.show` (panel) · `AppError.check` (show if failed) · `AppError.log` (record
+silently) · `AppError.surfaceBatch` (per-sheet lists: panel for the first bug).
 
 ## Google Cloud
 
-Both script projects are attached to standard GCP projects:
+Each entry carries `reference`, `code`, `kind` (`expected` or `bug`), `source` (the deepest frame),
+`trace`, `detail`, optional `note` and `data`, the app version and a hashed user key. Error Reporting
+groups by the stack trace's first line, so `errors.text` and `errors.stack` must keep it non-empty.
 
-| | Dev / sandbox | Production |
-| --- | --- | --- |
-| GCP project | `832137601831` | `1031925368251` |
+Setup per GCP project:
 
-### The entry
+1. Enable the Error Reporting API.
+2. Grant on-call *Error Reporting Viewer* and *Logs Viewer*.
+3. Add a counter metric `app_script_errors` on `severity>=ERROR AND jsonPayload.code!=""`, labelled
+   by `code`, `source` and `kind`, and an alert on it.
 
-`errors._event` builds it; `errors._write` emits it.
-
-```javascript
-{
-  "@type": "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent",
-  message: "<the stack trace>",
-  serviceContext: { service: "the-tower-app-script", version: "<APP_VERSION>" },
-  context: { reportLocation: { functionName: "SheetsAPI.batchGetValues" }, user: "<hashed>" },
-  reference: "TWR-…",                  // "" when expected
-  source: "SheetsAPI.batchGetValues",  // trace[0], the deepest frame
-  code: "SHEET_STRUCTURE",
-  expected: false,
-  kind: "bug",                         // "expected" | "bug"
-  detail: "…",                         // the exception text, or the reject's reason
-  trace: ["SheetsAPI.batchGetValues", "importData", "importAllData"],
-  note: "…",                           // only when the call site passed one
-  data: { sheetID: "1aBcD" },          // only when the call site passed one
-}
-```
-
-Three things are load-bearing:
-
-1. **Severity ERROR.** `console.error` maps to it; `console.log` does not.
-2. **A stack trace in `message`, with a non-empty first line.** Events without
-   one are dropped, and the first line is what Error Reporting names the group.
-   `errors.text` and `errors.stack` both guard this — do not simplify either.
-3. **`serviceContext.version`**, the version constant baked into the source by
-   `npm run bump`. It falls back to `"unversioned"`. See
-   [07 ▸ Versioning](07-deployment.md#versioning).
-
-### One-time setup per project
-
-1. Enable the **Error Reporting API**.
-2. Grant whoever is on call *Error Reporting Viewer* and *Logs Viewer*.
-3. Logging ▸ Log-based metrics ▸ Create:
-   - Name `app_script_errors`, type Counter
-   - Filter `severity>=ERROR AND jsonPayload.code!=""`
-   - Labels `code`, `source` and `kind` from the matching `jsonPayload` fields
-4. Monitoring ▸ Alerting ▸ Create policy on `app_script_errors`, grouped by
-   `code` and `kind`, above ~10 in 5 minutes.
-
-### Privacy
-
-- Never pass a raw email. `errors.userKey()` is an MD5 truncated to 12 hex
-  characters.
-- Never pass a password, token or payment detail.
-- Cloud Logging access is scoped by the GCP project's IAM. The access list on
-  the project is the real privacy boundary.
-- For a **bug**, `note`, `data` and `detail` transit the browser on their way to
-  being logged. For an expected outcome they never leave the server.
-
----
+Never log a raw email, password, token or payment detail. For a bug, `note`, `data` and `detail`
+pass through the browser on the way to the log.
 
 ## Runbook
 
-**A user quotes a reference**
-
-```
-jsonPayload.reference="TWR-M4X2K9-A7F3"
-```
-
-**By kind**
-
-```
-jsonPayload.kind="expected"   the app working as designed
-jsonPayload.kind="bug"        our defect, the user has the reference
-```
-
-**How often, and to how many people**
-
-```
-severity>=ERROR AND jsonPayload.source="collection.importData"
-```
-
-Then group by `jsonPayload.context.user` for distinct users.
-
-**What broke in the last release**
-
-```
-severity>=ERROR AND jsonPayload.serviceContext.version="4.2.4"
-```
-
-**Browser-side only**
-
-```
-jsonPayload.serviceContext.service="the-tower-app-script-client"
-```
-
-**Why an entry might not be there.** A bug whose round trip never completed —
-closed tab, dropped connection — is not written at all. Identical failures
-inside 5 minutes are one entry, and the panel shows that entry's reference.
-Anything expected — `RECOVERED` included — is written server-side as it happens
-and does not depend on the round trip.
-
----
-
-## Conventions
-
-| Situation | Use |
+| Find | Query |
 | --- | --- |
-| `catch` around anything | `errors.report(source, error, context)` then `errors.fail(report)` |
-| What to put in `context` | The function's own parameters, always. Add a mid-computation local when it would narrow down where things went wrong. Pass the raw value. |
-| A precondition you checked yourself | `errors.reject(source, code, message)` |
-| An inner call already failed | `errors.propagate(source, inner, message?)` — never `reject`, or one incident is recorded twice |
-| A `catch` that is one of the answers the function was called to give | Pass the code explicitly, e.g. `errors.CODES.ACCESS_DENIED` |
-| Something recovered on its own | `errors.report(source, error, context, errors.CODES.RECOVERED)` and carry on. The explicit code makes it a `WARNING` that is written immediately. |
-| A wrapper that reports and returns `null` for its caller to relay | `errors.report(...)` — the `null` is the handoff |
-| Deciding the code | Would *we* have to change something? Then it is a bug. Add new codes to `ERROR_DEFS` in [00_Errors.js](../src/00_Errors.js) — that one record is all of it, bar the display title in `AppError.TITLES`. |
-| Client: a failed envelope | `AppError.show(result, { source })` |
-| Client: a caught exception | `AppError.show(error, { source, message })` |
-| Client: a failure the user need not see | `AppError.log(error, source)` |
-| Client: a list of per-sheet failures | `AppError.surfaceBatch(entries, { source })` |
+| A quoted reference | `jsonPayload.reference="TWR-M4X2K9-A7F3"` |
+| Bugs only | `jsonPayload.kind="bug"` |
+| One failing function | `severity>=ERROR AND jsonPayload.source="collection.importData"`, grouped by `jsonPayload.context.user` |
+| One release | `severity>=ERROR AND jsonPayload.serviceContext.version="<version>"` |
+| Browser failures | `jsonPayload.serviceContext.service="the-tower-app-script-client"` |
 
-`source` is `functionName` for a top-level function and `module.method` for a
-sheet-module method. 15 modules share those method names, so the qualifier is
-what tells the log which one failed.
-
-Do not write `console.log` for an error. It is INFO severity, it has no stack,
-and nothing will ever alert on it.
+No entry? The bug's round trip never completed, or it was folded into an identical entry within 5
+minutes.
