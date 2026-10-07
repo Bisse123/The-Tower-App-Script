@@ -32,13 +32,13 @@ Nothing runs locally. There is no compiler, so these two syntax checks are the o
 available — run both after editing `src/`:
 
 ```bash
-for f in src/*.js; do node --check "$f" || echo "FAILED: $f"; done
+find src -name '*.js' | while read -r f; do node --check "$f" || echo "FAILED: $f"; done
 ```
 
 ```bash
 node -e '
 const fs=require("fs");
-for(const f of fs.readdirSync("src").filter(f=>f.endsWith(".html"))){
+for(const f of fs.readdirSync("src",{recursive:true}).filter(f=>f.endsWith(".html"))){
   for(const b of (fs.readFileSync("src/"+f,"utf8").match(/<script>([\s\S]*?)<\/script>/g)||[])){
     const code=b.replace(/^<script>/,"").replace(/<\/script>$/,"");
     if(code.includes("<?")) continue;
