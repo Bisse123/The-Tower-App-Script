@@ -16,28 +16,6 @@ const moduleHeaders = {
   modulePresets: "modulePresets",
 }
 
-const PlayerStuffHeaders = {
-  playerID: "playfabID",
-  currentTier: "currentTier",
-  tourneyID: "leagueID",
-  addPack: "disableAdsUnlockedBool",
-  starterPack: "starterPackUnlockedBool",
-  epicPack: "epicPackUnlockedBool",
-  highestWavePerTier: "highestWaveThisTier",
-  premiumPass: "milestonesPremiumUnlocked",
-  atkDissonance: "dissonanceDamageBoost",
-  hpDissonance: "dissonanceHealthBoost",
-  coinDissonance: "dissonanceCoinBoost",
-  uwDissonance: "dissonanceUltDamageBoost",
-  totalCoinsEarned: "totalCoinsEarned",
-  totalStonesEarned: "totalStonesEarned",
-  totalStonesBought: "totalStonesBought",
-  totalGemsEarned: "totalGemsEarned",
-  totalGemsBought: "totalGemsBought",
-  totalKeysEarned: "totalKeysEarned",
-  battleHistory: "battleHistory",
-}
-
 const MasterHeaders = {
   globalPresets: "globalPresets",
   workshopPresetNames: "workshopPresetName",
@@ -124,7 +102,7 @@ function parseSaveFileBytes(byteArray) {
   var guardianData = guardiansSaveFile.parseGuardiansData(guardianValues);
 
   var playerStuffValues = extractDataByHeaders(PlayerStuffHeaders);
-  var playerStuffdata = playerStuff.parsePlayerStuffData(playerStuffValues);
+  var playerStuffdata = playerStuffSaveFile.parsePlayerStuffData(playerStuffValues);
 
   var masterValues = extractDataByHeaders(MasterHeaders);
   var masterData = master.parseMasterData(masterValues);

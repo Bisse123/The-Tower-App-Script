@@ -1085,7 +1085,7 @@
             playerData.hasOwnProperty("oldPlayerStuffStatsData") &&
             playerMasterSheetData
           ) {
-            playerResult = playerStuff.updatePlayerStuffData(
+            playerResult = playerStuffWriter.updatePlayerStuffData(
               sheetRequiredRanges.values["player_MS"].sheetName,
               playerData.oldPlayerStuffTierData,
               playerData.oldPlayerStuffStatsData,
@@ -1109,7 +1109,7 @@
             var shouldRemoveUsedPerks = playerData.hasOwnProperty("shouldRemoveUsedPerks")
               ? playerData.shouldRemoveUsedPerks
               : true;
-            var perksResult = playerStuff.updatePlayerPerksPreset(
+            var perksResult = playerStuffWriter.updatePlayerPerksPreset(
               sheetRequiredRanges.values["Perk Preset"].sheetName,
               playerData.oldPerksPreset,
               shouldRemoveUsedPerks,
@@ -1584,11 +1584,11 @@
         var playerStatValues = playerStatResult.values;
         var playerPerksValues = playerPerksResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerPerksData =
-          playerStuff.getVersion4_2PlayerStuffPerks(playerPerksValues);
+          playerStuffReader.getVersion4_2PlayerStuffPerks(playerPerksValues);
         var playerSuccess =
           playerTierData.success &&
           playerStatData.success &&
@@ -1989,11 +1989,11 @@
         var playerStatValues = playerStatResult.values;
         var playerPerksValues = playerPerksResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerPerksData =
-          playerStuff.getVersion4_2PlayerStuffPerks(playerPerksValues);
+          playerStuffReader.getVersion4_2PlayerStuffPerks(playerPerksValues);
         var playerSuccess =
           playerTierData.success &&
           playerStatData.success &&
@@ -2401,11 +2401,11 @@
         var playerStatValues = playerStatResult.values;
         var playerPerksValues = playerPerksResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerPerksData =
-          playerStuff.getVersion4_2PlayerStuffPerks(playerPerksValues);
+          playerStuffReader.getVersion4_2PlayerStuffPerks(playerPerksValues);
         var playerSuccess =
           playerTierData.success &&
           playerStatData.success &&
@@ -2801,11 +2801,11 @@
         var playerStatValues = playerStatResult.values;
         var playerPerksValues = playerPerksResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerPerksData =
-          playerStuff.getVersion4_2PlayerStuffPerks(playerPerksValues);
+          playerStuffReader.getVersion4_2PlayerStuffPerks(playerPerksValues);
         var playerSuccess =
           playerTierData.success &&
           playerStatData.success &&
@@ -3196,9 +3196,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3584,9 +3584,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion4_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion4_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -3972,9 +3972,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -4360,9 +4360,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -4751,9 +4751,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -5142,9 +5142,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -5533,9 +5533,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion3_2PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion3_2PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -5924,9 +5924,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -6312,9 +6312,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
@@ -6689,9 +6689,9 @@
         var playerTierValues = playerTierResult.values;
         var playerStatValues = playerStatResult.values;
         var playerTierData =
-          playerStuff.getVersion2_0PlayerStuffTiers(playerTierValues);
+          playerStuffReader.getVersion2_0PlayerStuffTiers(playerTierValues);
         var playerStatData =
-          playerStuff.getVersion2_0PlayerStuffStats(playerStatValues);
+          playerStuffReader.getVersion2_0PlayerStuffStats(playerStatValues);
         var playerSuccess = playerTierData.success && playerStatData.success;
         var playerData = {
           success: playerSuccess,
