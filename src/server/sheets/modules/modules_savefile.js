@@ -11,9 +11,11 @@ const modulesSaveFile = {
   /**
    * Parses Modules data out of a decoded save file.
    * @param {Object} data
+   * @param {number} presetCount How many of the stored presets the player has unlocked; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseModulesData: function (data) {
+  parseModulesData: function (data, presetCount) {
     try {
       const moduleNames = modulesCatalog.moduleNames;
 
@@ -55,7 +57,7 @@ const modulesSaveFile = {
       const equippedModulesData = data.moduleEquipped || [];
       const assistSlotData = data.assistModuleSlots || [];
       const inventoryData = data.inventory || [];
-      const modulePresetsData = data.modulePresets || [];
+      const modulePresetsData = (data.modulePresets || []).slice(0, presetCount);
       const moduleLevelsData = data.moduleLevels || [];
 
       var oldModuleInventory = {};

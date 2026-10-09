@@ -41,7 +41,13 @@ Export and save-file parsing produce the same neutral data, so one importer serv
 
 **IDS Master** moves the `IDS` registry (which sheet lives at which ID) and the preset names. Its
 import writes its own IDs, so a combined update only fetches the tab afterwards. From the save file
-it reads the game's global preset names, skipping the game's dummy last entry.
+it reads the game's global preset names.
+
+Save-file parsing reads only the presets the player has unlocked. `presetUtils.unlockedPresetCounts`
+counts them per type from the Presets and Global Presets labs and the vault's preset upgrades: the
+Presets lab unlocks five card presets, then two presets each for Workshop, Bots, Modules and
+Guardians; the Global Presets lab unlocks two global presets; a vault preset upgrade raises its type
+to five. A type with no presets unlocked still imports its one live build.
 
 **IDS Collection** is every category as a tab in one file. Its export is one object keyed by sheet
 type; its import calls each type's writers against its own tabs and reports failures per category.

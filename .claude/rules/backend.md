@@ -29,7 +29,7 @@ Calls run downward only: client → `entry`, `workflows`, `savefile` → `sheets
 | `versionUtils` | `findSheetVersion` · `getEPathsVersion` · `isVersionLoading` · `readVersion` · `getVersionStatus` · `compareVersions` |
 | `labelUtils` | `isSheetTypeCell` · `findSheetTypeID` · `findSheetTypeURL` · `findSheetTemplateID` · `addIDUpdatesToBatch` |
 | `sheetRefs` | `isSheetId` · `extractSheetId` · `columnToLetter` · `extractUrlFromHyperlink` · `getColumnOffsetFromRange` |
-| `presetUtils` | `templatePresetNames` · `resolvePresetOrder` |
+| `presetUtils` | `templatePresetNames` · `resolvePresetOrder` · `presetUnlocks` · `unlockedPresetCounts` |
 | `dropdownUtils` | `getDVTValue` — maps a level onto a value the dropdown accepts |
 
 ## server/entry

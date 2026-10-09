@@ -12,16 +12,19 @@ const masterSaveFile = {
   /**
    * Parses IDS_Master data out of a decoded save file.
    * @param {Object} data
+   * @param {{cards: number, workshop: number, bots: number, modules: number, guardians: number,
+   *   global: number}} presetCounts How many stored presets the player has unlocked per type; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseMasterData: function (data) {
+  parseMasterData: function (data, presetCounts) {
     try {
-      const globalPresets = data.globalPresets || [];
-      const workshopPresetNames = data.workshopPresetNames || [];
-      const cardPresetNames = data.cardPresetNames || [];
-      const botPresetNames = data.botPresetNames || [];
-      const modulePresets = data.modulePresets || [];
-      const guardianPresets = data.guardianPresets || [];
+      const globalPresets = (data.globalPresets || []).slice(0, presetCounts.global);
+      const workshopPresetNames = (data.workshopPresetNames || []).slice(0, presetCounts.workshop);
+      const cardPresetNames = (data.cardPresetNames || []).slice(0, presetCounts.cards);
+      const botPresetNames = (data.botPresetNames || []).slice(0, presetCounts.bots);
+      const modulePresets = (data.modulePresets || []).slice(0, presetCounts.modules);
+      const guardianPresets = (data.guardianPresets || []).slice(0, presetCounts.guardians);
       const modulePresetNames = modulePresets.map((preset) => preset.presetName);
       const guardianPresetNames = guardianPresets.map((preset) => preset.presetName);
 
@@ -37,8 +40,7 @@ const masterSaveFile = {
       var oldPresetsData = {
         data: {},
       };
-      globalPresets.forEach((preset, index) => {
-        if (index == globalPresets.length - 1) return;
+      globalPresets.forEach((preset) => {
         const globalPresetName = preset.presetName;
         if (!globalPresetName) {
           return;

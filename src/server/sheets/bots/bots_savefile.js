@@ -13,9 +13,11 @@ const botsSaveFile = {
   /**
    * Parses Bots data out of a decoded save file.
    * @param {Object} data
+   * @param {number} presetCount How many of the stored presets the player has unlocked; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseBotsData: function (data) {
+  parseBotsData: function (data, presetCount) {
     try {
       const targetBots = {
         "Flame Bot": {
@@ -41,7 +43,7 @@ const botsSaveFile = {
       };
 
       const presetOrder = presetUtils.resolvePresetOrder(
-        data.presetNames || [],
+        (data.presetNames || []).slice(0, presetCount),
         presetUtils.templatePresetNames,
       );
       const presetNames = presetOrder.order;
