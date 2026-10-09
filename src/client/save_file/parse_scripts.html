@@ -1,0 +1,474 @@
+<script>
+  document
+    .getElementById("saveFileInput")
+    .addEventListener("change", function () {
+      const file = this.files[0];
+
+      clearSaveFileParseUI();
+      document.getElementById("saveFileParseBtn").disabled = !file;
+      updateHeldSaveFileLabel();
+
+      if (file) {
+        setStatusText('Ready to parse. Click "Parse File" to continue...');
+      } else {
+        setStatusText("Choose saved file...");
+      }
+    });
+
+  /**
+   * Clears the parsed results and any parse warning.
+   * @returns {void}
+   */
+  function clearSaveFileParseUI() {
+    parsedSaveData = null;
+    saveFilePendingDriveFile = null;
+    resetSaveFileDiffState();
+    document.getElementById("saveFileResults").style.display = "none";
+    document.getElementById("saveFileResults").innerHTML = "";
+    document.getElementById("saveFileViewControls").style.display = "none";
+    document.getElementById("saveFileImportControls").style.display = "none";
+    document.getElementById("saveFileImportBtn").disabled = true;
+    refreshSaveFileImportSummary();
+  }
+
+  /**
+   * Shows which save file is currently held, and where it came from.
+   * @returns {void}
+   */
+  function updateHeldSaveFileLabel() {
+    const el = document.getElementById("saveFileHeldName");
+    if (!el) return;
+
+    const localFile = document.getElementById("saveFileInput").files[0];
+    let name = "";
+    let source = "";
+    if (localFile) {
+      name = localFile.name;
+      source = "your computer";
+    } else if (saveFilePendingDriveFile) {
+      name = saveFilePendingDriveFile.name;
+      source = "Google Drive";
+    }
+
+    if (!name) {
+      el.style.display = "none";
+      el.innerHTML = "";
+      return;
+    }
+
+    el.innerHTML =
+      '<span class="saveFileHeldLabel">Selected file</span>' +
+      '<span class="saveFileHeldValue">' +
+      escSaveFileHtml(name) +
+      "</span>" +
+      '<span class="saveFileHeldSource">from ' +
+      escSaveFileHtml(source) +
+      "</span>";
+    el.style.display = "";
+  }
+
+  /**
+   * Reads the chosen local file and parses it.
+   * @returns {void}
+   */
+  function parseFile() {
+    const file = document.getElementById("saveFileInput").files[0];
+    if (file) {
+      setSaveFileBusy(true);
+      resetSaveFileDiffState();
+      setStatusWithSpinner("Reading file…");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const byteArray = Array.from(new Uint8Array(e.target.result));
+        parseSaveFileByteArray(byteArray, file.name);
+      };
+      reader.onerror = function () {
+        setSaveFileBusy(false);
+        setStatusText("Failed to read file.");
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
+    if (saveFilePendingDriveFile) {
+      parsePendingDriveFile();
+    }
+  }
+
+  /**
+   * Downloads and parses the Drive file the user picked.
+   * @returns {Promise<void>}
+   */
+  async function parsePendingDriveFile() {
+    const picked = saveFilePendingDriveFile;
+    if (!picked) return;
+    if (!accessToken) {
+      setStatusText(
+        "Google Drive access isn't authorized yet. Please reload the page and try again.",
+      );
+      return;
+    }
+
+    setSaveFileBusy(true);
+    resetSaveFileDiffState();
+    setStatusWithSpinner('Downloading "' + picked.name + '" from Google Drive…');
+
+    let byteArray;
+    try {
+      byteArray = await downloadDriveFileBytes(picked.id);
+    } catch (err) {
+      setSaveFileBusy(false);
+      setStatusText(
+        "Could not download the file from Google Drive: " + (err.message || err),
+      );
+      return;
+    }
+
+    await parseSaveFileByteArray(byteArray, picked.name);
+  }
+
+  /**
+   * Sends save-file bytes to the server and renders what comes back.
+   * @param {number[]} byteArray
+   * @param {string} fileName
+   * @returns {void}
+   */
+  function parseSaveFileByteArray(byteArray, fileName) {
+    setStatusWithSpinner("Parsing…");
+    return Promise.all([
+      runAppsScript("parseSaveFileBytes", byteArray),
+      ensureSaveFilePlayerWaveCapPreference(),
+    ])
+      .then(async function (results) {
+        const result = results[0];
+        setSaveFileBusy(false);
+        if (AppError.check(result, "parseSaveFileBytes")) return;
+
+        parsedSaveData = (result && result.parsed) || {};
+        lastSaveFileResult = result;
+        setStatusText(`${fileName} parsed successfully`);
+        if (idMasterID && (await ensureSaveFileSheetData())) {
+          saveFileViewMode = "diff";
+          setStatusText(`${fileName} parsed successfully. Showing differences.`);
+        }
+        renderSaveFileResults(result);
+      })
+      .catch(function (err) {
+        setSaveFileBusy(false);
+        AppError.show(err, {
+          source: "parseSaveFileByteArray",
+          message: "That save file could not be parsed.",
+        });
+      });
+  }
+
+  /**
+   * Opens the Drive picker for a playerInfo.dat and parses the choice.
+   * @returns {Promise<void>}
+   */
+  async function pickSaveFileFromDrive() {
+    if (!saveFilePickerReady || typeof google === "undefined" || !google.picker) {
+      setStatusText(
+        "The Google Drive picker isn't ready yet. Please reload the page and try again.",
+      );
+      return;
+    }
+    if (!accessToken) {
+      setStatusText(
+        "Google Drive access isn't authorized yet. Please reload the page and try again.",
+      );
+      return;
+    }
+
+    let picked;
+    try {
+      picked = await openSaveFileDrivePicker();
+    } catch (err) {
+      setStatusText(
+        "Error opening the Google Drive picker: " + (err.message || err),
+      );
+      return;
+    }
+    if (!picked) {
+      setStatusText("No file selected from Google Drive.");
+      return;
+    }
+
+    clearSaveFileParseUI();
+    document.getElementById("saveFileInput").value = "";
+    saveFilePendingDriveFile = picked;
+    document.getElementById("saveFileParseBtn").disabled = false;
+    updateHeldSaveFileLabel();
+    setStatusText(
+      'Ready to parse "' + picked.name + '". Click "Parse File" to continue...',
+    );
+  }
+
+  /**
+   * Downloads a Drive file's bytes.
+   * @param {string} fileId
+   * @returns {Promise<number[]>}
+   */
+  async function downloadDriveFileBytes(fileId) {
+    const res = await fetch(
+      "https://www.googleapis.com/drive/v3/files/" +
+        encodeURIComponent(fileId) +
+        "?alt=media&supportsAllDrives=true",
+      { headers: { Authorization: "Bearer " + accessToken } },
+    );
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = (body && body.error && body.error.message) || "";
+      } catch (e) {}
+      throw new Error(detail || "Google Drive returned HTTP " + res.status);
+    }
+    const buffer = await res.arrayBuffer();
+    return Array.from(new Uint8Array(buffer));
+  }
+
+  /**
+   * Opens the Drive picker for the save file.
+   * @returns {Promise<{id: string, name: string}|null>} Null when cancelled.
+   */
+  function openSaveFileDrivePicker() {
+    return new Promise(function (resolve, reject) {
+      try {
+        const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setQuery("playerInfo.dat");
+
+        const pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        const picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setTitle("Select your save file")
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const doc = (data.docs || [])[0];
+              resolve(doc ? { id: doc.id, name: doc.name } : null);
+            } else if (data.action === google.picker.Action.CANCEL) {
+              resolve(null);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (isMobile) {
+          picker.enableFeature(google.picker.Feature.NAV_HIDDEN);
+        }
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        picker.build().setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Joins names as "A", "A and B", "A, B and C".
+   * @param {string[]} names
+   * @returns {string}
+   */
+  function listSaveFileNames(names) {
+    if (names.length <= 1) return names[0] || "";
+    return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+
+  /**
+   * Renders the categories that could not be read, and raises the panel once
+   * per parse for the ones that are defects.
+   * @param {Array<Object>} failedCategories
+   * @param {Object} result
+   * @returns {string} Markup for the block.
+   */
+  function renderSaveFileParseFailures(failedCategories, result) {
+    if (!failedCategories || failedCategories.length === 0) return "";
+
+    let html = '<div class="sfParseFailedSection">';
+    html +=
+      "<strong>⛔ Could not be read from your save file (" +
+      failedCategories.length +
+      "):</strong>";
+    failedCategories.forEach(function (failure) {
+      html +=
+        "<br>&nbsp;&nbsp;• " +
+        escSaveFileHtml(failure.type) +
+        " - " +
+        escSaveFileHtml(failure.message || "Unknown error");
+    });
+    html +=
+      "<br><em>The categories above were skipped. Everything else in this save file is unaffected.</em>";
+    html += "</div>";
+
+    const bugs = failedCategories.filter(function (failure) {
+      return failure.expected === false;
+    });
+    if (bugs.length && saveFileFailuresSurfacedFor !== result) {
+      saveFileFailuresSurfacedFor = result;
+      const names = bugs.map(function (bug) {
+        return bug.type;
+      });
+      AppError.showAll(bugs, {
+        source: "parseSaveFileBytes",
+        message:
+          bugs.length === 1
+            ? AppError.labelled(bugs[0].type, bugs[0].message)
+            : listSaveFileNames(names) +
+              " could not be read from your save file.",
+        label: function (bug) {
+          return bug.type;
+        },
+      });
+    }
+
+    return html;
+  }
+
+  /**
+   * Renders every parsed category as a card, in diff or full view.
+   * @param {Object} result
+   * @returns {void}
+   */
+  function renderSaveFileResults(result) {
+    if (result) lastSaveFileResult = result;
+    const container = document.getElementById("saveFileResults");
+    const parsed = (result && result.parsed) || {};
+    const order = (result && result.order) || Object.keys(parsed);
+    const parseFailuresHtml = renderSaveFileParseFailures(
+      result && result.failedCategories,
+      result,
+    );
+    let html = parseFailuresHtml;
+    let cardCount = 0;
+    const selectedTypes = new Set();
+    const openTypes = sfOpenCategoryTypes(container);
+
+    for (const type of order) {
+      const data = parsed[type];
+      if (!categoryHasData(data)) continue;
+      cardCount++;
+
+      const bodyHtml = buildSaveFileCategoryBody(type, data);
+      const noDiff = /sfDiffNone/.test(bodyHtml);
+      const outdatedInfo = sfTypeOutdatedInfo(type);
+      const isOutdated = !!outdatedInfo;
+      const checked = sfTypeChecked(type) && !noDiff && !isOutdated;
+      if (checked) selectedTypes.add(type);
+
+      html +=
+        '<div class="sfCategory' +
+        (isOutdated ? " sfCategoryOutdated" : "") +
+        (openTypes.has(type) ? " open" : "") +
+        '">';
+      html +=
+        '<div class="sfCategoryHeader" onclick="toggleSaveFileCategory(this)">';
+      html += '<span class="sfCategoryHeaderMain">';
+      html +=
+        '<input type="checkbox" class="sfCategoryCheckbox" data-sheettype="' +
+        escSaveFileHtml(type) +
+        '" ' +
+        (checked ? "checked" : "") +
+        (isOutdated ? ' disabled data-outdated="1"' : "") +
+        ' onclick="event.stopPropagation()">';
+      html +=
+        '<span class="sfCategoryTitle">' + escSaveFileHtml(type) + "</span>";
+      if (isOutdated) {
+        html +=
+          '<span class="sfCategoryOutdatedBadge" title="This sheet is out of date (' +
+          escSaveFileHtml(outdatedInfo.currentVersion || "?") +
+          " → " +
+          escSaveFileHtml(outdatedInfo.latestVersion || "?") +
+          ')">⚠️ Outdated</span>';
+      } else if (noDiff) {
+        html += '<span class="sfCategoryCheck" title="No differences">✓</span>';
+      }
+      html += "</span>";
+      html += '<span class="sfCategoryChevron">►</span>';
+      html += "</div>";
+      html += '<div class="sfCategoryBody">';
+      html += bodyHtml;
+      html += "</div></div>";
+    }
+
+    const failedCount = (result && result.failedCategories && result.failedCategories.length) || 0;
+    if (cardCount === 0 && failedCount === 0) {
+      html +=
+        '<div class="sfMissingSection">No recognizable data found in this save file.</div>';
+    }
+
+    saveFileSelectedTypes = selectedTypes;
+
+    container.innerHTML = html;
+    container.style.display = "block";
+
+    document.getElementById("saveFileImportControls").style.display = "block";
+    container.querySelectorAll(".sfCategoryCheckbox").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        captureSaveFileSelection();
+        updateImportButtonState();
+      });
+    });
+
+    refreshSaveFileImportSummary();
+
+    updateImportButtonState();
+    updateSaveFileViewControls();
+  }
+
+  /**
+   * gapi onload hook: loads the client and picker libraries.
+   * @returns {void}
+   */
+  function saveFileGapiLoaded() {
+    gapi.load("client:picker", {
+      callback: initializeSaveFilePicker,
+      onerror: function () {
+        console.error("Failed to load GAPI client:picker for save file");
+      },
+    });
+  }
+
+  /**
+   * Initialises the Drive picker for the save-file page.
+   * @returns {Promise<void>}
+   */
+  async function initializeSaveFilePicker() {
+    try {
+      if (!API_KEY || !APP_ID) {
+        throw new Error("Missing API_KEY or APP_ID for the file picker.");
+      }
+
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        ],
+      });
+
+      saveFilePickerReady = true;
+      console.log("Save file picker initialized.");
+      authorizeSaveFile();
+    } catch (error) {
+      AppError.log(error, "initializeSaveFilePicker: Error initializing save file picker");
+    }
+  }
+</script>

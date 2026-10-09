@@ -1,0 +1,218 @@
+<script>
+  /**
+   * Links the created sheets to each other by writing their IDs.
+   * @param {Array<Object>} createdFiles
+   * @param {string} copyMode
+   * @returns {Promise<{success: boolean, updateResults: Array<Object>}>}
+   */
+  async function applyGetStartedIDUpdates(createdFiles, copyMode) {
+
+    try {
+      if (!Array.isArray(createdFiles) || createdFiles.length === 0) {
+        return { success: true, updateResults: [] };
+      }
+
+      console.log(
+        `Applying ID updates for ${copyMode} mode to ${createdFiles.length} file(s)`,
+      );
+
+      var masterFile = null;
+      var masterRelatedIDs = [];
+      var knownCreatedFiles = [];
+      var knownCreatedFileMap = {};
+
+      /**
+       * Merges a created file into the known set, by file id.
+       * @param {{fileId: string, sheetType?: string, fileName?: string, fileUrl?: string}} file
+       * @returns {void}
+       */
+      function mergeKnownCreatedFile(file) {
+        if (!file || !file.fileId) {
+          return;
+        }
+
+        var existing = knownCreatedFileMap[file.fileId];
+        if (!existing) {
+          existing = {
+            fileId: file.fileId,
+            sheetType: file.sheetType,
+            fileName: file.fileName,
+            fileUrl: file.fileUrl,
+          };
+          knownCreatedFileMap[file.fileId] = existing;
+          knownCreatedFiles.push(existing);
+          return;
+        }
+
+        if (file.sheetType) existing.sheetType = file.sheetType;
+        if (file.fileName) existing.fileName = file.fileName;
+        if (file.fileUrl) existing.fileUrl = file.fileUrl;
+      }
+
+      if (Array.isArray(allCreatedFiles)) {
+        allCreatedFiles.forEach(mergeKnownCreatedFile);
+      }
+      if (Array.isArray(createdFiles)) {
+        createdFiles.forEach(mergeKnownCreatedFile);
+      }
+
+      if (copyMode === "master-and-subsheets") {
+        masterFile =
+          createdFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          }) ||
+          knownCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Master";
+          });
+
+        masterRelatedIDs = knownCreatedFiles
+          .filter(function (file) {
+            return (
+              file.sheetType !== "IDS Master" &&
+              file.sheetType !== "Effective Paths" &&
+              !!file.fileId
+            );
+          })
+          .map(function (file) {
+            return {
+              sheetType: file.sheetType,
+              sheetID: file.fileId,
+            };
+          });
+      } else if (copyMode === "ids-collection") {
+        masterFile =
+          createdFiles.find(function (file) {
+            return file.sheetType === "IDS Collection";
+          }) ||
+          knownCreatedFiles.find(function (file) {
+            return file.sheetType === "IDS Collection";
+          });
+      }
+
+      var updatePromises = createdFiles.map(function (file) {
+        return new Promise(function (resolve) {
+          try {
+            var relatedSheetIDs = [];
+            if (masterFile && file.sheetType === masterFile.sheetType) {
+              relatedSheetIDs = masterRelatedIDs;
+            } else if (masterFile) {
+              relatedSheetIDs.push({
+                sheetType: "IDS Master",
+                sheetID: masterFile.fileId,
+              });
+            }
+
+            console.log(
+              `Updating ${file.sheetType} (${file.fileId}) with related IDs:`,
+              relatedSheetIDs,
+            );
+
+            google.script.run
+              .withSuccessHandler(function (result) {
+                console.log(`ID update result for ${file.sheetType}:`, result);
+                resolve(result);
+              })
+              .withFailureHandler(function (error) {
+                console.error(
+                  `Failed to update IDs for ${file.sheetType}:`,
+                  error,
+                );
+                resolve({ success: false, error: error });
+              })
+              .updateGetStartedSheetIdsAndReferences(
+                file.fileId,
+                file.sheetType,
+                relatedSheetIDs,
+              );
+          } catch (error) {
+            AppError.log(error, "mergeKnownCreatedFile: Error updating IDs for");
+            resolve({ success: false, error: error });
+          }
+        });
+      });
+
+      var updateResults = await Promise.all(updatePromises);
+
+      return { success: true, updateResults: updateResults };
+    } catch (error) {
+      AppError.log(error, "mergeKnownCreatedFile: Error applying ID updates");
+      return { success: false, error: error };
+    }
+  }
+
+  /**
+   * Sorts ID-update results into successes and failures.
+   * @param {Array<Object>} createdFiles
+   * @param {Object} idUpdateResult
+   * @returns {Object} { successfulIDUpdates, failedIDUpdates }
+   */
+  function processGetStartedIDUpdateResults(createdFiles, idUpdateResult) {
+    var successfulIDUpdates = [];
+    var failedIDUpdates = [];
+
+    if (!Array.isArray(createdFiles) || createdFiles.length === 0) {
+      return {
+        successfulIDUpdates: successfulIDUpdates,
+        failedIDUpdates: failedIDUpdates,
+      };
+    }
+
+    var updateResults = (idUpdateResult && idUpdateResult.updateResults) || [];
+    var globalError =
+      idUpdateResult && idUpdateResult.success === false
+        ? idUpdateResult.error
+        : null;
+
+    createdFiles.forEach(function (file, index) {
+      var updateResult = updateResults[index];
+
+      if (updateResult && updateResult.fileName) {
+        file.fileName = updateResult.fileName;
+      }
+
+      var updateSucceeded = false;
+      if (!globalError && updateResult) {
+        if (typeof updateResult.success === "boolean") {
+          updateSucceeded = updateResult.success;
+        } else {
+          updateSucceeded = !updateResult.error;
+        }
+      }
+
+      if (updateSucceeded) {
+        successfulIDUpdates.push({
+          sheetType: file.sheetType,
+          fileId: file.fileId,
+          fileName: file.fileName,
+          fileUrl: file.fileUrl,
+        });
+        return;
+      }
+
+      var errorMessage = "Unknown ID update error";
+      if (globalError) {
+        errorMessage = globalError.message || String(globalError);
+      } else if (updateResult && updateResult.error) {
+        errorMessage = updateResult.error.message || String(updateResult.error);
+      } else if (updateResult && updateResult.message) {
+        errorMessage = updateResult.message;
+      } else if (!updateResult) {
+        errorMessage = "No response from ID update operation.";
+      }
+
+      failedIDUpdates.push({
+        sheetType: file.sheetType,
+        fileId: file.fileId,
+        fileName: file.fileName,
+        fileUrl: file.fileUrl,
+        error: errorMessage,
+        envelope: globalError || (updateResult && updateResult.error) || updateResult,
+      });
+    });
+
+    return {
+      successfulIDUpdates: successfulIDUpdates,
+      failedIDUpdates: failedIDUpdates,
+    };
+  }
+</script>

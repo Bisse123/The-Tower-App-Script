@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <?!= include('client/common/base_styles'); ?>
+    <?!= include('client/common/header_styles'); ?>
+    <?!= include('client/common/status_styles'); ?>
+    <?!= include('client/common/error_styles'); ?>
+    <?!= include('client/get_started/styles'); ?>
+    <?!= include('client/common/consent_styles'); ?>
+
+    <title>The Tower Import Data</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+  </head>
+  <body>
+    <?!= include('client/common/header_section'); ?>
+    <?!= include('client/common/status_section'); ?>
+    <?!= include('client/common/error_section'); ?>
+    <?!= include('client/get_started/section'); ?>
+    <?!= include('client/common/consent_section'); ?>
+
+    <script>
+      const API_KEY = "<?= API_KEY ?>";
+      const APP_ID = "<?= APP_ID ?>";
+      const viewType = "<?= viewType ? viewType : 'webapp' ?>";
+      const getStarted = true;
+      const saveFile = false;
+      
+      const googleLink = "https://docs.google.com/spreadsheets/d"
+
+      let effectivePathsID = "<?= effectivePathsID ? effectivePathsID : '' ?>";
+</script>
+    
+    <?!= include('client/common/templates_scripts'); ?>
+    <?!= include('client/common/header_scripts'); ?>
+    <?!= include('client/common/status_scripts'); ?>
+    <?!= includeTemplate('client/common/error_scripts'); ?>
+    <?!= include('client/common/version_banner_scripts'); ?>
+    <?!= include('client/get_started/state_scripts'); ?>
+    <?!= include('client/get_started/folder_scripts'); ?>
+    <?!= include('client/get_started/copy_scripts'); ?>
+    <?!= include('client/get_started/id_links_scripts'); ?>
+    <?!= include('client/get_started/results_scripts'); ?>
+    <?!= include('client/common/consent_scripts'); ?>
+    <?!= include('client/get_started/authorize_scripts'); ?>
+    <script
+      src="https://apis.google.com/js/api.js"
+      onload="getStartedGapiLoaded()"
+    ></script>
+  </body>
+</html>

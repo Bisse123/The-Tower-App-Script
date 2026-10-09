@@ -1,0 +1,1049 @@
+<script>
+  /**
+   * Entry point for the update workflow's export and import.
+   * @returns {Promise<void>}
+   */
+  async function importData() {
+    document.getElementById("importButton").disabled = true;
+    document.getElementById("moveSheetButton").disabled = true;
+    if (
+      sheetType === "IDS Master" &&
+      !isUpdateSingleSheetFlow &&
+      hasSubsheetsToUpdate
+    ) {
+      const totalAvailableFiles =
+        (copiedTemplateFiles || []).length +
+        (importedFilesFailed || []).length +
+        (exportedFilesFailed || []).length;
+      if (totalAvailableFiles === 0) {
+        setStatusText(
+          "No copied sheets available for import. Please copy templates first.",
+        );
+
+        displayOperationResults();
+        return;
+      }
+
+      if (isConvertToMasterFlow) {
+        setStatusWithSpinner("Exporting IDS Collection data...");
+        let exportResult;
+        try {
+          exportResult = await runAppsScript(
+            "exportData",
+            oldSheetID,
+            "IDS Collection",
+            versionDifference,
+          );
+        } catch (error) {
+          document.getElementById("importButton").disabled = false;
+          console.error("Export error:", error);
+          AppError.show(error, {
+            source: "importData",
+            message: "Reading the data out of your sheet did not finish.",
+          });
+          return;
+        }
+
+        if (!exportResult || !exportResult.success) {
+          document.getElementById("importButton").disabled = false;
+          setStatusText(
+            `Export failed: ${exportResult?.message || "Unknown export error"}`,
+          );
+          return;
+        }
+
+        const collectionData = exportResult.data || {};
+        const allTemplateFiles = (copiedTemplateFiles || [])
+          .concat(importedFilesFailed || [])
+          .concat(exportedFilesFailed || []);
+
+        copiedTemplateFiles = [];
+        importedFilesFailed = [];
+        exportedFilesFailed = [];
+        exportedFilesSuccess = [];
+
+        allTemplateFiles
+          .filter((file) => file.sheetType !== "IDS Master")
+          .forEach((file) => {
+            const exportData = collectionData[file.sheetType];
+
+            if (exportData !== undefined) {
+              exportedFilesSuccess.push({
+                ...file,
+                exportData: exportData,
+                sheetVisibility: exportResult.sheetVisibility,
+              });
+            } else {
+              exportedFilesFailed.push({
+                ...file,
+                error: `No IDS Collection export data for ${file.sheetType}`,
+              });
+            }
+          });
+
+        if (collectionData["IDS Master"] !== undefined) {
+          importedFilesSuccess = (importedFilesSuccess || []).filter(
+            (file) => file.sheetType !== "IDS Master",
+          );
+          exportedFilesSuccess.push({
+            sheetType: "IDS Master",
+            fileId: newSheetID,
+            oldSheetID: oldSheetID,
+            version: cachedMasterTemplateInfo
+              ? cachedMasterTemplateInfo.version
+              : "",
+            exportData: remapMasterIdsToNewSheets(collectionData["IDS Master"]),
+            sheetVisibility: exportResult.sheetVisibility,
+          });
+        }
+
+        if (exportedFilesSuccess.length === 0) {
+          document.getElementById("importButton").disabled = false;
+          setStatusText(
+            "No data was successfully exported. Cannot proceed with import.",
+          );
+          displayOperationResults();
+          return;
+        }
+
+        const importTasks = exportedFilesSuccess.map((file) => ({
+          newSheetID: file.fileId,
+          sheetType: file.sheetType,
+        }));
+
+        setStatusWithSpinner(
+          `Importing data into ${importTasks.length} sheets...`,
+        );
+        await importAllData(importTasks);
+
+        masterIdsWritten = importedFilesSuccess.some(
+          (file) => file.sheetType === "IDS Master",
+        );
+        return;
+      }
+
+      const exportSourceLabel = isConvertToMasterFlow
+        ? "IDS Collection"
+        : "IDS Master";
+      setStatusWithSpinner(
+        `Preparing import from ${exportSourceLabel} for ${totalAvailableFiles} sheets...`,
+      );
+
+      try {
+        const prepareResult = await runAppsScript(
+          "prepareImportData",
+          oldSheetID,
+          expandMergedTemplateFiles(copiedTemplateFiles || []),
+          expandMergedTemplateFiles(importedFilesFailed || []),
+          expandMergedTemplateFiles(exportedFilesFailed || []),
+        );
+        await onprepareImportDataSuccess(prepareResult);
+      } catch (error) {
+        onprepareImportDataFailure(error);
+      }
+      return;
+    } else if (sheetType === "IDS Collection" && isConvertToCollectionFlow) {
+      setStatusWithSpinner("Preparing import for sheet...");
+      const sheetTypes = [
+        "Laboratory",
+        "Workshop",
+        "Ultimate Weapon",
+        MERGED_THEMES_SHEET_TYPE,
+        "Bots",
+        "Vault",
+        "Cards",
+        "Modules",
+        "Guardians",
+        "Player & Stuff",
+      ];
+      sheetTypes.forEach((type) => {
+        copiedTemplateFiles.push({
+          sheetType: type,
+          fileId: newSheetID,
+        });
+      });
+      let result;
+      try {
+        result = await runAppsScript(
+          "prepareImportData",
+          oldSheetID,
+          expandMergedTemplateFiles(copiedTemplateFiles),
+        );
+      } catch (error) {
+        document.getElementById("importButton").disabled = false;
+        console.error("Import preparation failed:", error);
+        AppError.show(error, {
+          source: "importData",
+          message: "Preparing the import did not finish.",
+        });
+        return;
+      }
+
+      console.log("Import preparation result:", result);
+
+      const rejected = recordPreparationFailures(result);
+
+      if (!result.succeededTasks || result.succeededTasks.length === 0) {
+        setStatusText(
+          rejected.length > 0
+            ? `${rejected.length} sheet(s) cannot be imported. Nothing else was prepared.`
+            : "No valid import tasks prepared.",
+        );
+        displayOperationResults();
+        return;
+      }
+
+      try {
+        const exportTasks = collapseMergedImportTasks(result.succeededTasks);
+        setStatusWithSpinner(
+          `Exporting data from ${exportTasks.length} sheets...` +
+            (rejected.length > 0
+              ? ` (${rejected.length} cannot be imported)`
+              : ""),
+        );
+        const [exportResults] = await Promise.all([
+          exportAllData(exportTasks),
+          stageMasterExport(),
+        ]);
+        console.log("Export results:", exportResults);
+
+        if (exportResults.failedCount > 0) {
+          console.warn(
+            `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`,
+          );
+        }
+
+        if (exportedFilesSuccess.length === 0) {
+          document.getElementById("importButton").disabled = false;
+          setStatusText(
+            "No data was successfully exported. Cannot proceed with import.",
+          );
+          return;
+        }
+
+        const exportedData = {};
+        const sheetVisibilityData = {};
+        exportedFilesSuccess.forEach((exportedFile) => {
+          if (exportedFile.exportData && exportedFile.sheetType) {
+            exportedData[exportedFile.sheetType] = exportedFile.exportData;
+            if (exportedFile.sheetVisibility) {
+              Object.assign(sheetVisibilityData, exportedFile.sheetVisibility);
+            }
+          }
+        });
+
+        setStatusWithSpinner(`Importing ${sheetType} data...`);
+        try {
+          const importResult = await runAppsScript(
+            "importData",
+            newSheetID,
+            sheetType,
+            exportedData,
+            sheetVisibilityData,
+            idMasterID,
+          );
+          await onImportSuccess(importResult);
+        } catch (error) {
+          onImportFailure(error);
+        }
+      } catch (error) {
+        document.getElementById("importButton").disabled = false;
+        AppError.show(error, {
+          source: "importData",
+          message: "The export did not finish.",
+        });
+      }
+      return;
+    }
+
+    setStatusWithSpinner(`Exporting ${sheetType} data...`);
+    try {
+      const exportResult = await runAppsScript(
+        "exportData",
+        oldSheetID,
+        sheetType,
+        versionDifference,
+      );
+      if (exportResult.success) {
+        setStatusWithSpinner(`Importing ${sheetType} data...`);
+
+        try {
+          const importResult = await runAppsScript(
+            "importData",
+            newSheetID,
+            sheetType,
+            exportResult.data,
+            exportResult.sheetVisibility,
+            idMasterID,
+          );
+          await onImportSuccess(importResult);
+        } catch (error) {
+          onImportFailure(error);
+        }
+      } else {
+        document.getElementById("importButton").disabled = false;
+        AppError.show(exportResult, { source: "importData" });
+      }
+    } catch (error) {
+      document.getElementById("importButton").disabled = false;
+      console.error("Export error:", error);
+      AppError.show(error, {
+        source: "importData",
+        message: "Reading the data out of your sheet did not finish.",
+      });
+    }
+  }
+
+  /**
+   * Records sheets whose import preparation failed, keeping each envelope.
+   * @param {Object} result
+   * @returns {void}
+   */
+  function recordPreparationFailures(result) {
+    const failedTasks = result.failedTasks || [];
+    if (failedTasks.length === 0) return [];
+
+    const preparedTypes = new Set(
+      (result.succeededTasks || []).map((task) => task.sheetType),
+    );
+    const reasonByType = {};
+    failedTasks.forEach((task) => {
+      if (task && task.sheetType) reasonByType[task.sheetType] = task;
+    });
+
+    const rejected = [];
+    const partition = (files) =>
+      (files || []).filter((file) => {
+        const types = expandMergedTemplateFiles([file]).map((f) => f.sheetType);
+        if (types.some((type) => preparedTypes.has(type))) return true;
+        const failure = types.map((type) => reasonByType[type]).find(Boolean);
+        if (!failure) return true;
+        rejected.push({ ...file, error: failure.message });
+        return false;
+      });
+
+    copiedTemplateFiles = partition(copiedTemplateFiles);
+    importedFilesFailed = partition(importedFilesFailed);
+    exportedFilesFailed = partition(exportedFilesFailed);
+    preparationFailedFiles = preparationFailedFiles.concat(rejected);
+
+    console.warn(
+      `${failedTasks.length} task(s) failed during preparation:`,
+      failedTasks,
+    );
+    return rejected;
+  }
+
+  /**
+   * Continues once import preparation succeeded: exports, then imports.
+   * @param {Object} result
+   * @returns {Promise<void>}
+   */
+  async function onprepareImportDataSuccess(result) {
+    console.log("Import preparation result:", result);
+
+    const rejected = recordPreparationFailures(result);
+
+    if (!result.succeededTasks || result.succeededTasks.length === 0) {
+      const statusMessage =
+        rejected.length > 0
+          ? `${rejected.length} sheet(s) cannot be imported. Nothing else was prepared.`
+          : "No valid import tasks prepared.";
+      setStatusText(statusMessage);
+
+      displayOperationResults();
+      return;
+    }
+
+    try {
+      const exportTasks = collapseMergedImportTasks(result.succeededTasks);
+      setStatusWithSpinner(
+        `Exporting data from ${
+          exportTasks.length + (isCombinedUpdate ? 1 : 0)
+        } sheets...` +
+          (rejected.length > 0
+            ? ` (${rejected.length} cannot be imported)`
+            : ""),
+      );
+
+      const [exportResults, masterFile] = await Promise.all([
+        exportAllData(exportTasks),
+        isCombinedUpdate ? stageMasterExport() : Promise.resolve(null),
+      ]);
+
+      console.log("Export results:", exportResults);
+
+      if (exportResults.failedCount > 0) {
+        console.warn(
+          `${exportResults.failedCount} exports failed out of ${exportResults.totalTasks}`,
+        );
+      }
+
+      if (exportedFilesSuccess.length === 0) {
+        document.getElementById("importButton").disabled = false;
+        setStatusText("No data was exported. Cannot proceed with import.");
+        return;
+      }
+      console.log(masterFile)
+
+      if (masterFile) {
+        masterFile.exportData = remapMasterIdsToNewSheets(masterFile.exportData);
+      }
+
+      const importTasks = exportedFilesSuccess.map((exportedFile) => ({
+        newSheetID: exportedFile.fileId,
+        sheetType: exportedFile.sheetType,
+        exportData: exportedFile.exportData,
+      }));
+
+      setStatusWithSpinner(
+        `Importing data into ${importTasks.length} sheets...`,
+      );
+      await importAllData(importTasks);
+
+      if (isCombinedUpdate) {
+        masterIdsWritten = importedFilesSuccess.some(
+          (file) => file.sheetType === "IDS Master",
+        );
+      }
+    } catch (error) {
+      document.getElementById("importButton").disabled = false;
+      AppError.show(error, {
+        source: "onprepareImportDataSuccess",
+        message: "The export and import did not finish.",
+      });
+    }
+  }
+
+  /**
+   * Rewrites the IDS Master's exported IDs to point at the new sheets.
+   * @param {Object} masterExportData
+   * @returns {Object} The adjusted export data.
+   */
+  function remapMasterIdsToNewSheets(masterExportData) {
+    const remapped = { ...(masterExportData || {}) };
+    const oldIdsData = { ...(remapped.oldIdsData || {}) };
+
+    expandMergedTemplateFiles(
+      (exportedFilesSuccess || []).concat(importedFilesSuccess || []),
+    ).forEach((file) => {
+      if (!file.fileId || file.sheetType === "IDS Master") {
+        return;
+      }
+      if (oldIdsData[file.sheetType] !== file.fileId) {
+        console.log(
+          `IDS Master: repointing ${file.sheetType} from ${
+            oldIdsData[file.sheetType] || "(unset)"
+          } to ${file.fileId}`,
+        );
+      }
+      oldIdsData[file.sheetType] = file.fileId;
+    });
+
+    remapped.oldIdsData = oldIdsData;
+    return remapped;
+  }
+
+  /**
+   * Exports the IDS Master and holds it until the subsheets are in place.
+   * @returns {Promise<Object>} The staged export.
+   */
+  async function stageMasterExport() {
+
+    const compatibility = await runAppsScript(
+      "checkExportCompatibility",
+      oldSheetID,
+      "IDS Master",
+    );
+    if (!compatibility || !compatibility.success) {
+      console.error(
+        "IDS Master export compatibility check failed:",
+        compatibility && compatibility.message,
+      );
+      exportedFilesFailed.push({
+        sheetType: "IDS Master",
+        fileId: newSheetID,
+        oldSheetID: oldSheetID,
+        error:
+          (compatibility && compatibility.message) ||
+          "IDS Master is not compatible for export",
+      });
+      return null;
+    }
+    const masterExportVersion = compatibility.versionDifference;
+
+    const exportResult = await runAppsScript(
+      "exportData",
+      oldSheetID,
+      "IDS Master",
+      masterExportVersion,
+    );
+    if (!exportResult || !exportResult.success) {
+      console.error(
+        "IDS Master export failed:",
+        exportResult && exportResult.message,
+      );
+      exportedFilesFailed.push({
+        sheetType: "IDS Master",
+        fileId: newSheetID,
+        oldSheetID: oldSheetID,
+        error:
+          (exportResult && exportResult.message) || "IDS Master export failed",
+      });
+      return null;
+    }
+
+    const masterFile = {
+      sheetType: "IDS Master",
+      fileId: newSheetID,
+      oldSheetID: oldSheetID,
+      version: cachedMasterTemplateInfo ? cachedMasterTemplateInfo.version : "",
+      exportData: exportResult.data,
+      sheetVisibility: exportResult.sheetVisibility,
+    };
+    exportedFilesSuccess.push(masterFile);
+
+    return masterFile;
+  }
+
+  /**
+   * Shows the panel when import preparation could not run.
+   * @param {*} error
+   * @returns {void}
+   */
+  function onprepareImportDataFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    AppError.show(error, {
+      source: "onprepareImportDataFailure",
+      message: "Preparing the import did not finish.",
+    });
+    console.error("Import preparation failed:", error);
+  }
+
+  /**
+   * Exports one sheet.
+   * @param {Object} task
+   * @returns {Promise<Object>} The export result.
+   */
+  async function runExportForTask(task) {
+    const sources = task.exportSources || [
+      {
+        sheetType: task.sheetType,
+        oldSheetID: task.oldSheetID,
+        versionDifference: task.versionDifference,
+      },
+    ];
+
+    const results = await Promise.all(
+      sources.map((source) =>
+        runAppsScript(
+          "exportData",
+          source.oldSheetID,
+          source.sheetType,
+          source.versionDifference,
+        ),
+      ),
+    );
+
+    if (results.length === 1) {
+      return results[0];
+    }
+
+    const failedIndex = results.findIndex(
+      (result) => !result || !result.success,
+    );
+    if (failedIndex !== -1) {
+      const failed = results[failedIndex];
+      return {
+        success: false,
+        message:
+          (failed && failed.message) ||
+          `Unknown error exporting ${sources[failedIndex].sheetType}`,
+      };
+    }
+
+    const data = {};
+    const sheetVisibility = {};
+    results.forEach((result) => {
+      Object.assign(data, result.data || {});
+      Object.assign(sheetVisibility, result.sheetVisibility || {});
+    });
+
+    return { success: true, data: data, sheetVisibility: sheetVisibility };
+  }
+
+  /**
+   * Exports every task in parallel, recording each failure's envelope.
+   * @param {Array<Object>} exportTasks
+   * @returns {Promise<{success: boolean, successCount: number, failedCount: number, totalTasks: number}>}
+   */
+  async function exportAllData(exportTasks) {
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    const totalTasks = exportTasks.length;
+
+    try {
+      console.log(`Starting ${totalTasks} exports`);
+
+      const exportPromises = exportTasks.map((task, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting export for ${task.sheetType}`);
+
+          runExportForTask(task).then(
+            function (result) {
+              completedCount++;
+              if (result.success) {
+                successCount++;
+                console.log(
+                  `✅ ${task.sheetType} export completed successfully`,
+                );
+
+                let exportedFile = null;
+                let sourceArray = null;
+
+                const copiedFileIndex = copiedTemplateFiles.findIndex(
+                  (f) => f.sheetType === task.sheetType,
+                );
+                if (copiedFileIndex !== -1) {
+                  exportedFile = copiedTemplateFiles.splice(
+                    copiedFileIndex,
+                    1,
+                  )[0];
+                  sourceArray = "copy failed";
+                } else {
+
+                  const failedFileIndex = exportedFilesFailed.findIndex(
+                    (f) => f.sheetType === task.sheetType,
+                  );
+                  if (failedFileIndex !== -1) {
+                    exportedFile = exportedFilesFailed.splice(
+                      failedFileIndex,
+                      1,
+                    )[0];
+                    sourceArray = "export failed";
+                  } else {
+
+                    const importedFileIndex = importedFilesFailed.findIndex(
+                      (f) => f.sheetType === task.sheetType,
+                    );
+                    if (importedFileIndex !== -1) {
+                      exportedFile = importedFilesFailed.splice(
+                        importedFileIndex,
+                        1,
+                      )[0];
+                      sourceArray = "import failed";
+                    }
+                  }
+                }
+
+                if (exportedFile) {
+                  exportedFilesSuccess.push({
+                    ...exportedFile,
+                    oldSheetID: task.oldSheetID,
+                    oldSheetIDs: task.oldSheetIDs,
+                    idMasterID: task.idMasterID,
+                    exportData: result.data,
+                    sheetVisibility: result.sheetVisibility,
+                  });
+                  console.log(
+                    `Moved ${task.sheetType} from ${sourceArray} to exported success`,
+                  );
+                } else {
+                  console.warn(
+                    `Could not find ${task.sheetType} in either copiedTemplateFiles or exportedFilesFailed`,
+                  );
+                }
+              } else {
+                failedCount++;
+                console.error(
+                  `❌ ${task.sheetType} export failed:`,
+                  result.message,
+                );
+
+                const copiedFileIndex = copiedTemplateFiles.findIndex(
+                  (f) => f.sheetType === task.sheetType,
+                );
+                if (copiedFileIndex !== -1) {
+                  const failedFile = copiedTemplateFiles.splice(
+                    copiedFileIndex,
+                    1,
+                  )[0];
+                  exportedFilesFailed.push({
+                    ...failedFile,
+                    error: result.message || "Export failed",
+                    envelope: result,
+                    oldSheetID: task.oldSheetID,
+                    idMasterID: task.idMasterID,
+                  });
+                  console.log(
+                    `Moved ${task.sheetType} from copied to export failed with error: ${result.message}`,
+                  );
+                } else {
+
+                  const failedFileIndex = exportedFilesFailed.findIndex(
+                    (f) => f.sheetType === task.sheetType,
+                  );
+                  if (failedFileIndex !== -1) {
+                    exportedFilesFailed[failedFileIndex].error =
+                      result.message || "Export failed";
+
+                    exportedFilesFailed[failedFileIndex].envelope = result;
+                    console.log(
+                      `Updated error for ${task.sheetType} in export failed list: ${result.message}`,
+                    );
+                  }
+                }
+              }
+
+              setStatusWithSpinner(
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
+              );
+
+              resolve({
+                ...result,
+                sheetType: task.sheetType,
+                taskIndex: index,
+              });
+            },
+            function (error) {
+              completedCount++;
+              failedCount++;
+              console.error(`❌ ${task.sheetType} export error:`, error);
+
+              const copiedFileIndex = copiedTemplateFiles.findIndex(
+                (f) => f.sheetType === task.sheetType,
+              );
+              if (copiedFileIndex !== -1) {
+                const failedFile = copiedTemplateFiles.splice(
+                  copiedFileIndex,
+                  1,
+                )[0];
+                exportedFilesFailed.push({
+                  ...failedFile,
+                  error: error.message || error,
+                  envelope: error,
+                  oldSheetID: task.oldSheetID,
+                  idMasterID: task.idMasterID,
+                });
+                console.log(
+                  `Moved ${
+                    task.sheetType
+                  } from copied to export failed with error: ${
+                    error.message || error
+                  }`,
+                );
+              } else {
+
+                const failedFileIndex = exportedFilesFailed.findIndex(
+                  (f) => f.sheetType === task.sheetType,
+                );
+                if (failedFileIndex !== -1) {
+                  exportedFilesFailed[failedFileIndex].error =
+                    error.message || error;
+
+                  exportedFilesFailed[failedFileIndex].envelope = error;
+                  console.log(
+                    `Updated error for ${
+                      task.sheetType
+                    } in export failed list: ${error.message || error}`,
+                  );
+                }
+              }
+
+              setStatusWithSpinner(
+                `Export progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
+              );
+
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetType: task.sheetType,
+                taskIndex: index,
+              });
+            },
+          );
+        });
+      });
+
+      const results = await Promise.all(exportPromises);
+
+      return {
+        success: failedCount === 0,
+        totalTasks,
+        successCount,
+        failedCount,
+        results,
+      };
+    } catch (error) {
+      AppError.log(error, "exportAllData: Error in export execution");
+      throw error;
+    }
+  }
+
+  /**
+   * Imports every exported sheet in parallel, then raises the panel for the
+   * first failure that is a defect and logs the rest.
+   * @param {Array<Object>} importTasks
+   * @returns {Promise<void>}
+   */
+  async function importAllData(importTasks) {
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    const totalTasks = importTasks.length;
+
+    try {
+      console.log(`Starting ${totalTasks} imports`);
+
+      const importPromises = importTasks.map((task, index) => {
+        return new Promise((resolve) => {
+          console.log(`Starting import for ${task.sheetType}`);
+
+          const exportedFile = exportedFilesSuccess.find(
+            (f) => f.sheetType === task.sheetType,
+          );
+          if (!exportedFile || !exportedFile.exportData) {
+            completedCount++;
+            failedCount++;
+            const errorMessage = `No exported data found for ${task.sheetType}`;
+            console.error(`❌ ${errorMessage}`);
+
+            setStatusWithSpinner(
+              `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
+            );
+
+            resolve({
+              success: false,
+              message: errorMessage,
+              sheetType: task.sheetType,
+              taskIndex: index,
+            });
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function (result) {
+              completedCount++;
+              if (result.success) {
+                successCount++;
+                console.log(
+                  `✅ ${task.sheetType} import completed successfully`,
+                );
+
+                const exportedFileIndex = exportedFilesSuccess.findIndex(
+                  (f) => f.sheetType === task.sheetType,
+                );
+                if (exportedFileIndex !== -1) {
+                  const importedFile = exportedFilesSuccess.splice(
+                    exportedFileIndex,
+                    1,
+                  )[0];
+
+                  const { exportData, ...fileWithoutExportData } = importedFile;
+                  importedFilesSuccess.push(fileWithoutExportData);
+                  console.log(
+                    `Moved ${task.sheetType} from exported success to imported success`,
+                  );
+                } else {
+                  console.warn(
+                    `Could not find ${task.sheetType} in exportedFilesSuccess after successful import`,
+                  );
+                }
+              } else {
+                failedCount++;
+                console.error(
+                  `❌ ${task.sheetType} import failed:`,
+                  result.message,
+                );
+
+                const exportedFileIndex = exportedFilesSuccess.findIndex(
+                  (f) => f.sheetType === task.sheetType,
+                );
+                if (exportedFileIndex !== -1) {
+                  const failedFile = exportedFilesSuccess.splice(
+                    exportedFileIndex,
+                    1,
+                  )[0];
+
+                  const { exportData, ...fileWithoutExportData } = failedFile;
+                  importedFilesFailed.push({
+                    ...fileWithoutExportData,
+                    error: result.message || "Import failed",
+                    envelope: result,
+                  });
+                  console.log(
+                    `Moved ${task.sheetType} from exported success to imported failed with error: ${result.message}`,
+                  );
+                } else {
+                  console.warn(
+                    `Could not find ${task.sheetType} in exportedFilesSuccess for failure handling`,
+                  );
+                }
+              }
+
+              setStatusWithSpinner(
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
+              );
+
+              resolve({
+                ...result,
+                sheetType: task.sheetType,
+                taskIndex: index,
+              });
+            })
+            .withFailureHandler(function (error) {
+              completedCount++;
+              failedCount++;
+              console.error(`❌ ${task.sheetType} import error:`, error);
+
+              const exportedFileIndex = exportedFilesSuccess.findIndex(
+                (f) => f.sheetType === task.sheetType,
+              );
+              if (exportedFileIndex !== -1) {
+                const failedFile = exportedFilesSuccess.splice(
+                  exportedFileIndex,
+                  1,
+                )[0];
+
+                const { exportData, ...fileWithoutExportData } = failedFile;
+                importedFilesFailed.push({
+                  ...fileWithoutExportData,
+                  error: error.message || error,
+                  envelope: error,
+                });
+                console.log(
+                  `Moved ${
+                    task.sheetType
+                  } from exported success to imported failed with error: ${
+                    error.message || error
+                  }`,
+                );
+              } else {
+                console.warn(
+                  `Could not find ${task.sheetType} in exportedFilesSuccess for error handling`,
+                );
+              }
+
+              setStatusWithSpinner(
+                `Import progress: ${completedCount}/${totalTasks} completed (${successCount} successful, ${failedCount} failed)`,
+              );
+
+              resolve({
+                success: false,
+                message: error.message || error,
+                sheetType: task.sheetType,
+                taskIndex: index,
+              });
+            })
+            .importData(
+              task.newSheetID,
+              task.sheetType,
+              exportedFile.exportData,
+              exportedFile.sheetVisibility,
+              idMasterID,
+            );
+        });
+      });
+
+      const results = await Promise.all(importPromises);
+
+      let finalMessage;
+      let titleText;
+
+      if (failedCount === 0) {
+        finalMessage = `🎉 All ${totalTasks} sheet imports completed successfully!`;
+        titleText = `✅ Copied Sheets Imported (${successCount}/${totalTasks})`;
+      } else if (successCount === 0) {
+        finalMessage = `❌ All ${totalTasks} sheet imports failed.`;
+        titleText = `❌ Copied Sheet Import Failed (0/${totalTasks})`;
+      } else {
+        finalMessage = `⚠️ Imports completed: ${successCount} successful, ${failedCount} failed.`;
+        titleText = `⚠️ Sheets Partial Import (${successCount}/${totalTasks})`;
+      }
+
+      setStatusText(finalMessage);
+      document.getElementById("fileAccessTitle").innerHTML = titleText;
+
+      displayOperationResults();
+      if (failedCount > 0) surfaceFailureIfBug("importAllData");
+
+      console.log("Import results:", results);
+      console.log("Remaining copiedTemplateFiles:", copiedTemplateFiles);
+      console.log("Remaining exportedFilesSuccess:", exportedFilesSuccess);
+      console.log("Remaining exportedFilesFailed:", exportedFilesFailed);
+      console.log("Remaining importedFilesSuccess:", importedFilesSuccess);
+      console.log("Remaining importedFilesFailed:", importedFilesFailed);
+    } catch (error) {
+      AppError.show(error, {
+        source: "importAllData",
+        message: "Importing your data did not finish.",
+      });
+      document.getElementById("importButton").disabled = false;
+    }
+  }
+
+  /**
+   * Continues once a single-sheet import succeeded.
+   * @param {Object} result
+   * @returns {Promise<void>}
+   */
+  async function onImportSuccess(result) {
+    console.log("Import result:", result);
+
+    const importButton = document.getElementById("importButton");
+    const moveSheetButton = document.getElementById("moveSheetButton");
+    const fileAccessTitle = document.getElementById("fileAccessTitle");
+    const selectedFileSummary = document.getElementById("selectedFileSummary");
+
+    importButton.disabled = false;
+
+    if (result.success) {
+      setStatusText(`${result.message}`);
+      fileAccessTitle.innerHTML = `✅ ${sheetType} Imported Successfully`;
+
+      moveSheetButton.disabled = false;
+
+      selectedFileSummary.innerHTML = `<strong>⚠️ Make sure your data is imported correctly before ${
+        sheetType === "IDS Collection"
+          ? "moving your IDS Collection"
+          : sheetType === "Effective Paths"
+            ? "moving your Effective Paths"
+            : sheetType === "IDS Master"
+              ? "moving your IDS Master"
+              : "updating your IDS Master"
+      }! ⚠️</strong><br>`;
+      if (sheetType === "Effective Paths") {
+        selectedFileSummary.innerHTML += `<strong>⚠️ If the sheet shows errors after a minute, try refreshing the page. ⚠️</strong><br>`;
+      }
+      selectedFileSummary.innerHTML += `<a href="${googleLink}/${newSheetID}/edit" target="_blank" style="margin-left: 2em">📋 Open ${sheetType} Sheet™</a><br>`;
+      selectedFileSummary.innerHTML += `<br><strong>✅ Successfully Imported ${sheetType} (Ready to be moved and renamed):</strong><br>`;
+    } else {
+      if (result.failedUpdates && result.failedUpdates.length > 0) {
+        let summaryHtml = "<strong>❌ Import Failed:</strong><br>";
+        result.failedUpdates.forEach((update) => {
+          summaryHtml += `&nbsp;&nbsp;• ${update.sheetType}: ${update.message}<br>`;
+        });
+        selectedFileSummary.innerHTML = summaryHtml;
+      } else {
+        selectedFileSummary.innerText =
+          "Import failed with no specific updates.";
+      }
+      AppError.show(result, { source: "moveSheet" });
+    }
+  }
+
+  /**
+   * Shows the panel when the import could not run.
+   * @param {*} error
+   * @returns {void}
+   */
+  function onImportFailure(error) {
+    document.getElementById("importButton").disabled = false;
+    console.error("Import error:", error);
+    AppError.show(error, {
+      source: "onImportFailure",
+      message: "The import did not finish.",
+    });
+  }
+</script>

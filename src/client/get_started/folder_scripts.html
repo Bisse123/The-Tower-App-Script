@@ -1,0 +1,152 @@
+<script>
+  /**
+   * Renders the manual copy links for every template.
+   * @returns {void}
+   */
+  function renderGetStartedTemplateLinks() {
+    var linksContainer = document.getElementById("getStartedTemplateLinks");
+    if (!linksContainer) {
+      return;
+    }
+
+    var htmlParts = [];
+    htmlParts.push("<ul>");
+
+    for (var category in SHEET_TEMPLATES) {
+      var templates = SHEET_TEMPLATES[category];
+      if (templates && templates.length > 0) {
+        templates.forEach((template) => {
+          var safeName = template.sheetType || "Sheet";
+          htmlParts.push(
+            `<li><a href="${googleLink}/${template.templateID}/copy" target="_blank">${safeName} Sheet™</a></li>`,
+          );
+        });
+      }
+    }
+
+    htmlParts.push("</ul>");
+    linksContainer.innerHTML = htmlParts.join("");
+  }
+
+  /**
+   * Reveals the Get Started section and enables the copy button.
+   * @returns {void}
+   */
+  function continueGetStarted() {
+    var getStartedSection = document.getElementById("getStartedSection");
+    if (getStartedSection) {
+      getStartedSection.style.display = "block";
+    }
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    if (copyButton) {
+      copyButton.disabled = false;
+    }
+    setStatusText("Ready to copy templates");
+  }
+
+  /**
+   * Resolves the destination Drive folder, creating it if needed.
+   * @returns {Promise<void>}
+   * @throws {Error} When the folder cannot be resolved.
+   */
+  async function getOrCreateGetStartedFolder() {
+    var folderResult = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          if (result.id) {
+            resolve(result);
+          } else if (result.error) {
+            reject(new Error(result.error));
+          } else {
+            reject(new Error("Failed to get or create The Tower folder"));
+          }
+        })
+        .withFailureHandler(function (error) {
+          reject(error);
+        })
+        .getOrCreateGetStartedFolder();
+    });
+
+    if (folderResult && folderResult.success && folderResult.id) {
+      getStartedSelectedFolder = {
+        id: folderResult.id,
+        name: folderResult.name || "The Tower",
+        url: folderResult.url,
+      };
+      updateGetStartedSelectedFolderDisplay();
+    } else {
+      throw new Error("Invalid folder result: " + JSON.stringify(folderResult));
+    }
+  }
+
+  /**
+   * Shows the chosen destination folder, or hides the row when unset.
+   * @returns {void}
+   */
+  function updateGetStartedSelectedFolderDisplay() {
+    var folderElement = document.getElementById("getStartedSelectedFolder");
+    if (!folderElement) {
+      return;
+    }
+
+    if (!getStartedSelectedFolder || !getStartedSelectedFolder.id) {
+      folderElement.hidden = true;
+      return;
+    }
+
+    var safeName = getStartedSelectedFolder.name || "loading folder...";
+    folderElement.hidden = false;
+    folderElement.innerHTML = `Destination: <a href="${getStartedSelectedFolder.url}" target="_blank">${safeName}</a>`;
+  }
+
+  /**
+   * gapi onload hook: loads the client and picker libraries.
+   * @returns {void}
+   */
+  function getStartedGapiLoaded() {
+    console.log("Get Started GAPI script loaded, loading client and picker...");
+    gapi.load("client:picker", {
+      callback: initializeGetStartedPicker,
+      onerror: function () {
+        console.error("Failed to load GAPI client:picker for Get Started");
+        setStatusText("Failed to load Google™ APIs");
+      },
+    });
+  }
+
+  /**
+   * Initialises the Drive picker, then starts authorization.
+   * @returns {Promise<void>}
+   */
+  async function initializeGetStartedPicker() {
+    try {
+      console.log("Initializing Get Started GAPI client...");
+
+      if (!API_KEY || !APP_ID) {
+        throw new Error("Missing API_KEY or APP_ID for folder picker.");
+      }
+
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        ],
+      });
+
+      console.log("Get Started GAPI client initialized successfully");
+      console.log(
+        "Get Started Picker API available:",
+        typeof google.picker !== "undefined",
+      );
+
+      getStartedPickerReady = true;
+      renderGetStartedTemplateLinks();
+      authorizeGetStarted();
+    } catch (error) {
+      AppError.show(error, {
+        source: "initializeGetStartedPicker",
+        message: "This page could not finish loading. Reload and try again.",
+      });
+    }
+  }
+</script>

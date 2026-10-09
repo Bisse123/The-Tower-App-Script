@@ -1,0 +1,45 @@
+<script>
+  /**
+   * Sentence for an out-of-date copy of the script.
+   * @param {{running: string, latest: string, minimum: string,
+   *   unsupported: boolean}} status
+   * @returns {string}
+   */
+  function versionNotice(status) {
+    const running = status.running;
+    if (status.unsupported) {
+      if (!status.minimum) {
+        return `You are running version ${running} of the add-on. A newer version exists, updating is recommended.`;
+      }
+      return `You are running version ${running} of the add-on. Version ${status.minimum} or later is recommended.`;
+    }
+    return `You are running version ${running} of the add-on${
+      status.latest ? ` and ${status.latest} is available` : ""
+    }. Updating may fix this.`;
+  }
+
+  /**
+   * Shows the banner when this copy is below the supported floor. Runs on
+   * load; a copy that is merely behind says nothing here, and is mentioned
+   * only if an error happens.
+   * @returns {void}
+   */
+  function checkAppVersion() {
+    const banner = document.getElementById("appVersionBanner");
+    if (!banner || typeof google === "undefined") return;
+    google.script.run
+      .withSuccessHandler(function (status) {
+        if (!status || !status.unsupported) return;
+        banner.textContent = versionNotice(status);
+        banner.hidden = false;
+      })
+      .withFailureHandler(function () {})
+      .getAppVersionStatus();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkAppVersion);
+  } else {
+    checkAppVersion();
+  }
+</script>

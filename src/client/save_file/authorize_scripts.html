@@ -1,0 +1,63 @@
+<script>
+  /**
+   * Shows a setup error on the save-file page.
+   * @param {string} message
+   * @returns {void}
+   */
+  function reportSaveFileSetupError(message) {
+    if (typeof setSaveFileSetupError === "function") {
+      setSaveFileSetupError(message);
+    } else {
+      console.error(message);
+    }
+  }
+
+  /**
+   * Ensures scopes are granted, then loads the save-file parameters.
+   * @param {boolean} [forceTokenRefresh]
+   * @returns {Promise<boolean>} Whether the workflow may continue.
+   */
+  async function authorizeSaveFile(forceTokenRefresh = false) {
+    setStatusWithSpinner("Checking scope access permissions...");
+
+    if (!accessToken || forceTokenRefresh) {
+      const authSuccess = await getOAuthToken();
+      if (!authSuccess) {
+        return false;
+      }
+    }
+
+    hideConsentModal();
+
+    if (viewType === "sidebar") {
+      try {
+        const saveFileParams = await new Promise(function (resolve, reject) {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getSaveFileParameters();
+        });
+        if (saveFileParams && saveFileParams.idMasterID) {
+          idMasterID = saveFileParams.idMasterID;
+          sheetType = saveFileParams.sheetType || "";
+        } else {
+          reportSaveFileSetupError(
+            (saveFileParams && saveFileParams.message) ||
+              "Could not find your IDS Master or IDS Collection from this sheet.",
+          );
+          if (saveFileParams && saveFileParams.success === false) {
+            AppError.show(saveFileParams, { source: "getSaveFileParameters" });
+          }
+        }
+      } catch (error) {
+        AppError.log(error, "authorizeSaveFile: Error loading save file parameters");
+        reportSaveFileSetupError(
+          `Could not read this sheet's IDS tab: ${error.message || error}`,
+        );
+      }
+    }
+
+    continueSaveFile();
+    return true;
+  }
+</script>

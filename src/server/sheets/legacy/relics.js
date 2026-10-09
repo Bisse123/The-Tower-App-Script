@@ -1,0 +1,328 @@
+const relics = {
+
+  /**
+   * Reads Relics data out of the old spreadsheet, using the
+   * converter for versionDifference.
+   * @param {string} versionDifference
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
+  exportData: function (versionDifference, oldSheetID) {
+    try {
+      console.log("Called: relics.exportData");
+      var getVersionFunction = this.convertVersionFunctions[versionDifference];
+      if (!getVersionFunction) {
+        console.log(`Unsupported version: ${versionDifference}`);
+        return {
+          success: false,
+          message: `Unsupported version: ${versionDifference}`,
+        };
+      }
+
+      var oldDataResult = getVersionFunction(oldSheetID);
+      if (!oldDataResult || !oldDataResult.success) {
+        console.log(`${oldDataResult.message}`);
+        return oldDataResult;
+      }
+
+      return {
+        success: true,
+        message: "Relics export completed successfully",
+        data: oldDataResult,
+      };
+    } catch (error) {
+      var errorReport = errors.report("relics.exportData", error, {
+        versionDifference: versionDifference,
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
+    }
+  },
+
+  /**
+   * Writes exported Relics data into the new spreadsheet.
+   * @param {Object} data
+   * @param {string} newSheetID
+   * @returns {{success: boolean, message: string}} A failure envelope on error.
+   */
+  importData: function (data, newSheetID) {
+    try {
+      console.log("Called: relics.importData");
+
+      var requiredRanges = ["Relics", "IDS"];
+      var newRelicsBatchResult = SheetsAPI.batchGetValues(
+        newSheetID,
+        requiredRanges,
+      );
+      if (!newRelicsBatchResult || newRelicsBatchResult.length === 0) {
+        console.log("Error getting relics sheet data");
+        return {
+          success: false,
+          message: "Error getting relics sheet data",
+        };
+      }
+
+      var newRelicsData = newRelicsBatchResult[0].values;
+      var idsData = newRelicsBatchResult[1].values;
+
+      var batchUpdate = [];
+
+      if (data.hasOwnProperty("oldRelics")) {
+        var oldRelics = data.oldRelics;
+        var relicsResult = this.updateRelics(
+          "Relics",
+          oldRelics,
+          newRelicsData,
+        );
+        if (!relicsResult || !relicsResult.success) {
+          console.log(`Error updating relics: ${relicsResult.message}`);
+          return relicsResult;
+        }
+        batchUpdate = batchUpdate.concat(relicsResult.batchUpdate || []);
+      }
+
+      labelUtils.addIDUpdatesToBatch(
+        batchUpdate,
+        "Relics",
+        newSheetID,
+        idsData,
+        data.idMasterID,
+      );
+
+      var updateResult = SheetsAPI.batchUpdateValues(newSheetID, batchUpdate);
+      if (!updateResult) {
+        console.log(`Error applying batch updates to new spreadsheet`);
+        return {
+          success: false,
+          message: "Error applying batch updates to new spreadsheet™",
+        };
+      }
+
+      return {
+        success: true,
+        message: `Relics import completed successfully`,
+      };
+    } catch (error) {
+      var errorReport = errors.report("relics.importData", error, {
+        data: data,
+        newSheetID: newSheetID,
+      });
+      return errors.fail(errorReport);
+    }
+  },
+
+  /**
+   * Builds the batch update that writes Relics into the new sheet.
+   * @param {string} sheetName
+   * @param {Object} oldRelics
+   * @param {Object} newRelicsData
+   * @returns {{success: boolean, message: string, batchUpdate: Array<Object>}} A failure envelope on error.
+   */
+  updateRelics: function (sheetName, oldRelics, newRelicsData) {
+    try {
+      console.log("Called: relics.updateRelics");
+      if (!newRelicsData || newRelicsData.length < 3) {
+        console.log(`Not enough data in new Relics sheet`);
+        return {
+          success: false,
+          message: `Not enough data in new Relics sheet`,
+        };
+      }
+
+      var newRelicHeaderRow = null;
+      var newRelicNameCol = null;
+      var newRelicUnlockedCol = null;
+
+      for (var row = 0; row < newRelicsData.length; row++) {
+        var rowValues = newRelicsData[row];
+        var relicNameIndex = rowValues.indexOf("Relic Name");
+        var relicUnlockedIndex = rowValues.indexOf("Unlocked");
+        if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
+          newRelicHeaderRow = row + 1;
+          newRelicNameCol = relicNameIndex + 1;
+          newRelicUnlockedCol = relicUnlockedIndex + 1;
+          break;
+        }
+      }
+
+      if (!newRelicHeaderRow) {
+        console.log(`Could not find header row in new Relics sheet`);
+        return {
+          success: false,
+          message: `Could not find header row in new Relics sheet`,
+        };
+      }
+
+      var startRow = newRelicHeaderRow + 1;
+
+      var newRelicsUnlocked = [];
+      newRelicsData.slice(startRow - 1).forEach(function (row) {
+        var relicName = (row[newRelicNameCol - 1] || "").trim();
+        if (String(relicName).trim() !== "") {
+          if (oldRelics.includes(relicName)) {
+            newRelicsUnlocked.push([true]);
+          } else {
+            newRelicsUnlocked.push([false]);
+          }
+        }
+      });
+      if (newRelicsUnlocked.length > 0) {
+        var endRow = startRow + newRelicsUnlocked.length - 1;
+        var unlockedRange = `${sheetName}!${sheetRefs.columnToLetter(
+          newRelicUnlockedCol,
+        )}${startRow}:${sheetRefs.columnToLetter(newRelicUnlockedCol)}${endRow}`;
+
+        var batchUpdate = [
+          {
+            range: unlockedRange,
+            values: newRelicsUnlocked,
+          },
+        ];
+        return {
+          success: true,
+          message: `Relics updated successfully: ${newRelicsUnlocked.length} relics processed`,
+          batchUpdate: batchUpdate,
+        };
+      }
+      return {
+        success: true,
+        message: `No updates needed for relics`,
+      };
+    } catch (error) {
+      var errorReport = errors.report("relics.updateRelics", error, {
+        sheetName: sheetName,
+        oldRelics: oldRelics,
+        newRelicsData: newRelicsData,
+      });
+      return errors.fail(errorReport);
+    }
+  },
+
+  /**
+   * Reads Relics data from a v1.0 sheet.
+   * @param {string} oldSheetID
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
+  version1_0: function (oldSheetID) {
+    try {
+      console.log("Called: relics.version1_0");
+
+      var oldRelicsBatchResult = SheetsAPI.batchGetValues(oldSheetID, [
+        "Relics",
+      ]);
+      if (
+        !oldRelicsBatchResult ||
+        oldRelicsBatchResult.length === 0 ||
+        !oldRelicsBatchResult[0].values
+      ) {
+        console.log(`Could not read data from old Relics sheet`);
+        return {
+          success: false,
+          message: `Could not read data from old Relics sheet`,
+        };
+      }
+      var oldRelicsData = oldRelicsBatchResult[0].values;
+
+      var relicsData = this.getVersion1_0Relics(oldRelicsData);
+      return relicsData;
+    } catch (error) {
+      var errorReport = errors.report("relics.version1_0", error, {
+        oldSheetID: oldSheetID,
+      });
+      return errors.fail(errorReport);
+    }
+  },
+
+  /**
+   * Extracts Relics from a v1.0 sheet's values.
+   * @param {Array<Array<*>>} oldRelicsData
+   * @returns {{success: boolean}} Plus the extracted data. A failure envelope on error.
+   */
+  getVersion1_0Relics: function (oldRelicsData) {
+    try {
+      console.log("Called: relics.getVersion1_0Relics");
+      var oldRelicHeaderRow = -1;
+      var relicNameIndex = -1;
+      var relicUnlockedIndex = -1;
+
+      for (var row = 0; row < oldRelicsData.length; row++) {
+        var rowValues = oldRelicsData[row];
+        relicNameIndex = rowValues.indexOf("Relic Name");
+        relicUnlockedIndex = rowValues.indexOf("Unlocked");
+        if (relicNameIndex !== -1 && relicUnlockedIndex !== -1) {
+          oldRelicHeaderRow = row + 1;
+          break;
+        }
+      }
+
+      if (oldRelicHeaderRow === -1) {
+        console.log(`Could not find header row in old Relics sheet`);
+        return {
+          success: false,
+          message: `Could not find header row in old Relics sheet`,
+        };
+      }
+
+      var startRow = oldRelicHeaderRow + 1;
+
+      var oldRelics = [];
+      oldRelicsData.slice(startRow - 1).forEach(function (row) {
+        var relicName = row[relicNameIndex].trim();
+        if (relicName.includes("T:")) {
+          relicName = relicName.replace(/T:\s*/g, "T: ");
+        }
+        var isUnlocked = row[relicUnlockedIndex];
+
+        if (
+          relicName &&
+          (isUnlocked === true ||
+            isUnlocked === "TRUE" ||
+            isUnlocked === "true")
+        ) {
+          oldRelics.push(relicName);
+        }
+      });
+
+      return {
+        success: true,
+        oldRelics: oldRelics,
+      };
+    } catch (error) {
+      var errorReport = errors.report("relics.getVersion1_0Relics", error, {
+        oldRelicsData: oldRelicsData,
+      });
+      return errors.fail(errorReport);
+    }
+  },
+
+  get convertVersionFunctions() {
+    return {
+      "v1.0": this.version1_0.bind(this),
+    };
+  },
+
+  /**
+   * The newest converter threshold at or below oldVersion.
+   * @param {string} oldVersion
+   * @returns {string|null} The threshold, or null when too old.
+   */
+  isCompatibleVersion: function (oldVersion) {
+    var versionCompatibility = Object.keys(this.convertVersionFunctions);
+
+    var sortedThresholds = versionCompatibility.slice().sort(function (a, b) {
+      return versionUtils.compareVersions(b, a) === "newer" ? 1 : -1;
+    });
+
+    for (var i = 0; i < sortedThresholds.length; i++) {
+      var threshold = sortedThresholds[i];
+      var compareResult = versionUtils.compareVersions(oldVersion, threshold);
+
+      if (compareResult === "same" || compareResult === "newer") {
+        return threshold;
+      }
+    }
+
+    return null;
+  },
+
+};

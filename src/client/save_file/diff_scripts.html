@@ -1,0 +1,964 @@
+<script>
+  /**
+   * Dispatches to the right per-category diff renderer.
+   * @param {string} type
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderSaveFileDiffBody(type, parsed, sheet) {
+    switch (type) {
+      case "Laboratory":
+        return renderLaboratoryDiff(parsed, sheet);
+      case "Workshop":
+        return renderWorkshopDiff(parsed, sheet);
+      case "Ultimate Weapon":
+        return renderUltimateDiff(parsed, sheet);
+      case "Themes, Songs & Relics":
+        return renderThemesAndRelicsDiff(parsed, sheet);
+      case "Bots":
+        return renderBotsDiff(parsed, sheet);
+      case "Vault":
+        return renderVaultDiff(parsed, sheet);
+      case "Cards":
+        return renderCardsDiff(parsed, sheet);
+      case "Modules":
+        return renderModulesDiff(parsed, sheet);
+      case "Guardians":
+        return renderGuardiansDiff(parsed, sheet);
+      case "Player & Stuff":
+        return renderPlayerDiff(parsed, sheet);
+      case "IDS Master":
+        return renderMasterDiff(parsed, sheet);
+      default:
+        return "";
+    }
+  }
+
+  /**
+   * Differences between the save file's lab data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderLaboratoryDiff(parsed, sheet) {
+    const p = parsed.oldLabLevels || {};
+    const s = sheet.oldLabLevels || {};
+    const order = parsed.labOrder || Object.keys(p);
+    let rows = "";
+    order.forEach(function (name) {
+      if (!name || !p.hasOwnProperty(name)) return;
+      const pv = Array.isArray(p[name]) ? p[name][0] : p[name];
+      const sv = Array.isArray(s[name]) ? s[name][0] : s[name];
+      if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+      rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+    });
+    return rows ? sfDiffGrid(rows) : "";
+  }
+
+  /**
+   * Differences between the save file's workshop data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderWorkshopDiff(parsed, sheet) {
+    const pUp = parsed.oldWorkshopLevels || {};
+    const sUp = sheet.oldWorkshopLevels || {};
+    const pEn = parsed.oldWorkshopPlusLevels || {};
+    const sEn = sheet.oldWorkshopPlusLevels || {};
+    const presetNames = pUp.presetNames || [];
+    const upIdx = parsed.upgradeIndices || {};
+    const enIdx = parsed.enhancementIndices || {};
+    const tracks = ["Attack", "Defense", "Utility"];
+    let html = "";
+
+    presetNames.forEach(function (presetName, presetIndex) {
+      const upTracks = {};
+      const enTracks = {};
+      let presetHasValue = false;
+
+      tracks.forEach(function (track) {
+        let rows = "";
+        (upIdx[track] || []).forEach(function (name) {
+          const pd = (pUp.data || {})[name];
+          if (!pd) return;
+          const pv = (pd.levels || [])[presetIndex * 2];
+          if (sfNormLevel(pv) !== "0") presetHasValue = true;
+          const sd = (sUp.data || {})[name];
+          const sv = sfSheetPresetVal(
+            sd ? sd.levels : null,
+            presetIndex * 2,
+            presetIndex,
+            0,
+          );
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+        upTracks[track] = rows;
+      });
+
+      tracks.forEach(function (track) {
+        let rows = "";
+        (enIdx[track] || []).forEach(function (name) {
+          const parr = (pEn.data || {})[name];
+          if (!parr) return;
+          const pv = parr[presetIndex];
+          if (sfNormLevel(pv) !== "0") presetHasValue = true;
+          const sarr = (sEn.data || {})[name];
+          const sv = sfSheetPresetVal(sarr, presetIndex, presetIndex, 0);
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+        enTracks[track] = rows;
+      });
+
+      if (!presetHasValue) return;
+
+      const groups =
+        sfDiffTrackGroup("Upgrades", upTracks, tracks) +
+        sfDiffTrackGroup("Enhancements", enTracks, tracks);
+      if (groups) {
+        html += sfDiffBlock(
+          presetName,
+          '<div class="sfPresetBox">' + groups + "</div>",
+        );
+      }
+    });
+    return html;
+  }
+
+  /**
+   * A group of difference rows keyed by workshop track.
+   * @param {string} groupLabel
+   * @param {Object} rowsByTrack
+   * @param {string[]} tracks
+   * @returns {string} Markup for the block.
+   */
+  function sfDiffTrackGroup(groupLabel, rowsByTrack, tracks) {
+    let columns = "";
+    tracks.forEach(function (track) {
+      const rows = rowsByTrack[track];
+      if (!rows) return;
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(track) +
+        "</div>" +
+        sfDiffGridStacked(rows) +
+        "</div>";
+    });
+    if (!columns) return "";
+    return (
+      '<div class="sfPresetGroup"><div class="sfPresetGroupHeader">' +
+      escSaveFileHtml(groupLabel) +
+      '</div><div class="sfPresetTracks">' +
+      columns +
+      "</div></div>"
+    );
+  }
+
+  /**
+   * Reads one preset's value out of a sheet range.
+   * @param {Array<Array<*>>} arr
+   * @param {number} idx
+   * @param {number} presetIndex
+   * @param {number} farmingIdx
+   * @returns {*}
+   */
+  function sfSheetPresetVal(arr, idx, presetIndex, farmingIdx) {
+    if (!arr) return undefined;
+    let v = arr[idx];
+    if (
+      presetIndex > 0 &&
+      (v === null || v === undefined || String(v).trim() === "")
+    ) {
+      v = arr[farmingIdx];
+    }
+    return v;
+  }
+
+  /**
+   * Differences between the save file's ultimate weapon data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderUltimateDiff(parsed, sheet) {
+    const p = parsed.oldUltimate || {};
+    const s = sheet.oldUltimate || {};
+    const defs = parsed.targetWeapons || {};
+    const order = parsed.weaponOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      const pw = p[name];
+      if (!pw) return;
+      const sw = s[name] || {};
+      const def = defs[name];
+      if (!def) return;
+      let rows = "";
+      if (sfNormBool(pw.unlocked) !== sfNormBool(sw.unlocked)) {
+        rows += sfDiffRow(
+          sfDisplayBool(sw.unlocked),
+          sfDisplayBool(pw.unlocked),
+          "Unlocked",
+        );
+      }
+      const attrs = (def.upgrades || []).filter(Boolean);
+      if (def.plusUpgrade) attrs.push(def.plusUpgrade);
+      const pl = pw.levels || {};
+      const sl = sw.levels || {};
+      attrs.forEach(function (attr) {
+        const pv = pl[attr];
+        const sv = sl[attr];
+        if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+        rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+      });
+      if (rows) html += sfDiffBlock(name, sfDiffGridStacked(rows));
+    });
+    return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
+  }
+
+  /**
+   * Differences for the combined Themes, Songs and Relics sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderThemesAndRelicsDiff(parsed, sheet) {
+    const relicsDiff = renderRelicsDiff(parsed, sheet);
+    return (
+      renderThemesDiff(parsed, sheet) +
+      (relicsDiff ? sfDiffSub("Relics", relicsDiff) : "")
+    );
+  }
+
+  /**
+   * Differences between the save file's themes and songs and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderThemesDiff(parsed, sheet) {
+    const p = parsed.oldThemesNames || {};
+    const s = sheet.oldThemesNames || {};
+    const order = parsed.themesOrder || Object.keys(p);
+    let html = "";
+    order.forEach(function (cat) {
+      const pArr = p[cat] || [];
+      const sArr = s[cat] || [];
+      const pSet = new Set(pArr.map(String));
+      const sSet = new Set(sArr.map(String));
+      const added = pArr.filter(function (n) {
+        return !sSet.has(String(n));
+      });
+      const removed = sArr.filter(function (n) {
+        return !pSet.has(String(n));
+      });
+      if (!added.length && !removed.length) return;
+      let items = "";
+      added.forEach(function (n) {
+        items += sfDiffAddItem(n);
+      });
+      removed.forEach(function (n) {
+        items += sfDiffRemItem(n);
+      });
+      html += sfDiffSub(cat, '<div class="sfDiffChips">' + items + "</div>");
+    });
+    return html;
+  }
+
+  /**
+   * Differences between the save file's bot data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderBotsDiff(parsed, sheet) {
+    const pBots = (parsed.oldBots && parsed.oldBots.data) || {};
+    const sBots = (sheet.oldBots && sheet.oldBots.data) || {};
+    const presetNames = (parsed.oldBots && parsed.oldBots.presetNames) || [];
+    const defs = parsed.targetBots || {};
+    const order = parsed.botOrder || Object.keys(defs);
+    let columns = "";
+
+    presetNames.forEach(function (presetName, presetIndex) {
+      let colInner = "";
+
+      order.forEach(function (botName) {
+        const pBot = pBots[botName];
+        if (!pBot) return;
+        const sBot = sBots[botName] || {};
+        const def = defs[botName];
+        if (!def) return;
+
+        const attrs = (def.upgrades || []).filter(Boolean);
+        if (def.plusUpgrade) attrs.push(def.plusUpgrade);
+
+        const pPreset = (pBot.presets || {})[presetName] || {};
+        const sPreset = (sBot.presets || {})[presetName] || {};
+        const pProps = pPreset.props || {};
+        const sProps = sPreset.props || {};
+        const farmingProps =
+          presetIndex > 0
+            ? ((sBot.presets || {})[presetNames[0]] || {}).props || {}
+            : sProps;
+
+        let rows = "";
+        if (sfNormBool(pPreset.active) !== sfNormBool(sPreset.active)) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.active),
+            sfDisplayBool(pPreset.active),
+            "Active",
+          );
+        }
+        if (sfNormBool(pPreset.sync) !== sfNormBool(sPreset.sync)) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.sync),
+            sfDisplayBool(pPreset.sync),
+            "Sync",
+          );
+        }
+        attrs.forEach(function (attr) {
+          const pv = pProps[attr];
+          let sv = sProps[attr];
+          if (
+            presetIndex > 0 &&
+            (sv === null || sv === undefined || String(sv).trim() === "")
+          ) {
+            sv = farmingProps[attr];
+          }
+          if (sv === null || sv === undefined || String(sv).trim() === "") {
+            sv = pv === "Lo" ? "Lo" : null;
+          }
+
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+        });
+
+        if (rows) colInner += sfModuleDiffEntry(botName, rows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    return columns
+      ? '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+          columns +
+          "</div>"
+      : "";
+  }
+
+  /**
+   * Differences between the save file's relics and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderRelicsDiff(parsed, sheet) {
+    const pArr = parsed.oldRelics || [];
+    const sArr = sheet.oldRelics || [];
+    const pSet = new Set(pArr.map(String));
+    const sSet = new Set(sArr.map(String));
+    const added = pArr.filter(function (n) {
+      return !sSet.has(String(n));
+    });
+    const removed = sArr.filter(function (n) {
+      return !pSet.has(String(n));
+    });
+    if (!added.length && !removed.length) return "";
+    let items = "";
+    added.forEach(function (n) {
+      items += sfDiffAddItem(n);
+    });
+    removed.forEach(function (n) {
+      items += sfDiffRemItem(n);
+    });
+    return '<div class="sfDiffChips">' + items + "</div>";
+  }
+
+  /**
+   * Differences between the save file's vault data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderVaultDiff(parsed, sheet) {
+    const pVault = parsed.oldVault || {};
+    const sVault = sheet.oldVault || {};
+    const pUnlocked = pVault.unlockedGroups || [];
+    const sUnlocked = sVault.unlockedGroups || [];
+    const pLevels = pVault.upgradesLevel || {};
+    const sLevels = sVault.upgradesLevel || {};
+    const groups = parsed.vaultIndices || [];
+    const alwaysUnlocked = parsed.alwaysUnlocked || [];
+    let columnsHtml = "";
+
+    groups.forEach(function (group) {
+      let sectionsHtml = "";
+
+      (group.sections || []).forEach(function (section) {
+        const sectionName = section.section;
+        const inParsed = pUnlocked.indexOf(sectionName) !== -1;
+        const inSheet = sUnlocked.indexOf(sectionName) !== -1;
+
+        let rows = "";
+        if (inParsed !== inSheet && alwaysUnlocked.indexOf(sectionName) === -1) {
+          rows += sfDiffRow(
+            sfDisplayBool(inSheet),
+            sfDisplayBool(inParsed),
+            "Unlocked",
+          );
+        }
+
+        (section.upgrades || []).forEach(function (name) {
+          const pv = pLevels[name];
+          const sv = sLevels[name];
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), name);
+        });
+
+        if (!rows) return;
+        sectionsHtml +=
+          '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+          escSaveFileHtml(sectionName) +
+          "</div>" +
+          sfDiffGridStacked(rows) +
+          "</div>";
+      });
+
+      if (!sectionsHtml) return;
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(group.group) +
+        "</div>" +
+        sectionsHtml +
+        "</div>";
+    });
+
+    if (!columnsHtml) return "";
+    return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
+  }
+
+  /**
+   * Differences between the save file's cards and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderCardsDiff(parsed, sheet) {
+    const pLevels = parsed.oldCardsLevel || {};
+    const sLevels = sheet.oldCardsLevel || {};
+    const order = parsed.cardNameIndices || Object.keys(pLevels);
+    let html = "";
+
+    let levelRows = "";
+    order.forEach(function (card) {
+      if (!card || !pLevels.hasOwnProperty(card)) return;
+      const pArr = pLevels[card] || [];
+      const sArr = sLevels[card] || [];
+      if (sfNormLevel(pArr[0]) !== sfNormLevel(sArr[0])) {
+        levelRows += sfDiffRow(
+          sfDisplayLevel(sArr[0]),
+          sfDisplayLevel(pArr[0]),
+          card,
+        );
+      }
+      if (sfNormBool(pArr[1]) !== sfNormBool(sArr[1])) {
+        levelRows += sfDiffRow(
+          sfDisplayBool(sArr[1]),
+          sfDisplayBool(pArr[1]),
+          card + " ★",
+        );
+      }
+    });
+    if (levelRows) html += sfDiffSub("Card Levels", sfDiffGrid(levelRows));
+
+    const pPresets = parsed.oldCardsPreset || {};
+    const sPresets = sheet.oldCardsPreset || {};
+    let presetInner = "";
+    Object.keys(pPresets).forEach(function (name) {
+      const pCards = (pPresets[name] && pPresets[name].cards) || [];
+      const sCards = (sPresets[name] && sPresets[name].cards) || [];
+      const pSet = new Set(pCards.map(String));
+      const sSet = new Set(sCards.map(String));
+      const added = pCards.filter(function (c) {
+        return !sSet.has(String(c));
+      });
+      const removed = sCards.filter(function (c) {
+        return !pSet.has(String(c));
+      });
+      if (!added.length && !removed.length) return;
+      let items = "";
+      added.forEach(function (c) {
+        items += sfDiffAddItem(c);
+      });
+      removed.forEach(function (c) {
+        items += sfDiffRemItem(c);
+      });
+      presetInner +=
+        sfSubLabel(name) + '<div class="sfDiffChips">' + items + "</div>";
+    });
+    if (presetInner) html += sfDiffSub("Card Presets", presetInner);
+
+    if (
+      parsed.oldCardSlots !== undefined &&
+      sheet.oldCardSlots !== undefined &&
+      sheet.oldCardSlots !== null &&
+      sfNormLevel(parsed.oldCardSlots) !== sfNormLevel(sheet.oldCardSlots)
+    ) {
+      html += sfDiffGrid(
+        sfDiffRow(
+          sfDisplayLevel(sheet.oldCardSlots),
+          sfDisplayLevel(parsed.oldCardSlots),
+          "Unlocked Slots",
+        ),
+      );
+    }
+    return html;
+  }
+
+  /**
+   * Differences between the save file's module data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesDiff(parsed, sheet) {
+    const moduleCats = ["cannon", "armor", "generator", "core"];
+    const pPre = parsed.oldModulesPresets || {};
+    const sPre = sheet.oldModulesPresets || {};
+
+    return (
+      renderModulesPresetsDiff(pPre, sPre, moduleCats) +
+      renderModulesInventoryDiff(
+        parsed.oldModulesInventory || {},
+        sheet.oldModulesInventory || {},
+        pPre,
+        sPre,
+        moduleCats,
+        parsed.moduleOrder,
+      )
+    );
+  }
+
+  /**
+   * Differences in module presets.
+   * @param {Object} pPre
+   * @param {Object} sPre
+   * @param {string[]} moduleCats
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesPresetsDiff(pPre, sPre, moduleCats) {
+    const pNames = pPre.presetNames || [];
+    const sNames = sPre.presetNames || [];
+    const slots = [
+      ["Main", "primary"],
+      ["Assist", "secondary"],
+    ];
+    let columns = "";
+
+    pNames.forEach(function (presetName, presetIndex) {
+      const sName = sNames[presetIndex];
+      let colInner = "";
+
+      moduleCats.forEach(function (cat) {
+        const pSlot = (pPre[cat] || {})[presetName] || {};
+        const sSlot = (sName && (sPre[cat] || {})[sName]) || {};
+        let rows = "";
+        slots.forEach(function (slot) {
+          const pv = pSlot[slot[1]];
+          const sv = sSlot[slot[1]];
+          if (sfNormGeneric(pv) === sfNormGeneric(sv)) return;
+          rows += sfDiffRow(sfDisplayValue(sv), sfDisplayValue(pv), slot[0]);
+        });
+        if (rows) colInner += sfModuleDiffEntry(cat, rows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    return columns
+      ? sfSubLabel("Presets") +
+          '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns sfDiffStackName">' +
+          columns +
+          "</div>"
+      : "";
+  }
+
+  /**
+   * Differences in module inventory, per category.
+   * @param {Object} pInv
+   * @param {Object} sInv
+   * @param {string[]} moduleCats
+   * @param {string[]} moduleOrder
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesInventoryDiff(
+    pInv,
+    sInv,
+    pPre,
+    sPre,
+    moduleCats,
+    moduleOrder,
+  ) {
+    const metaKeys = ["Highest Level", "Assist Level"];
+    let columns = "";
+    moduleCats.forEach(function (cat) {
+      const pCat = pInv[cat] || {};
+      const sCat = sInv[cat] || {};
+      let colInner = "";
+
+      metaKeys.forEach(function (key) {
+        if (!pCat.hasOwnProperty(key)) return;
+        if (sfNormLevel(pCat[key]) !== sfNormLevel(sCat[key])) {
+          colInner += sfDiffRow(
+            sfDisplayLevel(sCat[key]),
+            sfDisplayLevel(pCat[key]),
+            key,
+          );
+        }
+      });
+
+      const pAssist = (pPre[cat] && pPre[cat]["Assist Slot"]) || null;
+      const sAssist = (sPre[cat] && sPre[cat]["Assist Slot"]) || {};
+      if (pAssist) {
+        let assistRows = "";
+        if (sfNormBool(pAssist.locked) !== sfNormBool(sAssist.locked)) {
+          assistRows += sfDiffRow(
+            sfDisplayBool(sAssist.locked),
+            sfDisplayBool(pAssist.locked),
+            "Unlocked",
+          );
+        }
+        if (sfNormGeneric(pAssist.rarity) !== sfNormGeneric(sAssist.rarity)) {
+          assistRows += sfDiffRow(
+            sfDisplayValue(sAssist.rarity),
+            sfDisplayValue(pAssist.rarity),
+            "Rarity",
+          );
+        }
+        if (
+          sfNormLevel(pAssist.multiplier) !== sfNormLevel(sAssist.multiplier)
+        ) {
+          assistRows += sfDiffRow(
+            sfDisplayLevel(sAssist.multiplier),
+            sfDisplayLevel(pAssist.multiplier),
+            "Multiplier",
+          );
+        }
+        if (sfNormLevel(pAssist.substat) !== sfNormLevel(sAssist.substat)) {
+          assistRows += sfDiffRow(
+            sfDisplayLevel(sAssist.substat),
+            sfDisplayLevel(pAssist.substat),
+            "Substat",
+          );
+        }
+        if (assistRows)
+          colInner += sfModuleDiffEntry("Assist Slot", assistRows);
+      }
+
+      sfOrderedModuleKeys(pCat, moduleOrder, metaKeys).forEach(function (key) {
+        if (metaKeys.indexOf(key) !== -1) return;
+        const pMod = pCat[key];
+        if (!pMod || typeof pMod !== "object") return;
+        const sMod = sCat[key];
+        let modRows = "";
+        if (!sMod) {
+          modRows += sfDiffRow("-", sfDisplayValue(pMod.rarity), "Rarity");
+        } else if (sfNormGeneric(pMod.rarity) !== sfNormGeneric(sMod.rarity)) {
+          modRows += sfDiffRow(
+            sfDisplayValue(sMod.rarity),
+            sfDisplayValue(pMod.rarity),
+            "Rarity",
+          );
+        }
+        const pSub = pMod.substats || [];
+        const sSub = (sMod && sMod.substats) || [];
+        const max = Math.max(pSub.length, sSub.length);
+        for (let i = 0; i < max; i++) {
+          const pPair = pSub[i] || [null, null];
+          const sPair = sSub[i] || [null, null];
+          if (
+            sfNormGeneric(pPair[0]) === sfNormGeneric(sPair[0]) &&
+            sfNormGeneric(pPair[1]) === sfNormGeneric(sPair[1])
+          )
+            continue;
+          modRows += sfDiffRow(
+            sfModuleSubstatLabel(sPair),
+            sfModuleSubstatLabel(pPair),
+          );
+        }
+        if (modRows) colInner += sfModuleDiffEntry(key, modRows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(cat) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    return columns
+      ? sfSubLabel("Inventory") +
+          '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+          columns +
+          "</div>"
+      : "";
+  }
+
+  /**
+   * One module's difference rows, under its name.
+   * @param {string} name
+   * @param {string[]} rows
+   * @returns {string} Markup for the block.
+   */
+  function sfModuleDiffEntry(name, rows) {
+    return (
+      '<div class="sfModuleEntry"><div class="sfModuleName">' +
+      escSaveFileHtml(name) +
+      "</div>" +
+      rows +
+      "</div>"
+    );
+  }
+
+  /**
+   * Label for a module substat pair.
+   * @param {*} pair
+   * @returns {string}
+   */
+  function sfModuleSubstatLabel(pair) {
+    if (!pair || (pair[0] == null && pair[1] == null)) return "-";
+    const label = pair[0] == null ? "" : String(pair[0]);
+    const rarity = pair[1] == null ? "" : String(pair[1]);
+    return (rarity + " - " + label).trim() || "-";
+  }
+
+  /**
+   * Differences between the save file's guardian data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderGuardiansDiff(parsed, sheet) {
+    const p = (parsed.oldGuardians && parsed.oldGuardians.data) || {};
+    const s = (sheet.oldGuardians && sheet.oldGuardians.data) || {};
+    const presetNames =
+      (parsed.oldGuardians && parsed.oldGuardians.presetNames) || [];
+    const defs = parsed.targetGuardians || {};
+    const order = parsed.guardianOrder || Object.keys(defs);
+
+    let unlockRows = "";
+    order.forEach(function (name) {
+      const pg = p[name];
+      if (!pg) return;
+      const def = defs[name];
+      if (!def || def.alwaysUnlocked) return;
+      const sg = s[name] || {};
+      if (sfNormBool(pg.unlocked) === sfNormBool(sg.unlocked)) return;
+      unlockRows += sfDiffRow(
+        sfDisplayBool(sg.unlocked),
+        sfDisplayBool(pg.unlocked),
+        name,
+      );
+    });
+    let html = unlockRows ? sfDiffGrid(unlockRows) : "";
+
+    let columns = "";
+    presetNames.forEach(function (presetName, presetIndex) {
+      let colInner = "";
+
+      order.forEach(function (name) {
+        const pg = p[name];
+        if (!pg) return;
+        const sg = s[name] || {};
+        const def = defs[name];
+        if (!def) return;
+
+        const pPreset = (pg.presets || {})[presetName] || {};
+        const sPreset = (sg.presets || {})[presetName] || {};
+
+        let rows = "";
+        if (
+          pPreset.hasOwnProperty("equipped") &&
+          sPreset.hasOwnProperty("equipped") &&
+          sfNormBool(pPreset.equipped) !== sfNormBool(sPreset.equipped)
+        ) {
+          rows += sfDiffRow(
+            sfDisplayBool(sPreset.equipped),
+            sfDisplayBool(pPreset.equipped),
+            "Equipped",
+          );
+        }
+
+        const pProps = pPreset.props || {};
+        const sProps = sPreset.props || {};
+        (def.upgrades || []).filter(Boolean).forEach(function (attr) {
+          const pv = pProps[attr];
+          const sv = sProps[attr];
+          if (sfNormLevel(pv) === sfNormLevel(sv)) return;
+          rows += sfDiffRow(sfDisplayLevel(sv), sfDisplayLevel(pv), attr);
+        });
+
+        if (rows) colInner += sfModuleDiffEntry(name, rows);
+      });
+
+      if (colInner) {
+        columns +=
+          '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+          escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+          "</div>" +
+          colInner +
+          "</div>";
+      }
+    });
+
+    if (columns) {
+      html +=
+        '<div class="sfModuleColumns sfDiffModuleColumns sfDiffFitColumns">' +
+        columns +
+        "</div>";
+    }
+    return html;
+  }
+
+  /**
+   * Differences between the save file's player data and the sheet.
+   * @param {Object} rawParsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderPlayerDiff(rawParsed, sheet) {
+    const parsed = sfPlayerWaveData(rawParsed);
+    const pStats = parsed.oldPlayerStuffStatsData || {};
+    const sStats = sheet.oldPlayerStuffStatsData || {};
+    const statsOrder = parsed.statOrder || Object.keys(pStats.Stat);
+    const premiumPackOrder =
+      parsed.premiumOrder || Object.keys(pStats["Premium Packs"]);
+    let html = "";
+
+    let statRows = "";
+
+    const pPack = pStats["Premium Packs"] || {};
+    const sPack = sStats["Premium Packs"] || {};
+    premiumPackOrder.forEach(function (key) {
+      if (sfNormGeneric(pPack[key]) === sfNormGeneric(sPack[key])) return;
+      statRows += sfDiffRow(
+        sfDisplayValue(sPack[key]),
+        sfDisplayValue(pPack[key]),
+        key,
+      );
+    });
+
+    const pStat = pStats.Stat || {};
+    const sStat = sStats.Stat || {};
+    statsOrder.forEach(function (key) {
+      if (sfNormGeneric(pStat[key]) === sfNormGeneric(sStat[key])) return;
+      statRows += sfDiffRow(
+        sfDisplayValue(sStat[key]),
+        sfDisplayValue(pStat[key]),
+        key,
+      );
+    });
+    if (statRows) html += sfDiffSub("Stats", sfDiffGrid(statRows));
+
+    const pTiers = parsed.oldPlayerStuffTierData || {};
+    const sTiers = sheet.oldPlayerStuffTierData || {};
+    const tierOrder = Object.keys(pTiers).sort(function (a, b) {
+      return sfTierNumber(a) - sfTierNumber(b);
+    });
+    tierOrder.forEach(function (tierKey) {
+      const pt = pTiers[tierKey] || {};
+      const st = sTiers[tierKey] || {};
+      const pd = pt.diss || {};
+      const sd = st.diss || {};
+      let rows = "";
+      if (sfNormLevel(pt.wave) !== sfNormLevel(st.wave))
+        rows += sfDiffRow(
+          sfDisplayLevel(st.wave),
+          sfDisplayLevel(pt.wave),
+          "Wave",
+        );
+      ["attack", "defense", "utility", "ultimate"].forEach(function (k) {
+        if (sfNormLevel(pd[k]) !== sfNormLevel(sd[k]))
+          rows += sfDiffRow(
+            sfDisplayLevel(sd[k]),
+            sfDisplayLevel(pd[k]),
+            k.charAt(0).toUpperCase() + k.slice(1),
+          );
+      });
+      if (sfNormBool(pt.premium) !== sfNormBool(st.premium))
+        rows += sfDiffRow(
+          sfDisplayBool(st.premium),
+          sfDisplayBool(pt.premium),
+          "Milestone Pass",
+        );
+      if (rows) html += sfDiffSub(tierKey, sfDiffGrid(rows));
+    });
+    return sfPlayerWaveToggle() + (html || sfDiffNoneHtml());
+  }
+
+  /**
+   * Differences between the save file's IDS Master data and the sheet.
+   * @param {Object} parsed
+   * @param {Object} sheet
+   * @returns {string} Markup for the block.
+   */
+  function renderMasterDiff(parsed, sheet) {
+    const pPresets = (parsed.oldPresetsData || {}).data || {};
+    const sPresets = (sheet.oldPresetsData || {}).data || {};
+    const presetNames =
+      (parsed.oldPresetsData || {}).presetNames || Object.keys(pPresets);
+    const typeOrder = parsed.presetTypesOrder || sheet.presetTypesOrder || [];
+
+    let columns = "";
+    presetNames.forEach(function (name) {
+      const pPreset = pPresets[name] || {};
+      const sPreset = sPresets[name] || {};
+      let rows = "";
+      typeOrder.forEach(function (type) {
+        if (sfNormGeneric(pPreset[type]) === sfNormGeneric(sPreset[type])) {
+          return;
+        }
+        rows += sfDiffRow(
+          sfDisplayValue(sPreset[type]),
+          sfDisplayValue(pPreset[type]),
+          type,
+        );
+      });
+      if (!rows) return;
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(name) +
+        "</div>" +
+        sfDiffGridStacked(rows) +
+        "</div>";
+    });
+
+    if (!columns) return "";
+    return (
+      sfSubLabel("Global Presets") +
+      '<div class="sfPresetTracks">' +
+      columns +
+      "</div>"
+    );
+  }
+</script>

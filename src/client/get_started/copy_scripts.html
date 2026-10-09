@@ -1,0 +1,532 @@
+<script>
+  /**
+   * Copies one template, resolving rather than rejecting on failure.
+   * @param {{sheetType: string, templateID: string, templateVersion?: string}} template
+   * @param {string} parentFolderID
+   * @returns {Promise<Object>} { success, result, error?, sheetType, templateID }
+   */
+  function copyGetStartedTemplateAsync(template, parentFolderID) {
+    return new Promise(function (resolve) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          resolve({
+            success: !!(result && result.success && result.fileId),
+            result: result,
+            sheetType: template.sheetType,
+            templateID: template.templateID,
+            templateVersion: template.templateVersion || "",
+          });
+        })
+        .withFailureHandler(function (error) {
+          resolve({
+            success: false,
+            result: null,
+            error: error,
+            sheetType: template.sheetType,
+            templateID: template.templateID,
+            templateVersion: template.templateVersion || "",
+          });
+        })
+        .copyFileTemplate(
+          template.templateID,
+          template.sheetType,
+          template.templateVersion || "",
+          parentFolderID || "",
+        );
+    });
+  }
+
+  /**
+   * Splits templates into those the script can read and those it cannot.
+   * @param {Array<Object>} templates
+   * @returns {Promise<{success: boolean, accessibleTemplates: Array, inaccessibleTemplates: Array}>}
+   */
+  async function checkGetStartedTemplateAccess(templates) {
+    try {
+      if (!Array.isArray(templates) || templates.length === 0) {
+        return {
+          success: true,
+          accessibleTemplates: [],
+          inaccessibleTemplates: [],
+          message: "No templates to check.",
+        };
+      }
+
+      console.log(
+        `Checking access to ${templates.length} Get Started templates`,
+      );
+
+      const promises = templates.map((template) => {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve({ template, result }))
+            .withFailureHandler((error) => reject({ template, error }))
+            .checkTemplateAccess(template.templateID);
+        });
+      });
+
+      const results = await Promise.allSettled(promises);
+
+      const accessibleTemplates = [];
+      const inaccessibleTemplates = [];
+
+      results.forEach((promiseResult) => {
+        if (promiseResult.status === "fulfilled") {
+          const { template, result } = promiseResult.value;
+
+          if (result.accessible) {
+            accessibleTemplates.push(template);
+          } else {
+            inaccessibleTemplates.push({
+              sheetType: template.sheetType,
+              templateID: template.templateID,
+            });
+          }
+        } else {
+          console.error(
+            "Template access check failed for",
+            promiseResult.reason.template.templateID,
+            ":",
+            promiseResult.reason.error,
+          );
+          inaccessibleTemplates.push({
+            sheetType: promiseResult.reason.template.sheetType,
+            templateID: promiseResult.reason.template.templateID,
+          });
+        }
+      });
+
+      const message =
+        inaccessibleTemplates.length > 0
+          ? `${inaccessibleTemplates.length} template(s) are not accessible.`
+          : "All templates are accessible.";
+
+      console.log(
+        `Template access check complete: ${accessibleTemplates.length} accessible, ${inaccessibleTemplates.length} inaccessible`,
+      );
+
+      return {
+        success: inaccessibleTemplates.length === 0,
+        accessibleTemplates: accessibleTemplates,
+        inaccessibleTemplates: inaccessibleTemplates,
+        message: message,
+      };
+    } catch (error) {
+      AppError.log(error, "checkGetStartedTemplateAccess: Template access check error");
+      return {
+        success: false,
+        accessibleTemplates: [],
+        inaccessibleTemplates: templates,
+        message: `Error checking template access: ${error.message || error}`,
+      };
+    }
+  }
+
+  /**
+   * Opens the picker so the user can grant the templates that failed.
+   * @param {Array<Object>} failedTemplates
+   * @returns {Promise<boolean>} Whether access was granted.
+   */
+  async function openGetStartedAccessPicker(failedTemplates) {
+    if (
+      !getStartedPickerReady ||
+      typeof google === "undefined" ||
+      !google.picker
+    ) {
+      throw new Error("Google Picker API not ready. Please try again.");
+    }
+
+    if (!Array.isArray(failedTemplates) || failedTemplates.length === 0) {
+      throw new Error("No templates to grant access to.");
+    }
+
+    return new Promise(function (resolve, reject) {
+      try {
+        var failedTemplateIds = failedTemplates
+          .map(function (template) {
+            return template.templateID;
+          })
+          .filter(function (id) {
+            return typeof id === "string" && id.length > 0;
+          });
+
+        if (failedTemplateIds.length === 0) {
+          reject(new Error("No valid template IDs found."));
+          return;
+        }
+
+        console.log(
+          "Opening Get Started access picker for templates:",
+          failedTemplateIds,
+        );
+
+        var fileIdsString = failedTemplateIds.join(",");
+        var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEET)
+          .setFileIds(fileIdsString)
+          .setIncludeFolders(false)
+          .setSelectFolderEnabled(false)
+          .setMode(google.picker.DocsViewMode.LIST)
+          .setMimeTypes("application/vnd.google-apps.spreadsheet");
+
+        var pickerSize = {
+          width: Math.min(window.innerWidth - 10, 1400),
+          height: Math.min(window.innerHeight - 80, 900),
+        };
+
+        var picker = new google.picker.PickerBuilder()
+          .setDeveloperKey(API_KEY)
+          .setAppId(APP_ID)
+          .setOAuthToken(accessToken)
+          .setSelectableMimeTypes("application/vnd.google-apps.spreadsheet")
+          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const pickedIds = (data.docs || []).map(function (d) {
+                return d.id;
+              });
+              console.log(
+                "Get Started access picker: files selected:",
+                pickedIds,
+              );
+              resolve(pickedIds);
+            } else if (data.action === google.picker.Action.CANCEL) {
+              console.log("Get Started access picker: cancelled");
+              resolve([]);
+            }
+          })
+          .setSize(pickerSize.width, pickerSize.height);
+
+        if (
+          typeof google !== "undefined" &&
+          google.script &&
+          google.script.host &&
+          google.script.host.origin
+        ) {
+          picker.setOrigin(google.script.host.origin);
+        }
+
+        var builtPicker = picker.build();
+        builtPicker.setVisible(true);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Copies every template in parallel.
+   * @param {Array<Object>} templates
+   * @param {string} parentFolderID
+   * @returns {Promise<Array<Object>>} One response per template.
+   */
+  async function executeGetStartedTemplateCopies(templates, parentFolderID) {
+
+    var copyResponses = await Promise.all(
+      templates.map(function (template) {
+        if (
+          effectivePathsID &&
+          template &&
+          template.templateID === effectivePathsID
+        ) {
+          return new Promise(function (resolve) {
+            google.script.run
+              .withSuccessHandler(function (result) {
+                resolve({
+                  success: !!(result && result.success),
+                  result: result,
+                  sheetType: template.sheetType || "Effective Paths",
+                  templateID: template.templateID,
+                  templateVersion: template.templateVersion || "",
+                });
+              })
+              .withFailureHandler(function (error) {
+                resolve({
+                  success: false,
+                  result: null,
+                  error: error,
+                  sheetType: template.sheetType || "Effective Paths",
+                  templateID: template.templateID,
+                  templateVersion: template.templateVersion || "",
+                });
+              })
+              .moveGetStartedFileToFolder(
+                template.templateID,
+                parentFolderID || "",
+              );
+          });
+        }
+
+        return copyGetStartedTemplateAsync(template, parentFolderID);
+      }),
+    );
+
+    return copyResponses;
+  }
+
+  /**
+   * Sorts copy responses into created files and failures, keeping each
+   * failure's envelope so it can be reported.
+   * @param {Array<Object>} copyResponses
+   * @returns {Object} { success, createdFiles, failedCopies, message, ... }
+   */
+  function processGetStartedCopyResults(copyResponses) {
+
+    var createdFiles = [];
+    var failedCopies = [];
+
+    copyResponses.forEach(function (response) {
+      if (response.success && response.result && response.result.fileId) {
+        var createdFileName =
+          response.result.fileName ||
+          response.result.name ||
+          `${response.sheetType}`;
+        var createdFileUrl = response.result.fileUrl;
+        if (!createdFileUrl && response.result.fileId) {
+          createdFileUrl = `${googleLink}/${response.result.fileId}/edit`;
+        }
+        createdFiles.push({
+          sheetType: response.sheetType,
+          fileId: response.result.fileId,
+          fileName: createdFileName,
+          fileUrl: createdFileUrl,
+        });
+        return;
+      }
+
+      var errorMessage = "Unknown error";
+      if (response.success && (!response.result || !response.result.fileId)) {
+        errorMessage = "Missing file ID from template operation.";
+      } else if (response.result && response.result.message) {
+        errorMessage = response.result.message;
+      } else if (response.error) {
+        errorMessage = response.error.message || String(response.error);
+      }
+      failedCopies.push({
+        sheetType: response.sheetType,
+        templateID: response.templateID,
+        templateVersion: response.templateVersion || "",
+        copyUrl: response.result ? response.result.copyUrl : "",
+        error: errorMessage,
+        envelope: response.error || response.result,
+      });
+    });
+
+    var completeSuccess = failedCopies.length === 0;
+    var partialSuccess = createdFiles.length > 0 && failedCopies.length > 0;
+    var success = createdFiles.length > 0;
+
+    var message = "";
+    if (completeSuccess) {
+      message = `Successfully created ${createdFiles.length} file(s).`;
+    } else if (partialSuccess) {
+      message = `Created ${createdFiles.length} file(s), but ${failedCopies.length} failed.`;
+    } else {
+      message =
+        "Could not create any files automatically. Use manual copy links below.";
+    }
+
+    return {
+      success: success,
+      message: message,
+      createdFiles: createdFiles,
+      failedCopies: failedCopies,
+    };
+  }
+
+  /**
+   * Checks template access, copies what it can, and links the results.
+   * @param {Array<Object>} templates
+   * @param {string} parentFolderID
+   * @param {string} copyMode
+   * @returns {Promise<Object>} The copy result summary.
+   */
+  async function performGetStartedAccessCheckAndCopy(
+    templates,
+    parentFolderID,
+    destinationLabel,
+    copyMode,
+  ) {
+    try {
+      var accessCheckResult = await checkGetStartedTemplateAccess(templates);
+      var inaccessibleTemplates = accessCheckResult.inaccessibleTemplates || [];
+
+      while (inaccessibleTemplates.length > 0) {
+        console.log(
+          "Templates need access, opening picker for:",
+          inaccessibleTemplates,
+        );
+
+        setStatusWithSpinner(
+          `Opening file picker to grant access to ${inaccessibleTemplates.length} template(s)...`,
+        );
+
+        var pickedIds;
+        try {
+          pickedIds = await openGetStartedAccessPicker(inaccessibleTemplates);
+        } catch (pickerError) {
+          AppError.show(pickerError, {
+            source: "performGetStartedAccessCheckAndCopy",
+            message: "The file picker could not be opened.",
+          });
+          return null;
+        }
+
+        if (!pickedIds || pickedIds.length === 0) {
+          setStatusText(
+            "File access picker cancelled. Please grant access to continue.",
+          );
+          return null;
+        }
+
+        inaccessibleTemplates = inaccessibleTemplates.filter(function (template) {
+          return pickedIds.indexOf(template.templateID) === -1;
+        });
+
+        if (inaccessibleTemplates.length > 0) {
+          setStatusText(
+            `Still missing access to ${inaccessibleTemplates.length} template(s). Please grant access to the remaining templates.`,
+          );
+        }
+      }
+
+      setStatusWithSpinner(
+        `Copying ${templates.length} templates to ${destinationLabel}...`,
+      );
+
+      var copyResponses = await executeGetStartedTemplateCopies(
+        templates,
+        parentFolderID,
+      );
+      var copyResult = processGetStartedCopyResults(copyResponses);
+      var finalResult = {
+        createdFiles: copyResult.createdFiles,
+        failedCopies: copyResult.failedCopies,
+        failedIDUpdates: [],
+        successfulIDUpdates: [],
+        message: copyResult.message,
+      };
+
+      if (copyResult.createdFiles.length > 0) {
+        setStatusWithSpinner(`Setting sheet™ connections...`);
+
+        var idUpdateResult = await applyGetStartedIDUpdates(
+          copyResult.createdFiles,
+          copyMode,
+        );
+
+        var idUpdateSummary = processGetStartedIDUpdateResults(
+          copyResult.createdFiles,
+          idUpdateResult,
+        );
+        finalResult.successfulIDUpdates = idUpdateSummary.successfulIDUpdates;
+        finalResult.failedIDUpdates = idUpdateSummary.failedIDUpdates;
+      }
+
+      var statusParts = [];
+      if (finalResult.createdFiles.length > 0) {
+        statusParts.push(`Created ${finalResult.createdFiles.length} file(s)`);
+      }
+      if (finalResult.failedCopies.length > 0) {
+        statusParts.push(
+          `${finalResult.failedCopies.length} file(s) failed to copy`,
+        );
+      }
+      if (finalResult.failedIDUpdates.length > 0) {
+        statusParts.push(
+          `${finalResult.failedIDUpdates.length} file(s) failed ID setup`,
+        );
+      }
+
+      if (finalResult.createdFiles.length === 0 && finalResult.failedCopies.length > 0) {
+        finalResult.message =
+          "Could not create any files automatically. Use manual copy links below.";
+      } else if (statusParts.length > 0) {
+        finalResult.message = statusParts.join(", ") + ".";
+      }
+
+      setStatusText(finalResult.message);
+      renderGetStartedCopyResult(finalResult);
+
+      return finalResult;
+    } catch (error) {
+      AppError.show(error, {
+        source: "performGetStartedAccessCheckAndCopy",
+        message: "That step did not finish.",
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Runs the whole Get Started copy for the selected mode.
+   * @returns {Promise<void>}
+   */
+  async function createGetStartedCopies() {
+    var modeSelect = document.getElementById("getStartedCopyMode");
+    var copyButton = document.getElementById("getStartedCopyBtn");
+    var resultElement = document.getElementById("getStartedCopyResult");
+    var retryBtn = document.getElementById("retryFailedCopiesBtn");
+
+    if (!modeSelect || !copyButton) return;
+
+    allCreatedFiles = [];
+    allFailedCopyFiles = [];
+    allFailedIDUpdateFiles = [];
+    lastFailedCopyTemplates = [];
+    lastFailedIDUpdateFiles = [];
+
+    var copyMode = modeSelect.value || "master-and-subsheets";
+    getStartedLastCopyMode = copyMode;
+
+    var templates = [];
+    var effectivePaths = SHEET_TEMPLATES["effective-paths"] || [];
+
+    if (effectivePathsID) {
+      templates.push({
+        sheetType: "Effective Paths",
+        templateID: effectivePathsID,
+      });
+    } else if (effectivePaths.length > 0) {
+      templates = templates.concat(effectivePaths);
+    }
+
+    var selectedTemplates = SHEET_TEMPLATES[copyMode] || [];
+    templates = templates.concat(selectedTemplates);
+
+    if (!templates || templates.length === 0) {
+      setStatusText("Invalid copy mode selected.");
+      return;
+    }
+
+    copyButton.disabled = true;
+    modeSelect.disabled = true;
+    if (resultElement) resultElement.innerHTML = "";
+    if (retryBtn) retryBtn.style.display = "none";
+
+    setStatusWithSpinner(`Checking access to ${templates.length} templates...`);
+
+    try {
+      if (!getStartedSelectedFolder || !getStartedSelectedFolder.id) {
+        await getOrCreateGetStartedFolder();
+      }
+      var parentFolderID = getStartedSelectedFolder.id;
+      var destinationLabel = getStartedSelectedFolder.name;
+
+      await performGetStartedAccessCheckAndCopy(
+        templates,
+        parentFolderID,
+        destinationLabel,
+        copyMode,
+      );
+    } catch (error) {
+      AppError.show(error, {
+        source: "createGetStartedCopies",
+        message: "That step did not finish. . Please try again.",
+      });
+    } finally {
+      copyButton.disabled = false;
+      modeSelect.disabled = false;
+    }
+  }
+</script>

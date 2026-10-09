@@ -1,0 +1,30 @@
+<script>
+  let parsedSaveData = null;
+  let saveFilePickerReady = false;
+  let saveFileSheetType = "";
+  let saveFileCollectionOutdated = null;
+  let saveFileCollectionVersionChecked = false;
+
+  const SF_MASTER_TYPE = "IDS Master";
+  const SF_COLLECTION_TYPE = "IDS Collection";
+  let saveFileSetupError = "";
+  let saveFileImportTargets = null;
+  let saveFilePendingAccessIds = [];
+  let saveFileNotOwnedFiles = [];
+  let saveFileWarningFiles = [];
+
+  const SF_PLAYER_WAVE_CAP = 4500;
+  const SF_PLAYER_DISS_CAP = 5000;
+  let saveFilePlayerWavesAtCap = true;
+  let saveFilePlayerWaveCapPrefPromise = null;
+
+  let saveFileViewMode = "all";
+  let sheetExportData = {};
+  let sheetExportFetched = false;
+  let sheetExportPromise = null;
+  let lastSaveFileResult = null;
+  let saveFileSelectedTypes = null;
+  let saveFilePendingDriveFile = null;
+
+  let saveFileFailuresSurfacedFor = null;
+</script>

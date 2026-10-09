@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <?!= include('client/common/base_styles'); ?>
+    <?!= include('client/common/header_styles'); ?>
+    <?!= include('client/common/status_styles'); ?>
+    <?!= include('client/common/error_styles'); ?>
+    <?!= include('client/common/consent_styles'); ?>
+    <?!= include('client/save_file/guide_styles'); ?>
+    <?!= include('client/save_file/layout_styles'); ?>
+    <?!= include('client/save_file/body_styles'); ?>
+    <?!= include('client/save_file/diff_styles'); ?>
+
+    <title>Import Data From Game</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+  </head>
+  <body>
+    <?!= include('client/common/header_section'); ?>
+    <?!= include('client/common/status_section'); ?>
+    <?!= include('client/common/error_section'); ?>
+    <?!= include('client/save_file/guide_section'); ?>
+    <?!= include('client/save_file/section'); ?>
+    <?!= include('client/common/consent_section'); ?>
+
+    <script>
+      const API_KEY = "<?= API_KEY ?>";
+      const APP_ID = "<?= APP_ID ?>";
+      const viewType = "<?= viewType ? viewType : 'webapp' ?>";
+      const saveFile = true;
+
+      let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
+      let sheetType = "<?= sheetType ? sheetType : '' ?>";
+
+      let accessToken = null;
+      const accessRequired = false;
+      const googleLink = "https://docs.google.com/spreadsheets/d";
+</script>
+
+    <script>
+      (function sizeDialogToScreen() {
+        try {
+          if (!window.google || !google.script || !google.script.host) return;
+          var w = Math.max(800, Math.min(Math.round(screen.availWidth * 0.8), 1600));
+          var h = Math.max(500, Math.min(Math.round(screen.availHeight * 0.85), 1000));
+          google.script.host.setWidth(w);
+          google.script.host.setHeight(h);
+        } catch (e) {
+        }
+      })();
+</script>
+
+    <?!= include('client/common/templates_scripts'); ?>
+    <?!= include('client/common/header_scripts'); ?>
+    <?!= include('client/common/status_scripts'); ?>
+    <?!= includeTemplate('client/common/error_scripts'); ?>
+    <?!= include('client/common/version_banner_scripts'); ?>
+    <?!= include('client/common/consent_scripts'); ?>
+    <?!= include('client/save_file/state_scripts'); ?>
+    <?!= include('client/save_file/parse_scripts'); ?>
+    <?!= include('client/save_file/view_scripts'); ?>
+    <?!= include('client/save_file/access_scripts'); ?>
+    <?!= include('client/save_file/diff_primitives_scripts'); ?>
+    <?!= include('client/save_file/diff_scripts'); ?>
+    <?!= include('client/save_file/body_scripts'); ?>
+    <?!= include('client/save_file/wave_cap_scripts'); ?>
+    <?!= include('client/save_file/import_scripts'); ?>
+    <?!= include('client/save_file/authorize_scripts'); ?>
+
+    <script
+      src="https://apis.google.com/js/api.js"
+      onload="saveFileGapiLoaded()"
+    ></script>
+  </body>
+</html>

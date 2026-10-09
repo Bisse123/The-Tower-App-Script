@@ -1,0 +1,498 @@
+<script>
+  /**
+   * Forgets the fetched sheet data and returns to the full view.
+   * @returns {void}
+   */
+  function resetSaveFileDiffState() {
+    saveFileViewMode = "all";
+    saveFileSelectedTypes = null;
+  }
+
+  /**
+   * Which category cards are currently expanded.
+   * @param {HTMLElement} container
+   * @returns {Set<string>}
+   */
+  function sfOpenCategoryTypes(container) {
+    const open = new Set();
+    if (!container) return open;
+    container.querySelectorAll(".sfCategory.open").forEach(function (card) {
+      const cb = card.querySelector(".sfCategoryCheckbox");
+      if (cb) open.add(cb.getAttribute("data-sheettype"));
+    });
+    return open;
+  }
+
+  /**
+   * Whether a category is selected for import.
+   * @param {string} type
+   * @returns {boolean}
+   */
+  function sfTypeChecked(type) {
+    return saveFileSelectedTypes === null || saveFileSelectedTypes.has(type);
+  }
+
+  /**
+   * Version information for a category whose sheet is out of date.
+   * @param {string} type
+   * @returns {Object|null}
+   */
+  function sfTypeOutdatedInfo(type) {
+    if (saveFileCollectionOutdated) {
+      return {
+        currentVersion: saveFileCollectionOutdated.currentVersion,
+        latestVersion: saveFileCollectionOutdated.latestVersion,
+      };
+    }
+    if (!saveFileImportTargets) return null;
+    const targets = saveFileImportTargets.targets || {};
+    const versions = saveFileImportTargets.versions || {};
+    if (!targets[type]) return null;
+    const v = versions[type];
+    if (v && v.upToDate) return null;
+    return {
+      currentVersion: v ? v.currentVersion : "",
+      latestVersion: v ? v.latestVersion : "",
+    };
+  }
+
+  /**
+   * The categories whose target sheets are too old to import into.
+   * @returns {Array<Object>}
+   */
+  function getSaveFileOutdatedTargets() {
+    if (!saveFileImportTargets || !saveFileImportTargets.versions) return [];
+    const versions = saveFileImportTargets.versions;
+    const targets = saveFileImportTargets.targets || {};
+    return Object.keys(versions)
+      .filter(function (type) {
+        return targets[type] && !versions[type].upToDate;
+      })
+      .map(function (type) {
+        return {
+          type: type,
+          currentVersion: versions[type].currentVersion,
+          latestVersion: versions[type].latestVersion,
+        };
+      });
+  }
+
+  /**
+   * Shows a setup error above the workflow, or clears it.
+   * @param {string} message
+   * @returns {void}
+   */
+  function setSaveFileSetupError(message) {
+    saveFileSetupError = message || "";
+    if (saveFileSetupError) console.error(saveFileSetupError);
+  }
+
+  /**
+   * What the import writes into, for display.
+   * @returns {string}
+   */
+  function saveFileTargetLabel() {
+    return saveFileSheetType || "IDS Master or IDS Collection";
+  }
+
+  /**
+   * Re-renders the import summary for the current selection.
+   * @returns {void}
+   */
+  function refreshSaveFileImportSummary() {
+    const el = document.getElementById("saveFileImportSummary");
+    if (!el) return;
+    if (!idMasterID) {
+      el.innerHTML =
+        `<div class="sfImportGroup"><strong>⚠️ Could not determine your ${saveFileTargetLabel()} automatically, so importing is unavailable.</strong>` +
+        (saveFileSetupError
+          ? `<br>${escSaveFileHtml(saveFileSetupError)}`
+          : "") +
+        `</div>`;
+      return;
+    }
+    if (saveFileCollectionOutdated) {
+      renderSaveFileCollectionOutdated(saveFileCollectionOutdated);
+      return;
+    }
+    const outdated = getSaveFileOutdatedTargets();
+    if (outdated.length > 0) {
+      renderSaveFileOutdatedSheets(outdated);
+      return;
+    }
+    el.innerHTML = "";
+  }
+
+  /**
+   * Remembers which categories are ticked, across a re-render.
+   * @returns {Set<string>}
+   */
+  function captureSaveFileSelection() {
+    const set = new Set();
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        if (cb.checked) set.add(cb.getAttribute("data-sheettype"));
+      });
+    saveFileSelectedTypes = set;
+  }
+
+  /**
+   * Enables the view controls once sheet data is available.
+   * @returns {void}
+   */
+  function updateSaveFileViewControls() {
+    const controls = document.getElementById("saveFileViewControls");
+    const btn = document.getElementById("saveFileViewToggleBtn");
+    const legend = document.getElementById("saveFileDiffLegend");
+    if (!controls || !btn) return;
+
+    const show = !!idMasterID && !!lastSaveFileResult;
+    controls.style.display = show ? "" : "none";
+
+    if (saveFileViewMode === "diff") {
+      btn.textContent = "Show all parsed data";
+      if (legend) legend.style.display = "";
+    } else {
+      btn.textContent = "Show only differences";
+      if (legend) legend.style.display = "none";
+    }
+  }
+
+  /**
+   * Body markup for one category, diffed against the sheet when in diff view.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function buildSaveFileCategoryBody(type, data) {
+    if (saveFileViewMode !== "diff") {
+      return renderCategoryBody(type, data);
+    }
+    const entry = sheetExportData ? sheetExportData[type] : null;
+    if (!entry) {
+      return '<div class="sfDiffUnavailable">Could not load your sheet data for this category.</div>';
+    }
+    if (entry.__error) {
+      return (
+        '<div class="sfDiffUnavailable">' +
+        escSaveFileHtml(entry.__error) +
+        "</div>"
+      );
+    }
+    const diffHtml = renderSaveFileDiffBody(type, data, entry);
+    if (!diffHtml || !diffHtml.trim()) {
+      return sfDiffNoneHtml();
+    }
+    return diffHtml;
+  }
+
+  /**
+   * Starts fetching sheet data in the background.
+   * @returns {void}
+   */
+  function startSaveFileSheetPrefetch() {
+    if (!idMasterID || sheetExportFetched || sheetExportPromise) return;
+    if (saveFileCollectionOutdated) return;
+    sheetExportPromise = fetchSaveFileSheetData(true).catch(function () {
+      return false;
+    });
+  }
+
+  /**
+   * Fetches sheet data if it is not already loaded.
+   * @returns {Promise<boolean>} Whether data is available.
+   */
+  async function ensureSaveFileSheetData() {
+    if (sheetExportFetched) return true;
+    if (sheetExportPromise) {
+      setStatusWithSpinner("Reading your sheet data to compare…");
+      const ok = await sheetExportPromise;
+      if (ok) return true;
+      sheetExportPromise = null;
+    }
+    return fetchSaveFileSheetData();
+  }
+
+  /**
+   * Switches between the full and difference views.
+   * @returns {Promise<void>}
+   */
+  async function toggleSaveFileViewMode() {
+    if (saveFileViewMode === "all") {
+      if (!idMasterID) {
+        setStatusText(
+          `Cannot compare: your ${saveFileTargetLabel()} could not be determined.`,
+        );
+        return;
+      }
+      if (!sheetExportFetched) {
+        setSaveFileBusy(true);
+        const ok = await ensureSaveFileSheetData();
+        setSaveFileBusy(false);
+        if (!ok) return;
+      }
+      saveFileViewMode = "diff";
+      setStatusText("Loaded your sheet data. Showing differences.");
+    } else {
+      saveFileViewMode = "all";
+      setStatusText("Showing all parsed data.");
+    }
+    renderSaveFileResults(lastSaveFileResult);
+  }
+
+  /**
+   * Reads the current values out of the target sheets, for diffing.
+   * @param {boolean} background
+   * @returns {Promise<boolean>} Whether the fetch succeeded.
+   */
+  async function fetchSaveFileSheetData(background) {
+    if (!idMasterID) return false;
+    const report = function (message, spinner) {
+      if (background) return;
+      if (spinner) setStatusWithSpinner(message);
+      else setStatusText(message);
+    };
+    try {
+      report("Reading your sheet data to compare…", true);
+      const result = {};
+
+      if (saveFileSheetType === "IDS Collection") {
+        const compat = await runAppsScript(
+          "checkExportCompatibility",
+          idMasterID,
+          "IDS Collection",
+        );
+        if (!compat || !compat.success || !compat.versionDifference) {
+          report(
+            "Could not compare with your IDS Collection: " +
+              ((compat && compat.message) || "version check failed."),
+          );
+          return false;
+        }
+        const exp = await runAppsScript(
+          "exportData",
+          idMasterID,
+          "IDS Collection",
+          compat.versionDifference,
+        );
+        if (!exp || !exp.success) {
+          report(
+            "Could not read your IDS Collection: " +
+              ((exp && exp.message) || "export failed."),
+          );
+          return false;
+        }
+        const data = exp.data || {};
+        Object.keys(data).forEach(function (type) {
+          result[type] = data[type];
+        });
+      } else {
+
+        let masterIds = null;
+        try {
+          const masterCompat = await runAppsScript(
+            "checkExportCompatibility",
+            idMasterID,
+            SF_MASTER_TYPE,
+          );
+          if (
+            !masterCompat ||
+            !masterCompat.success ||
+            !masterCompat.versionDifference
+          ) {
+            result[SF_MASTER_TYPE] = {
+              __error:
+                (masterCompat && masterCompat.message) ||
+                "Version check failed.",
+            };
+          } else {
+            const masterExp = await runAppsScript(
+              "exportData",
+              idMasterID,
+              SF_MASTER_TYPE,
+              masterCompat.versionDifference,
+            );
+            if (!masterExp || !masterExp.success) {
+              result[SF_MASTER_TYPE] = {
+                __error:
+                  (masterExp && masterExp.message) || "Could not read sheet.",
+              };
+            } else {
+              result[SF_MASTER_TYPE] = masterExp.data || {};
+              masterIds = result[SF_MASTER_TYPE].oldIdsData || null;
+            }
+          }
+        } catch (err) {
+          result[SF_MASTER_TYPE] = { __error: err.message || String(err) };
+        }
+
+        const targets =
+          masterIds ||
+          (saveFileImportTargets && saveFileImportTargets.targets) ||
+          {};
+        const order =
+          lastSaveFileResult && lastSaveFileResult.order
+            ? lastSaveFileResult.order
+            : Object.keys(parsedSaveData || {});
+        const parsedTypes = order.filter(function (type) {
+          return categoryHasData((parsedSaveData || {})[type]);
+        });
+        const types = (
+          parsedTypes.length ? parsedTypes : Object.keys(targets)
+        ).filter(function (type) {
+          return type !== SF_MASTER_TYPE;
+        });
+
+        await Promise.all(
+          types.map(async function (type) {
+            const targetID = targets[type];
+            if (!targetID) {
+              result[type] = {
+                __error: "This category isn't linked in your IDS Master.",
+              };
+              return;
+            }
+            try {
+              const compat = await runAppsScript(
+                "checkExportCompatibility",
+                targetID,
+                type,
+              );
+              if (!compat || !compat.success || !compat.versionDifference) {
+                result[type] = {
+                  __error:
+                    (compat && compat.message) || "Version check failed.",
+                };
+                return;
+              }
+              const exp = await runAppsScript(
+                "exportData",
+                targetID,
+                type,
+                compat.versionDifference,
+              );
+              if (!exp || !exp.success) {
+                result[type] = {
+                  __error: (exp && exp.message) || "Could not read sheet.",
+                };
+                return;
+              }
+              result[type] = exp.data || {};
+            } catch (err) {
+              result[type] = { __error: err.message || String(err) };
+            }
+          }),
+        );
+      }
+
+      const types = Object.keys(result);
+      if (
+        background &&
+        types.length > 0 &&
+        types.every(function (type) {
+          return result[type] && result[type].__error;
+        })
+      ) {
+        return false;
+      }
+
+      sheetExportData = result;
+      sheetExportFetched = true;
+      return true;
+    } catch (err) {
+      report("Error comparing with your sheet: " + (err.message || err));
+      return false;
+    }
+  }
+
+  /**
+   * Whether a parsed category holds anything worth showing.
+   * @param {*} data
+   * @returns {boolean}
+   */
+  function categoryHasData(data) {
+    if (!data || typeof data !== "object") return false;
+    return Object.keys(data).some(function (k) {
+      const v = data[k];
+      if (Array.isArray(v)) return v.length > 0;
+      if (v && typeof v === "object") return Object.keys(v).length > 0;
+      return v !== null && v !== undefined && v !== "";
+    });
+  }
+
+  /**
+   * The category names currently ticked for import.
+   * @returns {string[]}
+   */
+  function getSelectedSheetTypes() {
+    const out = [];
+    document
+      .querySelectorAll("#saveFileResults .sfCategoryCheckbox")
+      .forEach(function (cb) {
+        if (cb.checked) out.push(cb.getAttribute("data-sheettype"));
+      });
+    return out;
+  }
+
+  /**
+   * Enables the import button when a valid selection exists.
+   * @returns {void}
+   */
+  function updateImportButtonState() {
+    const btn = document.getElementById("saveFileImportBtn");
+    const hasSelection = getSelectedSheetTypes().length > 0;
+    btn.disabled = !(
+      parsedSaveData &&
+      idMasterID &&
+      hasSelection &&
+      !saveFileCollectionOutdated
+    );
+  }
+
+  /**
+   * Expands or collapses the save-file guide.
+   * @returns {void}
+   */
+  function toggleSaveFileGuide() {
+    const section = document.getElementById("saveGuideSection");
+    const btn = document.getElementById("saveGuideToggle");
+    if (!section || !btn) return;
+    const open = section.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  /**
+   * Expands or collapses one guide card.
+   * @param {HTMLElement} btn
+   * @returns {void}
+   */
+  function toggleSaveGuideCard(btn) {
+    const card = btn.closest(".sgCard");
+    if (!card) return;
+    const open = card.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  /**
+   * Expands or collapses one category card.
+   * @param {HTMLElement} header
+   * @returns {void}
+   */
+  function toggleSaveFileCategory(header) {
+    header.parentElement.classList.toggle("open");
+  }
+
+  /**
+   * Escapes a string for the save-file markup.
+   * @param {*} str
+   * @returns {string}
+   */
+  function escSaveFileHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+</script>

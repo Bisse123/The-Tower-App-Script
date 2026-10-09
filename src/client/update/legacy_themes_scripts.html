@@ -1,0 +1,117 @@
+<script>
+  const MERGED_THEMES_SHEET_TYPE = "Themes, Songs & Relics";
+  const LEGACY_THEMES_SHEET_TYPE = "Themes & Songs";
+  const LEGACY_RELICS_SHEET_TYPE = "Relics";
+  let mergeLegacyThemesSheets = false;
+
+  /**
+   * Whether the IDS Master still lists Themes and Relics as separate sheets.
+   * @param {Object} templateInfo
+   * @returns {boolean}
+   */
+  function detectLegacyThemesSheets(templateInfo) {
+    mergeLegacyThemesSheets =
+      templateInfo.some(
+        (template) => template.sheetType === LEGACY_THEMES_SHEET_TYPE,
+      ) &&
+      templateInfo.some(
+        (template) => template.sheetType === LEGACY_RELICS_SHEET_TYPE,
+      );
+
+    if (mergeLegacyThemesSheets) {
+      console.log(
+        `IDS Master is older than v4.0 - merging ${LEGACY_THEMES_SHEET_TYPE} and ${LEGACY_RELICS_SHEET_TYPE} into ${MERGED_THEMES_SHEET_TYPE}`,
+      );
+    }
+    return mergeLegacyThemesSheets;
+  }
+
+  /**
+   * Folds legacy Themes and Relics entries into the combined sheet type.
+   * @param {Object} templateInfo
+   * @returns {Object} The adjusted template info.
+   */
+  function mergeLegacyThemesTemplates(templateInfo) {
+    if (!detectLegacyThemesSheets(templateInfo)) {
+      return templateInfo;
+    }
+
+    const themesTemplate = templateInfo.find(
+      (template) => template.sheetType === LEGACY_THEMES_SHEET_TYPE,
+    );
+    const relicsTemplate = templateInfo.find(
+      (template) => template.sheetType === LEGACY_RELICS_SHEET_TYPE,
+    );
+
+    return templateInfo
+      .filter(
+        (template) =>
+          template !== themesTemplate && template !== relicsTemplate,
+      )
+      .concat([
+        {
+          ...relicsTemplate,
+          sheetType: MERGED_THEMES_SHEET_TYPE,
+          merged: true,
+          oldSheetIDs: [themesTemplate.oldSheetID, relicsTemplate.oldSheetID],
+        },
+      ]);
+  }
+
+  /**
+   * Expands a merged template back into the sheets it stands for.
+   * @param {Array<Object>} templateFiles
+   * @returns {Array<Object>}
+   */
+  function expandMergedTemplateFiles(templateFiles) {
+    if (!mergeLegacyThemesSheets) {
+      return templateFiles;
+    }
+
+    return templateFiles.reduce((expanded, file) => {
+      if (file.sheetType !== MERGED_THEMES_SHEET_TYPE) {
+        expanded.push(file);
+        return expanded;
+      }
+      expanded.push({ ...file, sheetType: LEGACY_THEMES_SHEET_TYPE });
+      expanded.push({ ...file, sheetType: LEGACY_RELICS_SHEET_TYPE });
+      return expanded;
+    }, []);
+  }
+
+  /**
+   * Collapses the tasks for merged sheets back into one import task.
+   * @param {Array<Object>} tasks
+   * @returns {Array<Object>}
+   */
+  function collapseMergedImportTasks(tasks) {
+    if (!mergeLegacyThemesSheets) {
+      return tasks;
+    }
+
+    const mergeSources = tasks.filter(
+      (task) =>
+        task.sheetType === LEGACY_THEMES_SHEET_TYPE ||
+        task.sheetType === LEGACY_RELICS_SHEET_TYPE,
+    );
+    if (mergeSources.length === 0) {
+      return tasks;
+    }
+
+    return tasks
+      .filter((task) => !mergeSources.includes(task))
+      .concat([
+        {
+          ...mergeSources[0],
+          sheetType: MERGED_THEMES_SHEET_TYPE,
+
+          oldSheetIDs: mergeSources.map((task) => task.oldSheetID),
+          exportSources: mergeSources.map((task) => ({
+            sheetType: task.sheetType,
+            oldSheetID: task.oldSheetID,
+            versionDifference: task.versionDifference,
+          })),
+        },
+      ]);
+  }
+</script>

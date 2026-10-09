@@ -1,79 +1,55 @@
 # Task checklists
 
-The file fan-out for each recurring change. Most span several layers, and a missed step usually
-fails silently rather than loudly. The rules behind these are in
-[conventions.md](rules/conventions.md).
+Recurring changes span several files, and a missed step usually fails silently. Run
+`npm run check` after each.
 
----
+## A new template version of an existing sheet type
 
-## A new template version of an existing sheet was released
+1. In `server/sheets/<type>/<type>_read.js`, add `versionN_M(oldSheetID)` and its pure
+   `getVersionN_M*(values)` readers.
+2. Register `"vN.M"` in `convertVersionFunctions` in `<type>.js`. Order does not matter.
+3. Update `importData` and the `_write.js` functions for the new layout.
+4. Mirror it in `server/sheets/ids_collection/`: a converter and the import branch.
+5. If the template file changed, update `SHEET_TEMPLATES` in `client/common/templates_scripts.html`.
 
-1. Add `versionN_M: function (oldSheetID) { … }` to the sheet module, fetching what the new
-   template needs.
-2. Add its `getVersionN_M*(values)` pure readers — no API calls.
-3. Register the threshold in `get convertVersionFunctions()`:
-   `"vN.M": this.versionN_M.bind(this)`. Declaration order does not matter; `isCompatibleVersion`
-   sorts by version.
-4. Update the module's `importData` and its `update*` helpers for the new layout.
-5. **Mirror the change in `src/14_IDS_Collection.js`** — its own converter chain plus the branch
-   calling the module's `update*` against the collection's tabs.
-6. If the template file ID changed, update `SHEET_TEMPLATES` in `src/21_templates_scripts.html`.
+## A new sheet type
 
----
+1. Add `server/sheets/<type>/` with the contract file and the role files it needs.
+2. Register it in `sheetVars()` (`server/entry/registry.js`).
+3. Add it to `getTemplateAndsheetIds` (`server/workflows/templates.js`) after any type whose name
+   contains it, and to the default list in `getSaveFileImportTargets`.
+4. Add it to `SHEET_TEMPLATES`, `showSelectImportSection()` and the conversion type list in
+   `importData()` (`client/update/transfer_scripts.html`).
+5. Save-file support: a field map and `parse*Data` in `_savefile.js`, its call in
+   `server/savefile/parse.js`, and renderers in `client/save_file/diff_scripts.html` and
+   `body_scripts.html`.
+6. Add it to the IDS Collection if it belongs in the single-file arrangement.
 
-## A brand-new sheet type must be supported
+The template needs a `Home Page` with version labels and a copy link, and an `IDS` tab with its own
+ID and the IDS Master's.
 
-1. Create `src/NN_<Name>.js` with a `const <object> = { … }` implementing the full contract —
-   see [backend.md ▸ The contract](rules/backend.md#the-contract).
-2. Register it in `sheetVars()` in `src/01_Main.js`.
-3. Add it to the candidate list in `getTemplateAndsheetIds` (`src/02_Shared.js`), respecting the
-   substring-ordering rule.
-4. Add it to the client type lists:
-   - `showSelectImportSection()` in `src/24_selectImport_scripts.html`
-   - `SHEET_TEMPLATES` in `src/21_templates_scripts.html`
-   - the sheet-type list in `src/25_fileAccess_scripts.html`
-   - the default list in `getSaveFileImportTargets` (`src/02_Shared.js`)
-5. For save-file support: a header map and a `parse*Data` call in `src/02_SavedFile.js`, and a
-   diff renderer branch in `src/28_saveFile_scripts.html`.
-6. Add the category to `src/14_IDS_Collection.js` if it belongs in the single-file arrangement.
+## A new field in the save file
 
-The template itself must provide a `Home Page` carrying version labels and a copy link, and an
-`IDS` tab carrying its own ID and the IDS Master's.
+1. Find the game's key in `docs/<category>_save_format.json`.
+2. Add it to the type's field map in `_savefile.js` and read it in `parse*Data`.
+3. If `importData` does not write it yet, extend `_write.js` and the IDS Collection's import.
+4. Show it in the diff and body renderers.
 
----
-
-## The game added a new field to the save file
-
-1. Confirm the game's key name against `docs/<category>_save_format.json`.
-   `module_save_format.json` carries the complete substat `effectID` encoding table.
-2. Add `ourName: "gameKey"` to the category's header map in `src/02_SavedFile.js`.
-3. Read `data.ourName` inside the module's `parse*Data` and emit it under the key `importData`
-   already expects.
-4. If `importData` does not yet write it, extend the module's `update*` **and** the corresponding
-   branch in `src/14_IDS_Collection.js`.
-5. Add a diff renderer branch in `src/28_saveFile_scripts.html` so the change is visible before
-   import.
-
-Every `parse*Data` guards with `hasOwnProperty` / null checks — an older save file missing a field
-must parse cleanly, just without that value.
-
----
+`parse*Data` must tolerate the field being absent — older save files lack it.
 
 ## Debugging by symptom
 
 | Symptom | Start at |
 | --- | --- |
-| "Sheet not found" / "Could not find sheet ID for X" | `shared.findSheetTypeID` / `findSheetTypeURL` — a label moved in the template |
+| "Could not find sheet ID for X" | `labelUtils.findSheetTypeID` / `findSheetTypeURL` — a template label moved |
 | Stale data after an import | `CacheManager.RemoveSpreadsheet` — a mutation that did not invalidate |
-| A picker keeps re-asking for access | The access-grant cycle; check which bucket the file landed in |
-| A dropdown cell rejects the written value | `shared.getDVTValue` and the named-range tables in `14_IDS_Collection.js` |
-| Presets land in the wrong slots | `shared.resolvePresetOrder` and `shared.templatePresetNames` |
-| A category imports nothing but reports success | A converter renamed a neutral key, or `importData`'s guard never matched |
-| A fragment's script block does nothing | A literal `//` inside it was stripped as a comment |
-| Version comparison odd on Effective Paths | Four-segment zero-padded versions; it uses `shared.getEPathsVersion` |
-| A `ReferenceError` on `getStarted` in the save-file page | `20_SavedFileApp.html` never declares it — the `saveFile` branch must short-circuit first |
+| A picker keeps asking for access | The access cycle; which bucket the file landed in |
+| A dropdown rejects the written value | `dropdownUtils.getDVTValue` and the named-range tables in `importData` |
+| Presets land in the wrong slots | `presetUtils.resolvePresetOrder` |
+| A category imports nothing but reports success | A converter renamed a neutral key |
+| A fragment's functions are "not defined" | A literal `//` in it was stripped, or a load-order problem: `npm run check` |
+| `ReferenceError: getStarted` on the save-file page | The consent `saveFile` branch must run first |
 
-A user quoting a `TWR-…` reference, or an empty Error Reporting console:
-[08-error-handling.md ▸ Runbook](../documentation/08-error-handling.md#runbook).
-CI, deploy and picker-initialisation failures:
-[07-deployment.md ▸ Troubleshooting](../documentation/07-deployment.md#troubleshooting).
+A user quoting a `TWR-…` reference:
+[08 ▸ Runbook](../documentation/08-error-handling.md#runbook). CI and deploy failures:
+[07 ▸ Troubleshooting](../documentation/07-deployment.md#troubleshooting).

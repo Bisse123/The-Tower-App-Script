@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <?!= include('client/common/base_styles'); ?>
+    <?!= include('client/common/header_styles'); ?>
+    <?!= include('client/common/status_styles'); ?>
+    <?!= include('client/common/error_styles'); ?>
+    <?!= include('client/update/select_import_styles'); ?>
+    <?!= include('client/update/styles'); ?>
+    <?!= include('client/update/instructions_styles'); ?>
+    <?!= include('client/common/consent_styles'); ?>
+    <title>The Tower Import Data</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+  </head>
+  <body>
+    <?!= include('client/common/header_section'); ?>
+    <?!= include('client/common/status_section'); ?>
+    <?!= include('client/common/error_section'); ?>
+    <?!= include('client/update/select_import_section'); ?>
+    <?!= include('client/update/section'); ?>
+    <?!= include('client/update/instructions_section'); ?>
+    <?!= include('client/common/consent_section'); ?>
+
+    <script>
+      const API_KEY = "<?= API_KEY ?>";
+      const APP_ID = "<?= APP_ID ?>";
+
+      let newSheetID = "<?= newSheetID ? newSheetID : '' ?>";
+      let oldSheetID = "<?= oldSheetID ? oldSheetID : '' ?>";
+      let idMasterID = "<?= idMasterID ? idMasterID : '' ?>";
+      let sheetType = "<?= sheetType ? sheetType : '' ?>";
+
+      const viewType = "<?= viewType ? viewType : 'webapp' ?>";
+      const accessRequired = "<?= accessRequired ? accessRequired : '' ?>";
+      const googleLink = "https://docs.google.com/spreadsheets/d"
+
+      const getStarted = false;
+      const saveFile = false;
+
+      console.log("Parameters:", {
+        newSheetID,
+        oldSheetID,
+        idMasterID,
+        sheetType,
+      });
+</script>
+
+    <?!= include('client/common/templates_scripts'); ?>
+    <?!= include('client/update/state_scripts'); ?>
+    <?!= include('client/update/picker_scripts'); ?>
+    <?!= include('client/update/access_scripts'); ?>
+    <?!= include('client/update/copy_scripts'); ?>
+    <?!= include('client/common/header_scripts'); ?>
+    <?!= include('client/common/status_scripts'); ?>
+    <?!= includeTemplate('client/common/error_scripts'); ?>
+    <?!= include('client/common/version_banner_scripts'); ?>
+    <?!= include('client/update/select_import_scripts'); ?>
+    <?!= include('client/update/legacy_themes_scripts'); ?>
+    <?!= include('client/update/transfer_scripts'); ?>
+    <?!= include('client/update/move_scripts'); ?>
+    <?!= include('client/update/results_scripts'); ?>
+    <?!= include('client/update/flows_scripts'); ?>
+    <?!= include('client/common/consent_scripts'); ?>
+    <?!= include('client/update/authorize_scripts'); ?>
+
+    <script
+      src="https://apis.google.com/js/api.js"
+      onload="gapiLoaded()"
+    ></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<script>
+  console.log("Parameters:", {
+    newSheetID,
+    oldSheetID,
+    idMasterID,
+    sheetType,
+  });
+  let accessToken = null;
+  let pickerInited = false;
+  let isMobile = false;
+  let selectedFiles = [];
+  let accessibleFilesCache = [];
+  let inaccessibleFilesCache = [];
+  let notOwnedFilesCache = [];
+  let warningFilesCache = [];
+  let templateAccessibleFilesCache = [];
+  let templateInaccessibleFilesCache = [];
+  let copiedTemplateFiles = [];
+  let exportedFilesSuccess = [];
+  let exportedFilesFailed = [];
+  let importedFilesSuccess = [];
+  let importedFilesFailed = [];
+  let preparationFailedFiles = [];
+  let movedFiles = [];
+  let currentCopyMode = null;
+  let cachedTemplateInfo = null;
+  let cachedSheetIds = null;
+  let cachedMasterTemplateInfo = null;
+  let cachedTemplatesWithSameVersion = null;
+  let cachedSkippedTemplates = null;
+  let versionDifference = null;
+  let masterVersionDifference = null;
+  let isUpdateSingleSheetFlow = false;
+  let isCombinedUpdate = false;
+  let isConvertToMasterFlow = false;
+  let isConvertToCollectionFlow = false;
+  let hasSubsheetsToUpdate = false;
+  let hasMasterUpdate = false;
+  let masterIdsWritten = false;
+  let parentFolderID = null;
+
+
+  if (isMobile) {
+    document.getElementById("desktopInstructions").style.display = "none";
+    document.getElementById("mobileInstructions").style.display = "block";
+  } else {
+    document.getElementById("desktopInstructions").style.display = "block";
+    document.getElementById("mobileInstructions").style.display = "none";
+  }
+</script>

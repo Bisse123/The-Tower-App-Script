@@ -1,186 +1,58 @@
-# 02 — Get Started workflow
+# 02 — Get Started
 
-Onboarding for a new player: copy every template sheet into the user's Drive and
-wire their IDs together so they arrive at a working, cross-linked set of sheets.
-
-**Entry points**
+Copies every template into the user's Drive and links their IDs, leaving a working set of sheets.
 
 | | |
 | --- | --- |
-| Add-on | `Import Data ▸ Get Started` → `showGetStartedDialog()` (modal, 1200×700) |
-| Web app | `?page=getstarted` or `?getStarted=true` |
-| Page | [20_getStartedApp.html](../src/20_getStartedApp.html) |
-| Logic | [23_getStarted_scripts.html](../src/23_getStarted_scripts.html) |
-
----
+| Add-on | `Import Data ▸ Get Started` → `showGetStartedDialog()` |
+| Web app | `?page=getstarted` |
+| Page | `client/pages/get_started.html`, scripts in `client/get_started/` |
+| Server | `server/workflows/get_started.js`, `copyFileTemplate` |
 
 ## What the user sees
 
-An explainer panel (what IDS Sheets are, manual vs. quick setup), a dropdown with
-two choices, and a **Copy Templates** button:
+An explainer, a choice between **IDS Master and subsheets** (Master plus ten subsheets) and **IDS
+Collection** (one file), a **Copy Templates** button, and manual copy links. An Effective Paths sheet
+is copied either way. Template IDs come from `SHEET_TEMPLATES`.
 
-| Choice | Copies |
-| --- | --- |
-| `IDS Master and subsheets (multiple files)` | IDS Master + 10 subsheets |
-| `IDS Collection (single file)` | one IDS Collection file |
+In the add-on, when the open spreadsheet is already an Effective Paths sheet, that sheet is copied
+instead of the Effective Paths template.
 
-An **Effective Paths** sheet is copied in both cases. Below the button, direct
-`/copy` links to every template are rendered for anyone preferring to do it by
-hand.
-
----
-
-## Template registry
-
-Template IDs are hard-coded on the **client**, in `SHEET_TEMPLATES`
-([21_templates_scripts.html](../src/21_templates_scripts.html)). It groups the
-templates under the three copy modes — Effective Paths on its own, the IDS
-Collection on its own, and the IDS Master with its ten subsheets.
-
-One table serves every flow, so a new template release is a single edit. The
-partial is included by all four pages, ahead of every consumer.
-
-The conversion flows look up one copy mode by name. Get Started iterates the
-whole table.
-
-### The sidebar special case
-
-When run from inside a sheet (`viewType === "sidebar"`), `authorizeGetStarted`
-calls `getGetStartedParameters()`. If the active spreadsheet *is* an Effective
-Paths sheet (it has `eHP`, `eDamage` or `eEcon` tabs) and is not itself the
-template, its ID replaces the Effective Paths template — so the user's existing
-sheet is duplicated instead of a fresh template.
-
----
-
-## The flow
+## Flow
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    participant U as User
     participant C as Client
-    participant S as Apps Script
-    participant D as Drive
-
-    U->>C: Copy Templates
+    participant S as Server
     C->>S: getOrCreateGetStartedFolder()
-    S->>D: search folder "The Tower"
-    alt not found
-        S->>D: Files.create(folder) + Permissions.create(anyone/reader)
+    Note over S: finds or creates "The Tower" (a new one is shared by link)
+    C->>S: checkTemplateAccess ×N
+    opt any inaccessible
+        C->>C: picker → re-check
     end
-    S-->>C: { id, name, url }
-
-    C->>S: checkTemplateAccess(id) ×N  (parallel)
-    S-->>C: accessible / inaccessible
-
-    opt some templates inaccessible
-        C->>U: Google Picker seeded with those template IDs
-        U->>C: select them
-        C->>S: re-check
+    par each template
+        C->>S: copyFileTemplate(…, folderID)
     end
-
-    par one per template
-        C->>S: copyFileTemplate(templateID, sheetType, version, folderID)
-        S->>D: Files.copy → "Copy of [type] [version]"
-        S-->>C: { fileId, fileUrl, gid }
+    par each copy
+        C->>S: updateGetStartedSheetIdsAndReferences(fileId, type, relatedIDs)
+        Note over S: writes the IDs, renames to "<type> <version>"
     end
-
-    C->>C: work out relatedSheetIDs per file
-    par one per created file
-        C->>S: updateGetStartedSheetIdsAndReferences(fileId, sheetType, relatedSheetIDs)
-        S->>S: write IDs into IDS / Home Page
-        S->>D: rename file to "[sheetType] [currentVersion]"
-        S-->>C: { success, fileName }
-    end
-
-    C->>U: render links; offer "Retry Failed Copies" if anything failed
+    C->>C: render links; offer "Retry Failed Copies"
 ```
 
----
+## ID linking
 
-## ID cross-linking
-
-`applyGetStartedIDUpdates` decides, per file, which IDs it is given:
-
-```mermaid
-flowchart TB
-    subgraph MS["copyMode = master-and-subsheets"]
-        M["IDS Master"] -->|"receives ALL subsheet IDs"| M2["relatedSheetIDs =<br/>[{Laboratory, id}, {Workshop, id}, …]"]
-        SUB["each subsheet"] -->|"receives only the master's ID"| S2["relatedSheetIDs =<br/>[{IDS Master, id}]"]
-        EP1["Effective Paths"] --> S2
-    end
-
-    subgraph IC["copyMode = ids-collection"]
-        COL["IDS Collection"] -->|"writes its own ID<br/>into 'Your ID:'"| C2["relatedSheetIDs = []"]
-        EP2["Effective Paths"] -->|"receives the collection's ID<br/>as 'IDS Master'"| C3["relatedSheetIDs =<br/>[{IDS Master, collectionId}]"]
-    end
-```
-
-`Effective Paths` is excluded from `masterRelatedIDs`. The relationship is
-one-directional: Effective Paths points at the master, not the reverse.
-
-### Server side
-
-`updateGetStartedSheetIdsAndReferences(sheetID, sheetType, relatedSheetIDs)`
-([02_Shared.js:3745](../src/02_Shared.js#L3745)) has three branches:
-
-| `sheetType` | Behaviour |
-| --- | --- |
-| `IDS Collection` | Finds `"Your ID:"` on `Home Page`, writes its own ID there. |
-| `IDS Master` | Delegates to `updateIdsMaster(sheetID, idDataEntries)` — writes `This Sheet ID` plus one row per subsheet type into the `IDS` tab. |
-| anything else | `shared.addIDUpdatesToBatch` — writes `This Sheet ID` = itself, `IDS Master's` = the master's ID. |
-
-All three branches then rename the file to `<sheetType> <currentVersion>` (read
-from its own `Home Page`). Rename failures are caught and logged; they do not
-fail the ID update.
-
----
-
-## Retry model
-
-Copies fail on Drive quotas, transient API errors, or a dismissed picker. The
-client keeps, across retries, everything it has created so far, everything that
-failed to copy, everything copied but not yet linked, and a retry queue for each
-of the two failing steps.
-
-`retryFailedCopies()` re-runs only the failed halves, and re-derives the
-relationships from `allCreatedFiles` so a subsheet copied on attempt 2 still gets
-linked to a master copied on attempt 1. In `master-and-subsheets` mode it
-re-includes the master in the retry batch whenever any subsheet is being
-retried, so the master's `IDS` tab learns about the newcomer.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Copying: Copy Templates
-    Copying --> Linking: some copies succeeded
-    Copying --> Failed: all copies failed
-    Linking --> Done: all linked
-    Linking --> Partial: some links failed
-    Failed --> Copying: Retry Failed Copies
-    Partial --> Linking: Retry Failed Copies
-    Done --> [*]
-```
-
----
-
-## Related server functions
-
-| Function | Source | Purpose |
+| Mode | File | Receives |
 | --- | --- | --- |
-| `getOrCreateGetStartedFolder()` | [02_Shared.js:3680](../src/02_Shared.js#L3680) | Find/create `The Tower`; makes new folders anyone-readable. |
-| `copyFileTemplate(...)` | [02_Shared.js:2960](../src/02_Shared.js#L2960) | Drive copy, returns file ID + landing `gid` — see [01 ▸ File operations](01-architecture.md#file-operations). |
-| `moveGetStartedFileToFolder(fileId, folderID)` | [02_Shared.js:3050](../src/02_Shared.js#L3050) | Renames to `Effective Paths <version>` and relocates. Used when an existing Effective Paths sheet is adopted. |
-| `updateGetStartedSheetIdsAndReferences(...)` | [02_Shared.js:3745](../src/02_Shared.js#L3745) | The cross-linking step above. |
-| `checkTemplateAccess(templateID)` | [02_Shared.js:2400](../src/02_Shared.js#L2400) | `drive.file` reachability probe. |
+| Master + subsheets | IDS Master | every subsheet's ID (`updateIdsMaster`) |
+| | each subsheet, Effective Paths | the Master's ID |
+| Collection | IDS Collection | its own ID |
+| | Effective Paths | the Collection's ID, as its Master |
 
----
+A failed rename is logged and does not fail the linking.
 
-## Gotchas
+## Retry
 
-- **`templateVersion` is not set** in `SHEET_TEMPLATES`, so copies are initially
-  named `Copy of <type>` with no version. The correct name is applied later, by
-  the ID-update step, from the sheet's own `Home Page`.
-- **A new `The Tower` folder is shared with anyone who has the link.** Existing
-  folders are left alone.
+The client keeps what it created and what failed. **Retry Failed Copies** re-runs only the failed
+copies and links, recomputing the links from everything created so far — and re-links the Master
+whenever a subsheet is retried, so it learns the newcomer's ID.

@@ -1,0 +1,986 @@
+<script>
+  /**
+   * Dispatches to the right per-category body renderer.
+   * @param {string} type
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderCategoryBody(type, data) {
+    switch (type) {
+      case "Laboratory":
+        return renderLaboratoryBody(data);
+      case "Workshop":
+        return renderWorkshopBody(data);
+      case "Ultimate Weapon":
+        return renderUltimateBody(data);
+      case "Themes, Songs & Relics":
+        return renderThemesAndRelicsBody(data);
+      case "Bots":
+        return renderBotsBody(data);
+      case "Vault":
+        return renderVaultBody(data);
+      case "Cards":
+        return renderCardsBody(data);
+      case "Modules":
+        return renderModulesBody(data);
+      case "Guardians":
+        return renderGuardiansBody(data);
+      case "Player & Stuff":
+        return renderPlayerBody(data);
+      case "IDS Master":
+        return renderMasterBody(data);
+      default:
+        return renderGenericBody(data);
+    }
+  }
+
+  /**
+   * Full view of the save file's IDS Master data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderMasterBody(data) {
+    const presetsData = data.oldPresetsData || {};
+    const presets = presetsData.data || {};
+    const presetNames = presetsData.presetNames || Object.keys(presets);
+    const typeOrder = data.presetTypesOrder || [];
+
+    let columns = "";
+    presetNames.forEach(function (name) {
+      const preset = presets[name];
+      if (!preset) return;
+      let rows = "";
+      typeOrder.forEach(function (type) {
+        const value = preset[type];
+        rows +=
+          '<div class="sfSubstatRow"><span>' +
+          escSaveFileHtml(type) +
+          '</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(
+            value === null || value === undefined || value === "" ? "-" : value,
+          ) +
+          "</span></div>";
+      });
+      columns +=
+        '<div class="sfWorkshopColumn"><div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(name) +
+        "</div>" +
+        rows +
+        "</div>";
+    });
+
+    if (!columns) return "";
+    return (
+      sfSubLabel("Global Presets") +
+      '<div class="sfPresetTracks">' +
+      columns +
+      "</div>"
+    );
+  }
+
+  /**
+   * Full view of a category with no bespoke renderer.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderGenericBody(data) {
+    let html = "";
+    for (const key of Object.keys(data)) {
+      html +=
+        '<div class="sfFieldRow">' +
+        '<div class="sfFieldName">' +
+        escSaveFileHtml(key) +
+        "</div>" +
+        '<div class="sfFieldValue">' +
+        renderSaveFileValue(data[key]) +
+        "</div>" +
+        "</div>";
+    }
+    return html;
+  }
+
+  /**
+   * A sub-section label.
+   * @param {string} text
+   * @returns {string} Markup for the block.
+   */
+  function sfSubLabel(text) {
+    return '<div class="sfSubLabel">' + escSaveFileHtml(text) + "</div>";
+  }
+
+  /**
+   * A tick or cross for an unlocked flag.
+   * @param {*} unlocked
+   * @returns {string} Markup for the block.
+   */
+  function sfUnlockMark(unlocked) {
+    return unlocked
+      ? '<span class="sfBool is-true">✓</span>'
+      : '<span class="sfBool is-false">✗</span>';
+  }
+
+  /**
+   * Formats a value for the full view.
+   * @param {*} v
+   * @returns {string}
+   */
+  function sfFmtVal(v) {
+    if (v === true || v === false) return sfUnlockMark(v);
+    if (v === null || v === undefined || v === "")
+      return '<span class="sfNull">-</span>';
+    return (
+      '<span class="sfPrimitive">' + escSaveFileHtml(String(v)) + "</span>"
+    );
+  }
+
+  /**
+   * An inline key and value pair.
+   * @param {string} key
+   * @param {*} val
+   * @returns {string} Markup for the block.
+   */
+  function sfInlinePair(key, val) {
+    return (
+      '<span class="sfInlinePair">' +
+      '<span class="sfInlineKey">' +
+      escSaveFileHtml(key) +
+      "</span>" +
+      '<span class="sfInlineVal">' +
+      sfFmtVal(val) +
+      "</span></span>"
+    );
+  }
+
+  /**
+   * A level row with its name.
+   * @param {*} level
+   * @param {string} nameHtml
+   * @returns {string} Markup for the block.
+   */
+  function sfLevelRow(level, nameHtml) {
+    return (
+      '<div class="sfLevelRow"><span class="sfLevel">' +
+      escSaveFileHtml(level == null ? 0 : level) +
+      "</span>" +
+      '<span class="sfLevelName">' +
+      nameHtml +
+      "</span></div>"
+    );
+  }
+
+  /**
+   * Level rows for an entity's upgrades.
+   * @param {string[]} upgradeNames
+   * @param {string} plusName
+   * @param {Array<*>} levels
+   * @returns {string} Markup for the block.
+   */
+  function sfEntityUpgradeRows(upgradeNames, plusName, levels) {
+    let html = "";
+    (upgradeNames || []).forEach(function (attr) {
+      if (!attr) return;
+      const lvl = levels[attr];
+      html += sfLevelRow(lvl != null ? lvl : "00", escSaveFileHtml(attr));
+    });
+    if (plusName) {
+      const pv = levels[plusName];
+      if (pv === "Lo") {
+        html +=
+          '<div class="sfLevelRow">' +
+          '<span class="sfLevel sfBool is-false">✗</span>' +
+          '<span class="sfLevelName">' +
+          escSaveFileHtml(plusName) +
+          "</span></div>";
+      } else {
+        html += sfLevelRow(pv != null ? pv : "00", escSaveFileHtml(plusName));
+      }
+    }
+    return html;
+  }
+
+  /**
+   * Full view of the save file's lab data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderLaboratoryBody(data) {
+    const labs = data.oldLabLevels || {};
+    const labOrder = data.labOrder || [];
+    let html = '<div class="sfLabGrid">';
+
+    labOrder.forEach(function (name) {
+      if (!name || !labs.hasOwnProperty(name)) return;
+      const v = labs[name];
+      const level = Array.isArray(v) ? v[0] : v;
+      html += '<div class="sfLabItem">';
+      html += sfLevelRow(level, escSaveFileHtml(name));
+      html += "</div>";
+    });
+    return html + "</div>";
+  }
+
+  /**
+   * Full view of the save file's workshop data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderWorkshopBody(data) {
+    const upgrades = data.oldWorkshopLevels || null;
+    const enhancements = data.oldWorkshopPlusLevels || null;
+    if (!upgrades && !enhancements) return "";
+
+    const upgradeNames = (upgrades && upgrades.presetNames) || [];
+    const enhancementNames = (enhancements && enhancements.presetNames) || [];
+    const presetNames =
+      upgradeNames.length >= enhancementNames.length
+        ? upgradeNames
+        : enhancementNames;
+    if (!presetNames.length) return "";
+
+    let html = "";
+    presetNames.forEach(function (presetName, presetIndex) {
+      const groups =
+        renderWorkshopPresetGroup(
+          "Upgrades",
+          upgrades,
+          false,
+          data.upgradeIndices,
+          presetIndex,
+        ) +
+        renderWorkshopPresetGroup(
+          "Enhancements",
+          enhancements,
+          true,
+          data.enhancementIndices,
+          presetIndex,
+        );
+
+      if (!groups) return;
+
+      html +=
+        '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        '</div><div class="sfPresetBox">' +
+        groups +
+        "</div></div>";
+    });
+
+    return html;
+  }
+
+  /**
+   * One workshop preset group's rows.
+   * @param {string} title
+   * @param {Object} presets
+   * @param {string[]} tracks
+   * @returns {string} Markup for the block.
+   */
+  function renderWorkshopPresetGroup(
+    groupLabel,
+    group,
+    isEnhancement,
+    tracks,
+    presetIndex,
+  ) {
+    if (!group || !tracks) return "";
+    const entries = group.data || {};
+    const trackLabels = ["Attack", "Defense", "Utility"];
+    let columnsHtml = "";
+    let hasRows = false;
+
+    trackLabels.forEach(function (track) {
+      let rows = "";
+      (tracks[track] || []).forEach(function (name) {
+        if (!entries.hasOwnProperty(name)) return;
+        const levels = isEnhancement
+          ? entries[name]
+          : entries[name].levels || [];
+        const lvl = levels[isEnhancement ? presetIndex : presetIndex * 2];
+        rows += sfLevelRow(lvl, escSaveFileHtml(name));
+        hasRows = true;
+      });
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(track) +
+        "</div>" +
+        rows +
+        "</div>";
+    });
+
+    if (!hasRows) return "";
+    return (
+      '<div class="sfPresetGroup">' +
+      '<div class="sfPresetGroupHeader">' +
+      escSaveFileHtml(groupLabel) +
+      "</div>" +
+      '<div class="sfPresetTracks">' +
+      columnsHtml +
+      "</div></div>"
+    );
+  }
+
+  /**
+   * Full view of the save file's ultimate weapon data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderUltimateBody(data) {
+    const uw = data.oldUltimate || {};
+    const defs = data.targetWeapons || {};
+    const order = data.weaponOrder || Object.keys(defs);
+    let html = "";
+    order.forEach(function (name) {
+      if (!uw[name]) return;
+      const def = defs[name];
+      if (!def) return;
+      const levels = uw[name].levels || {};
+      html +=
+        '<div class="sfBlock"><div class="sfBlockHeader">' +
+        escSaveFileHtml(name) +
+        " " +
+        sfUnlockMark(uw[name].unlocked) +
+        "</div>" +
+        sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, levels) +
+        "</div>";
+    });
+    return html ? '<div class="sfUltimateColumns">' + html + "</div>" : "";
+  }
+
+  /**
+   * Full view of the combined Themes, Songs and Relics data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderThemesAndRelicsBody(data) {
+    const relics = data.oldRelics || [];
+    return (
+      renderThemesBody(data) +
+      sfSubLabel("Relics (" + relics.length + ")") +
+      renderRelicsBody(data)
+    );
+  }
+
+  /**
+   * Full view of the save file's themes and songs.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderThemesBody(data) {
+    const themes = data.oldThemesNames || {};
+    const order = data.themesOrder || Object.keys(themes);
+    let html = '<div class="sfThemeColumns">';
+    order.forEach(function (cat) {
+      const items = themes[cat] || [];
+      html +=
+        '<div class="sfThemeColumn">' +
+        '<div class="sfThemeColHeader">' +
+        escSaveFileHtml(cat) +
+        " (" +
+        items.length +
+        ")</div>";
+      items.forEach(function (name) {
+        html += '<div class="sfThemeItem">' + escSaveFileHtml(name) + "</div>";
+      });
+      html += "</div>";
+    });
+    return html + "</div>";
+  }
+
+  /**
+   * Full view of the save file's bot data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderBotsBody(data) {
+    const bots = data.oldBots || {};
+    const botData = bots.data || {};
+    const defs = data.targetBots || {};
+    const order = data.botOrder || Object.keys(defs);
+    const presetNames = bots.presetNames || [];
+    if (!presetNames.length) return "";
+
+    let html = '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      let entries = "";
+
+      order.forEach(function (botName) {
+        const bot = botData[botName];
+        if (!bot) return;
+        const def = defs[botName];
+        if (!def) return;
+        const preset = (bot.presets || {})[presetName] || {};
+        entries +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(botName) +
+          "</div>" +
+          '<span class="sfTag"> active ' +
+          sfUnlockMark(preset.active) +
+          ' </span> <span class="sfTag"> sync ' +
+          sfUnlockMark(preset.sync) +
+          " </span>" +
+          sfEntityUpgradeRows(def.upgrades, def.plusUpgrade, preset.props || {}) +
+          "</div>";
+      });
+
+      if (!entries) return;
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>" +
+        entries +
+        "</div>";
+    });
+    return html + "</div>";
+  }
+
+  /**
+   * Full view of the save file's relics.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderRelicsBody(data) {
+    const relics = data.oldRelics || [];
+    let html = '<div class="sfRelicsGrid">';
+    relics.forEach(function (name) {
+      html += '<span class="sfArrayItem">' + escSaveFileHtml(name) + "</span>";
+    });
+    return html + "</div>";
+  }
+
+  /**
+   * Full view of the save file's vault data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderVaultBody(data) {
+    const oldVault = data.oldVault || {};
+    const unlockedGroups = oldVault.unlockedGroups || [];
+    const upgradesLevel = oldVault.upgradesLevel || {};
+    const groups = data.vaultIndices || [];
+    const alwaysUnlocked = data.alwaysUnlocked || [];
+    if (!groups.length) return "";
+
+    let columnsHtml = "";
+
+    groups.forEach(function (group) {
+      let sectionsHtml = "";
+
+      (group.sections || []).forEach(function (section) {
+        const unlocked =
+          unlockedGroups.indexOf(section.section) !== -1 ||
+          alwaysUnlocked.indexOf(section.section) !== -1;
+        let rows = "";
+        (section.upgrades || []).forEach(function (name) {
+          rows += sfLevelRow(
+            upgradesLevel.hasOwnProperty(name) ? upgradesLevel[name] : 0,
+            escSaveFileHtml(name),
+          );
+        });
+        sectionsHtml +=
+          '<div class="sfSubBlock"><div class="sfSubBlockHeader">' +
+          escSaveFileHtml(section.section) +
+          " " +
+          sfUnlockMark(unlocked) +
+          "</div>" +
+          rows +
+          "</div>";
+      });
+
+      if (!sectionsHtml) return;
+      columnsHtml +=
+        '<div class="sfWorkshopColumn">' +
+        '<div class="sfWorkshopColHeader">' +
+        escSaveFileHtml(group.group) +
+        "</div>" +
+        sectionsHtml +
+        "</div>";
+    });
+
+    if (!columnsHtml) return "";
+    return '<div class="sfPresetTracks">' + columnsHtml + "</div>";
+  }
+
+  /**
+   * Full view of the save file's cards.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderCardsBody(data) {
+    const levels = data.oldCardsLevel || {};
+    const presets = data.oldCardsPreset || {};
+    const cardOrder = data.cardNameIndices || [];
+    let html = '<div class="sfCardColumns">';
+
+    html +=
+      '<div class="sfCardColumn"><div class="sfCardColHeader">Card Levels</div>';
+    cardOrder.forEach(function (card) {
+      if (!card || !levels.hasOwnProperty(card)) return;
+      const arr = levels[card] || [];
+      const lvl = arr[0];
+      const mastery = arr[1];
+      html += sfLevelRow(lvl, escSaveFileHtml(card) + (mastery ? " ★" : ""));
+    });
+    html += "</div>";
+
+    Object.keys(presets)
+      .map(function (name) {
+        return {
+          name: name,
+          order: presets[name].order || 0,
+          cards: presets[name].cards || [],
+        };
+      })
+      .sort(function (a, b) {
+        return a.order - b.order;
+      })
+      .forEach(function (p) {
+        html +=
+          '<div class="sfCardColumn"><div class="sfCardColHeader">' +
+          escSaveFileHtml(p.name) +
+          "</div>";
+        if (p.cards.length === 0) {
+          html += '<div class="sfThemeItem sfNull">-</div>';
+        } else {
+          p.cards.forEach(function (c) {
+            html += '<div class="sfThemeItem">' + escSaveFileHtml(c) + "</div>";
+          });
+        }
+        html += "</div>";
+      });
+
+    html += "</div>";
+
+    if (data.oldCardSlots !== undefined && data.oldCardSlots !== null) {
+      html +=
+        '<div class="sfModMeta">Unlocked Slots: ' +
+        escSaveFileHtml(data.oldCardSlots) +
+        "</div>";
+    }
+    return html;
+  }
+
+  /**
+   * Full view of the save file's module data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesBody(data) {
+    const inv = data.oldModulesInventory || {};
+    const presets = data.oldModulesPresets || {};
+    const categories = ["cannon", "armor", "generator", "core"];
+    return (
+      renderModulesPresets(presets, categories) +
+      renderModulesInventory(inv, presets, categories, data.moduleOrder)
+    );
+  }
+
+  /**
+   * Module presets, per category.
+   * @param {Object} presets
+   * @param {string[]} categories
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesPresets(presets, categories) {
+    const presetNames = presets.presetNames || [];
+    if (!presetNames.length) return "";
+
+    let html = '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>";
+
+      categories.forEach(function (cat) {
+        const preset = (presets[cat] || {})[presetName] || {};
+        html +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(cat) +
+          "</div>" +
+          sfModuleEquipRow("Main", preset.primary) +
+          sfModuleEquipRow("Assist", preset.secondary) +
+          "</div>";
+      });
+
+      html += "</div>";
+    });
+
+    return sfSubLabel("Presets") + html + "</div>";
+  }
+
+  /**
+   * A row naming the module equipped in a slot.
+   * @param {string} label
+   * @param {string} moduleName
+   * @returns {string} Markup for the block.
+   */
+  function sfModuleEquipRow(label, moduleName) {
+    return (
+      '<div class="sfSubstatRow"><span class="sfSubstatRarity">' +
+        (moduleName
+          ? escSaveFileHtml(moduleName)
+          : '<span class="sfNull">-</span>') +
+      '</span><span>' +
+            escSaveFileHtml(label) +
+      "</span></div>"
+    );
+  }
+
+  /**
+   * Module keys for a category, in the save file's own order.
+   * @param {Object} invCat
+   * @param {string[]} moduleOrder
+   * @param {string[]} skipKeys
+   * @returns {string[]}
+   */
+  function sfOrderedModuleKeys(invCat, moduleOrder, skipKeys) {
+    const ordered = [];
+    const placed = {};
+    (moduleOrder || []).forEach(function (name) {
+      [name, "Spare " + name].forEach(function (key) {
+        if (invCat.hasOwnProperty(key) && !placed[key]) {
+          ordered.push(key);
+          placed[key] = true;
+        }
+      });
+    });
+    Object.keys(invCat)
+      .sort(function (a, b) {
+        return a.localeCompare(b);
+      })
+      .forEach(function (key) {
+        if (placed[key]) return;
+        if (skipKeys && skipKeys.indexOf(key) !== -1) return;
+        ordered.push(key);
+      });
+    return ordered;
+  }
+
+  /**
+   * Module inventory, per category, with substats.
+   * @param {Object} inv
+   * @param {Object} presets
+   * @param {string[]} categories
+   * @param {string[]} moduleOrder
+   * @returns {string} Markup for the block.
+   */
+  function renderModulesInventory(inv, presets, categories, moduleOrder) {
+    const metaKeys = ["Highest Level", "Assist Level"];
+    let html = '<div class="sfModuleColumns">';
+    let hasColumn = false;
+
+    categories.forEach(function (cat) {
+      const invCat = inv[cat] || {};
+      const presetCat = presets[cat] || {};
+      const assistSlot = presetCat["Assist Slot"];
+      if (Object.keys(invCat).length === 0 && !assistSlot) return;
+      hasColumn = true;
+
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(cat) +
+        "</div>";
+
+      metaKeys.forEach(function (key) {
+        if (invCat[key] === undefined) return;
+        html +=
+          '<div class="sfModMeta">' +
+          escSaveFileHtml(key) +
+          " " +
+          escSaveFileHtml(invCat[key]) +
+          "</div>";
+      });
+
+      if (assistSlot) {
+        html +=
+          '<div class="sfModuleEntry">' +
+          '<div class="sfModuleName">Assist Slot ' +
+          sfUnlockMark(assistSlot.locked) +
+          "</div>" +
+          '<div class="sfSubstatRow"><span>Rarity</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.rarity) +
+          "</span></div>" +
+          '<div class="sfSubstatRow"><span>Multiplier</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.multiplier) +
+          "</span></div>" +
+          '<div class="sfSubstatRow"><span>Substat</span><span class="sfSubstatRarity">' +
+          escSaveFileHtml(assistSlot.substat) +
+          "</span></div>" +
+          "</div>";
+      }
+
+      sfOrderedModuleKeys(invCat, moduleOrder, metaKeys).forEach(function (key) {
+          if (metaKeys.indexOf(key) !== -1) return;
+          const m = invCat[key];
+          if (!m || typeof m !== "object") return;
+          html +=
+            '<div class="sfModuleEntry">' +
+            '<div class="sfModuleName">' +
+            escSaveFileHtml(key) +
+            ' <span class="sfTag">' +
+            escSaveFileHtml(m.rarity) +
+            "</span></div>";
+          (m.substats || [])
+            .filter(function (s) {
+              return s && s[0];
+            })
+            .forEach(function (s) {
+              html +=
+                '<div class="sfSubstatRow"><span>' +
+                escSaveFileHtml(s[0]) +
+                '</span><span class="sfSubstatRarity">' +
+                escSaveFileHtml(s[1]) +
+                "</span></div>";
+            });
+          html += "</div>";
+        });
+
+      html += "</div>";
+    });
+
+    return hasColumn ? sfSubLabel("Inventory") + html + "</div>" : "";
+  }
+
+  /**
+   * Full view of the save file's guardian data.
+   * @param {Object} data
+   * @returns {string} Markup for the block.
+   */
+  function renderGuardiansBody(data) {
+    const guardians = data.oldGuardians || {};
+    const gData = guardians.data || {};
+    const presetNames = guardians.presetNames || [];
+    const defs = data.targetGuardians || {};
+    const order = data.guardianOrder || Object.keys(defs);
+
+    let unlocks = "";
+    order.forEach(function (name) {
+      const g = gData[name];
+      if (!g) return;
+      const def = defs[name];
+      if (!def) return;
+      const unlocked = !!(g.unlocked || def.alwaysUnlocked);
+      unlocks +=
+        '<span class="sfArrayItem ' +
+        (unlocked ? "is-true" : "is-false") +
+        '">' +
+        escSaveFileHtml(name) +
+        " " +
+        sfUnlockMark(unlocked) +
+        "</span>";
+    });
+    let html = unlocks ? '<div class="sfUnlockRow">' + unlocks + "</div>" : "";
+    if (!presetNames.length) return html;
+
+    html += '<div class="sfModuleColumns">';
+    presetNames.forEach(function (presetName, presetIndex) {
+      let entries = "";
+      order.forEach(function (name) {
+        const g = gData[name];
+        if (!g) return;
+        const def = defs[name];
+        if (!def) return;
+        const preset = (g.presets || {})[presetName] || {};
+        const rows = sfEntityUpgradeRows(def.upgrades, null, preset.props || {});
+        entries +=
+          '<div class="sfModuleEntry"><div class="sfModuleName">' +
+          escSaveFileHtml(name) +
+          "</div>" +
+          '<span class="sfTag"> equipped ' +
+          sfUnlockMark(preset.equipped) +
+          " </span>" +
+          (rows || '<div class="sfModMeta">-</div>') +
+          "</div>";
+      });
+
+      if (!entries) return;
+      html +=
+        '<div class="sfModuleColumn"><div class="sfModuleColHeader">' +
+        escSaveFileHtml(presetName || "Preset " + (presetIndex + 1)) +
+        "</div>" +
+        entries +
+        "</div>";
+    });
+    return html + "</div>";
+  }
+
+  /**
+   * The tier number a key refers to.
+   * @param {string} key
+   * @returns {number}
+   */
+  function sfTierNumber(key) {
+    const m = String(key).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  /**
+   * Full view of the save file's player data.
+   * @param {Object} rawData
+   * @returns {string} Markup for the block.
+   */
+  function renderPlayerBody(rawData) {
+    const data = sfPlayerWaveData(rawData);
+    const stats = data.oldPlayerStuffStatsData || {};
+    const tiers = data.oldPlayerStuffTierData || {};
+    const statOrder = data.statOrder || Object.keys(stats.Stat || []);
+    const premiumPackOrder =
+      data.premiumOrder || Object.keys(stats["Premium Packs"] || []);
+    let html = sfPlayerWaveToggle();
+
+    html += '<div class="sfInlineKV">';
+    premiumPackOrder.forEach(function (key) {
+      const val = stats["Premium Packs"][key] || {};
+      html += sfInlinePair(key + ": ", val);
+    });
+    statOrder.forEach(function (key) {
+      const val = stats.Stat[key] || {};
+      html += sfInlinePair(key + ": ", val);
+    });
+    html += "</div>";
+
+    const tierKeys = Object.keys(tiers).sort(function (a, b) {
+      return sfTierNumber(a) - sfTierNumber(b);
+    });
+
+    if (tierKeys.length === 0) return html;
+
+    html += '<div class="sfTierRow"> </div>';
+
+    for (let i = 0; i < tierKeys.length; i += 3) {
+      const chunk = tierKeys.slice(i, i + 3);
+      const isPremium = !!(tiers[chunk[0]] || {}).premium;
+
+      html += '<div class="sfTierRow">';
+      html +=
+        '<div class="sfTierMilestone">' +
+        '<div class="sfMilestoneName">Milestone Pass ' +
+        sfUnlockMark(isPremium) +
+        "</div>" +
+        "</div>";
+
+      chunk.forEach(function (tk) {
+        const t = tiers[tk] || {};
+        const d = t.diss || {};
+        const n = sfTierNumber(tk);
+        html +=
+          '<div class="sfTierCol">' +
+          '<div class="sfTierColHeader">Tier ' +
+          n +
+          "</div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Wave</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(t.wave != null ? t.wave : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Atk</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.attack != null ? d.attack : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Def</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.defense != null ? d.defense : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Util</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.utility != null ? d.utility : "-") +
+          "</span></div>" +
+          '<div class="sfTierStat"><span class="sfTierStatKey">Ult</span>' +
+          '<span class="sfTierStatVal">' +
+          escSaveFileHtml(d.ultimate != null ? d.ultimate : "-") +
+          "</span></div>" +
+          "</div>";
+      });
+
+      html += "</div>";
+    }
+
+    return html;
+  }
+
+  /**
+   * Renders any value, recursing into objects and arrays.
+   * @param {*} val
+   * @param {number} depth
+   * @returns {string} Markup for the block.
+   */
+  function renderSaveFileValue(val, depth) {
+    depth = depth || 0;
+
+    if (val === null || val === undefined) {
+      return '<span class="sfNull">null</span>';
+    }
+
+    if (val === true) return '<span class="sfArrayItem is-true">✓</span>';
+    if (val === false) return '<span class="sfArrayItem is-false">✗</span>';
+
+    if (typeof val !== "object") {
+      return (
+        '<span class="sfPrimitive">' + escSaveFileHtml(String(val)) + "</span>"
+      );
+    }
+
+    if (Array.isArray(val)) {
+      if (val.length === 0) return '<span class="sfArrayItem">empty</span>';
+
+      const allPrimitive = val.every(function (item) {
+        return item === null || typeof item !== "object";
+      });
+      if (allPrimitive) {
+        return val
+          .map(function (item) {
+            if (item === true)
+              return '<span class="sfArrayItem is-true">✓</span>';
+            if (item === false)
+              return '<span class="sfArrayItem is-false">✗</span>';
+            if (item === null)
+              return '<span class="sfArrayItem sfNull">null</span>';
+            return (
+              '<span class="sfArrayItem">' +
+              escSaveFileHtml(String(item)) +
+              "</span>"
+            );
+          })
+          .join("");
+      }
+
+      return (
+        '<div class="sfNestedList">' +
+        val
+          .map(function (item, idx) {
+            return (
+              '<div class="sfNestedItem">' +
+              '<span class="sfNestedIndex">[' +
+              idx +
+              "]</span>" +
+              renderSaveFileValue(item, depth + 1) +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>"
+      );
+    }
+
+    const keys = Object.keys(val);
+    if (keys.length === 0) return '<span class="sfArrayItem">{ }</span>';
+    return (
+      '<div class="sfNestedObject">' +
+      keys
+        .map(function (k) {
+          return (
+            '<div class="sfNestedRow">' +
+            '<span class="sfNestedKey">' +
+            escSaveFileHtml(k) +
+            "</span>" +
+            '<span class="sfNestedVal">' +
+            renderSaveFileValue(val[k], depth + 1) +
+            "</span>" +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+</script>

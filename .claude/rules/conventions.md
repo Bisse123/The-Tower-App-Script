@@ -1,135 +1,76 @@
 ---
 paths:
-  - "src/*.js"
-  - "src/*.html"
   - "src/**/*.{js,html}"
 ---
 
 # Conventions
 
-How to write code in this repo. The distilled form of what
-[08-error-handling.md](../../documentation/08-error-handling.md) and the frontend doc spell out at
-length — enough to write correct code, not enough to debug a live incident.
-
----
-
 ## Rules that fail silently
 
-These produce no exception, no log entry and no failed check. They surface as wrong data in a
-user's spreadsheet.
-
-- **Never delete an old version converter.** A user on the oldest supported template still needs
-  its reader. Converters are added, never removed.
-- **A converter must return the same neutral keys.** `importData` branches on key presence, so a
-  renamed key imports nothing *and reports success*.
-- **`getVersionXX*` readers must not call the API.** Raw values in, plain objects out.
-- **A new template version is at least two edits** — the sheet module's converter *and* the
-  matching branch in `14_IDS_Collection.js`. Missing the second breaks single-file users only.
-- **Never hard-code a cell address in a user's sheet.** Scan for a text label and read at a fixed
-  offset from it.
-- **A literal `//` inside a fragment's `<script>` is stripped as a comment and kills the block.**
-  URLs belong in the page shell as a constant (`googleLink`, no trailing slash), never in a
-  fragment.
-- **In `getTemplateAndsheetIds`, a sheet type whose name is a substring of another must be looked
-  up after it.** `Themes, Songs & Relics` precedes `Relics`.
-- **Fragment order in a page shell is load-bearing** — styles in `<head>` → sections → the
-  server-injected globals `<script>` → fragment scripts, which run at parse time and read those
-  globals immediately.
-- **`include()` inlines verbatim; `includeTemplate()` evaluates scriptlets.** A stray `<?` in an
-  `include()`d fragment is a parse error. Only `22_error_scripts` needs the template form.
-
----
+- **No load-time cross-file use.** A file may reference another file's symbols only inside a
+  function. Each new file declares its own object rather than adding members to another file's.
+- **Never delete a version converter.** Old sheets still need their reader.
+- **Converters return the same neutral keys.** `importData` branches on key presence; a renamed key
+  imports nothing and reports success.
+- **`getVersionXX*` readers never call the API.** Raw values in, plain objects out.
+- **A new template version is two edits:** the sheet type's converter and the IDS Collection's.
+- **Never hard-code a cell address.** Find a text label and read at an offset from it.
+- **No literal `//` in an included fragment's `<script>`.** Build URLs from `googleLink`.
+- **In `getTemplateAndsheetIds`, a sheet type whose name is a substring of another comes after it.**
+- **Page order is load-bearing:** styles, sections, the page's globals `<script>`, then fragment
+  scripts. A function is hoisted only within its own `<script>` block, so code that runs on load may
+  only call earlier blocks.
+- **`include()` inlines verbatim; `includeTemplate()` evaluates scriptlets.** Only `error_scripts`
+  needs the template form.
 
 ## Style
 
-Apps Script V8, written to an older dialect throughout. Match what is already there.
-
-- `const <name> = { … }` for a module object at file top level; `var` for locals inside functions;
-  `function (…) {}` expressions for members — not arrow functions or method shorthand.
-- Every module method opens with `console.log("Called: <object>.<method>")`.
-- JSDoc above every function, method and property: what it is, each parameter, what it returns.
-- Never write a comment that narrates a change, justifies an edit, or compares to previous
-  behaviour. Remove such comments from any code being edited.
-- `™` on user-visible Google product names — `"Google Sheet™"`, `"New spreadsheet™ not found"`.
-- Emoji as status vocabulary: ✅ success · ❌ failure · ⚠️ partial · 🔐 access needed · ⛔ blocked ·
-  📂 files · 🔄 update · 🎉 all done.
-- Commented-out UI is left in place deliberately; the live element is the one without comment
-  markers.
-- Prefer `Edit` over rewriting a file with `Write`. `14_IDS_Collection.js` carries a UTF-8 BOM —
-  leave it. Never hand-edit `.clasp.json` (transient) or anything under `remote_head/`.
-
----
+- Apps Script V8 in an older dialect: `const` module objects, `var` locals, `function (…) {}`
+  members. Match the file.
+- Module methods open with `console.log("Called: <object>.<method>")`.
+- JSDoc above every function: what it does, each parameter, the return value.
+- No comments that narrate a change or justify an edit.
+- `™` on user-visible Google product names ("Google Sheet™").
+- Emoji status vocabulary: ✅ success · ❌ failure · ⚠️ partial · 🔐 access · ⛔ blocked · 🎉 done.
+- Commented-out UI is kept on purpose; the live element is the uncommented one.
+- `server/sheets/ids_collection/*.js` carry a UTF-8 BOM — keep it. Never edit `.clasp.json` or
+  `remote_head/`.
 
 ## Errors — server
 
-**No server function may throw across the `google.script.run` boundary.** Every one returns a
-success flag; a failure carries a code the client switches on.
+Nothing throws across `google.script.run`; failures return an envelope with a code.
 
 | Situation | Call |
 | --- | --- |
-| `catch` around anything | `errors.report(source, error, context)` then `errors.fail(report)` |
-| A precondition you checked yourself | `errors.reject(source, code, message)` |
-| An inner call already failed | `errors.propagate(source, inner, message?)` — never `reject`, or one incident is recorded twice |
+| Any `catch` | `errors.report(source, error, context)` → `errors.fail(report)` |
+| A precondition you checked | `errors.reject(source, code, message)` |
+| An inner call already failed | `errors.propagate(source, inner, message?)` — never `reject` |
 | A `catch` that logs and carries on | `errors.report(source, error, context, errors.CODES.RECOVERED)` |
-| A `catch` that is one of the answers the function was called to give | Pass the code explicitly, e.g. `errors.CODES.ACCESS_DENIED` |
+| A `catch` that is one of the expected answers | pass the code, e.g. `errors.CODES.ACCESS_DENIED` |
 
-`source` is `functionName` for a top-level function and `module.method` for a sheet-module method
-— fifteen modules share those method names, so the qualifier is what identifies the failure.
-
-`context` takes the function's own parameters, raw — `errors.snapshot` caps depth and size, so
-raw locals are safe to pass. Add a mid-computation local when it would narrow down the failure.
-Never pass a raw email; `errors.userKey()` already identifies the user as a truncated hash.
-
-Never `console.log` an error: INFO severity, no stack, nothing will ever alert on it.
-
-### Choosing a code
-
-**Would *we* have to change something?** Then it is a bug — severity `ERROR`, a `TWR-…` reference
-shown to the user, Error Reporting sees it. Otherwise expected — `WARNING`, no reference, amber
-panel, and it never reaches Error Reporting.
-
-Expected: `ACCESS_DENIED` · `NOT_FOUND` · `INVALID_LINK` · `INVALID_FILE` · `QUOTA` · `TIMEOUT` ·
-`VERSION_OUTDATED` · `RECOVERED` · `AUTH_UNAVAILABLE` · `NETWORK_BLOCKED`.
-Bugs: `INVALID_INPUT` · `SHEET_STRUCTURE` · `CLIENT` · `INTERNAL`.
-
-A new code goes in `ERROR_DEFS` (`00_Errors.js`) and nowhere else, bar the display title in
-`AppError.TITLES`.
-
-**Never tell the user to update their sheet** via `MESSAGES.VERSION_OUTDATED` — it says only that
-the sheet is not a version the step can work with. Every call site that knows more says it itself.
-
----
+- `source` is `functionName`, or `object.method` for an object member.
+- `context` takes the function's parameters, raw; `errors.snapshot` bounds it. Never a raw email.
+- **Code choice:** would *we* have to change something? Bug (`INVALID_INPUT`, `SHEET_STRUCTURE`,
+  `CLIENT`, `INTERNAL`). Otherwise expected (`ACCESS_DENIED`, `NOT_FOUND`, `INVALID_LINK`,
+  `INVALID_FILE`, `QUOTA`, `TIMEOUT`, `VERSION_OUTDATED`, `RECOVERED`, `AUTH_UNAVAILABLE`,
+  `NETWORK_BLOCKED`).
+- New codes go in `ERROR_DEFS` only (plus a title in `AppError.TITLES`).
+- Never tell the user to update their sheet via `MESSAGES.VERSION_OUTDATED`; the call site says it.
+- Never `console.log` an error.
 
 ## Errors — client
 
-`runAppsScript(method, …args)` is the only way to call the server. A resolved call can still be a
-failure — that is what the envelope is for:
-
-```javascript
-const result = await runAppsScript("importData", newSheetID, sheetType, data);
-if (AppError.check(result, "importData")) return;   // panel shown, reference included
-```
+Call the server with `runAppsScript(method, …args)`, a promise over `google.script.run`. A resolved
+call can still be a failure envelope.
 
 | Situation | Call |
 | --- | --- |
 | A failed envelope | `AppError.check(result, source)` / `AppError.show(result, { source })` |
 | A caught exception | `AppError.show(error, { source, message })` |
 | A failure the user need not see | `AppError.log(error, source)` |
-| A list of per-sheet failures | `AppError.surfaceBatch(entries, { source })` |
-| Several failures at once | `AppError.showAll(rawList, { source })` |
+| A list of per-sheet failures | `AppError.surfaceBatch(entries, { source })` — each entry carries its `envelope` |
 
-Each entry in a batch must carry its `envelope`; without it there is no code and no reference.
+Fan-outs: `resolve` on failure, never `reject`; update the DOM inside the handler.
 
-### Fan-outs
-
-- **`resolve` on failure, never `reject`** inside a `Promise.all`, or one bad sheet takes down the
-  whole batch.
-- **Update the DOM inside the handler**, not after the `await`.
-- **Report what you swallowed** — `AppError.log(error, "copyTemplates")` records a
-  resolved-on-failure item without showing the panel.
-
-### Escaping
-
-Sheet and file names are user-controlled and reach `innerHTML`. Use `escSaveFileHtml` /
-`escapeSummaryHtml` for names, and `sanitizeGetStartedUrl` before rendering any URL into a link —
-it allow-lists only `docs.google.com/spreadsheets/d/…` and `drive.google.com/drive/folders/…`.
+Escape user-controlled names with `escSaveFileHtml` / `escapeSummaryHtml`; pass URLs through
+`sanitizeGetStartedUrl` before rendering a link.

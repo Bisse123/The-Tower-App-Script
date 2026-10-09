@@ -1,0 +1,182 @@
+<script>
+  /**
+   * Raises the panel for the first import or export failure that is a defect,
+   * and logs every other one.
+   * @param {string} source
+   * @returns {Object|null} The shown error, or null when none was a defect.
+   */
+  function surfaceFailureIfBug(source) {
+
+    return AppError.surfaceBatch(
+      [].concat(importedFilesFailed || [], exportedFilesFailed || []),
+      { source: source },
+    );
+  }
+
+  /**
+   * Escapes a string for the results summary markup.
+   * @param {*} str
+   * @returns {string}
+   */
+  function escapeSummaryHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  /**
+   * One row of the results summary.
+   * @param {Object} file
+   * @param {string} [reason]
+   * @returns {string} Row markup.
+   */
+  function summaryFileRow(file, reason) {
+    const label = `Copy of ${file.sheetType} ${file.version}`;
+    const link = file.fileId
+      ? `<a href="${googleLink}/${file.fileId}/edit" target="_blank">${label}</a>`
+      : label;
+    return `&nbsp;&nbsp;• ${link}${
+      reason ? ` - ${escapeSummaryHtml(reason)}` : ""
+    }<br>`;
+  }
+
+  /**
+   * Renders the per-sheet results lists for the finished operation.
+   * @param {number} [gid] Grid id to link the new sheet to.
+   * @param {boolean} [idsMasterUpdated]
+   * @returns {void}
+   */
+  function displayOperationResults(gid, idsMasterUpdated = false) {
+    let summaryHtml = "";
+
+    if (importedFilesSuccess && importedFilesSuccess.length > 0) {
+      document.getElementById("importButton").disabled = true;
+      summaryHtml += `<strong>⚠️ Make sure your data is imported correctly before ${
+        sheetType === "IDS Collection"
+          ? "moving your IDS Collection"
+          : sheetType === "Effective Paths"
+            ? "moving your Effective Paths"
+            : sheetType === "IDS Master" && isUpdateSingleSheetFlow
+              ? "moving your IDS Master"
+              : sheetType !== "IDS Master"
+                ? `moving your ${sheetType}`
+                : "moving your subsheets"
+      }! ⚠️</strong><br>`;
+    }
+
+    if (idsMasterUpdated) {
+      let masterLabel = "IDS Master";
+      let epLabel = "";
+      if (cachedMasterTemplateInfo) {
+        masterLabel =
+          '<strong style="color:#fff;background:#e53935;padding:0 0.4em;border-radius:0.3em;">new</strong> IDS Master';
+          epLabel = ` <strong>⚠️ Remember to update Effective Path to use your new IDS Master ⚠️</strong><br>`;
+      }
+      summaryHtml += `<strong>🔄 Please go to your ${masterLabel} and grant the new sheet(s) access.</strong>`;
+      summaryHtml += `<br><a href="${googleLink}/${idMasterID}/edit#gid=${gid}" target="_blank" style="margin-left: 2em"> Open your IDS Master sheet™.</a><br>`;
+      summaryHtml += `${epLabel}`;
+    }
+
+    if (!idsMasterUpdated && sheetType === "IDS Master" && isCombinedUpdate) {
+      if (newSheetID) {
+        summaryHtml += `<strong>📄 New IDS Master (copy):</strong><br>`;
+        summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${newSheetID}/edit" target="_blank">Open IDS Master Sheet™</a><br>`;
+        summaryHtml += `<strong>⚠️ Remember to update your Effective Paths to use the new IDS Master! ⚠️</strong><br>`;
+      }
+    }
+
+    if (copiedTemplateFiles && copiedTemplateFiles.length > 0) {
+      document.getElementById("importButton").disabled = false;
+      summaryHtml += `<br><strong>📋 Sheets (Ready for Import):</strong><br>`;
+      copiedTemplateFiles.forEach((file) => {
+        summaryHtml += summaryFileRow(file);
+      });
+    }
+
+    if (exportedFilesFailed && exportedFilesFailed.length > 0) {
+      document.getElementById("importButton").disabled = false;
+      summaryHtml += `<br><strong>❌ Export Failed (Requires Retry):</strong><br>`;
+      exportedFilesFailed.forEach((file) => {
+        summaryHtml += summaryFileRow(file, file.error || "Export failed");
+      });
+    }
+
+    if (importedFilesFailed && importedFilesFailed.length > 0) {
+      document.getElementById("importButton").disabled = false;
+      summaryHtml += `<br><strong>❌ Import Failed (Requires Retry):</strong><br>`;
+      importedFilesFailed.forEach((file) => {
+        summaryHtml += summaryFileRow(file, file.error || "Import failed");
+      });
+    }
+
+    if (preparationFailedFiles && preparationFailedFiles.length > 0) {
+      summaryHtml += `<br><strong>⛔ Cannot Be Imported:</strong><br>`;
+      preparationFailedFiles.forEach((file) => {
+        summaryHtml += summaryFileRow(
+          file,
+          file.error || "Preparation failed",
+        );
+      });
+      summaryHtml += `&nbsp;&nbsp;<em>The copies above were created but left empty. You can delete them.</em><br>`;
+    }
+
+    if (importedFilesSuccess && importedFilesSuccess.length > 0) {
+      summaryHtml += `<br><strong>✅ Successfully Imported Sheets (Ready to be moved and renamed):</strong><br>`;
+      importedFilesSuccess.forEach((file) => {
+        summaryHtml += summaryFileRow(file);
+      });
+    }
+
+    if (movedFiles && movedFiles.length > 0) {
+      summaryHtml += `<br><strong>🎉 Successfully moved & renamed:</strong><br>`;
+      movedFiles.forEach((file) => {
+        const displayName =
+          file.updateResult && file.updateResult.newName
+            ? file.updateResult.newName
+            : `Updated Copy of ${file.sheetType} ${file.version}`;
+
+        if (file.fileId) {
+          summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${file.fileId}/edit" target="_blank">${displayName}</a><br>`;
+        } else {
+          summaryHtml += `&nbsp;&nbsp;• ${displayName}<br>`;
+        }
+      });
+
+      if (
+        cachedTemplatesWithSameVersion &&
+        cachedTemplatesWithSameVersion.length > 0
+      ) {
+        summaryHtml += `<br><strong>⚠️ Existing subsheets that failed to get new IDS Master ID (need manual update):</strong><br>`;
+        cachedTemplatesWithSameVersion.forEach((template) => {
+
+          if (template.oldSheetID) {
+            summaryHtml += `&nbsp;&nbsp;• <a href="${googleLink}/${template.oldSheetID}/edit" target="_blank">${template.sheetType} Sheet™</a><br>`;
+          } else {
+            summaryHtml += `&nbsp;&nbsp;• ${template.sheetType} Sheet™<br>`;
+          }
+        });
+      }
+    }
+
+    const moveSheetButton = document.getElementById("moveSheetButton");
+    if (moveSheetButton) {
+      moveSheetButton.disabled = !(
+        importedFilesSuccess && importedFilesSuccess.length > 0
+      );
+    }
+
+    document.getElementById("selectedFileSummary").innerHTML = summaryHtml;
+  }
+
+  /**
+   * The link to the sheet a single-sheet update has just moved and renamed.
+   * @param {string} sheetTypeName
+   * @returns {string} Empty when there is no new sheet to link to.
+   */
+  function movedSheetLink(sheetTypeName) {
+    if (!newSheetID) return "";
+    return `<br><a href="${googleLink}/${newSheetID}/edit" target="_blank" style="margin-left: 2em">📋 Open your new ${sheetTypeName} sheet™</a><br>`;
+  }
+</script>
