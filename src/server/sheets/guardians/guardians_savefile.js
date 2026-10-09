@@ -11,9 +11,11 @@ const guardiansSaveFile = {
   /**
    * Parses Guardians data out of a decoded save file.
    * @param {Object} data
+   * @param {number} presetCount How many of the stored presets the player has unlocked; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseGuardiansData: function (data) {
+  parseGuardiansData: function (data, presetCount) {
     try {
 
       const targetGuardians = {
@@ -31,7 +33,7 @@ const guardiansSaveFile = {
         });
 
       const guardianUnlockedData = data.guardianChipUnlocked || [];
-      const guardianPresetsData = data.guardianPresets || [];
+      const guardianPresetsData = (data.guardianPresets || []).slice(0, presetCount);
 
       var presets = guardianPresetsData.length
         ? guardianPresetsData

@@ -26,9 +26,11 @@ const workshopSaveFile = {
   /**
    * Parses Workshop data out of a decoded save file.
    * @param {Object} data
+   * @param {number} presetCount How many of the stored presets the player has unlocked; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseWorkshopData: function (data) {
+  parseWorkshopData: function (data, presetCount) {
     try {
       const attackUpgradeNamesByIndex = {
         0: "Damage",
@@ -160,7 +162,7 @@ const workshopSaveFile = {
       const utilityUpgradeUnlockedIndices = namesByIndexToArray(utilityUpgradeUnlockedNamesByIndex);
 
       const presetOrder = presetUtils.resolvePresetOrder(
-        data.presetNames || [],
+        (data.presetNames || []).slice(0, presetCount),
         presetUtils.templatePresetNames,
       );
       var presetNames = presetOrder.order;

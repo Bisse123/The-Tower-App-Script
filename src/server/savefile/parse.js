@@ -46,11 +46,17 @@ function parseSaveFileBytes(byteArray) {
     return values;
   }
 
+  var vaultUpgradeLevels = {};
+  Object.keys(data.vault || {}).forEach(function (key) {
+    if (key.includes("UpgradesLevel")) vaultUpgradeLevels = data.vault[key] || {};
+  });
+  var presetCounts = presetUtils.unlockedPresetCounts(data.researchLevel, vaultUpgradeLevels);
+
   var labValues = extractDataByHeaders(labHeaders);
   var laboratoryData = labSaveFile.parseLabData(labValues);
 
   var workshopValues = extractDataByHeaders(workshopHeaders);
-  var workshopData = workshopSaveFile.parseWorkshopData(workshopValues);
+  var workshopData = workshopSaveFile.parseWorkshopData(workshopValues, presetCounts.workshop);
 
   var ultimateWeaponValues = extractDataByHeaders(ultimateWeaponHeaders);
   var ultimateWeaponData = ultimateSaveFile.parseUltimateWeaponData(ultimateWeaponValues);
@@ -60,25 +66,25 @@ function parseSaveFileBytes(byteArray) {
     themesAndRelicsSaveFile.parseThemesAndRelicsData(themesAndRelicsValues);
 
   var botValues = extractDataByHeaders(botHeaders);
-  var botData = botsSaveFile.parseBotsData(botValues);
+  var botData = botsSaveFile.parseBotsData(botValues, presetCounts.bots);
 
   var vaultValues = extractDataByHeaders(vaultHeaders);
   var vaultData = vaultSaveFile.parseVaultData(vaultValues);
 
   var cardsValues = extractDataByHeaders(cardsHeaders);
-  var cardsData = cardsSaveFile.parseCardsData(cardsValues);
+  var cardsData = cardsSaveFile.parseCardsData(cardsValues, presetCounts.cards);
 
   var moduleValues = extractDataByHeaders(moduleHeaders);
-  var moduleData = modulesSaveFile.parseModulesData(moduleValues);
+  var moduleData = modulesSaveFile.parseModulesData(moduleValues, presetCounts.modules);
 
   var guardianValues = extractDataByHeaders(guardianHeaders);
-  var guardianData = guardiansSaveFile.parseGuardiansData(guardianValues);
+  var guardianData = guardiansSaveFile.parseGuardiansData(guardianValues, presetCounts.guardians);
 
   var playerStuffValues = extractDataByHeaders(PlayerStuffHeaders);
   var playerStuffdata = playerStuffSaveFile.parsePlayerStuffData(playerStuffValues);
 
   var masterValues = extractDataByHeaders(MasterHeaders);
-  var masterData = masterSaveFile.parseMasterData(masterValues);
+  var masterData = masterSaveFile.parseMasterData(masterValues, presetCounts);
 
   const parsed = {
     "Laboratory": laboratoryData,

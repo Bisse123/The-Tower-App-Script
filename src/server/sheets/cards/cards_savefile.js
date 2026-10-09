@@ -12,9 +12,11 @@ const cardsSaveFile = {
   /**
    * Parses Cards data out of a decoded save file.
    * @param {Object} data
+   * @param {number} presetCount How many of the stored presets the player has unlocked; only
+   *   those are read.
    * @returns {Object} The parsed data, or a failure envelope.
    */
-  parseCardsData: function (data) {
+  parseCardsData: function (data, presetCount) {
     try {
       const cardNamesByIndex = {
         0: "Damage",
@@ -57,8 +59,9 @@ const cardsSaveFile = {
       const cardLevel = data.cardLevel || [];
       const cardMasteryUnlocked = data.cardMasteryUnlocked || [];
 
+      const storedPresetNames = data.presetNames || [];
       const presetOrder = presetUtils.resolvePresetOrder(
-        data.presetNames || [],
+        storedPresetNames.slice(0, presetCount),
         presetUtils.templatePresetNames,
       );
       const presetNames = presetOrder.order;
@@ -74,7 +77,7 @@ const cardsSaveFile = {
         oldCardsLevel[cardName] = [cardLevel[i], cardMasteryUnlocked[i]];
       });
 
-      const numPresets = presetNames.length;
+      const numPresets = storedPresetNames.length;
       const slotsPerPreset =
         numPresets > 0 ? Math.floor(presetSlots.length / numPresets) : 0;
       var oldCardsPreset = {};
